@@ -1,0 +1,40 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de trabajo 1500x700x750 mm con estructura PTR y cubierta melamina blanca","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina blanca 19 mm","insumoId":"melamina-19","material_solicitado":"melamina blanca 19 mm","material_match":"EXACT","forma":"area","largoM
+
+[lab-costear] analizar-mueble 200 en 19 s · piezas 9
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de trabajo 1500x700x750 con estructura PTR y faldón de lámina","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina blanca 19 mm","insumoId":"melamina-19","material_solicitado":"melamina blanca 19 mm","material_match":"EXACT","forma":"area","largoMM":1500,"an
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":4530.79,"materialTotal":2579.09,"manoObra":487.92,"indirectosFabrica":1463.77,"desperdicio":1675.32,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"c
+
+[lab-costear] BOM inicial {"piezas":9,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántas mesas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cómo se fija el faldón?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 9 propuestos","diferencias":"","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":3696.31,"margen":40,"costo":{"costoUnitario":2217.79,"materialTotal":1294.09,"manoObra":230.92,"indirectosFabrica":692.77,"desperdicio":550.32,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"
+
+[lab-costear] precio {"precios":["$2,217.79","Pendiente"],"margen":null,"estado":"Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se requieren? · ¿Cómo se fija el faldón?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $1,294.09 · Mano de obra $230.92 · Fábrica $692.77","pendiente":true,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":null,"costoSrv":2217.79,"estadoSrv":"preliminar","iguales":null,"llamadasSrv":2}
+
+[lab-costear] expedientes POST 201 [{"id":38}]
+
+[lab-costear] guardado {"status":201,"id":38,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":3696.31,"margen":40,"costo":{"costoUnitario":2217.79,"materialTotal":1294.09,"manoObra":230.92,"indirectosFabrica":692.77,"desperdicio":550.32,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 19 mm","seccion":"
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":9,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render v5_mesa_trabajo BORRADOR mesa mesa de trabajo recta con estructura PTR y faldón Melamina blanca 19 mm","piezas":9,"mismoBom":true,"costoAntes":"$2,217.79","costoDespues":"$2,217.79","mismoCosto":true,"resultado":{"precios":["$2,217.79","Pendiente"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $1,294.09 · Mano de obra $230.92 · Fábrica $692.77","pendiente":true,"porConfirmar":false},"pageErrors":0}
+
+  1 passed (1.5m)

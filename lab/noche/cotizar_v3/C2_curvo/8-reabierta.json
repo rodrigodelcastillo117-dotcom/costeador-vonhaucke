@@ -1,0 +1,652 @@
+{
+  "id": 1567,
+  "partidas": 11,
+  "colocadas": 28,
+  "areas": 6,
+  "escenas": 1,
+  "identica": true,
+  "diferencias": [],
+  "cobrablesSugeridas": 0,
+  "firmaAntes": {
+    "partidas": [
+      {
+        "k": "1896|op-8u-4800x1200-cristal|Módulo operativo App LT 8 usuarios (biombo cristal)",
+        "cantidad": 1,
+        "precioUnitario": 23070,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1896|op-8u-4800x1200-cristal|Módulo operativo App LT 8 usuarios (biombo cristal)",
+        "cantidad": 1,
+        "precioUnitario": 23070,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1904|dir-1800x2400|Módulo directivo App LT",
+        "cantidad": 1,
+        "precioUnitario": 15780,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1905|rec-2420x830|Módulo recepción 2 usuarios",
+        "cantidad": 1,
+        "precioUnitario": 29920,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1912|mj-2400x1200|Mesa de juntas App LT",
+        "cantidad": 1,
+        "precioUnitario": 7870,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1915|mj-consejo-4800x1200-eclipse|Mesa de consejo Eclipse",
+        "cantidad": 1,
+        "precioUnitario": 96720,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1923|silla-win|Silla operativa WIN",
+        "cantidad": 8,
+        "precioUnitario": 5210,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1923|silla-win|Silla operativa WIN",
+        "cantidad": 8,
+        "precioUnitario": 5210,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1925|silla-concerto|Silla CONCERTO (visita 4 pts)",
+        "cantidad": 12,
+        "precioUnitario": 5140,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1925|silla-concerto|Silla CONCERTO (visita 4 pts)",
+        "cantidad": 6,
+        "precioUnitario": 5140,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1926|silla-alpha|Silla directiva ALPHA",
+        "cantidad": 1,
+        "precioUnitario": 11950,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      }
+    ],
+    "colocacion": [
+      {
+        "id": "juntas|ANCHOR_MEETING|#1::mj-2400x1200-1",
+        "area": 4,
+        "x": 600,
+        "y": 1500,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-1",
+        "area": 4,
+        "x": 900,
+        "y": 900,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-2",
+        "area": 4,
+        "x": 2100,
+        "y": 900,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-3",
+        "area": 4,
+        "x": 900,
+        "y": 2700,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-4",
+        "area": 4,
+        "x": 2100,
+        "y": 2700,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-5",
+        "area": 4,
+        "x": 0,
+        "y": 1800,
+        "rot": 0,
+        "side": "HEAD_A"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-6",
+        "area": 4,
+        "x": 3000,
+        "y": 1800,
+        "rot": 0,
+        "side": "HEAD_B"
+      },
+      {
+        "id": "operativo|ANCHOR_WORKSTATION|#0::op-8u-4800x1200-cristal-1",
+        "area": 1,
+        "x": 3700,
+        "y": 5300,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "operativo|ANCHOR_WORKSTATION|#1::op-8u-4800x1200-cristal-1",
+        "area": 1,
+        "x": 5900,
+        "y": 1400,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-1",
+        "area": 1,
+        "x": 4000,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-2",
+        "area": 1,
+        "x": 5200,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-3",
+        "area": 1,
+        "x": 6400,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-4",
+        "area": 1,
+        "x": 7600,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-5",
+        "area": 1,
+        "x": 4000,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-6",
+        "area": 1,
+        "x": 5200,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-7",
+        "area": 1,
+        "x": 6400,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-8",
+        "area": 1,
+        "x": 7600,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-1",
+        "area": 1,
+        "x": 6200,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-2",
+        "area": 1,
+        "x": 7400,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-3",
+        "area": 1,
+        "x": 8600,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-4",
+        "area": 1,
+        "x": 9800,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-5",
+        "area": 1,
+        "x": 6200,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-6",
+        "area": 1,
+        "x": 7400,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-7",
+        "area": 1,
+        "x": 8600,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-8",
+        "area": 1,
+        "x": 9800,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "privado|ANCHOR_DESK|#0::dir-1800x2400-1",
+        "area": 5,
+        "x": 900,
+        "y": 900,
+        "rot": 90,
+        "side": null
+      },
+      {
+        "id": "privado|EXECUTIVE_SEAT|inst:req:TRAPECIO · DIRECCIÓN:privado:0:#0::silla-alpha-1",
+        "area": 5,
+        "x": 3300,
+        "y": 1500,
+        "rot": 90,
+        "side": "BACK"
+      },
+      {
+        "id": "recepcion|ANCHOR_RECEPTION|#0::rec-2420x830-1",
+        "area": 0,
+        "x": 0,
+        "y": 1300,
+        "rot": 0,
+        "side": null
+      }
+    ],
+    "escenas": [
+      "LOBBY"
+    ]
+  },
+  "firmaDespues": {
+    "partidas": [
+      {
+        "k": "1896|op-8u-4800x1200-cristal|Módulo operativo App LT 8 usuarios (biombo cristal)",
+        "cantidad": 1,
+        "precioUnitario": 23070,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1896|op-8u-4800x1200-cristal|Módulo operativo App LT 8 usuarios (biombo cristal)",
+        "cantidad": 1,
+        "precioUnitario": 23070,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1904|dir-1800x2400|Módulo directivo App LT",
+        "cantidad": 1,
+        "precioUnitario": 15780,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1905|rec-2420x830|Módulo recepción 2 usuarios",
+        "cantidad": 1,
+        "precioUnitario": 29920,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1912|mj-2400x1200|Mesa de juntas App LT",
+        "cantidad": 1,
+        "precioUnitario": 7870,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1915|mj-consejo-4800x1200-eclipse|Mesa de consejo Eclipse",
+        "cantidad": 1,
+        "precioUnitario": 96720,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1923|silla-win|Silla operativa WIN",
+        "cantidad": 8,
+        "precioUnitario": 5210,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1923|silla-win|Silla operativa WIN",
+        "cantidad": 8,
+        "precioUnitario": 5210,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1925|silla-concerto|Silla CONCERTO (visita 4 pts)",
+        "cantidad": 12,
+        "precioUnitario": 5140,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1925|silla-concerto|Silla CONCERTO (visita 4 pts)",
+        "cantidad": 6,
+        "precioUnitario": 5140,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      },
+      {
+        "k": "1926|silla-alpha|Silla directiva ALPHA",
+        "cantidad": 1,
+        "precioUnitario": 11950,
+        "costoUnitario": null,
+        "sugerido": false,
+        "noCobrar": false
+      }
+    ],
+    "colocacion": [
+      {
+        "id": "juntas|ANCHOR_MEETING|#1::mj-2400x1200-1",
+        "area": 4,
+        "x": 600,
+        "y": 1500,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-1",
+        "area": 4,
+        "x": 900,
+        "y": 900,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-2",
+        "area": 4,
+        "x": 2100,
+        "y": 900,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-3",
+        "area": 4,
+        "x": 900,
+        "y": 2700,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-4",
+        "area": 4,
+        "x": 2100,
+        "y": 2700,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-5",
+        "area": 4,
+        "x": 0,
+        "y": 1800,
+        "rot": 0,
+        "side": "HEAD_A"
+      },
+      {
+        "id": "juntas|MEETING_SEAT|inst:req:SALA CREATIVA:juntas:1:#0::silla-concerto-6",
+        "area": 4,
+        "x": 3000,
+        "y": 1800,
+        "rot": 0,
+        "side": "HEAD_B"
+      },
+      {
+        "id": "operativo|ANCHOR_WORKSTATION|#0::op-8u-4800x1200-cristal-1",
+        "area": 1,
+        "x": 3700,
+        "y": 5300,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "operativo|ANCHOR_WORKSTATION|#1::op-8u-4800x1200-cristal-1",
+        "area": 1,
+        "x": 5900,
+        "y": 1400,
+        "rot": 0,
+        "side": null
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-1",
+        "area": 1,
+        "x": 4000,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-2",
+        "area": 1,
+        "x": 5200,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-3",
+        "area": 1,
+        "x": 6400,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-4",
+        "area": 1,
+        "x": 7600,
+        "y": 4700,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-5",
+        "area": 1,
+        "x": 4000,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-6",
+        "area": 1,
+        "x": 5200,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-7",
+        "area": 1,
+        "x": 6400,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-8",
+        "area": 1,
+        "x": 7600,
+        "y": 6500,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-1",
+        "area": 1,
+        "x": 6200,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-2",
+        "area": 1,
+        "x": 7400,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-3",
+        "area": 1,
+        "x": 8600,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-4",
+        "area": 1,
+        "x": 9800,
+        "y": 800,
+        "rot": 0,
+        "side": "A"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-5",
+        "area": 1,
+        "x": 6200,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-6",
+        "area": 1,
+        "x": 7400,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-7",
+        "area": 1,
+        "x": 8600,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#1::silla-win-8",
+        "area": 1,
+        "x": 9800,
+        "y": 2600,
+        "rot": 0,
+        "side": "B"
+      },
+      {
+        "id": "privado|ANCHOR_DESK|#0::dir-1800x2400-1",
+        "area": 5,
+        "x": 900,
+        "y": 900,
+        "rot": 90,
+        "side": null
+      },
+      {
+        "id": "privado|EXECUTIVE_SEAT|inst:req:TRAPECIO · DIRECCIÓN:privado:0:#0::silla-alpha-1",
+        "area": 5,
+        "x": 3300,
+        "y": 1500,
+        "rot": 90,
+        "side": "BACK"
+      },
+      {
+        "id": "recepcion|ANCHOR_RECEPTION|#0::rec-2420x830-1",
+        "area": 0,
+        "x": 0,
+        "y": 1300,
+        "rot": 0,
+        "side": null
+      }
+    ],
+    "escenas": [
+      "LOBBY"
+    ]
+  }
+}

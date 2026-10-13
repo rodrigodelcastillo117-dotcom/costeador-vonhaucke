@@ -1,0 +1,79 @@
+{
+  "producto": "Mesa de centro 1000 × 600 × 420",
+  "resumen": {
+    "esperados": 3,
+    "pass": 2,
+    "fail": 1,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 6,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "cristal_m2",
+      "renglones": 1,
+      "materiales": [
+        "cristal-templado"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "areaM2": 0.6
+    },
+    {
+      "clave": "tubular_m",
+      "renglones": 2,
+      "materiales": [
+        "tubular-redondo-34"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "metros": 7.168
+    },
+    {
+      "clave": "cromado",
+      "renglones": 1,
+      "materiales": [
+        "ecocrom"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "cantidad 0.53, esperado 0.39–0.47 m²"
+      ],
+      "evidencia": "plano: ACABADO CROMADO (ECOCROM); superficie del tubo ≈ π × 19 mm × 7.17 m = 0.43 m²",
+      "inferido": false,
+      "cantidad": 0.53
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Soldadura base tubular",
+      "insumoId": "ptr-14",
+      "permitido": true
+    },
+    {
+      "nombre": "Niveladores",
+      "insumoId": "nivelador",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "preliminar",
+  "respuestas": [
+    {
+      "pregunta": "Como se fija el cristal a la base?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "La base lleva niveladores o regatones?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Cuantas mesas se fabricaran?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

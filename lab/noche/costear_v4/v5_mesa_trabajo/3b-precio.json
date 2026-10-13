@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$2,217.79",
+      "Pendiente"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se requieren? · ¿Cómo se fija el faldón?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $1,294.09 · Mano de obra $230.92 · Fábrica $692.77",
+    "pendiente": true,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

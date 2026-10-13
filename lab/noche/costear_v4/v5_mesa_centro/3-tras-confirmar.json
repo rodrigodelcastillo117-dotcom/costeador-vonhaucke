@@ -1,0 +1,55 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 6 propuestos",
+    "diferencias": "1 difieren de lo pedido y se confirman uno por uno: Niveladores. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta de cristal templado 9 mm",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares (superior e inferior) tubular redondo 3/4\" cal.18, lado largo",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares, lado corto tubular redondo 3/4\" cal.18",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Postes verticales tubular redondo 3/4\" cal.18",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado de la base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de base",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («pata») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

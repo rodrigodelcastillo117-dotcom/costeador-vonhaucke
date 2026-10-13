@@ -1,0 +1,113 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render v4_credenza BORRADOR guarda credenza de 3 puertas MDF enchapado nogal natural",
+    "piezas": 17,
+    "mismoBom": true,
+    "costoAntes": "$4,546.02",
+    "costoDespues": "$4,546.02",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,546.02",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,764.09 · Mano de obra $445.48 · Fábrica $1,336.45",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales cuerpo (nucleo MDF 18 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta y fondo del cuerpo (nucleo MDF)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, cubierta exterior",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, frentes de puerta",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles (nucleo MDF)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Divisores verticales interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepanos interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14, largueros frontal y trasero",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Travesanos laterales base PTR",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Patas PTR 100 mm",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostatica negra base PTR",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapacanto PVC cantos expuestos",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ]
+}

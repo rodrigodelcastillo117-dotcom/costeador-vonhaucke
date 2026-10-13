@@ -1,0 +1,134 @@
+[
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": false,
+    "code": "RENDER_COUNT_MISMATCH",
+    "error": "No se pudo generar una foto con el conteo exacto (sillas: 10 de 12). Usa el plano, que sí es exacto, o vuelve a intentar.",
+    "audit": null,
+    "referencias": 1,
+    "con_dibujo": null,
+    "conteo": {
+      "piso": 1,
+      "sillas": 10
+    },
+    "conteoTexto": null,
+    "model": null,
+    "bytes": null
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The ergonomic chair geometry matches the product reference accurately.",
+        "Desk configuration, item counts, and room environment align with expected specifications."
+      ],
+      "confidence": 0.75,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "OK",
+      "conteo": {
+        "ok": true,
+        "sinRespuesta": false,
+        "piso": 1,
+        "sillas": 1,
+        "diferencias": [],
+        "intento": 1,
+        "notas": "An office setup featuring a double desk bench module with a privacy partition and one ergonomic chair."
+      },
+      "geometria_producto": "PASS"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2004430
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The 8 mesh-backed chairs match the product reference design and quantity.",
+        "The conference table and room arrangement accurately reflect the reference diagram layout.",
+        "Camera angle and environment read clearly as a standard boardroom setup."
+      ],
+      "confidence": 0.75,
+      "fidelidad_producto": "CON_REFERENCIAS",
+      "contador": "OK",
+      "conteo": {
+        "ok": true,
+        "sinRespuesta": false,
+        "piso": 1,
+        "sillas": 8,
+        "diferencias": [],
+        "intento": 1,
+        "notas": "The conference room contains eight chairs surrounding a single central wooden table."
+      },
+      "geometria_producto": "PASS"
+    },
+    "referencias": 1,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2386046
+  },
+  {
+    "fn": "generar-render-rc",
+    "status": 200,
+    "ok": true,
+    "code": null,
+    "error": null,
+    "audit": {
+      "pass": true,
+      "geometry_match": "PASS",
+      "layout_match": "PASS",
+      "environment_match": "PASS",
+      "extra_objects": "PASS",
+      "natural_camera": "PASS",
+      "reasons": [
+        "The 2-user reception desk matches expected geometry and proportions.",
+        "Furniture placement, count, and room environment correctly reflect the reference layout."
+      ],
+      "confidence": 0.7,
+      "fidelidad_producto": "SIN_REFERENCIAS",
+      "contador": "OK",
+      "conteo": {
+        "ok": true,
+        "sinRespuesta": false,
+        "piso": 1,
+        "sillas": 0,
+        "diferencias": [],
+        "intento": 1,
+        "notas": "Solo se observa un mostrador de recepción central sin sillas visibles en la imagen."
+      },
+      "geometria_producto": "NO_VERIFICABLE"
+    },
+    "referencias": 0,
+    "con_dibujo": true,
+    "conteo": null,
+    "conteoTexto": null,
+    "model": "gemini-3-pro-image",
+    "bytes": 2363863
+  }
+]

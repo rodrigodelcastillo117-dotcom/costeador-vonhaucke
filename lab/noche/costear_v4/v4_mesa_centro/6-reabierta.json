@@ -1,0 +1,54 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render v4_mesa_centro BORRADOR mesa mesa de centro rectangular con cubierta de cristal Cristal templado 9 mm Lista: $5,738 · preliminar",
+    "piezas": 6,
+    "mismoBom": true,
+    "costoAntes": "$3,442.84",
+    "costoDespues": "$3,442.84",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$3,442.84",
+        "$5,738.06"
+      ],
+      "margen": "Precio de lista (40% margen · del expediente guardado)",
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,250.25 · Mano de obra $294.04 · Fábrica $898.55",
+      "pendiente": false,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares de base 900x500 (perímetro)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Postes verticales de base",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado de base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura base tubular",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ]
+}

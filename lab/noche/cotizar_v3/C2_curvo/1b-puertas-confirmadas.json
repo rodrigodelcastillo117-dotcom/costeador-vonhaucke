@@ -1,0 +1,12 @@
+[
+  {
+    "texto": "LOBBY · pared de arriba (a 3.10 m, 0.00 m del origen del cuarto) · vano 2.40 m · vano ancho: suele ser doble Hojas: Una hoja Doble (dos hojas) Abre: Hacia adentro del cuarto Hacia afuera Confirmar est",
+    "doble": true,
+    "abre": "adentro"
+  },
+  {
+    "texto": "SALA CREATIVA · pared derecha (a 8.00 m, 2.70 m del origen del cuarto) · vano 0.90 m Hojas: Una hoja Doble (dos hojas) Bisagra (de pie adentro, frente a la puerta): Izquierda Derecha Abre: Hacia adent",
+    "doble": false,
+    "abre": "adentro"
+  }
+]

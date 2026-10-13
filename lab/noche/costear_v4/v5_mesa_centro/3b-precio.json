@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,040.03",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 3 decisión(es) pendiente(s): ¿Como se fija el cristal a la base? · ¿Cuantas mesas se fabricaran? · ¿Lleva niveladores o tapones?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,026.47 · Mano de obra $249.29 · Fábrica $764.28",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

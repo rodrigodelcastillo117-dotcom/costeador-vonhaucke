@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$3,442.84",
+      "$5,738.06"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "Costo preliminar — 3 decisión(es) pendiente(s): Como se fija el cristal a la base? · La base lleva niveladores o regatones? · Cuantas mesas se fabricaran?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.",
+    "linea": "Material $2,250.25 · Mano de obra $294.04 · Fábrica $898.55",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

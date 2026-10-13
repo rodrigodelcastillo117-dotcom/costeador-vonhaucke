@@ -1,0 +1,22 @@
+=== mesa_centro
+exit 0
+[lab-costear] respuestas [{"pregunta":"¿Como se fija el cristal a la base?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuantas mesas se fabricaran?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva niveladores o tapones?","elegido":"(sin responder: el plano no lo dice)"}]
+[lab-costear] precio {"precios":["$3,040.03","Por confirmar"],"margen":null,"estado":"Costo preliminar — 3 decisión(es) pendiente(s): ¿Como se fija el cristal a la base? · ¿Cuantas mesas se fabricaran? · ¿Lleva niveladores o tapones?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $2,026.47 · Mano de obra $249.29 · Fábrica $764.28","pendiente":false,"porConfirmar":true}
+[lab-costear] paridad {"costoCliente":3040.03,"costoSrv":3040.03,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+[lab-costear] guardado {"status":201,"id":37,"mensaje":"Guardado en la biblioteca"}
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+[lab-costear] hoja de control {"esperados":3,"pass":3,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":7,"veredicto":"PASS"} []
+[lab-costear] reabierta {"tarjeta":"sin render v5_mesa_centro BORRADOR mesita mesa de centro con cubierta de cristal y base tubular Cristal templado 9 mm con canto pulido","piezas":7,"mismoBom":true,"costoAntes":"$3,040.03","costoDespues":"$3,040.03","mismoCosto":true,"resultado":{"precios":["$3,040.03","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $2,026.47 · Mano de obra $249.29 · Fábrica $764.28","pendiente":false,"porConfirmar":true},"pageErrors":0}
+  1 passed (1.4m)
+edges: rc=2 prod=0 costeo_rc=3 costeo_prod=0
+=== mesa_trabajo
+exit 0
+[lab-costear] respuestas [{"pregunta":"¿Cuántas mesas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cómo se fija el faldón?","elegido":"(sin responder: el plano no lo dice)"}]
+[lab-costear] precio {"precios":["$2,217.79","Pendiente"],"margen":null,"estado":"Costo preliminar — 2 decisión(es) pendiente(s): ¿Cuántas mesas se requieren? · ¿Cómo se fija el faldón?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.","linea":"Material $1,294.09 · Mano de obra $230.92 · Fábrica $692.77","pendiente":true,"porConfirmar":false}
+[lab-costear] paridad {"costoCliente":null,"costoSrv":2217.79,"estadoSrv":"preliminar","iguales":null,"llamadasSrv":2}
+[lab-costear] guardado {"status":201,"id":38,"mensaje":"Guardado en la biblioteca"}
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":9,"veredicto":"PASS"} []
+[lab-costear] reabierta {"tarjeta":"sin render v5_mesa_trabajo BORRADOR mesa mesa de trabajo recta con estructura PTR y faldón Melamina blanca 19 mm","piezas":9,"mismoBom":true,"costoAntes":"$2,217.79","costoDespues":"$2,217.79","mismoCosto":true,"resultado":{"precios":["$2,217.79","Pendiente"],"margen":null,"estado":"COSTO PRELIMINAR","linea":"Material $1,294.09 · Mano de obra $230.92 · Fábrica $692.77","pendiente":true,"porConfirmar":false},"pageErrors":0}
+  1 passed (1.5m)
+edges: rc=2 prod=0 costeo_rc=3 costeo_prod=0

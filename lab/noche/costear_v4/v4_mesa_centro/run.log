@@ -1,0 +1,42 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:43:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de centro con cubierta de cristal templado 9 mm y base tubular cromada","tipo":"mesa","piezas":[{"nombre":"Cubierta cristal templado 1000x600","insumoId":"cristal-templado","material_solicitado":"cristal templado 9 mm, canto pulido","material_match":"EXACT","
+
+[lab-costear] analizar-mueble 200 en 18 s · piezas 6
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Mesa de centro con cubierta de cristal templado y base tubular cromada","tipo":"mesa","piezas":[{"nombre":"Cubierta cristal templado canto pulido","insumoId":"cristal-templado","material_solicitado":"cristal templado 9 mm, canto pulido","material_match":"EXACT","f
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":3271.12,"materialTotal":2154.85,"manoObra":274.96,"indirectosFabrica":841.31,"desperdicio":225.65,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mamparas"
+
+[lab-costear] BOM inicial {"piezas":6,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"Como se fija el cristal a la base?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"La base lleva niveladores o regatones?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Cuantas mesas se fabricaran?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":5738.06,"margen":40,"costo":{"costoUnitario":3442.84,"materialTotal":2250.25,"manoObra":294.04,"indirectosFabrica":898.55,"desperdicio":225.65,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mampar
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 6 propuestos","diferencias":"","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$3,442.84","$5,738.06"],"margen":"Precio de lista (40% margen · política vigente (1 pieza))","estado":"Costo preliminar — 3 decisión(es) pendiente(s): Como se fija el cristal a la base? · La base lleva niveladores o regatones? · Cuantas mesas se fabricaran?. No es obligatorio contestarlas; el costo ya se puede emitir como preliminar.","linea":"Material $2,250.25 · Mano de obra $294.04 · Fábrica $898.55","pendiente":false,"porConfirmar":false}
+
+[lab-costear] paridad {"costoCliente":3442.84,"costoSrv":3442.84,"estadoSrv":"preliminar","iguales":true,"llamadasSrv":2}
+
+[lab-costear] expedientes POST 201 [{"id":35}]
+
+[lab-costear] guardado {"status":201,"id":35,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":5738.06,"margen":40,"costo":{"costoUnitario":3442.84,"materialTotal":2250.25,"manoObra":294.04,"indirectosFabrica":898.55,"desperdicio":225.65,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mampar
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","piezas":1,"precioVenta":5738.06,"margen":40,"costo":{"costoUnitario":3442.84,"materialTotal":2250.25,"manoObra":294.04,"indirectosFabrica":898.55,"desperdicio":225.65,"detalleInsumos":[{"insumoId":"cristal-templado","nombre":"Cristal templado 9 mm","seccion":"mampar
+
+[lab-costear] transferencia {"intentado":true,"habilitado":true,"title":"Verifica el costo autoritativo antes de agregar","partidasAntes":0,"partidasDespues":1,"partida":{"nombre":"v4_mesa_centro","cantidad":1,"costoUnitario":3442.84,"precioUnitario":5738.0635999999995},"servidor":{"estado":"preliminar","precioVenta":5738.06,"fuenteCosto":"catalogo"},"paridad":null}
+
+[lab-costear] hoja de control {"esperados":3,"pass":2,"fail":1,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":6,"veredicto":"FAIL"} ["FAIL cromado: cantidad 0.53, esperado 0.39–0.47 m²"]
+
+[lab-costear] reabierta {"tarjeta":"sin render v4_mesa_centro BORRADOR mesa mesa de centro rectangular con cubierta de cristal Cristal templado 9 mm Lista: $5,738 · preliminar","piezas":6,"mismoBom":true,"costoAntes":"$3,442.84","costoDespues":"$3,442.84","mismoCosto":true,"resultado":{"precios":["$3,442.84","$5,738.06"],"margen":"Precio de lista (40% margen · del expediente guardado)","estado":"COSTO PRELIMINAR","linea":"Material $2,250.25 · Mano de obra $294.04 · Fábrica $898.55","pendiente":false,"porConfirmar":false},"pageErrors":0}
+
+  1 passed (1.5m)

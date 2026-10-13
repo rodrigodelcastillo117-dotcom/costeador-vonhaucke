@@ -1,0 +1,142 @@
+{
+  "erp": {
+    "intentado": true,
+    "pieza": "Respaldo MDF 9 mm",
+    "resultados": [
+      "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF25M1\" · ACABADO MADERA GRIS HUMO LM · hoja · ERP\n$1,226.70 / hoja · certificado · 2026-07-03\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\" · hoja · ERP\n$431.04 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP\n$240.00 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 9 mm CON CERTIFICADO - \"MDF4109CC\" · hoja · ERP\n$651.00 / hoja · propuesto_validado · 2021-11-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 19 mm - \"MDFN41019\" · hoja · ERP\n$710.00 / hoja · propuesto_validado · 2019-03-04\nUsar",
+      "MDF NATURAL HOJA 6 X 8 ESPESOR 19 mm - \"\"MDF1968\"\"\" · hoja · ERP\n$623.90 / hoja · propuesto_validado · 2016-06-30\nUsar"
+    ],
+    "elegido": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales cuerpo (nucleo MDF 18 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Cubierta y fondo del cuerpo",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal natural, laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal natural, cubierta exterior",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal natural, frentes de puerta",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Puertas abatibles (nucleo MDF)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Divisores verticales interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Entrepanos interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14, largueros frontal y trasero",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Travesanos laterales base PTR",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Patas PTR 100 mm",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura electrostatica negra base PTR",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapacanto cantos expuestos",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

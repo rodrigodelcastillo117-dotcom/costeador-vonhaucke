@@ -1,0 +1,81 @@
+{
+  "piezas": [
+    {
+      "nombre": "Cubierta de cristal templado 9 mm",
+      "material": "Cristal templado 9 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Marcos rectangulares (superior e inferior) tubular redondo 3/4\" cal.18, lado largo",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Marcos rectangulares, lado corto tubular redondo 3/4\" cal.18",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Postes verticales tubular redondo 3/4\" cal.18",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Acabado cromado de la base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Soldadura de base",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («pata») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 7,
+    "producto": "Mesa de centro con cubierta de cristal templado 9 mm y base tubular cromada",
+    "uso": {
+      "input_tokens": 22701,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2329,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}

@@ -1,0 +1,194 @@
+{
+  "producto": "Credenza nogal 1800 × 450 × 750 (cuerpo 650 sobre base PTR de 100)",
+  "resumen": {
+    "esperados": 12,
+    "pass": 12,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 17,
+    "veredicto": "PASS"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "cubierta_y_piso",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "puertas",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 3
+    },
+    {
+      "clave": "chapa_nogal_m2",
+      "renglones": 3,
+      "materiales": [
+        "chapa-madera"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "caras exteriores: 2 laterales 650×450 + 3 puertas 630×580 + cubierta 1800×450",
+      "inferido": false,
+      "areaM2": 2.491
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 3
+    },
+    {
+      "clave": "divisiones",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "no dibujadas: \"1 ENTREPAÑO POR MÓDULO\" con 3 puertas implica 3 módulos → 2 divisiones",
+      "inferido": true,
+      "piezas": 2
+    },
+    {
+      "clave": "respaldo",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf8"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "base_ptr_m",
+      "renglones": 3,
+      "materiales": [
+        "ptr-14"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "no acotado: marco 2×(1800+450) + 4 patas de 100 + 2 travesaños ≈ 5.72 m (puede venir en varios renglones: patas, marco, travesaños)",
+      "inferido": true,
+      "metros": 4.9
+    },
+    {
+      "clave": "pintura",
+      "renglones": 1,
+      "materiales": [
+        "pintura-electrostatica"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false
+    },
+    {
+      "clave": "bisagras",
+      "renglones": 1,
+      "materiales": [
+        "bisagra"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 6
+    },
+    {
+      "clave": "jaladeras",
+      "renglones": 1,
+      "materiales": [
+        "jaladera"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 3
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 4
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Tapacanto PVC cantos expuestos",
+      "insumoId": "tapacanto",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "Seccion y calibre del PTR de la base",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Especie de chapa nogal",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Como cotizar respaldo MDF 9 mm (no esta en catalogo)",
+      "elegido": "(sin responder: ya resuelta con ERP)"
+    },
+    {
+      "pregunta": "Numero de patas/apoyos de la base",
+      "elegido": "4",
+      "evidencia": "plano: 2 patas en frontal × 2 en lateral"
+    },
+    {
+      "pregunta": "Tipo de canto en cuerpo y puertas",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Tapacanto PVC",
+        "ABS 3 mm",
+        "Chapa en canto"
+      ],
+      "evidencia": "plano: 3 PUERTAS ABATIBLES"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render v5_mesa_centro BORRADOR mesita mesa de centro con cubierta de cristal y base tubular Cristal templado 9 mm con canto pulido",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$3,040.03",
+    "costoDespues": "$3,040.03",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$3,040.03",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,026.47 · Mano de obra $249.29 · Fábrica $764.28",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta de cristal templado 9 mm",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares (superior e inferior) tubular redondo 3/4\" cal.18, lado largo",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares, lado corto tubular redondo 3/4\" cal.18",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Postes verticales tubular redondo 3/4\" cal.18",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado de la base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de base",
+      "material": "Soldadura",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («pata») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

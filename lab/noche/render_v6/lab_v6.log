@@ -1,0 +1,18 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labRender.e2e.js:10:1 › reabrir y generar renders por área
+[chromium] › e2e/labRender.e2e.js:10:1 › reabrir y generar renders por área
+[lab-render] edge generar-render-rc 200 {"ok":false,"code":"RENDER_COUNT_MISMATCH","referencias":1}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":1,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The ergonomic chair geometry matches the product reference accurately.","Desk configuration, item counts, and room environment align with expected specifications."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":1,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The 8 mesh-backed chairs match the product reference design and quantity.","The conference table and room arrangement accurately reflect the reference diagram layout.","Camera angle and environment read clearly as a standard boardroom setup."]}}
+
+[lab-render] edge generar-render-rc 200 {"ok":true,"referencias":0,"con_dibujo":true,"audit":{"pass":true,"layout":"PASS","extra":"PASS","reasons":["The 2-user reception desk matches expected geometry and proportions.","Furniture placement, count, and room environment correctly reflect the reference layout."]}}
+
+[lab-render] {"cliente":"(lab V2) C1 recto RC 3","boton":"Generar las 4 áreas","segundos":191,"fn":["generar-render-rc"],"llamadas":4,"validas":3,"fallas":["RENDER_COUNT_MISMATCH"],"referencias":[1,1,1,0],"con_dibujo":[null,true,true,true],"imagenes":3,"escenasGuardadas":4,"pageErrors":0}
+
+[lab-render] ETAPAS {"generadas":3,"validadas":3,"persistidas":3,"reabiertas":3,"enPdf":{"bytes":14047940,"imagenesEnPdf":6},"botonGuardarEscenas":1,"escenas":[{"area":"DIRECCIÓN","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"},{"area":"SALA DE JUNTAS","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"},{"area":"RECEPCIÓN","img":"https://mtuvnbgljwbsaizjjgzs.supabase.co/storage/v1/object/public/renders/generated/qa-dir"}],"reabiertasEscenas":3,"reabiertasEnLinea":0}
+
+  1 passed (3.8m)

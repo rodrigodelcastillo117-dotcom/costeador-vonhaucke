@@ -1,0 +1,48 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 6 propuestos",
+    "diferencias": "",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta cristal templado canto pulido",
+      "material": "Cristal templado 9 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Marcos rectangulares de base 900x500 (perímetro)",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Postes verticales de base",
+      "material": "Tubular redondo 3/4\" cal. 18 (tramo 6 m)",
+      "alertas": []
+    },
+    {
+      "nombre": "Acabado cromado de base (EcoCrom)",
+      "material": "EcoCrom",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura base tubular",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}
