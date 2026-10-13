@@ -43,7 +43,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   page.on('response', async (res) => {
     const u = res.url();
     const m = u.match(/\/functions\/v1\/([a-z0-9-]+)/);
-    if (m) { let j = null; try { j = await res.json(); } catch (_e) {} edges.push({ fn: m[1], status: res.status(), body: j }); console.log('[lab-costear] edge', m[1], res.status(), JSON.stringify(j || {}).slice(0, 300)); return; }
+    if (m) { let j = null; try { j = await res.json(); } catch (_e) {} let req = null; try { req = m[1] === 'costear-servidor' ? JSON.parse(res.request().postData() || 'null') : null; } catch (_e) {} edges.push({ fn: m[1], status: res.status(), body: j, req }); console.log('[lab-costear] edge', m[1], res.status(), JSON.stringify(j || {}).slice(0, 300)); return; }
     if (/\/rest\/v1\/expedientes/.test(u) && res.request().method() !== 'GET') { let j = null; try { j = await res.json(); } catch (_e) {} rest.push({ method: res.request().method(), status: res.status(), body: j }); console.log('[lab-costear] expedientes', res.request().method(), res.status(), JSON.stringify(j || {}).slice(0, 200)); }
   });
   await page.addInitScript(() => { try { const k = 'costeador-vonhaucke-v1'; const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) {} });
@@ -222,12 +222,14 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
         transfer.servidor = srv2 ? { estado: srv2.body?.estado, costoUnitario: srv2.body?.costoUnitario, precioVenta: srv2.body?.precioVenta, fuenteCosto: srv2.body?.fuenteCosto } : null;
         transfer.paridad = nueva && srv2?.body?.costoUnitario != null && nueva.costoUnitario != null ? Math.round(Number(nueva.costoUnitario) * 100) === Math.round(Number(srv2.body.costoUnitario) * 100) : null;
       }
-      transfer.main = (await page.locator('main').innerText()).slice(0, 1500);
+      transfer.main = (await page.locator('main').innerText()).slice(0, 6000);
     }
     await page.screenshot({ path: path.join(SALIDA, '7-transferencia.png'), fullPage: true });
   }
   guarda('7-transferencia.json', transfer);
   console.log('[lab-costear] transferencia', JSON.stringify({ ...transfer, main: undefined }));
-  guarda('edges.json', edges.map((e) => ({ ...e, body: JSON.stringify(e.body || {}).slice(0, 4000) })));
+  guarda('edges.json', edges.map((e) => ({ ...e, body: JSON.stringify(e.body || {}).slice(0, 6000), req: e.req ? JSON.stringify(e.req).slice(0, 6000) : null })));
+  const ultimoSrv = edges.filter((e) => e.fn === 'costear-servidor').pop();
+  guarda('8-dto-servidor.json', { req: ultimoSrv?.req ?? null, res: ultimoSrv?.body ?? null });
   console.log('[lab-costear] reabierta', JSON.stringify(reabierta));
 });
