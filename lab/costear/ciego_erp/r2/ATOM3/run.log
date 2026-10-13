@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Omega metálica de refuerzo para cubierta modelo App LT (850 × 100 × 17 mm) con tornillería","tipo":"otro","piezas":[{"nombre":"Omega de refuerzo lámina doblada 850 × 100 × 17 mm","insumoId":"lamina-18","material_solicitado":"Perfil omega metálico (lámina de acero 
+
+[lab-costear] analizar-mueble 200 en 33 s · piezas 3 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":121.93,"materialTotal":67.74,"manoObra":13.55,"indirectosFabrica":40.64,"desperdicio":4.28,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccio
+
+[lab-costear] BOM inicial {"piezas":3,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántas omegas se requieren en total?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué calibre de lámina para la omega?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Acabado/color de la pieza?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas perforaciones/barrenos de fijación lleva cada omega?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Tipo de tornillería de fijación?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Las cotas 100 × 17, ¿son sección formada (alma 100, ala 17) o desarrollo plano total?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":121.93,"materialTotal":67.74,"manoObra":13.55,"indirectosFabrica":40.64,"desperdicio":4.28,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccio
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate (acabado omega), Tornillería de fijación omega-cubierta. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$121.93","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Pintura en polvo negro mate (acabado omega), Tornillería de fijación omega-cubierta · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Pintura en polvo negro mate (acabado omega), Tornillería de fijación omega-cubierta · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $67.74 · Mano de obra $13.55 · Fábrica $40.64","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":121.93,"costoSrv":121.93,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":138.19,"materialTotal":67.74,"manoObra":17.61,"indirectosFabrica":52.84,"desperdicio":4.28,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccio
+
+[lab-costear] dificultad {"costoNormal":121.93,"marcado":"true","costoDificil":138.19,"reqDificultad":"dificil","costoSrvDificil":138.19,"sube":true,"paridad":true,"costoDeVueltaNormal":121.93,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":146}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":121.93,"materialTotal":67.74,"manoObra":13.55,"indirectosFabrica":40.64,"desperdicio":4.28,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccio
+
+[lab-costear] guardado {"status":201,"id":146,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":121.93,"materialTotal":67.74,"manoObra":13.55,"indirectosFabrica":40.64,"desperdicio":4.28,"detalleInsumos":[{"insumoId":"lamina-18","nombre":"Lamina de acero cal. 18","seccio
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":2,"renglonesBom":3,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATOM3 1013-2214 BORRADOR otro componente metálico: perfil omega de refuerzo bajo cubierta (línea App LT) Lámina de acero doblada","piezas":3,"mismoBom":true,"costoAntes":"$121.93","costoDespues":"$121.93","mismoCosto":true,"resultado":{"precios":["$121.93","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Pintura en polvo negro mate (acabado omega), Tornillería de fijación omega-cubierta · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Pintura en polvo negro mate (acabado omega), Tornillería de fijación omega-cubierta · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $67.74 · Mano de obra $13.55 · Fábrica $40.64","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

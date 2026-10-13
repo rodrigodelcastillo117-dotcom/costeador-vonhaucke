@@ -1,0 +1,45 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATOM4 1013-2215 BORRADOR otro componente metálico: omega de refuerzo para cubierta (accesorio del sistema App LT) Lámina de acero doblada",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$161.95",
+    "costoDespues": "$161.95",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$161.95",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Tornillería de fijación omega a cubierta, Acabado pintura en polvo negro mate · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Tornillería de fijación omega a cubierta, Acabado pintura en polvo negro mate · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $89.97 · Mano de obra $17.99 · Fábrica $53.98",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Omega de refuerzo lámina doblada 1150 × 100 × 17 mm",
+      "material": "Lamina de acero cal. 18",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería de fijación omega a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («incluida segun texto») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Acabado pintura en polvo negro mate",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado especificado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

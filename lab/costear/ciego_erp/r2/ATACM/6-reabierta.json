@@ -1,0 +1,59 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATACM 1013-2200 BORRADOR otro conducto/ducto metálico de acometida eléctrica para mueble App LT Lámina de acero doblada",
+    "piezas": 5,
+    "mismoBom": true,
+    "costoAntes": "$273.00",
+    "costoDespues": "$273.00",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$273.00",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 4 material(es) propuestos sin confirmar: Tapa/registro superior 220 × 649, Tapas de extremo 220 × 75, Pintura electrostática en polvo (exterior), Juego de tornillería de montaje y fijación · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 4 material(es) propuestos sin confirmar: Tapa/registro superior 220 × 649, Tapas de extremo 220 × 75, Pintura electrostática en polvo (exterior), Juego de tornillería de montaje y fijación · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $151.66 · Mano de obra $30.33 · Fábrica $91.00",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cuerpo del conducto (lámina doblada en U, desarrollo 370 × 649)",
+      "material": "Lamina de acero cal. 20",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapa/registro superior 220 × 649",
+      "material": "Lamina de acero cal. 20",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tapas de extremo 220 × 75",
+      "material": "Lamina de acero cal. 20",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura electrostática en polvo (exterior)",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado polvo color especificado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Juego de tornillería de montaje y fijación",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («indicada cliente») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

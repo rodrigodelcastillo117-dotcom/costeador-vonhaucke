@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Conducto faldón para escritorio App LT 800 × 379 × 177 mm","tipo":"otro","piezas":[{"nombre":"Panel frontal de faldón (melamina)","insumoId":"melamina-19","material_solicitado":"Melamina 19 mm (color por definir) con canto ABS","material_match":"SUBSTITUTE_SUGGEST
+
+[lab-costear] analizar-mueble 200 en 46 s · piezas 7 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":923.35,"materialTotal":521.17,"manoObra":100.55,"indirectosFabrica":301.64,"desperdicio":49.15,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno
+
+[lab-costear] BOM inicial {"piezas":7,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿El faldón es de melamina con canto ABS, metálico, o mixto (frente melamina + canaleta metálica)?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Calibre de la lámina del cuerpo metálico?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color/decorativo de la melamina del frente?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de pintura en polvo para la parte metálica?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas piezas se fabricarán en esta orden?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva tapa registrable abatible para acceso a cables?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Incluye módulo eléctrico (contactos/USB) dentro del conducto?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Espesor/acabado del canto ABS?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":923.35,"materialTotal":521.17,"manoObra":100.55,"indirectosFabrica":301.64,"desperdicio":49.15,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 2 propuestos","diferencias":"4 difieren de lo pedido y se confirman uno por uno: Canto ABS perimetral del panel frontal, Pintura en polvo cuerpo metálico, Escuadras / soportes de fijación a cubierta, Tornillería de ensamble. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$923.35","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 material(es) propuestos sin confirmar: Canto ABS perimetral del panel frontal, Tapas laterales metálicas, Pintura en polvo cuerpo metálico, Escuadras / soportes de fijación a cubierta… · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 material(es) propuestos sin confirmar: Canto ABS perimetral del panel frontal, Tapas laterales metálicas, Pintura en polvo cuerpo metálico, Escuadras / soportes de fijación a cubierta… · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $521.17 · Mano de obra $100.55 · Fábrica $301.64","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":923.35,"costoSrv":923.35,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1044.01,"materialTotal":521.17,"manoObra":130.71,"indirectosFabrica":392.13,"desperdicio":49.15,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegn
+
+[lab-costear] dificultad {"costoNormal":923.35,"marcado":"true","costoDificil":1044.01,"reqDificultad":"dificil","costoSrvDificil":1044.01,"sube":true,"paridad":true,"costoDeVueltaNormal":923.35,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":144}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":923.35,"materialTotal":521.17,"manoObra":100.55,"indirectosFabrica":301.64,"desperdicio":49.15,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno
+
+[lab-costear] guardado {"status":201,"id":144,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":923.35,"materialTotal":521.17,"manoObra":100.55,"indirectosFabrica":301.64,"desperdicio":49.15,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":6,"renglonesBom":7,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATFAL12ABS 1013-2211 BORRADOR otro accesorio de escritorio: conducto faldón portacables modelo App LT Melamina 19 mm con canto ABS","piezas":7,"mismoBom":true,"costoAntes":"$923.35","costoDespues":"$923.35","mismoCosto":true,"resultado":{"precios":["$923.35","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 material(es) propuestos sin confirmar: Canto ABS perimetral del panel frontal, Tapas laterales metálicas, Pintura en polvo cuerpo metálico, Escuadras / soportes de fijación a cubierta… · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 material(es) propuestos sin confirmar: Canto ABS perimetral del panel frontal, Tapas laterales metálicas, Pintura en polvo cuerpo metálico, Escuadras / soportes de fijación a cubierta… · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $521.17 · Mano de obra $100.55 · Fábrica $301.64","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.6m)

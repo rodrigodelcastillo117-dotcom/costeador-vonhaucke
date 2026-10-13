@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Cubierta rectangular App LT 1500×600×28 mm en melamina con cantos ABS y tapa registrable metálica","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina 28 mm 1500×600","insumoId":"melamina-28","material_solicitado":"Melamina 28 mm (color no especificado), modelo A
+
+[lab-costear] analizar-mueble 200 en 25 s · piezas 3 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1180.23,"materialTotal":737.64,"manoObra":110.65,"indirectosFabrica":331.94,"desperdicio":266.68,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] BOM inicial {"piezas":3,"pendientes":["Tapa registrable metálica App LT + herraje"],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Qué color/decorativo de melamina 28 mm?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La cotización incluye estructura/patas o sólo la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas tapas registrables metálicas lleva la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva módulo eléctrico (contactos/USB) bajo la tapa?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Espesor del canto ABS?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Requiere perforación de pasacables/grommet adicional?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1180.23,"materialTotal":737.64,"manoObra":110.65,"indirectosFabrica":331.94,"desperdicio":266.68,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Canto ABS perimetral 28 mm. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$1,180.23","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $737.64 · Mano de obra $110.65 · Fábrica $331.94","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":1180.23,"costoSrv":1180.23,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1313.01,"materialTotal":737.64,"manoObra":143.84,"indirectosFabrica":431.52,"desperdicio":266.68,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] dificultad {"costoNormal":1180.23,"marcado":"true","costoDificil":1313.01,"reqDificultad":"dificil","costoSrvDificil":1313.01,"sube":true,"paridad":true,"costoDeVueltaNormal":1180.23,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1180.23,"materialTotal":737.64,"manoObra":110.65,"indirectosFabrica":331.94,"desperdicio":266.68,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] expedientes POST 201 [{"id":142}]
+
+[lab-costear] guardado {"status":201,"id":142,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1180.23,"materialTotal":737.64,"manoObra":110.65,"indirectosFabrica":331.94,"desperdicio":266.68,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":3,"renglonesBom":3,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATCUBS45ABS 1013-2208 BORRADOR mesa cubierta de mesa/escritorio App LT con tapa registrable Melamina 28 mm","piezas":3,"mismoBom":true,"costoAntes":"$1,180.23","costoDespues":"$1,180.23","mismoCosto":true,"resultado":{"precios":["$1,180.23","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $737.64 · Mano de obra $110.65 · Fábrica $331.94","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.2m)

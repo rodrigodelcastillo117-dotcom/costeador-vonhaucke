@@ -1,0 +1,160 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif credenza 1013-2156 BORRADOR guarda credenza 3 puertas sobre base PTR Madera MDF con chapa de nogal natural",
+    "piezas": 22,
+    "mismoBom": true,
+    "costoAntes": "$12,916.07",
+    "costoDespues": "$12,916.07",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$12,916.07",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO BLOQUEADO — Estructura: La descripción pide 3 puerta(s) y el despiece trae 9. Corrige las cantidades o márcalo como revisado si la descripción estaba mal.",
+      "estado3": "COSTO BLOQUEADO — Estructura: La descripción pide 3 puerta(s) y el despiece trae 9. Corrige las cantidades o márcalo como revisado si la descripción estaba mal.",
+      "validadores": [],
+      "linea": "Material $7,971.87 · Mano de obra $1,236.05 · Fábrica $3,708.15",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta superior MDF enchapado nogal",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso inferior MDF",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Laterales MDF",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Divisiones verticales interiores melamina blanca",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Entrepaños melamina blanca",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Puertas abatibles MDF",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal cubierta (2 caras)",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal puertas (2 caras)",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pegado de chapa",
+      "material": "Pegado de chapa (operación)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto perimetral piezas MDF chapadas",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 - largueros",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Base PTR - travesaños",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Base PTR - patas",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostática negra base",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica negra») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Soldadura",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Barniz chapa nogal",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tornillería y ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («minifix») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBS45ABS 1013-2208 BORRADOR mesa cubierta de mesa/escritorio App LT con tapa registrable Melamina 28 mm",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$1,180.23",
+    "costoDespues": "$1,180.23",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,180.23",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "estado3": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "validadores": [],
+      "linea": "Material $737.64 · Mano de obra $110.65 · Fábrica $331.94",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1500×600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral 28 mm",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto espesor indicado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica App LT + herraje",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "producto": "CUBIERTA CUADRADA DE 1200 X 1200 mm MODELO APPS LT PARA BANCA DOBLE, CON DOS TAPAS REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBD44ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 3,
+    "renglonesBom": 4,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Cubierta App LT 1200×1200",
+      "insumoId": "melamina-28",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS perimetral cubierta",
+      "insumoId": "tapacanto-3mm",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje",
+      "insumoId": "",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta a estructura",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿El alcance incluye estructura/patas de la banca o sólo la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Espesor de la melamina de la cubierta",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Color/decorativo de la melamina",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Tipo de canto perimetral",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se incluye módulo eléctrico (Byrne/contactos) bajo las tapas registrables?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas cubiertas se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se requieren pasacables/grommets adicionales a las tapas?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

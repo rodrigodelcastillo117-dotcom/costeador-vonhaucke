@@ -1,0 +1,85 @@
+{
+  "producto": "PATA TIPO \"U\" DE 750 X 720 mm MODELO APPS LT; METALICA -- ATPU75M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 6,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Tramo vertical de pata en U (PTR 3\" x 1 1/2\" cal.14)",
+      "insumoId": "ptr-3-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Travesaño horizontal superior de la U (PTR 3\" x 1 1/2\" cal.14)",
+      "insumoId": "ptr-3-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm)",
+      "insumoId": "lamina-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa/casquillo inferior lámina cal.14",
+      "insumoId": "lamina-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura MIG (uniones de la U y placas)",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado pata)",
+      "insumoId": "pintura-polvo-negro",
+      "permitido": false
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué sección y calibre de PTR lleva la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "La cota de 750 mm, ¿es el ancho total de la U (frente) o la profundidad del apoyo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas patas se cotizan?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La U es de tubo soldado en 3 tramos o doblado en una sola pieza?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva placa superior barrenada para atornillar a cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Tipo de apoyo a piso?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La pata integra ducto o pasacables vertical?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

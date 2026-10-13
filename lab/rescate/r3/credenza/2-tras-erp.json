@@ -1,0 +1,182 @@
+{
+  "erp": {
+    "intentado": true,
+    "pieza": "Respaldo MDF 9 mm",
+    "resultados": [
+      "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF25M1\" · ACABADO MADERA GRIS HUMO LM · hoja · ERP\n$1,226.70 / hoja · certificado · 2026-07-03\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\" · hoja · ERP\n$431.04 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP\n$240.00 / hoja · certificado · 2026-06-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 9 mm CON CERTIFICADO - \"MDF4109CC\" · hoja · ERP\n$651.00 / hoja · propuesto_validado · 2021-11-01\nUsar",
+      "MDF NATURAL HOJA 4' X 10' ESPESOR 19 mm - \"MDFN41019\" · hoja · ERP\n$710.00 / hoja · propuesto_validado · 2019-03-04\nUsar",
+      "MDF NATURAL HOJA 6 X 8 ESPESOR 19 mm - \"\"MDF1968\"\"\" · hoja · ERP\n$623.90 / hoja · propuesto_validado · 2016-06-30\nUsar"
+    ],
+    "elegido": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\" · hoja · ERP $240.00 / hoja · certificado · 2026-06-01 Usar"
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta superior MDF enchapado nogal",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Piso inferior MDF",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Laterales MDF",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Divisiones verticales interiores melamina blanca",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Entrepaños melamina blanca",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Puertas abatibles MDF",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal cubierta (2 caras)",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal puertas (2 caras)",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pegado de chapa",
+      "material": "Pegado de chapa (operación)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Canto perimetral piezas MDF chapadas",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 - largueros",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Base PTR - travesaños",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Base PTR - patas",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura electrostática negra base",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica negra») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Soldadura",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "Bisagra",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "Jaladera",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Barniz chapa nogal",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tornillería y ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («minifix») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "estado3": null,
+    "validadores": [
+      "⛔ La descripción pide 3 puerta(s) y el despiece trae 9. Corrige las cantidades o márcalo como revisado si la descripción estaba mal. Lo revisé: es correcto",
+      "Lo revisé: es correcto"
+    ],
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

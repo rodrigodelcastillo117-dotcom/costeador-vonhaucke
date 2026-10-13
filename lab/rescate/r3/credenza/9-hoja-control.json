@@ -1,0 +1,208 @@
+{
+  "producto": "Credenza nogal 1800 × 450 × 750 (cuerpo 650 sobre base PTR de 100)",
+  "resumen": {
+    "esperados": 12,
+    "pass": 10,
+    "fail": 1,
+    "riesgo": 1,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 22,
+    "veredicto": "FAIL"
+  },
+  "filas": [
+    {
+      "clave": "laterales",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "cubierta_y_piso",
+      "renglones": 2,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "puertas",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf19"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 3
+    },
+    {
+      "clave": "chapa_nogal_m2",
+      "renglones": 4,
+      "materiales": [
+        "chapa-madera"
+      ],
+      "estado": "FAIL",
+      "motivos": [
+        "área 7.881 m², el plano da 2.491 m² (±15 %)"
+      ],
+      "evidencia": "caras exteriores: 2 laterales 650×450 + 3 puertas 630×580 + cubierta 1800×450",
+      "inferido": false,
+      "areaM2": 7.881
+    },
+    {
+      "clave": "entrepanos",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 3
+    },
+    {
+      "clave": "divisiones",
+      "renglones": 1,
+      "materiales": [
+        "melamina-16"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "no dibujadas: \"1 ENTREPAÑO POR MÓDULO\" con 3 puertas implica 3 módulos → 2 divisiones",
+      "inferido": true,
+      "piezas": 2
+    },
+    {
+      "clave": "respaldo",
+      "renglones": 1,
+      "materiales": [
+        "erp-mdf8"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "base_ptr_m",
+      "renglones": 3,
+      "materiales": [
+        "ptr-14"
+      ],
+      "estado": "RIESGO",
+      "motivos": [
+        "9.04 m, esperado 4.9–6 m (inferido: el plano no lo acota)"
+      ],
+      "evidencia": "no acotado: marco 2×(1800+450) + 4 patas de 100 + 2 travesaños ≈ 5.72 m (puede venir en varios renglones: patas, marco, travesaños)",
+      "inferido": true,
+      "metros": 9.04
+    },
+    {
+      "clave": "pintura",
+      "renglones": 1,
+      "materiales": [
+        "pintura-polvo-negro"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false
+    },
+    {
+      "clave": "bisagras",
+      "renglones": 1,
+      "materiales": [
+        "bisagra"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 6
+    },
+    {
+      "clave": "jaladeras",
+      "renglones": 1,
+      "materiales": [
+        "jaladera"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 3
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": null,
+      "inferido": false,
+      "cantidad": 4
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Pegado de chapa",
+      "insumoId": "pegado-chapa",
+      "permitido": true
+    },
+    {
+      "nombre": "Canto perimetral piezas MDF chapadas",
+      "insumoId": "tapacanto-3mm",
+      "permitido": true
+    },
+    {
+      "nombre": "Soldadura",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Tornillería y ensamble",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Interior de laterales/cubierta/puertas con chapa nogal o chapa balance económica?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Nogal ambas caras",
+        "Balance económica",
+        "Por definir"
+      ],
+      "evidencia": "plano: 3 PUERTAS ABATIBLES"
+    },
+    {
+      "pregunta": "Acabado de la chapa",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Canto de piezas chapadas",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas credenzas?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

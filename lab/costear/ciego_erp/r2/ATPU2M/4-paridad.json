@@ -1,0 +1,297 @@
+{
+  "paridad": {
+    "costoCliente": 379.41,
+    "costoSrv": 379.41,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 379.41,
+      "materialTotal": 210.78,
+      "manoObra": 42.16,
+      "indirectosFabrica": 126.47,
+      "desperdicio": 9.66,
+      "detalleInsumos": [
+        {
+          "insumoId": "ptr-14",
+          "nombre": "Tubo / PTR cal. 14",
+          "seccion": "metal",
+          "costo": 96.67,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "costo": 5.2,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "costo": 3.17,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 35.46,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "lamina-14",
+          "nombre": "Lamina de acero cal. 14",
+          "seccion": "metal",
+          "costo": 25.29,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 6,
+      "certificados": 2,
+      "noCertificados": 4
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 127.15359513513516,
+      "materialIndirecto": 83.6277966075,
+      "materialTotal": 210.78139174263515,
+      "desperdicio": 9.66028702702704,
+      "manoObra": 42.15627834852703,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 33.153823376936025,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 252.93767009116218,
+      "indirectosFabrica": 126.4688350455811,
+      "gastosOperacion": 0,
+      "costoFabricacion": 379.40650513674325,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 379.40650513674325,
+      "costoLoteConMerma": 379.40650513674325,
+      "costoUnitario": 379.40650513674325,
+      "detalleInsumos": [
+        {
+          "insumoId": "ptr-14",
+          "nombre": "Tubo / PTR cal. 14",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Marco en U (PTR) — desarrollo de perfil"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.04,
+          "comprado": 2.1420000000000003,
+          "unidades": 0.35700000000000004,
+          "costo": 96.66846000000002,
+          "desperdicio": 4.603260000000015,
+          "pct": 4.761904761904775,
+          "precio": 45.13,
+          "noCabe": false,
+          "reglaTramo": "FRACCION_D2"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura de esquinas de la U"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.08,
+          "comprado": 0.08,
+          "unidades": null,
+          "costo": 5.2,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 65,
+          "noCabe": false
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura electrostática en polvo"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.02625,
+          "comprado": 0.02625,
+          "unidades": null,
+          "costo": 3.1677966074999997,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 120.677966,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Nivelador cónico 3/8\""
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2,
+          "comprado": 2,
+          "unidades": null,
+          "costo": 35.46,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "lamina-14",
+          "nombre": "Lamina de acero cal. 14",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 44.4,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Placa de fijación a cubierta (lámina cal.14)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "APROVECHAMIENTO_GENERICO",
+          "usaAprovechamientoGenerico": true,
+          "neto": 1.1,
+          "comprado": 1.375,
+          "unidades": 0.030968468468468468,
+          "costo": 25.285135135135135,
+          "desperdicio": 5.057027027027026,
+          "pct": 19.999999999999993,
+          "precio": 816.48,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de montaje"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Soldadura de esquinas de la U",
+        "Pintura electrostática en polvo",
+        "Nivelador cónico 3/8\"",
+        "Placa de fijación a cubierta (lámina cal.14)",
+        "Tornillería de montaje"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 379.40650513674325
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfg4bslr4",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T22:17:49.489Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

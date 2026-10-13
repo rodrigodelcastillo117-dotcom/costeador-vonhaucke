@@ -1,0 +1,52 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBD46ABS 1013-2205 BORRADOR mesa cubierta de mesa/escritorio App LT con tapas metálicas registrables Melamina 28 mm",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$2,443.40",
+    "costoDespues": "$2,443.40",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,443.40",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa/puerta registrable metálica + herraje, Tornillería y herraje de ensamble · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa/puerta registrable metálica + herraje, Tornillería y herraje de ensamble · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $1,521.50 · Mano de obra $230.47 · Fábrica $691.42",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1800×1200",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perímetro cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («espesor») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa/puerta registrable metálica + herraje",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería y herraje de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («estandar ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

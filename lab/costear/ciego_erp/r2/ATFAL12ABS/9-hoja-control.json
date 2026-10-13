@@ -1,0 +1,85 @@
+{
+  "producto": "CONDUCTO FALDON PARA ESCRITORIO DE 800 X 379 X 177 mm MODELO APPS LT CON MELAMINA CANTO ABS; METALICO -- ATFAL12ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 6,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Panel frontal de faldón (melamina)",
+      "insumoId": "melamina-19",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS perimetral del panel frontal",
+      "insumoId": "tapacanto-3mm",
+      "permitido": false
+    },
+    {
+      "nombre": "Cuerpo metálico del conducto (lámina doblada, fondo+alas 177 de profundidad)",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapas laterales metálicas",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Pintura en polvo cuerpo metálico",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Escuadras / soportes de fijación a cubierta",
+      "insumoId": "escuadra",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de ensamble",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿El faldón es de melamina con canto ABS, metálico, o mixto (frente melamina + canaleta metálica)?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Calibre de la lámina del cuerpo metálico?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color/decorativo de la melamina del frente?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo para la parte metálica?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas piezas se fabricarán en esta orden?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva tapa registrable abatible para acceso a cables?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Incluye módulo eléctrico (contactos/USB) dentro del conducto?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Espesor/acabado del canto ABS?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

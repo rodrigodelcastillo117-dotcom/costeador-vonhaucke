@@ -1,0 +1,71 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATPU75M 1013-2219 BORRADOR otro pata estructural metálica tipo 'U' (componente de soporte línea App LT)",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$666.32",
+    "costoDespues": "$666.32",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$666.32",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — 5 material(es) propuestos sin confirmar: Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm), Tapa/casquillo inferior lámina cal.14, Nivelador cónico 3/8\", Soldadura MIG (uniones de la U y placas)… · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — 5 material(es) propuestos sin confirmar: Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm), Tapa/casquillo inferior lámina cal.14, Nivelador cónico 3/8\", Soldadura MIG (uniones de la U y placas)… · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $370.18 · Mano de obra $74.04 · Fábrica $222.11",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Tramo vertical de pata en U (PTR 3\" x 1 1/2\" cal.14)",
+      "material": "PTR 3\" x 1 1/2\" cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Travesaño horizontal superior de la U (PTR 3\" x 1 1/2\" cal.14)",
+      "material": "PTR 3\" x 1 1/2\" cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm)",
+      "material": "Lamina de acero cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tapa/casquillo inferior lámina cal.14",
+      "material": "Lamina de acero cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Soldadura MIG (uniones de la U y placas)",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado pata)",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («electrostatica color definir asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

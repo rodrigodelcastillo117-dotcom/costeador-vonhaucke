@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Pata tipo \"U\" metálica 750 × 720 mm — modelo App LT","tipo":"otro","piezas":[{"nombre":"Tramo vertical de pata en U (PTR 3\" x 1 1/2\" cal.14)","insumoId":"ptr-3-14","material_solicitado":"PTR estructural metálico cal.14 (perfil rectangular) — acabado pintura en
+
+[lab-costear] analizar-mueble 200 en 46 s · piezas 7 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":666.32,"materialTotal":370.18,"manoObra":74.04,"indirectosFabrica":222.11,"desperdicio":28.02,"detalleInsumos":[{"insumoId":"ptr-3-14","nombre":"PTR 3\" x 1 1/2\" cal. 14","se
+
+[lab-costear] BOM inicial {"piezas":7,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Qué sección y calibre de PTR lleva la pata?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de pintura en polvo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"La cota de 750 mm, ¿es el ancho total de la U (frente) o la profundidad del apoyo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas patas se cotizan?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La U es de tubo soldado en 3 tramos o doblado en una sola pieza?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva placa superior barrenada para atornillar a cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Tipo de apoyo a piso?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La pata integra ducto o pasacables vertical?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":666.32,"materialTotal":370.18,"manoObra":74.04,"indirectosFabrica":222.11,"desperdicio":28.02,"detalleInsumos":[{"insumoId":"ptr-3-14","nombre":"PTR 3\" x 1 1/2\" cal. 14","se
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 2 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Nivelador cónico 3/8\", Pintura en polvo negro mate (acabado pata). ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$666.32","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — 5 material(es) propuestos sin confirmar: Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm), Tapa/casquillo inferior lámina cal.14, Nivelador cónico 3/8\", Soldadura MIG (uniones de la U y placas)… · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — 5 material(es) propuestos sin confirmar: Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm), Tapa/casquillo inferior lámina cal.14, Nivelador cónico 3/8\", Soldadura MIG (uniones de la U y placas)… · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $370.18 · Mano de obra $74.04 · Fábrica $222.11","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":666.32,"costoSrv":666.32,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":755.16,"materialTotal":370.18,"manoObra":96.25,"indirectosFabrica":288.74,"desperdicio":28.02,"detalleInsumos":[{"insumoId":"ptr-3-14","nombre":"PTR 3\" x 1 1/2\" cal. 14","se
+
+[lab-costear] dificultad {"costoNormal":666.32,"marcado":"true","costoDificil":755.16,"reqDificultad":"dificil","costoSrvDificil":755.16,"sube":true,"paridad":true,"costoDeVueltaNormal":666.32,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":666.32,"materialTotal":370.18,"manoObra":74.04,"indirectosFabrica":222.11,"desperdicio":28.02,"detalleInsumos":[{"insumoId":"ptr-3-14","nombre":"PTR 3\" x 1 1/2\" cal. 14","se
+
+[lab-costear] expedientes POST 201 [{"id":150}]
+
+[lab-costear] guardado {"status":201,"id":150,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":666.32,"materialTotal":370.18,"manoObra":74.04,"indirectosFabrica":222.11,"desperdicio":28.02,"detalleInsumos":[{"insumoId":"ptr-3-14","nombre":"PTR 3\" x 1 1/2\" cal. 14","se
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":6,"renglonesBom":7,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATPU75M 1013-2219 BORRADOR otro pata estructural metálica tipo 'U' (componente de soporte línea App LT)","piezas":7,"mismoBom":true,"costoAntes":"$666.32","costoDespues":"$666.32","mismoCosto":true,"resultado":{"precios":["$666.32","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — 5 material(es) propuestos sin confirmar: Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm), Tapa/casquillo inferior lámina cal.14, Nivelador cónico 3/8\", Soldadura MIG (uniones de la U y placas)… · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — 5 material(es) propuestos sin confirmar: Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm), Tapa/casquillo inferior lámina cal.14, Nivelador cónico 3/8\", Soldadura MIG (uniones de la U y placas)… · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $370.18 · Mano de obra $74.04 · Fábrica $222.11","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.6m)

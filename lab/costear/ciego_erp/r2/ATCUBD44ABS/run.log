@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Cubierta cuadrada 1200×1200 mm App LT para banca doble, con 2 tapas registrables","tipo":"mesa","piezas":[{"nombre":"Cubierta App LT 1200×1200","insumoId":"melamina-28","material_solicitado":"Melamina (espesor no especificado; se asume 28 mm estándar cubierta App 
+
+[lab-costear] analizar-mueble 200 en 37 s · piezas 4 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1277.2,"materialTotal":792.62,"manoObra":121.14,"indirectosFabrica":363.43,"desperdicio":24.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubier
+
+[lab-costear] BOM inicial {"piezas":4,"pendientes":["Tapa registrable metálica + herraje"],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿El alcance incluye estructura/patas de la banca o sólo la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Espesor de la melamina de la cubierta","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Color/decorativo de la melamina","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"Tipo de canto perimetral","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Se incluye módulo eléctrico (Byrne/contactos) bajo las tapas registrables?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas cubiertas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Se requieren pasacables/grommets adicionales a las tapas?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1277.2,"materialTotal":792.62,"manoObra":121.14,"indirectosFabrica":363.43,"desperdicio":24.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubier
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Canto ABS perimetral cubierta, Tornillería de fijación cubierta a estructura. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$1,277.20","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tapa registrable metálica + herraje, Tornillería de fijación cubierta a estructura · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tapa registrable metálica + herraje, Tornillería de fijación cubierta a estructura · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $792.62 · Mano de obra $121.14 · Fábrica $363.43","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":1277.2,"costoSrv":1277.2,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1422.57,"materialTotal":792.62,"manoObra":157.49,"indirectosFabrica":472.46,"desperdicio":24.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubie
+
+[lab-costear] dificultad {"costoNormal":1277.2,"marcado":"true","costoDificil":1422.57,"reqDificultad":"dificil","costoSrvDificil":1422.57,"sube":true,"paridad":true,"costoDeVueltaNormal":1277.2,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":138}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1277.2,"materialTotal":792.62,"manoObra":121.14,"indirectosFabrica":363.43,"desperdicio":24.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubier
+
+[lab-costear] guardado {"status":201,"id":138,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1277.2,"materialTotal":792.62,"manoObra":121.14,"indirectosFabrica":363.43,"desperdicio":24.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubier
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":3,"renglonesBom":4,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATCUBD44ABS 1013-2203 BORRADOR mesa cubierta de trabajo cuadrada para banca doble (sistema App LT) Melamina (color por definir)","piezas":4,"mismoBom":true,"costoAntes":"$1,277.20","costoDespues":"$1,277.20","mismoCosto":true,"resultado":{"precios":["$1,277.20","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tapa registrable metálica + herraje, Tornillería de fijación cubierta a estructura · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tapa registrable metálica + herraje, Tornillería de fijación cubierta a estructura · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $792.62 · Mano de obra $121.14 · Fábrica $363.43","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.5m)

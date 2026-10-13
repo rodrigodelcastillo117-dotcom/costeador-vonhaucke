@@ -1,0 +1,66 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATPU2M 1013-2216 BORRADOR otro pata estructural en U (soporte lateral) para escritorio/mesa línea App LT Perfil tubular de acero",
+    "piezas": 6,
+    "mismoBom": true,
+    "costoAntes": "$379.41",
+    "costoDespues": "$379.41",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$379.41",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "estado3": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "validadores": [],
+      "linea": "Material $210.78 · Mano de obra $42.16 · Fábrica $126.47",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Marco en U (PTR) — desarrollo de perfil",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Soldadura de esquinas de la U",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura electrostática en polvo",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado color especificado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado base pata») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Placa de fijación a cubierta (lámina cal.14)",
+      "material": "Lamina de acero cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tornillería de montaje",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («fijacion pata cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

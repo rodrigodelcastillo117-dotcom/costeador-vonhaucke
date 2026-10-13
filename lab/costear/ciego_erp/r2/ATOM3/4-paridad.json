@@ -1,0 +1,183 @@
+{
+  "paridad": {
+    "costoCliente": 121.93,
+    "costoSrv": 121.93,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 121.93,
+      "materialTotal": 67.74,
+      "manoObra": 13.55,
+      "indirectosFabrica": 40.64,
+      "desperdicio": 4.28,
+      "detalleInsumos": [
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "costo": 21.38,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pintura-polvo-negro",
+          "nombre": "Pintura en polvo negro mate 8 (Vitracoat)",
+          "seccion": "acabados",
+          "costo": 1.36,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 0,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 21.382438380281688,
+      "materialIndirecto": 46.35765,
+      "materialTotal": 67.74008838028169,
+      "desperdicio": 4.276487676056338,
+      "manoObra": 13.548017676056338,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 63.360489739794865,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 81.28810605633802,
+      "indirectosFabrica": 40.64405302816901,
+      "gastosOperacion": 0,
+      "costoFabricacion": 121.93215908450703,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 121.93215908450703,
+      "costoLoteConMerma": 121.93215908450703,
+      "costoUnitario": 121.93215908450703,
+      "detalleInsumos": [
+        {
+          "insumoId": "lamina-18",
+          "nombre": "Lamina de acero cal. 18",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 28.4,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Omega de refuerzo lámina doblada 850 × 100 × 17 mm"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "APROVECHAMIENTO_GENERICO",
+          "usaAprovechamientoGenerico": true,
+          "neto": 0.85,
+          "comprado": 1.0625,
+          "unidades": 0.037411971830985914,
+          "costo": 21.382438380281688,
+          "desperdicio": 4.276487676056338,
+          "pct": 20,
+          "precio": 571.54,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "pintura-polvo-negro",
+          "nombre": "Pintura en polvo negro mate 8 (Vitracoat)",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura en polvo negro mate (acabado omega)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.01125,
+          "comprado": 0.01125,
+          "unidades": null,
+          "costo": 1.35765,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 120.68,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de fijación omega-cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Pintura en polvo negro mate (acabado omega)",
+        "Tornillería de fijación omega-cubierta"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 121.93215908450703
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfgqtdniu",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T22:14:57.405Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

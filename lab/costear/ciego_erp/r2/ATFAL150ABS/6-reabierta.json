@@ -1,0 +1,66 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATFAL150ABS 1013-2212 BORRADOR escritorio conducto faldón para escritorio (accesorio línea App LT) Melamina con canto ABS",
+    "piezas": 6,
+    "mismoBom": true,
+    "costoAntes": "$497.39",
+    "costoDespues": "$497.39",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$497.39",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "estado3": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "validadores": [],
+      "linea": "Material $288.07 · Mano de obra $52.33 · Fábrica $156.99",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Panel frontal faldón melamina 900×379",
+      "material": "Melamina BLANCA / EcoLegno 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS 3 mm perímetro panel frontal",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Cuerpo/charola metálica del conducto (lámina doblada 900×177 desarrollo ~560)",
+      "material": "Lamina de acero cal. 20",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo cuerpo metálico",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («color definir») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Escuadras de fijación a cubierta",
+      "material": "Escuadra",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («metalica fijacion») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

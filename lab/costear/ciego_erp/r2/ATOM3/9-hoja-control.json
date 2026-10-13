@@ -1,0 +1,57 @@
+{
+  "producto": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 mm MODELO APPS LT CON TORNILLERIA; METALICA -- ATOM3",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 2,
+    "renglonesBom": 3,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Omega de refuerzo lámina doblada 850 × 100 × 17 mm",
+      "insumoId": "lamina-18",
+      "permitido": false
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado omega)",
+      "insumoId": "pintura-polvo-negro",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación omega-cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas omegas se requieren en total?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué calibre de lámina para la omega?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Acabado/color de la pieza?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas perforaciones/barrenos de fijación lleva cada omega?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Tipo de tornillería de fijación?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "Las cotas 100 × 17, ¿son sección formada (alma 100, ala 17) o desarrollo plano total?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

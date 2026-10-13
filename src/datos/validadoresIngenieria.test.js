@@ -52,4 +52,9 @@ describe('validadores mínimos de Ingeniería', () => {
     const r = revisarEstructura({ componentes: b, ...GAB, aceptadas: [`medida_imposible:${b[0].nombre}`] });
     expect(reglas(r)).toContain('medida_imposible');
   });
+  it('ACABADO COMO MATERIAL: "Barniz chapa nogal" costeado con chapa-madera (credenza lab ronda 3) se bloquea', () => {
+    const b = bom('credenza'); b.push({ nombre: 'Barniz chapa nogal', insumoId: 'chapa-madera', cantidad: 1, piezas: 3.5, largoMM: 1000, anchoMM: 1000 });
+    const r = revisarEstructura({ componentes: b, descripcion: 'Credenza 3 puertas', insumos: ins });
+    expect(r.observaciones.filter((o) => o.nivel === 'blocker' && o.regla === 'material_funcion').map((o) => o.pieza)).toEqual(['Barniz chapa nogal']);
+  });
 });

@@ -225,6 +225,17 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
         mensaje: `«${c.nombre}» es una pieza (${c._rol === 'pata' ? 'estructura/soporte' : c._rol}) pero está costeada con ${(insumos && insumos[c.insumoId]?.nombre) || c.insumoId}, que es ${f.replace('_', ' ')}. Asígnale el material de la pieza; el acabado va en su propio renglón.` });
     }
   }
+  // (2b) ACABADO COSTEADO COMO MATERIAL (lab credenza ronda 3, 2026-10-13): "Barniz chapa nogal" quedó amarrado a
+  //      chapa-madera y se cobraron 3.5 m² de chapa. Un renglón que EMPIEZA por un acabado (barniz, laca, sellador,
+  //      tinta, pintura) no puede costearse con un tablero/chapa/metal.
+  const RE_ACABADO = /^\s*(?:acabado\s+)?(?:barniz|laca|lacad|sellador|tinta|tintado|pintura|esmalte|poliuretano)\b/i;
+  const FAM_MATERIAL_BASE = new Set(['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'madera_solida', 'triplay', 'metal_lamina', 'acero_inoxidable', 'aluminio', 'cristal']);
+  for (const c of comps) {
+    if (!c.insumoId || c.excluida || !RE_ACABADO.test(c.nombre || '')) continue;
+    const f = familiaDeMaterial((insumos && insumos[c.insumoId]?.nombre) || c.insumoId);
+    if (FAM_MATERIAL_BASE.has(f)) obs.push({ nivel: 'blocker', regla: 'material_funcion', clave: `material_funcion:${c.nombre}`, pieza: c.nombre,
+      mensaje: `«${c.nombre}» es un acabado pero está costeado con ${(insumos && insumos[c.insumoId]?.nombre) || c.insumoId} (${f.replace('_', ' ')}): se cobraría como material. Asígnale el insumo del acabado o quítalo si ya va incluido.` });
+  }
   // (3) DUPLICADOS: mismo nombre, mismas medidas y mismo material en dos renglones.
   const vistos = new Map();
   for (const c of comps) {

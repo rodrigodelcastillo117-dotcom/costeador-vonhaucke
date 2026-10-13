@@ -1,0 +1,326 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "Tramo vertical de pata en U (PTR 3\" x 1 1/2\" cal.14)",
+          "cantidad": 1.44,
+          "piezas": 1,
+          "material_solicitado": "PTR estructural metálico cal.14 (perfil rectangular) — acabado pintura en polvo",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "Travesaño horizontal superior de la U (PTR 3\" x 1 1/2\" cal.14)",
+          "cantidad": 0.75,
+          "piezas": 1,
+          "material_solicitado": "PTR estructural metálico cal.14 (perfil rectangular) — acabado pintura en polvo",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "lamina-14",
+          "nombre": "Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm)",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Lámina de acero cal.14 para placa de fijación a cubierta",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "lamina-14",
+          "nombre": "Tapa/casquillo inferior lámina cal.14",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Lámina de acero cal.14 para tapa de remate inferior",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador cónico 3/8\"",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Nivelador roscado 3/8\" cromado",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura MIG (uniones de la U y placas)",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Microalambre MIG para unión estructural",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "pintura-polvo-negro",
+          "nombre": "Pintura en polvo negro mate (acabado pata)",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Pintura electrostática en polvo, color por definir (se asume negro mate)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "areaPintadaM2": 0.5,
+          "tubular": true
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 666.32,
+      "materialTotal": 370.18,
+      "manoObra": 74.04,
+      "indirectosFabrica": 222.11,
+      "desperdicio": 28.02,
+      "detalleInsumos": [
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "PTR 3\" x 1 1/2\" cal. 14",
+          "seccion": "metal",
+          "costo": 170.23,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "lamina-14",
+          "nombre": "Lamina de acero cal. 14",
+          "seccion": "metal",
+          "costo": 91.95,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 35.46,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "costo": 65,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "pintura-polvo-negro",
+          "nombre": "Pintura en polvo negro mate 8 (Vitracoat)",
+          "seccion": "acabados",
+          "costo": 7.54,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 5,
+      "certificados": 1,
+      "noCertificados": 4
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 327.1742079459459,
+      "materialIndirecto": 43.0025,
+      "materialTotal": 370.1767079459459,
+      "desperdicio": 28.024751189189182,
+      "manoObra": 74.03534158918919,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 22.62872188305899,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 444.21204953513507,
+      "indirectosFabrica": 222.1060247675676,
+      "gastosOperacion": 0,
+      "costoFabricacion": 666.3180743027026,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 666.3180743027026,
+      "costoLoteConMerma": 666.3180743027026,
+      "costoUnitario": 666.3180743027026,
+      "detalleInsumos": [
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "PTR 3\" x 1 1/2\" cal. 14",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tramo vertical de pata en U (PTR 3\" x 1 1/2\" cal.14)",
+            "Travesaño horizontal superior de la U (PTR 3\" x 1 1/2\" cal.14)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.19,
+          "comprado": 2.3214,
+          "unidades": 0.3869,
+          "costo": 170.228262,
+          "desperdicio": 9.635562000000013,
+          "pct": 5.660377358490574,
+          "precio": 73.33,
+          "noCabe": false,
+          "reglaTramo": "FRACCION_D2"
+        },
+        {
+          "insumoId": "lamina-14",
+          "nombre": "Lamina de acero cal. 14",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 44.4,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm)",
+            "Tapa/casquillo inferior lámina cal.14"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "APROVECHAMIENTO_GENERICO",
+          "usaAprovechamientoGenerico": true,
+          "neto": 4,
+          "comprado": 4.999999999999999,
+          "unidades": 0.1126126126126126,
+          "costo": 91.94594594594594,
+          "desperdicio": 18.38918918918917,
+          "pct": 19.999999999999986,
+          "precio": 816.48,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Nivelador cónico 3/8\""
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2,
+          "comprado": 2,
+          "unidades": null,
+          "costo": 35.46,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura MIG (uniones de la U y placas)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 65,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 65,
+          "noCabe": false
+        },
+        {
+          "insumoId": "pintura-polvo-negro",
+          "nombre": "Pintura en polvo negro mate 8 (Vitracoat)",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura en polvo negro mate (acabado pata)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.0625,
+          "comprado": 0.0625,
+          "unidades": null,
+          "costo": 7.5425,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 120.68,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Placa de unión/cubierta superior lámina cal.14 (120 × 80 mm)",
+        "Tapa/casquillo inferior lámina cal.14",
+        "Nivelador cónico 3/8\"",
+        "Soldadura MIG (uniones de la U y placas)",
+        "Pintura en polvo negro mate (acabado pata)"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 666.3180743027026
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfghnr53s",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T22:21:27.454Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

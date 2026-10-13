@@ -1,0 +1,76 @@
+{
+  "producto": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 4,
+    "renglonesBom": 6,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Marco en U (PTR) — desarrollo de perfil",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura de esquinas de la U",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura electrostática en polvo",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Placa de fijación a cubierta (lámina cal.14)",
+      "insumoId": "lamina-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de montaje",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué calibre de PTR se usa para la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué sección tiene el perfil de la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas patas se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de la pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cómo se fija la pata a la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva niveladores o rodajas en los apoyos?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿600 mm es el ancho (profundidad) y 720 mm la altura total con nivelador?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

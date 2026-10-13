@@ -1,0 +1,45 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATOM3 1013-2214 BORRADOR otro componente metálico: perfil omega de refuerzo bajo cubierta (línea App LT) Lámina de acero doblada",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$121.93",
+    "costoDespues": "$121.93",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$121.93",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Pintura en polvo negro mate (acabado omega), Tornillería de fijación omega-cubierta · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Pintura en polvo negro mate (acabado omega), Tornillería de fijación omega-cubierta · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $67.74 · Mano de obra $13.55 · Fábrica $40.64",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Omega de refuerzo lámina doblada 850 × 100 × 17 mm",
+      "material": "Lamina de acero cal. 18",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura en polvo negro mate (acabado omega)",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado metalico especificado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación omega-cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («incluida segun texto cliente») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

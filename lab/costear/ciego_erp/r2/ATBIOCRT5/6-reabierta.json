@@ -1,0 +1,45 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATBIOCRT5 1013-2201 BORRADOR mampara biombo divisor de escritorio en cristal templado (línea App LT) Cristal templado transparente de 6 mm con cantos pulidos",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$1,109.02",
+    "costoDespues": "$1,109.02",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,109.02",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "estado3": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "validadores": [],
+      "linea": "Material $978.72 · Mano de obra $28.16 · Fábrica $102.13",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Panel de cristal templado claro 6 mm",
+      "material": "Cristal templado claro 6 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Soporte/clamp de sujeción a cubierta (perfil aluminio maquinado)",
+      "material": "Escuadra",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tornillería y empaques de montaje del soporte",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («fijacion empaque epdm cristal») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

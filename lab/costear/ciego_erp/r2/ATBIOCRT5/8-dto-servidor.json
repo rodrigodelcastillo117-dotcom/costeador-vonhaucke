@@ -1,0 +1,204 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "cristal-templado-6",
+          "nombre": "Panel de cristal templado claro 6 mm",
+          "cantidad": 1,
+          "largoMM": 1400,
+          "anchoMM": 400,
+          "piezas": 1,
+          "material_solicitado": "cristal transparente templado 6 mm",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "escuadra",
+          "nombre": "Soporte/clamp de sujeción a cubierta (perfil aluminio maquinado)",
+          "cantidad": 0.24,
+          "piezas": 1,
+          "material_solicitado": "soportes modelo App LT (aluminio) — tipo no especificado",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería y empaques de montaje del soporte",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "tornillería de fijación + empaque EPDM para cristal",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1109.02,
+      "materialTotal": 978.72,
+      "manoObra": 28.16,
+      "indirectosFabrica": 102.13,
+      "desperdicio": 0,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado-6",
+          "nombre": "Cristal templado claro 6 mm",
+          "seccion": "mamparas",
+          "costo": 882,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "escuadra",
+          "nombre": "Escuadra",
+          "seccion": "herrajes",
+          "costo": 6.72,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 90,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 1,
+      "noCertificados": 2
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 0,
+      "materialIndirecto": 978.7199999999999,
+      "materialTotal": 978.7199999999999,
+      "desperdicio": 0,
+      "manoObra": 28.163999999999998,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 0,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 1006.8839999999999,
+      "indirectosFabrica": 102.13199999999999,
+      "gastosOperacion": 0,
+      "costoFabricacion": 1109.0159999999998,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 1109.0159999999998,
+      "costoLoteConMerma": 1109.0159999999998,
+      "costoUnitario": 1109.0159999999998,
+      "detalleInsumos": [
+        {
+          "insumoId": "cristal-templado-6",
+          "nombre": "Cristal templado claro 6 mm",
+          "seccion": "mamparas",
+          "clase": "indirecta",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Panel de cristal templado claro 6 mm"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cristal",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.5599999999999999,
+          "comprado": 0.5599999999999999,
+          "unidades": null,
+          "costo": 881.9999999999999,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 1575,
+          "noCabe": false
+        },
+        {
+          "insumoId": "escuadra",
+          "nombre": "Escuadra",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soporte/clamp de sujeción a cubierta (perfil aluminio maquinado)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.24,
+          "comprado": 0.24,
+          "unidades": null,
+          "costo": 6.72,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 28,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería y empaques de montaje del soporte"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2,
+          "comprado": 2,
+          "unidades": null,
+          "costo": 90,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Soporte/clamp de sujeción a cubierta (perfil aluminio maquinado)",
+        "Tornillería y empaques de montaje del soporte"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 1109.0159999999998
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfgqvmyyu",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T22:02:57.627Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

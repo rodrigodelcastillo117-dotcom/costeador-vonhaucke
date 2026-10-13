@@ -1,0 +1,65 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif librero_5x8 1013-2154 BORRADOR guarda librero abierto Tablero melamina acabado nogal 28 mm",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$1,226.48",
+    "costoDespues": "$1,226.48",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,226.48",
+        "Pendiente"
+      ],
+      "margen": null,
+      "estado": "Costo INCOMPLETO — faltan por costear 3 partida(s): Lateral (fracción de hoja sobre un material sin formato (precio por hoja): falta la hoja de referencia), Piso y techo (fracción de hoja sobre un material sin formato (precio por hoja): falta la hoja de referencia), Entrepaño fijo (fracción de hoja sobre un material sin formato (precio por hoja): falta la hoja de referencia). Asígnales material en el despiece (arriba) o márcalas como excluidas. Hasta entonces no hay costo total ni precio.",
+      "estado3": "COSTO BLOQUEADO — Sin material o precio: Lateral (fracción de hoja sobre un material sin formato (precio por hoja): falta la hoja de referencia) · Sin material o precio: Piso y techo (fracción de hoja sobre un material sin formato (precio por hoja): falta la hoja de referencia) · Sin material o precio: Entrepaño fijo (fracción de hoja sobre un material sin formato (precio por hoja): falta la hoja de referencia)",
+      "validadores": [],
+      "linea": "Material $752.06 · Mano de obra $118.60 · Fábrica $355.81",
+      "pendiente": true,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño fijo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble respaldo») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

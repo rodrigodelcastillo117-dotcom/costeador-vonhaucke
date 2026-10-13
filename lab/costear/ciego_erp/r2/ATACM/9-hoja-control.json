@@ -1,0 +1,67 @@
+{
+  "producto": "CONDUCTO ACOMETIDA DE 220 X 649 X 75 MM MODELO APPS LT CON TORNILLERIA; METALICO -- ATACM",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 4,
+    "renglonesBom": 5,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Cuerpo del conducto (lámina doblada en U, desarrollo 370 × 649)",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa/registro superior 220 × 649",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapas de extremo 220 × 75",
+      "insumoId": "lamina-20",
+      "permitido": false
+    },
+    {
+      "nombre": "Pintura electrostática en polvo (exterior)",
+      "insumoId": "pintura-electrostatica",
+      "permitido": false
+    },
+    {
+      "nombre": "Juego de tornillería de montaje y fijación",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué calibre de lámina lleva el conducto?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántos conductos se van a fabricar?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La cara frontal es tapa desmontable atornillada o cuerpo cerrado soldado?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Incluye accesorios eléctricos (contactos, chicote, acometida) o sólo el ducto metálico?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Requiere perforaciones/recortes de salida de cable (CNC/punzonado)?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

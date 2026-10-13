@@ -1,0 +1,45 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBD45ABS 1013-2204 BORRADOR mesa cubierta de trabajo (tablero superior) modelo App LT para banca doble Tablero de melamina",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$2,280.64",
+    "costoDespues": "$2,280.64",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$2,280.64",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — 2 material(es) propuestos sin confirmar: Canto ABS perimetral de cubierta, Tapa registrable metálica + herraje · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — 2 material(es) propuestos sin confirmar: Canto ABS perimetral de cubierta, Tapa registrable metálica + herraje · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $1,425.40 · Mano de obra $213.81 · Fábrica $641.43",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta rectangular App LT",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral de cubierta",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto espesor especificado lo cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "resultado": {
+    "precios": [
+      "$12,916.07",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "COSTO BLOQUEADO — Estructura: La descripción pide 3 puerta(s) y el despiece trae 9. Corrige las cantidades o márcalo como revisado si la descripción estaba mal.",
+    "estado3": "COSTO BLOQUEADO — Estructura: La descripción pide 3 puerta(s) y el despiece trae 9. Corrige las cantidades o márcalo como revisado si la descripción estaba mal.",
+    "validadores": [],
+    "linea": "Material $7,971.87 · Mano de obra $1,236.05 · Fábrica $3,708.15",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

@@ -1,0 +1,16 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,109.02",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+    "estado3": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+    "validadores": [],
+    "linea": "Material $978.72 · Mano de obra $28.16 · Fábrica $102.13",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

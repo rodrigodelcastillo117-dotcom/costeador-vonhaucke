@@ -1,0 +1,57 @@
+{
+  "producto": "BIOMBO DIVISOR DE 1400 X 400 X 32 mm MODELO APPS LT CON SOPORTES; EN CRISTAL TRANSPARENTE 6 mm TEMPLADO -- ATBIOCRT5",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 2,
+    "renglonesBom": 3,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Panel de cristal templado claro 6 mm",
+      "insumoId": "cristal-templado-6",
+      "permitido": false
+    },
+    {
+      "nombre": "Soporte/clamp de sujeción a cubierta (perfil aluminio maquinado)",
+      "insumoId": "escuadra",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería y empaques de montaje del soporte",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué tipo de soporte lleva el biombo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántos soportes por biombo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Acabado del soporte?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El cristal lleva perforaciones/barrenos para el soporte?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿El cristal lleva algún tratamiento adicional?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántos biombos se cotizan?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

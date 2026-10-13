@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Pata tipo \"U\" 600 × 720 mm, modelo App LT (metálica)","tipo":"otro","piezas":[{"nombre":"Marco en U (PTR) — desarrollo de perfil","insumoId":"ptr-14","material_solicitado":"Perfil metálico tipo PTR (calibre no especificado) para pata en U App LT","material_match
+
+[lab-costear] analizar-mueble 200 en 40 s · piezas 6 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":379.41,"materialTotal":210.78,"manoObra":42.16,"indirectosFabrica":126.47,"desperdicio":9.66,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"me
+
+[lab-costear] BOM inicial {"piezas":6,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Qué calibre de PTR se usa para la pata?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué sección tiene el perfil de la pata?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas patas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de la pintura en polvo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cómo se fija la pata a la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva niveladores o rodajas en los apoyos?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿600 mm es el ancho (profundidad) y 720 mm la altura total con nivelador?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":379.41,"materialTotal":210.78,"manoObra":42.16,"indirectosFabrica":126.47,"desperdicio":9.66,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"me
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"3 difieren de lo pedido y se confirman uno por uno: Pintura electrostática en polvo, Nivelador cónico 3/8\", Tornillería de montaje. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$379.41","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $210.78 · Mano de obra $42.16 · Fábrica $126.47","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":379.41,"costoSrv":379.41,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":429.99,"materialTotal":210.78,"manoObra":54.8,"indirectosFabrica":164.41,"desperdicio":9.66,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"met
+
+[lab-costear] dificultad {"costoNormal":379.41,"marcado":"true","costoDificil":429.99,"reqDificultad":"dificil","costoSrvDificil":429.99,"sube":true,"paridad":true,"costoDeVueltaNormal":379.41,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":148}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":379.41,"materialTotal":210.78,"manoObra":42.16,"indirectosFabrica":126.47,"desperdicio":9.66,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"me
+
+[lab-costear] guardado {"status":201,"id":148,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":379.41,"materialTotal":210.78,"manoObra":42.16,"indirectosFabrica":126.47,"desperdicio":9.66,"detalleInsumos":[{"insumoId":"ptr-14","nombre":"Tubo / PTR cal. 14","seccion":"me
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":4,"renglonesBom":6,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATPU2M 1013-2216 BORRADOR otro pata estructural en U (soporte lateral) para escritorio/mesa línea App LT Perfil tubular de acero","piezas":6,"mismoBom":true,"costoAntes":"$379.41","costoDespues":"$379.41","mismoCosto":true,"resultado":{"precios":["$379.41","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $210.78 · Mano de obra $42.16 · Fábrica $126.47","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.5m)

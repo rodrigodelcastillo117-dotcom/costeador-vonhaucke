@@ -1,0 +1,265 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Cubierta App LT 1200×1200",
+          "cantidad": 1,
+          "largoMM": 1200,
+          "anchoMM": 1200,
+          "piezas": 1,
+          "material_solicitado": "Melamina (espesor no especificado; se asume 28 mm estándar cubierta App LT) con cantos ABS",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Canto ABS perimetral cubierta",
+          "cantidad": 4.8,
+          "piezas": 1,
+          "material_solicitado": "Canto ABS (3 mm asumido) en perímetro de cubierta",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "",
+          "nombre": "Tapa registrable metálica + herraje",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Tapa registrable metálica App LT (2 pzas)",
+          "material_match": "CANDIDATE_REQUIRES_CONFIRMATION",
+          "pendiente": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería de fijación cubierta a estructura",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería de ensamble cubierta-estructura",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1277.2,
+      "materialTotal": 792.62,
+      "manoObra": 121.14,
+      "indirectosFabrica": 363.43,
+      "desperdicio": 24.79,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "costo": 667.8,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "costo": 79.82,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica + herraje"
+      ]
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 1,
+      "noCertificados": 2
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 747.62208,
+      "materialIndirecto": 45,
+      "materialTotal": 792.62208,
+      "desperdicio": 24.785694082235963,
+      "manoObra": 121.14331199999998,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 16.20381677330878,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 913.765392,
+      "indirectosFabrica": 363.429936,
+      "gastosOperacion": 0,
+      "costoFabricacion": 1277.195328,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 1277.195328,
+      "costoLoteConMerma": 1277.195328,
+      "costoUnitario": 1277.195328,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta App LT 1200×1200"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": false,
+            "certificable": false,
+            "hojas": 0,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 0,
+            "placements": [],
+            "remanentes": [],
+            "issues": [
+              {
+                "code": "PIEZA_NO_CABE",
+                "id": "Cubierta App LT 1200×1200#1",
+                "w": 1200,
+                "h": 1200
+              }
+            ],
+            "area_piezas_mm2": 0,
+            "area_comprada_mm2": 0,
+            "desperdicio_mm2": 0,
+            "eficiencia_pct": 0,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.44,
+          "comprado": 1.4884,
+          "unidades": 0.5,
+          "costo": 667.8,
+          "desperdicio": 21.71561408223596,
+          "pct": 3.2518140284869657,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS perimetral cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4.8,
+          "comprado": 4.992,
+          "unidades": null,
+          "costo": 79.82208,
+          "desperdicio": 3.0700800000000026,
+          "pct": 3.84615384615385,
+          "precio": 15.99,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de fijación cubierta a estructura"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica + herraje"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Canto ABS perimetral cubierta",
+        "Tornillería de fijación cubierta a estructura"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Tapa registrable metálica + herraje"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfg28m0ja",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T22:04:27.988Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Tapa registrable metálica + herraje"
+    ]
+  }
+}

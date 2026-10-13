@@ -1,0 +1,62 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 1 propuestos",
+    "diferencias": "4 difieren de lo pedido y se confirman uno por uno: Canto ABS 3 mm perímetro panel frontal, Pintura en polvo cuerpo metálico, Escuadras de fijación a cubierta, Tornillería de ensamble. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Panel frontal faldón melamina 900×379",
+      "material": "Melamina BLANCA / EcoLegno 19 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS 3 mm perímetro panel frontal",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Cuerpo/charola metálica del conducto (lámina doblada 900×177 desarrollo ~560)",
+      "material": "Lamina de acero cal. 20",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo cuerpo metálico",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («color definir») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Escuadras de fijación a cubierta",
+      "material": "Escuadra",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («metalica fijacion») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "estado3": null,
+    "validadores": [
+      "⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."
+    ],
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

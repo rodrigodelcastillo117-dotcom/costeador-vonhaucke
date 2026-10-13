@@ -1,0 +1,45 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBS44ABS 1013-2207 BORRADOR mesa cubierta de trabajo rectangular App LT con tapa registrable Melamina de 28 mm",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$570.72",
+    "costoDespues": "$570.72",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$570.72",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — 2 material(es) propuestos sin confirmar: Canto ABS perimetral 28 mm, Tapa registrable metálica + herraje · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — 2 material(es) propuestos sin confirmar: Canto ABS perimetral 28 mm, Tapa registrable metálica + herraje · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $356.70 · Mano de obra $53.50 · Fábrica $160.52",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta App LT 1200×600×28",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral 28 mm",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "⚠ Costo pendiente — confirma material (crítico: Solicitado 28 mm → candidato 3 mm). Usar Tapacanto ABS 3 mm (confirmar)"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ]
+}

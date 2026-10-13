@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Biombo divisor App LT 1400 × 400 mm en cristal templado 6 mm con soportes","tipo":"mampara","piezas":[{"nombre":"Panel de cristal templado claro 6 mm","insumoId":"cristal-templado-6","material_solicitado":"cristal transparente templado 6 mm","material_match":"EXAC
+
+[lab-costear] analizar-mueble 200 en 32 s · piezas 3 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1109.02,"materialTotal":978.72,"manoObra":28.16,"indirectosFabrica":102.13,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 
+
+[lab-costear] BOM inicial {"piezas":3,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Qué tipo de soporte lleva el biombo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántos soportes por biombo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Acabado del soporte?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿El cristal lleva perforaciones/barrenos para el soporte?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿El cristal lleva algún tratamiento adicional?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántos biombos se cotizan?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1109.02,"materialTotal":978.72,"manoObra":28.16,"indirectosFabrica":102.13,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Tornillería y empaques de montaje del soporte.","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$1,109.02","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $978.72 · Mano de obra $28.16 · Fábrica $102.13","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":1109.02,"costoSrv":1109.02,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1134.87,"materialTotal":978.72,"manoObra":36.61,"indirectosFabrica":119.54,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 
+
+[lab-costear] dificultad {"costoNormal":1109.02,"marcado":"true","costoDificil":1134.87,"reqDificultad":"dificil","costoSrvDificil":1134.87,"sube":true,"paridad":true,"costoDeVueltaNormal":1109.02,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1109.02,"materialTotal":978.72,"manoObra":28.16,"indirectosFabrica":102.13,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 
+
+[lab-costear] expedientes POST 201 [{"id":137}]
+
+[lab-costear] guardado {"status":201,"id":137,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1109.02,"materialTotal":978.72,"manoObra":28.16,"indirectosFabrica":102.13,"desperdicio":0,"detalleInsumos":[{"insumoId":"cristal-templado-6","nombre":"Cristal templado claro 
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":2,"renglonesBom":3,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATBIOCRT5 1013-2201 BORRADOR mampara biombo divisor de escritorio en cristal templado (línea App LT) Cristal templado transparente de 6 mm con cantos pulidos","piezas":3,"mismoBom":true,"costoAntes":"$1,109.02","costoDespues":"$1,109.02","mismoCosto":true,"resultado":{"precios":["$1,109.02","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $978.72 · Mano de obra $28.16 · Fábrica $102.13","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

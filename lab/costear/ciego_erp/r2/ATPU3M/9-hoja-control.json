@@ -1,0 +1,80 @@
+{
+  "producto": "PATA TIPO \"U\" DE 900 X 720 mm MODELO APPS LT; METALICA -- ATPU3M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 4,
+    "renglonesBom": 6,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Tramo PTR perfil en U (travesaño horizontal 900 mm + 2 verticales 720 mm)",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Placa de fijación superior a cubierta (lámina cal. 10, 120×100 mm)",
+      "insumoId": "lamina-10",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura MIG (uniones de la U + placas)",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura en polvo (acabado de la pata)",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas patas en U se van a fabricar?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué sección de tubo/PTR lleva la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué calibre de PTR?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La U va invertida (900 arriba como travesaño) o con base corrida al piso?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva niveladores, rodajas o apoyo directo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva placa barrenada soldada para atornillar a cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La pata requiere ducto/pasacables interno para electrificación App LT?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

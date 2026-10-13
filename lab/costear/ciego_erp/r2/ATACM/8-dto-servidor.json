@@ -1,0 +1,240 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Cuerpo del conducto (lámina doblada en U, desarrollo 370 × 649)",
+          "cantidad": 1,
+          "largoMM": 649,
+          "anchoMM": 370,
+          "piezas": 1,
+          "hojas": 0.08,
+          "material_solicitado": "Lámina de acero cal. 20 (metálico, sin calibre especificado por el cliente)",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Tapa/registro superior 220 × 649",
+          "cantidad": 1,
+          "largoMM": 649,
+          "anchoMM": 220,
+          "piezas": 1,
+          "hojas": 0.05,
+          "material_solicitado": "Lámina de acero cal. 20",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Tapas de extremo 220 × 75",
+          "cantidad": 1,
+          "largoMM": 220,
+          "anchoMM": 75,
+          "piezas": 2,
+          "hojas": 0.02,
+          "material_solicitado": "Lámina de acero cal. 20",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        },
+        {
+          "insumoId": "pintura-electrostatica",
+          "nombre": "Pintura electrostática en polvo (exterior)",
+          "cantidad": 1,
+          "largoMM": 649,
+          "anchoMM": 590,
+          "piezas": 1,
+          "material_solicitado": "Acabado pintura en polvo (color no especificado)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "areaPintadaM2": 0.83
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Juego de tornillería de montaje y fijación",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería (indicada por el cliente)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 273,
+      "materialTotal": 151.66,
+      "manoObra": 30.33,
+      "indirectosFabrica": 91,
+      "desperdicio": 0,
+      "detalleInsumos": [
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "costo": 68.37,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "pintura-electrostatica",
+          "nombre": "Pintura electrostatica",
+          "seccion": "acabados",
+          "costo": 38.29,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 0,
+      "noCertificados": 3
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 106.66399999999999,
+      "materialIndirecto": 45,
+      "materialTotal": 151.664,
+      "desperdicio": 0,
+      "manoObra": 30.3328,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 28.43771094277357,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 181.99679999999998,
+      "indirectosFabrica": 90.99839999999999,
+      "gastosOperacion": 0,
+      "costoFabricacion": 272.99519999999995,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 272.99519999999995,
+      "costoLoteConMerma": 272.99519999999995,
+      "costoUnitario": 272.99519999999995,
+      "detalleInsumos": [
+        {
+          "insumoId": "lamina-20",
+          "nombre": "Lamina de acero cal. 20",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 21.3,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cuerpo del conducto (lámina doblada en U, desarrollo 370 × 649)",
+            "Tapa/registro superior 220 × 649",
+            "Tapas de extremo 220 × 75"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FRACCION_DIRECTA_RAFA",
+          "usaAprovechamientoGenerico": false,
+          "neto": 3.195,
+          "comprado": 3.195,
+          "unidades": 0.15,
+          "costo": 68.37299999999999,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 455.82,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "pintura-electrostatica",
+          "nombre": "Pintura electrostatica",
+          "seccion": "acabados",
+          "clase": "directa",
+          "unidad": "m2",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura electrostática en polvo (exterior)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.38291,
+          "comprado": 0.38291,
+          "unidades": null,
+          "costo": 38.291,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 100,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Juego de tornillería de montaje y fijación"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Tapa/registro superior 220 × 649",
+        "Tapas de extremo 220 × 75",
+        "Pintura electrostática en polvo (exterior)",
+        "Juego de tornillería de montaje y fijación"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 272.99519999999995
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfg5vneha",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T22:01:35.170Z",
+    "catalogoFuente": "catalogo",
+    "warnings": []
+  }
+}

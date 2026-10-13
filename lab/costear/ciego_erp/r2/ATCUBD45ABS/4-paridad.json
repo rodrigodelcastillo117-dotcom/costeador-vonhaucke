@@ -1,0 +1,204 @@
+{
+  "paridad": {
+    "costoCliente": 2280.64,
+    "costoSrv": 2280.64,
+    "estadoSrv": "incompleto",
+    "iguales": true,
+    "llamadasSrv": 2
+  },
+  "servidor": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 2280.64,
+      "materialTotal": 1425.4,
+      "manoObra": 213.81,
+      "indirectosFabrica": 641.43,
+      "desperdicio": 531.45,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "costo": 1335.6,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "costo": 89.8,
+          "certificable": false,
+          "evidencia": "propuesto"
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica + herraje"
+      ]
+    },
+    "evidencia": {
+      "usados": 2,
+      "certificados": 1,
+      "noCertificados": 1
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 1425.3998399999998,
+      "materialIndirecto": 0,
+      "materialTotal": 1425.3998399999998,
+      "desperdicio": 531.448357602795,
+      "manoObra": 213.80997599999998,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 15,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 1639.2098159999998,
+      "indirectosFabrica": 641.429928,
+      "gastosOperacion": 0,
+      "costoFabricacion": 2280.639744,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 2280.639744,
+      "costoLoteConMerma": 2280.639744,
+      "costoUnitario": 2280.639744,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta rectangular App LT"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": false,
+            "certificable": false,
+            "hojas": 0,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 0,
+            "placements": [],
+            "remanentes": [],
+            "issues": [
+              {
+                "code": "PIEZA_NO_CABE",
+                "id": "Cubierta rectangular App LT#1",
+                "w": 1500,
+                "h": 1200
+              }
+            ],
+            "area_piezas_mm2": 0,
+            "area_comprada_mm2": 0,
+            "desperdicio_mm2": 0,
+            "eficiencia_pct": 0,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1.7999999999999998,
+          "comprado": 2.9768,
+          "unidades": 1,
+          "costo": 1335.6,
+          "desperdicio": 527.994517602795,
+          "pct": 39.532383767804355,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta rectangular App LT",
+              "largoMM": 1500,
+              "anchoMM": 1200,
+              "hojasPorPieza": 1
+            }
+          ]
+        },
+        {
+          "insumoId": "tapacanto-3mm",
+          "nombre": "Tapacanto ABS 3 mm",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 50,
+            "nombre": "rollo de 50 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS perimetral de cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 5.4,
+          "comprado": 5.6160000000000005,
+          "unidades": null,
+          "costo": 89.79984,
+          "desperdicio": 3.453840000000003,
+          "pct": 3.8461538461538494,
+          "precio": 15.99,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica + herraje"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Canto ABS perimetral de cubierta"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Tapa registrable metálica + herraje"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfg1nzwcam",
+    "versionCatalogo": "cat-ap1793-cfgod08zl",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-13T22:05:25.533Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Tapa registrable metálica + herraje"
+    ]
+  }
+}

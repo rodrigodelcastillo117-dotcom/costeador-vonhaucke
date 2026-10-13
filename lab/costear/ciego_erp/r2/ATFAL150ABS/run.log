@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Conducto faldón App LT 900×379×177 mm (melamina con canto ABS + cuerpo metálico)","tipo":"escritorio","piezas":[{"nombre":"Panel frontal faldón melamina 900×379","insumoId":"melamina-19","material_solicitado":"Melamina 19 mm (color no especificado) con canto ABS",
+
+[lab-costear] analizar-mueble 200 en 35 s · piezas 6 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":497.39,"materialTotal":288.07,"manoObra":52.33,"indirectosFabrica":156.99,"desperdicio":33.72,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 
+
+[lab-costear] BOM inicial {"piezas":6,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Color y espesor de la melamina del frente?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Calibre de la lámina del cuerpo metálico?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas piezas se fabrican?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿El faldón incluye módulo eléctrico (Byrne/contactos)?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva tapa registrable metálica?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de pintura en polvo del metal?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Espesor del canto ABS?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":497.39,"materialTotal":288.07,"manoObra":52.33,"indirectosFabrica":156.99,"desperdicio":33.72,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"4 difieren de lo pedido y se confirman uno por uno: Canto ABS 3 mm perímetro panel frontal, Pintura en polvo cuerpo metálico, Escuadras de fijación a cubierta, Tornillería de ensamble. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$497.39","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $288.07 · Mano de obra $52.33 · Fábrica $156.99","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":497.39,"costoSrv":497.39,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":560.19,"materialTotal":288.07,"manoObra":68.03,"indirectosFabrica":204.09,"desperdicio":33.72,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 
+
+[lab-costear] dificultad {"costoNormal":497.39,"marcado":"true","costoDificil":560.19,"reqDificultad":"dificil","costoSrvDificil":560.19,"sube":true,"paridad":true,"costoDeVueltaNormal":497.39,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":497.39,"materialTotal":288.07,"manoObra":52.33,"indirectosFabrica":156.99,"desperdicio":33.72,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 
+
+[lab-costear] expedientes POST 201 [{"id":145}]
+
+[lab-costear] guardado {"status":201,"id":145,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":497.39,"materialTotal":288.07,"manoObra":52.33,"indirectosFabrica":156.99,"desperdicio":33.72,"detalleInsumos":[{"insumoId":"melamina-19","nombre":"Melamina BLANCA / EcoLegno 
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":5,"renglonesBom":6,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB ciego ATFAL150ABS 1013-2212 BORRADOR escritorio conducto faldón para escritorio (accesorio línea App LT) Melamina con canto ABS","piezas":6,"mismoBom":true,"costoAntes":"$497.39","costoDespues":"$497.39","mismoCosto":true,"resultado":{"precios":["$497.39","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $288.07 · Mano de obra $52.33 · Fábrica $156.99","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

@@ -1,0 +1,50 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBS46ABS 1013-2209 BORRADOR mesa cubierta de bench/banca sencilla linea App LT Melamina",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$1,366.31",
+    "costoDespues": "$1,366.31",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,366.31",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tornilleria de fijacion cubierta-estructura · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tornilleria de fijacion cubierta-estructura · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $848.32 · Mano de obra $129.50 · Fábrica $388.49",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1800x600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («medida especificada») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metalica + herraje",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornilleria de fijacion cubierta-estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 1 propuestos",
+    "diferencias": "",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta App LT 1200×600×28",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral 28 mm",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "⚠ Costo pendiente — confirma material (crítico: Solicitado 28 mm → candidato 3 mm). Usar Tapacanto ABS 3 mm (confirmar)"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "estado3": null,
+    "validadores": [
+      "⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."
+    ],
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}

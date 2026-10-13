@@ -1,0 +1,52 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATCUBD44ABS 1013-2203 BORRADOR mesa cubierta de trabajo cuadrada para banca doble (sistema App LT) Melamina (color por definir)",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$1,277.20",
+    "costoDespues": "$1,277.20",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,277.20",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tapa registrable metálica + herraje, Tornillería de fijación cubierta a estructura · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 3 material(es) propuestos sin confirmar: Canto ABS perimetral cubierta, Tapa registrable metálica + herraje, Tornillería de fijación cubierta a estructura · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $792.62 · Mano de obra $121.14 · Fábrica $363.43",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta App LT 1200×1200",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral cubierta",
+      "material": "Tapacanto ABS 3 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («canto asumido perimetro cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación cubierta a estructura",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble cubierta estructura») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}
