@@ -1,0 +1,194 @@
+{
+  "clave": "ATOM3",
+  "descripcion": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 mm MODELO APPS LT CON TORNILLERIA; METALICA -- ATOM3",
+  "fuente": {
+    "fileId": "1LokRjURdZe7UABVA5c07qcPgh4k-TVzi",
+    "archivo": "ATOM3.pdf",
+    "fecha_reporte": "12/08/2026 04:59:54 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MVLUPI06650053",
+      "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+      "cantidad": 8,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.53,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 4.24
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.026,
+      "unidad": "Kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 4.4322
+    },
+    {
+      "articulo": "MVLSLA05260202",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "cantidad": 0.042,
+      "unidad": "Hoja",
+      "opcionLetra": null,
+      "costo_reporte": 816.48,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 34.2922
+    }
+  ],
+  "horas": {
+    "pm": 0.1116,
+    "pintura": 0.0033,
+    "acabados": 0.072,
+    "carpinteria": null,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": null,
+    "mp_metal": 34.29,
+    "mp_herraje": null,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 8.67,
+    "mp": 42.97,
+    "mo": 12.28,
+    "gif": 46.03,
+    "total": 101.27,
+    "gastos_operacion": 30.38,
+    "costo_total": 131.64,
+    "utilidad": 26.33,
+    "precio": 157.97,
+    "incremento_descuento": 315.95,
+    "precio_lista": 478.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [
+    {
+      "articulo": "ATOM3-CUPM",
+      "descripcion": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 MM , EN LAMINA -- ATOM3-CUPM",
+      "cantidad_por_pieza": 1,
+      "ruta": "RPA",
+      "horas_por_unidad_sub": {
+        "pm": 0.1116
+      },
+      "relacion_inferida": false
+    },
+    {
+      "articulo": "ATOM3-CUPI",
+      "descripcion": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 MM , EN LAMINA PINTADA -- ATOM3-CUPI",
+      "cantidad_por_pieza": 1,
+      "ruta": "RPINTU",
+      "horas_por_unidad_sub": {
+        "pintura": 0.0033
+      },
+      "relacion_inferida": false
+    },
+    {
+      "articulo": "ATOM3-CUPA",
+      "descripcion": "OMEGA PARA CUBIERTA DE 850 X 100 X 17 mm ARMADO; EN LAMINA PINTADA  -- ATOM3-CUPA",
+      "cantidad_por_pieza": 1,
+      "ruta": "RAA",
+      "horas_por_unidad_sub": {
+        "acabados": 0.072
+      },
+      "relacion_inferida": false
+    }
+  ],
+  "notas": [
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: NO vienen en el reporte del cotizador; se toman del libro Coste APP LT (\"Fabricar componentes\"), fuente distinta.",
+    "Pintura (MVLQPP00000000) a 170.47 MN/kg en el reporte, sin opción de color; el costo real depende de la opción A (Compras por opción)."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": 34.29,
+      "recalculado": 34.29,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 8.67,
+      "recalculado": 8.67,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 42.97,
+      "recalculado": 42.96,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 42.97,
+      "recalculado": 42.96,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 12.28,
+      "recalculado": 12.27,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 46.03,
+      "recalculado": 46.03,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 101.27,
+      "recalculado": 101.28,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  },
+  "horas_otra_fuente": {
+    "entregas": 0.05,
+    "suma_subarticulos": {
+      "pm": 0.1116,
+      "pintura": 0.0033,
+      "acabados": 0.072,
+      "carpinteria": 0.0,
+      "entregas": 0.05
+    },
+    "fuente": "Coste APP LT 20261002.xlsx (Drive 16dlIf3OnYo-14ivaC_demHa0_onoQdwN), hoja \"Fabricar componentes\": horas del módulo ÷ cantidad por módulo",
+    "coincide_con_cotizador": true
+  }
+}

@@ -1,0 +1,220 @@
+{
+  "clave": "ATFAL150ABS",
+  "descripcion": "CONDUCTO FALDON PARA ESCRITORIO DE 900 X 379 X 177 mm MODELO APPS LT CON MELAMINA CANTO ABS; METALICO -- ATFAL150ABS",
+  "fuente": {
+    "fileId": "1i6Xk2JW3_i0IBRVngR84opsWKHOwL9z9",
+    "archivo": "ATFAL150ABS.pdf",
+    "fecha_reporte": "12/08/2026 04:58:41 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MTLECI00B20035",
+      "descripcion": "CINTURON DE 400 X 4.8 mm EN PLASTICO COLOR BLANCO CON UÑA",
+      "cantidad": 3,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 1.87,
+      "fecha_costo": "10/08/2026",
+      "categoria_reporte": "OTRO",
+      "importe_derivado": 5.61
+    },
+    {
+      "articulo": "MVLURO26522901",
+      "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR PAVONADO--RO14PA",
+      "cantidad": 5,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.28,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 1.4
+    },
+    {
+      "articulo": "MVLUPI06650053",
+      "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+      "cantidad": 5,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.53,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 2.65
+    },
+    {
+      "articulo": "MVLUTO14538604",
+      "descripcion": "TORNILLO PERILLA Ø 1/4\" X 7/8\" EN GALVANIZADO CABEZA Ø 1 1/4\" X 1/4\" CON PERFORACION DE Ø 1/8\" X 3/16\" DE PROFUNDIDAD ALUMINIO NATURAL - \"COAL11434\"",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 55.8,
+      "fecha_costo": "04/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 111.6
+    },
+    {
+      "articulo": "MVLUTU22520002",
+      "descripcion": "TUERCA HEXAGONAL Ø1/4\" GALVANIZADO -- TU14HE",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.22,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 0.44
+    },
+    {
+      "articulo": "MVLMAG01280500",
+      "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 16 mm -- AME1648",
+      "cantidad": 0.167,
+      "unidad": "Hoja",
+      "opcionLetra": "B",
+      "costo_reporte": 612.0,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "MADERA",
+      "importe_derivado": 102.204
+    },
+    {
+      "articulo": "MVLPPC00491505",
+      "descripcion": "PERFIL DE CANTO ANCHO 22 mm ESPESOR 2 mm EN ABS - \"PEABS22\"",
+      "cantidad": 2.724,
+      "unidad": "m",
+      "opcionLetra": "C",
+      "costo_reporte": 13.24,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "MADERA",
+      "importe_derivado": 36.0658
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.076,
+      "unidad": "Kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 12.9557
+    },
+    {
+      "articulo": "MVLSLA05260502",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "cantidad": 0.115,
+      "unidad": "Hoja",
+      "opcionLetra": null,
+      "costo_reporte": 434.78,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 49.9997
+    }
+  ],
+  "horas": {
+    "pm": 0.1198,
+    "pintura": 0.0033,
+    "acabados": 0.036,
+    "carpinteria": 0.4779,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": 138.27,
+    "mp_metal": 50.0,
+    "mp_herraje": 113.43,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 21.22,
+    "mp": 322.92,
+    "mo": 36.82,
+    "gif": 132.17,
+    "total": 491.92,
+    "gastos_operacion": 147.58,
+    "costo_total": 639.49,
+    "utilidad": 127.9,
+    "precio": 767.39,
+    "incremento_descuento": 1534.78,
+    "precio_lista": 2303.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [],
+  "notas": [
+    "Diferencias de ±0.01-0.02 entre la MP por categoría del reporte y cantidad × costo impreso: el reporte imprime el último costo redondeado a 2 decimales (p. ej. 0.21 contra 0.2059 real); se dejan tal cual.",
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: el reporte del cotizador no desglosa sub-ensambles y este componente no está en el libro Coste APP LT: [].",
+    "Pintura (MVLQPP00000000) a 170.47 MN/kg en el reporte, sin opción de color; el costo real depende de la opción A (Compras por opción).",
+    "opcionLetra de AME1648 (B) y PEABS22 (C) asignada por analogía con AME2848/PEABS32; no hay Sub Cuenta en ningún libro para estos artículos.",
+    "Componente APP LT de escritorio/otra configuración; no forma parte de la banca doble ni sencilla según GE_AppLT (REGLAS_ARMADO.md)."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": 138.27,
+      "recalculado": 138.27,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": 50.0,
+      "recalculado": 50.0,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": 113.43,
+      "recalculado": 113.44,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 21.22,
+      "recalculado": 21.22,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 322.92,
+      "recalculado": 322.93,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 322.92,
+      "recalculado": 322.92,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 36.82,
+      "recalculado": 36.82,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 132.17,
+      "recalculado": 132.17,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 491.92,
+      "recalculado": 491.91,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  }
+}

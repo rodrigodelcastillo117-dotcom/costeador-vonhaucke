@@ -1,0 +1,250 @@
+{
+  "clave": "ATCUBD45ABS",
+  "descripcion": "CUBIERTA RECTANGULAR DE 1500 X 1200 mm MODELO APPS LT PARA BANCA DOBLE, CON DOS TAPAS REGISTRABLE METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBD45ABS",
+  "fuente": {
+    "fileId": "1tqroLYTJyLKp4nXgRBLbR7h077c3IFSv",
+    "archivo": "ATCUBD45ABS.pdf",
+    "fecha_reporte": "12/08/2026 04:38:31 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MVLUTO35644402",
+      "descripcion": "TORNILLO CABEZA FILLSTER PHILLIPS Ø10 X 3/4\" AUTOROSCANTE T 23 GALVANIZADO -- TOAU1034",
+      "cantidad": 4,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.89,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 3.56
+    },
+    {
+      "articulo": "MVLUPI10350002",
+      "descripcion": "PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm GALVANIZADO - \"PI1015G\"",
+      "cantidad": 8,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.25,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 2.0
+    },
+    {
+      "articulo": "MVLURO26522902",
+      "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+      "cantidad": 8,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.18,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 1.44
+    },
+    {
+      "articulo": "MVLMCC06060000",
+      "descripcion": "CHAPACINTA PVC ANCHO 32 mm - \"CH32PVC\"",
+      "cantidad": 2.372,
+      "unidad": "m",
+      "opcionLetra": "C",
+      "costo_reporte": 4.88,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "MADERA",
+      "importe_derivado": 11.5754
+    },
+    {
+      "articulo": "MVLPPC00501505",
+      "descripcion": "PERFIL DE CANTO ANCHO 32 mm ESPESOR 2 mm EN ABS - \"PEABS32\"",
+      "cantidad": 5.784,
+      "unidad": "m",
+      "opcionLetra": "C",
+      "costo_reporte": 15.99,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "MADERA",
+      "importe_derivado": 92.4862
+    },
+    {
+      "articulo": "MVLMAG01280800",
+      "descripcion": "AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 28 mm -- AME2848",
+      "cantidad": 1,
+      "unidad": "Hoja",
+      "opcionLetra": "B",
+      "costo_reporte": 1026.9,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "MADERA",
+      "importe_derivado": 1026.9
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.002,
+      "unidad": "Kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 0.3409
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.002,
+      "unidad": "Kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 0.3409
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.024,
+      "unidad": "Kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 4.0913
+    },
+    {
+      "articulo": "MVLSLA05260402",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+      "cantidad": 0.002,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 571.54,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 1.1431
+    },
+    {
+      "articulo": "MVLSLA05260402",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"LN18310\"",
+      "cantidad": 0.002,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 571.54,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 1.1431
+    },
+    {
+      "articulo": "MVLSLA05260502",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "cantidad": 0.042,
+      "unidad": "Hoja",
+      "opcionLetra": null,
+      "costo_reporte": 434.78,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 18.2608
+    }
+  ],
+  "horas": {
+    "pm": 0.508,
+    "pintura": 0.011,
+    "acabados": 0.088,
+    "carpinteria": 1.4852,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": 1130.96,
+    "mp_metal": 20.55,
+    "mp_herraje": 7.0,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 4.77,
+    "mp": 1163.28,
+    "mo": 121.8,
+    "gif": 439.28,
+    "total": 1724.36,
+    "gastos_operacion": 517.31,
+    "costo_total": 2241.67,
+    "utilidad": 448.33,
+    "precio": 2690.0,
+    "incremento_descuento": 5380.0,
+    "precio_lista": 8074.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [],
+  "notas": [
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: el reporte del cotizador no desglosa sub-ensambles y este componente no está en el libro Coste APP LT: [].",
+    "Pintura (MVLQPP00000000) a 170.47 MN/kg en el reporte, sin opción de color; el costo real depende de la opción A (Compras por opción)."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": 1130.96,
+      "recalculado": 1130.96,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": 20.55,
+      "recalculado": 20.55,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": 7.0,
+      "recalculado": 7.0,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 4.77,
+      "recalculado": 4.77,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 1163.28,
+      "recalculado": 1163.28,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 1163.28,
+      "recalculado": 1163.28,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 121.8,
+      "recalculado": 121.8,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 439.28,
+      "recalculado": 439.27,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 1724.36,
+      "recalculado": 1724.36,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  }
+}

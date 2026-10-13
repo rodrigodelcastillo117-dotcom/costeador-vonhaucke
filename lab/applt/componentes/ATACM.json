@@ -1,0 +1,251 @@
+{
+  "clave": "ATACM",
+  "descripcion": "CONDUCTO ACOMETIDA DE 220 X 649 X 75 MM MODELO APPS LT CON TORNILLERIA; METALICO -- ATACM",
+  "fuente": {
+    "fileId": "1PcNaAwOPv2OvRMav_0yIDOtKxIgDf9-k",
+    "archivo": "ATACM.pdf",
+    "fecha_reporte": "12/08/2026 04:32:08 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MVLURO26543002",
+      "descripcion": "RONDANA PLANA Ø 3/8\" Ø 1\" EXTERIOR CALIBRE 12 GALVANIZADO--RP381E",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.34,
+      "fecha_costo": "04/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 0.68
+    },
+    {
+      "articulo": "MLEUTO12170002",
+      "descripcion": "TORNILLO CABEZA BOTON ALLEN Ø 3/8\" X 1\" GALVANIZADO--TOA381BG",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 3.4,
+      "fecha_costo": "04/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 6.8
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.052,
+      "unidad": "kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 8.8644
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.03,
+      "unidad": "kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 5.1141
+    },
+    {
+      "articulo": "MVLSLA05260202",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "cantidad": 0.006,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 816.48,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 4.8989
+    },
+    {
+      "articulo": "MVLSLA05260502",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "cantidad": 0.084,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 434.78,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 36.5215
+    },
+    {
+      "articulo": "MVLSLA05260502",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "cantidad": 0.048,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 434.78,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 20.8694
+    }
+  ],
+  "horas": {
+    "pm": 0.5152,
+    "pintura": 0.0099,
+    "acabados": 0.108,
+    "carpinteria": null,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": null,
+    "mp_metal": 62.29,
+    "mp_herraje": 7.47,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 13.98,
+    "mp": 83.73,
+    "mo": 41.92,
+    "gif": 159.45,
+    "total": 285.11,
+    "gastos_operacion": 85.53,
+    "costo_total": 370.64,
+    "utilidad": 74.13,
+    "precio": 444.77,
+    "incremento_descuento": 889.54,
+    "precio_lista": 1335.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [
+    {
+      "articulo": "ATACM-CU",
+      "descripcion": "CONDUCTO DE ACOMETIDA DE 220 X 649 X 75 MM , EN LAMINA -- ATACM-CU",
+      "cantidad_por_pieza": 1,
+      "ruta": "RPA",
+      "horas_por_unidad_sub": {
+        "pm": 0.3284
+      },
+      "relacion_inferida": false
+    },
+    {
+      "articulo": "ATACM-CUPI",
+      "descripcion": "CONDUCTO DE ACOMETIDA DE 220 X 649 X 75 MM , EN LAMINA PINTADA -- ATACM-CUPI",
+      "cantidad_por_pieza": 1,
+      "ruta": "RAA",
+      "horas_por_unidad_sub": {
+        "pintura": 0.0066,
+        "acabados": 0.072
+      },
+      "relacion_inferida": false
+    },
+    {
+      "articulo": "ATACM-PUPM",
+      "descripcion": "DIVISOR PARA CONDUCTO DE 98 X 462 X 61 MM , EN LAMINA -- ATACM-PUPM",
+      "cantidad_por_pieza": 1,
+      "ruta": "RPA",
+      "horas_por_unidad_sub": {
+        "pm": 0.1868
+      },
+      "relacion_inferida": false
+    },
+    {
+      "articulo": "ATACM-PUPI",
+      "descripcion": "DIVISOR PARA CONDUCTO DE 98 X 462 X 61 MM , EN LAMINA PINTADA -- ATACM-PUPI",
+      "cantidad_por_pieza": 1,
+      "ruta": "RAA",
+      "horas_por_unidad_sub": {
+        "pintura": 0.0033,
+        "acabados": 0.036
+      },
+      "relacion_inferida": false
+    }
+  ],
+  "notas": [
+    "Diferencias de ±0.01-0.02 entre la MP por categoría del reporte y cantidad × costo impreso: el reporte imprime el último costo redondeado a 2 decimales (p. ej. 0.21 contra 0.2059 real); se dejan tal cual.",
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: NO vienen en el reporte del cotizador; se toman del libro Coste APP LT (\"Fabricar componentes\"), fuente distinta.",
+    "Pintura (MVLQPP00000000) a 170.47 MN/kg en el reporte, sin opción de color; el costo real depende de la opción A (Compras por opción)."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": 62.29,
+      "recalculado": 62.29,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": 7.47,
+      "recalculado": 7.48,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 13.98,
+      "recalculado": 13.98,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 83.73,
+      "recalculado": 83.75,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 83.73,
+      "recalculado": 83.74,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 41.92,
+      "recalculado": 41.92,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 159.45,
+      "recalculado": 159.45,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 285.11,
+      "recalculado": 285.1,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  },
+  "horas_otra_fuente": {
+    "entregas": 0.075,
+    "suma_subarticulos": {
+      "pm": 0.5152,
+      "pintura": 0.0099,
+      "acabados": 0.108,
+      "carpinteria": 0.0,
+      "entregas": 0.075
+    },
+    "fuente": "Coste APP LT 20261002.xlsx (Drive 16dlIf3OnYo-14ivaC_demHa0_onoQdwN), hoja \"Fabricar componentes\": horas del módulo ÷ cantidad por módulo",
+    "coincide_con_cotizador": true
+  }
+}

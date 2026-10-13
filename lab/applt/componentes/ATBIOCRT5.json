@@ -1,0 +1,152 @@
+{
+  "clave": "ATBIOCRT5",
+  "descripcion": "BIOMBO DIVISOR DE 1400 X 400 X 32 mm MODELO APPS LT CON SOPORTES; EN CRISTAL TRANSPARENTE 6 mm TEMPLADO -- ATBIOCRT5",
+  "fuente": {
+    "fileId": "1SxlWw0LItf_MZV62RsnaFzu4bKL4u_LD",
+    "archivo": "ATBIOCRT5.pdf",
+    "fecha_reporte": "12/08/2026 04:46:41 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MDCRCR01030102",
+      "descripcion": "CRISTAL TRANSPARENTE DE 1400 X 390 mm ESPESOR 6 mm TEMPLADO CON CANTOS PULIDOS, ESQUINAS REDONDEADAS RADIO 10 mm -- ATBIOCRT5-CR",
+      "cantidad": 1,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 567.5,
+      "fecha_costo": "05/11/2025",
+      "categoria_reporte": null,
+      "importe_derivado": 567.5
+    },
+    {
+      "articulo": "MLEXSO310000V9",
+      "descripcion": "SOPORTE PARA MAMPARA ROAD MONTAJE SOBRE CUBIERTA, PARA ESPESOR PARA VIDRIOS O PANELES DE 4 A 16 mm, CYMISA - \"SOVROAD\"",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 116.42,
+      "fecha_costo": "04/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 232.84
+    },
+    {
+      "articulo": "MVLUPI03472101",
+      "descripcion": "PIJA CABEZA PLANA PHILLIPS 8 X 1\" PARA TABLAROCA PAVONADO - \"PITR1\"",
+      "cantidad": 4,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.21,
+      "fecha_costo": "04/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 0.84
+    }
+  ],
+  "horas": {
+    "pm": null,
+    "pintura": 0,
+    "acabados": 0.3402,
+    "carpinteria": null,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": null,
+    "mp_metal": null,
+    "mp_herraje": 0.82,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 800.33,
+    "mp": 801.15,
+    "mo": 19.17,
+    "gif": 65.86,
+    "total": 886.18,
+    "gastos_operacion": 265.85,
+    "costo_total": 1152.03,
+    "utilidad": 230.41,
+    "precio": 1382.44,
+    "incremento_descuento": 2764.88,
+    "precio_lista": 4148.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [],
+  "notas": [
+    "Diferencias de ±0.01-0.02 entre la MP por categoría del reporte y cantidad × costo impreso: el reporte imprime el último costo redondeado a 2 decimales (p. ej. 0.21 contra 0.2059 real); se dejan tal cual.",
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: el reporte del cotizador no desglosa sub-ensambles y este componente no está en el libro Coste APP LT: [].",
+    "Cristal con último costo del 05/11/2025 (antiguo). El pedido 38247 usa ATBIOCRS4 (satinado), cuyo reporte no está en Drive."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": 0.82,
+      "recalculado": 0.84,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 800.33,
+      "recalculado": 800.34,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 801.15,
+      "recalculado": 801.18,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 801.15,
+      "recalculado": 801.15,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 19.17,
+      "recalculado": 19.17,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 65.86,
+      "recalculado": 65.86,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 886.18,
+      "recalculado": 886.18,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  }
+}

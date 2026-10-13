@@ -1,0 +1,206 @@
+{
+  "clave": "ATPU2M",
+  "descripcion": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+  "fuente": {
+    "fileId": "1g6i4e7Og5BYFR3WhZupdOoR-d4vVT8AG",
+    "archivo": "ATPU2M.pdf",
+    "fecha_reporte": "12/08/2026 04:22:55 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MVLURO26522902",
+      "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+      "cantidad": 8,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.18,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 1.44
+    },
+    {
+      "articulo": "MVLUPI06650053",
+      "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+      "cantidad": 8,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.53,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 4.24
+    },
+    {
+      "articulo": "MVLUTO15188109",
+      "descripcion": "TORNILLO NIVELADOR Ø 3/8\" X 1 1/2\" PLATAFORMA CONICA DE Ø 2\" X 5/8\" CROMADO - \"TO38112CNIC/TO382CNIC\"",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 17.73,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 35.46
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.08,
+      "unidad": "kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 13.6376
+    },
+    {
+      "articulo": "MLESLA05261100",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 10 -- LN10310",
+      "cantidad": 0.035,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 2270.17,
+      "fecha_costo": "30/07/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 79.456
+    },
+    {
+      "articulo": "MVLSLA05260202",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "cantidad": 0.003,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 816.48,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 2.4494
+    },
+    {
+      "articulo": "MVLSTU03310401",
+      "descripcion": "TUBULAR INDUSTRIAL RECTANGULAR 1 1/2\" X 3\" CALIBRE 18 PIEZA DE 6000 mm - \"TRE181123\"",
+      "cantidad": 0.361,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 383.28,
+      "fecha_costo": "07/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 138.3641
+    },
+    {
+      "articulo": "MVLUTU22540002",
+      "descripcion": "TUERCA HEXAGONAL Ø 3/8\" GALVANIZADO - \"TU38HE\"",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.39,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 0.78
+    }
+  ],
+  "horas": {
+    "pm": 1.4078,
+    "pintura": 0.0066,
+    "acabados": 0.1434,
+    "carpinteria": null,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": null,
+    "mp_metal": 220.27,
+    "mp_herraje": 37.68,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 17.88,
+    "mp": 275.83,
+    "mo": 97.94,
+    "gif": 369.59,
+    "total": 743.36,
+    "gastos_operacion": 223.01,
+    "costo_total": 966.37,
+    "utilidad": 193.27,
+    "precio": 1159.64,
+    "incremento_descuento": 2319.28,
+    "precio_lista": 3483.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [],
+  "notas": [
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: el reporte del cotizador no desglosa sub-ensambles y este componente no está en el libro Coste APP LT: [].",
+    "Pintura (MVLQPP00000000) a 170.47 MN/kg en el reporte, sin opción de color; el costo real depende de la opción A (Compras por opción)."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": 220.27,
+      "recalculado": 220.27,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": 37.68,
+      "recalculado": 37.68,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 17.88,
+      "recalculado": 17.88,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 275.83,
+      "recalculado": 275.83,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 275.83,
+      "recalculado": 275.83,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 97.94,
+      "recalculado": 97.94,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 369.59,
+      "recalculado": 369.59,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 743.36,
+      "recalculado": 743.36,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  }
+}

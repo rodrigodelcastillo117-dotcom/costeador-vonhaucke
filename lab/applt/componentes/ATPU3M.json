@@ -1,0 +1,207 @@
+{
+  "clave": "ATPU3M",
+  "descripcion": "PATA TIPO \"U\" DE 900 X 720 mm MODELO APPS LT; METALICA -- ATPU3M",
+  "fuente": {
+    "fileId": "1mxuaicJy7mc5Vs6liwlDR8lSTWuoJ7Bf",
+    "archivo": "ATPU3M.pdf",
+    "fecha_reporte": "12/08/2026 04:30:01 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MVLUTU22540002",
+      "descripcion": "TUERCA HEXAGONAL Ø 3/8\" GALVANIZADO - \"TU38HE\"",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.39,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 0.78
+    },
+    {
+      "articulo": "MVLURO26522902",
+      "descripcion": "RONDANA PLANA Ø 1/4\" Ø 3/4\" EXTERIOR GALVANIZADO--RO14GA",
+      "cantidad": 12,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.18,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 2.16
+    },
+    {
+      "articulo": "MVLUPI06650053",
+      "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+      "cantidad": 12,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.53,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 6.36
+    },
+    {
+      "articulo": "MVLUTO15188109",
+      "descripcion": "TORNILLO NIVELADOR Ø 3/8\" X 1 1/2\" PLATAFORMA CONICA DE Ø 2\" X 5/8\" CROMADO - \"TO38112CNIC/TO382CNIC\"",
+      "cantidad": 2,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 17.73,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": "HERRAJE",
+      "importe_derivado": 35.46
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.088,
+      "unidad": "kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "11/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 15.0014
+    },
+    {
+      "articulo": "MLESLA05261100",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 10 -- LN10310",
+      "cantidad": 0.031,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 2270.17,
+      "fecha_costo": "30/07/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 70.3753
+    },
+    {
+      "articulo": "MVLSLA05260202",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "cantidad": 0.003,
+      "unidad": "hoja",
+      "opcionLetra": null,
+      "costo_reporte": 816.48,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 2.4494
+    },
+    {
+      "articulo": "MVLSTU03310401",
+      "descripcion": "TUBULAR INDUSTRIAL RECTANGULAR 1 1/2\" X 3\" CALIBRE 18 PIEZA DE 6000 mm - \"TRE181123\"",
+      "cantidad": 0.417,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 383.28,
+      "fecha_costo": "07/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 159.8278
+    }
+  ],
+  "horas": {
+    "pm": 1.6628,
+    "pintura": 0.0132,
+    "acabados": 0.1668,
+    "carpinteria": null,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": null,
+    "mp_metal": 232.65,
+    "mp_herraje": 38.4,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 21.36,
+    "mp": 292.42,
+    "mo": 117.66,
+    "gif": 445.75,
+    "total": 855.83,
+    "gastos_operacion": 256.75,
+    "costo_total": 1112.58,
+    "utilidad": 222.52,
+    "precio": 1335.1,
+    "incremento_descuento": 2670.19,
+    "precio_lista": 4006.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [],
+  "notas": [
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: el reporte del cotizador no desglosa sub-ensambles y este componente no está en el libro Coste APP LT: [].",
+    "Pintura (MVLQPP00000000) a 170.47 MN/kg en el reporte, sin opción de color; el costo real depende de la opción A (Compras por opción).",
+    "Componente APP LT de escritorio/otra configuración; no forma parte de la banca doble ni sencilla según GE_AppLT (REGLAS_ARMADO.md)."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": 232.65,
+      "recalculado": 232.65,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": 38.4,
+      "recalculado": 38.4,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 21.36,
+      "recalculado": 21.36,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 292.42,
+      "recalculado": 292.41,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 292.42,
+      "recalculado": 292.41,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 117.66,
+      "recalculado": 117.66,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 445.75,
+      "recalculado": 445.75,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 855.83,
+      "recalculado": 855.83,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "clave": "ATOM4",
+  "descripcion": "OMEGA PARA CUBIERTA DE 1150 X 100 X 17 mm MODELO APPS LT CON TORNILLERIA; METALICA -- ATOM4",
+  "fuente": {
+    "fileId": "1_5PUrPab9oVSnK_0mmrB_w3GDgJmHBRM",
+    "archivo": "ATOM4.pdf",
+    "fecha_reporte": "12/08/2026 05:03:26 p. m.",
+    "tipo": "REPORTE DEL COTIZADOR DE PRECIOS (Intelisis)",
+    "carpeta_drive": "presupuestos cotizador vonhaucke (140tw99N0F8pfW6sCnMxx4TE66iTmsdLL)",
+    "leido": "2026-10-13, solo lectura"
+  },
+  "materiales": [
+    {
+      "articulo": "MVLUPI06650053",
+      "descripcion": "PIJA CABEZA HEXAGONAL DE 3/8 \" CON ARANDELA INTEGRADA DE 14 X 19 mm GALVANIZADA - \"PI1419HG\"",
+      "cantidad": 8,
+      "unidad": "pieza",
+      "opcionLetra": null,
+      "costo_reporte": 0.53,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 4.24
+    },
+    {
+      "articulo": "MVLQPP00000000",
+      "descripcion": "PINTURA EN POLVO - \"PPH\"",
+      "cantidad": 0.036,
+      "unidad": "Kg",
+      "opcionLetra": "A",
+      "costo_reporte": 170.47,
+      "fecha_costo": "12/08/2026",
+      "categoria_reporte": null,
+      "importe_derivado": 6.1369
+    },
+    {
+      "articulo": "MVLSLA05260202",
+      "descripcion": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "cantidad": 0.071,
+      "unidad": "Hoja",
+      "opcionLetra": null,
+      "costo_reporte": 816.48,
+      "fecha_costo": "05/08/2026",
+      "categoria_reporte": "METAL",
+      "importe_derivado": 57.9701
+    }
+  ],
+  "horas": {
+    "pm": 0.1242,
+    "pintura": 0.0033,
+    "acabados": 0.096,
+    "carpinteria": null,
+    "entregas": null
+  },
+  "costos_reporte": {
+    "mp_madera": null,
+    "mp_metal": 57.97,
+    "mp_herraje": null,
+    "mp_acrilico": null,
+    "mp_silleria": null,
+    "mp_otros": 10.38,
+    "mp": 68.35,
+    "mo": 14.41,
+    "gif": 53.63,
+    "total": 136.38,
+    "gastos_operacion": 40.91,
+    "costo_total": 177.29,
+    "utilidad": 35.46,
+    "precio": 212.75,
+    "incremento_descuento": 425.51,
+    "precio_lista": 639.0,
+    "factores": {
+      "gastos_operacion_pct": 30,
+      "utilidad_pct": 20,
+      "precio_lista_pct": 200
+    },
+    "tarifa_mo_por_hora": {
+      "pm": 61.98,
+      "pintura": 394.35,
+      "acabados": 56.34,
+      "carpinteria": 54.55
+    },
+    "tarifa_gif_por_hora": {
+      "pm": 234.39,
+      "pintura": 1796.61,
+      "acabados": 193.59,
+      "carpinteria": 190.82
+    },
+    "nota": "\"total\" = Total Costo de Fabricación (MP + MO + GIF) a tarifa estándar del ERP; costo_total/precio/precio_lista según los factores del cotizador."
+  },
+  "subarticulos": [],
+  "notas": [
+    "horas.pm = centro \"Otros\" del cotizador (procesos metal). El cotizador no reporta horas de Entregas (ENTRE): entregas = null.",
+    "subarticulos: el reporte del cotizador no desglosa sub-ensambles y este componente no está en el libro Coste APP LT: [].",
+    "Pintura (MVLQPP00000000) a 170.47 MN/kg en el reporte, sin opción de color; el costo real depende de la opción A (Compras por opción)."
+  ],
+  "verificacion_aritmetica": {
+    "mp_madera": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_metal": {
+      "reporte": 57.97,
+      "recalculado": 57.97,
+      "cuadra": true
+    },
+    "mp_herraje": {
+      "reporte": null,
+      "recalculado": 0.0,
+      "cuadra": true
+    },
+    "mp_otros": {
+      "reporte": 10.38,
+      "recalculado": 10.38,
+      "cuadra": true
+    },
+    "mp_total": {
+      "reporte": 68.35,
+      "recalculado": 68.35,
+      "cuadra": true
+    },
+    "mp_total_vs_suma_categorias_reporte": {
+      "reporte": 68.35,
+      "recalculado": 68.35,
+      "cuadra": true
+    },
+    "mo": {
+      "reporte": 14.41,
+      "recalculado": 14.41,
+      "cuadra": true
+    },
+    "gif": {
+      "reporte": 53.63,
+      "recalculado": 53.62,
+      "cuadra": true
+    },
+    "total_fabricacion": {
+      "reporte": 136.38,
+      "recalculado": 136.39,
+      "cuadra": true
+    }
+  },
+  "cruce_horas_clave_applt_js": {
+    "coincide": true,
+    "diferencias": {}
+  },
+  "cruce_fixture_intelisis_alba": {
+    "coincide": true,
+    "diferencias": []
+  }
+}
