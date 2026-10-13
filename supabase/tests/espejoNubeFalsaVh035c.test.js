@@ -25,8 +25,11 @@ const P1 = {
 };
 const P2 = { id: 'p2', nombre: 'Silla', cantidad: 6, precioUnitario: 3200, costoUnitario: 1400, margen: 35 };
 const P3 = { id: 'p3', nombre: 'Credenza', cantidad: 2, precioUnitario: 12000, costoUnitario: 6100, costo_por_lote: true, config: { costeo: { costoLote: 12200 } } };
-const LEGACY = { id: 'p4', nombre: 'Legacy', cantidad: 1, precioUnitario: 9000, costoUnitario: 4000, margen: 30, config: { finish: 'chapa' } };
-const VIEJAS = [P1, P2, P3, LEGACY];
+const LEGACY = { id: 'p4', nombre: 'Legacy', cantidad: 1, precioUnitario: 9000, costoUnitario: 4000, margen: 30, config: { finish: 'chapa' }, dims: [120, 60, 75] };
+// Ya STALE (de un guardado anterior): su economia_previa debe sobrevivir a un nuevo STALE.
+const YA_STALE = { id: 'p5', nombre: 'Stale', material: 'b', cantidad: 1, precioUnitario: 100, cost_status: 'UNKNOWN',
+  cost_stale: { motivo: 'RECOSTEO_MATERIAL_CAMBIADO', campos: ['.material'], previo: { cantidad: 1 }, economia_previa: { costoUnitario: 50 } } };
+const VIEJAS = [P1, P2, P3, LEGACY, YA_STALE];
 const vista = (ps) => sinEconomia(ps);
 const editar = (pid, f) => vista(VIEJAS).map((p) => (p.id === pid ? f(p) : p));
 
@@ -46,6 +49,19 @@ const CASOS = [
   ['re-pin de versión (error)', editar('p1', (p) => ({ ...p, producto_version_id: 9999 }))],
   ['producto inexistente (error)', [...vista(VIEJAS), { id: 'p11', nombre: 'X', cantidad: 1, precioUnitario: 1, producto_id: 77 }]],
   ['producto_id basura (error)', [...vista(VIEJAS), { id: 'p12', nombre: 'X', cantidad: 1, precioUnitario: 1, producto_id: 'abc' }]],
+  // VH-035c §8: STALE por DEFINICIÓN (cualquier cambio no comercial) y sus exclusiones.
+  ['definición: cambia nombre', editar('p4', (p) => ({ ...p, nombre: 'Escritorio NOGAL MACIZO' }))],
+  ['definición: cambia medidas y w (claves nuevas)', editar('p2', (p) => ({ ...p, medidas: '300x120', w: 3000 }))],
+  ['definición: cambia config anidado fuera de la huella', editar('p4', (p) => ({ ...p, config: { ...p.config, ancho: 3000 } }))],
+  ['definición: quita una clave (nombre)', editar('p2', (p) => { const { nombre, ...r } = p; return r; })],
+  ['definición: sólo lo comercial (no stale)', editar('p1', (p) => ({ ...p, precioUnitario: 47000, precio_unitario: 47000, descuento: 3, descuento_solicitado: 3, importe: 47000 }))],
+  ['definición: nulls, autoridad false y cambios_rechazados (no stale)', editar('p4', (p) => ({ ...p, render: null, producto_id: null, aprobado: false, precioAutorizado: false, cambios_rechazados: [{ campo: 'x' }] }))],
+  ['definición: reordenar componentes sin clave (no stale)', editar('p1', (p) => ({ ...p, pieza: { componentes: [...p.pieza.componentes].reverse() } }))],
+  ['definición: arreglo de escalares reordenado (stale)', editar('p4', (p) => ({ ...p, dims: [60, 120, 75] }))],
+  ['definición no pisa motivos previos: material + nombre', editar('p1', (p) => ({ ...p, nombre: 'Otra', config: { ...p.config, finish: 'chapa' } }))],
+  ['definición no pisa motivos previos: lote + nombre', editar('p3', (p) => ({ ...p, nombre: 'Otra', cantidad: 9 }))],
+  ['definición sobre partida ya STALE: conserva economia_previa', editar('p5', (p) => ({ ...p, nombre: 'Otro' }))],
+  ['partida ya STALE guardada sin cambios: sigue STALE', vista(VIEJAS)],
 ];
 
 describe('paridad fusionar_economia_partidas (SQL VH-035c) ↔ fusionarVh035c (nube falsa)', () => {

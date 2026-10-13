@@ -200,12 +200,14 @@ bloque('PROPUESTA_vh035c_preserva_economia_integral.sql', (db) => {
 
   // ---- 1. economía anidada ----
   for (const rol of [VENDEDOR, DISENO]) {
-    it(`[1] ${rol}: cambia cantidad (costo unitario sin lote) → economía de Dirección ÍNTEGRA: primer nivel, config.costeo, insumos[].costo, componentes[].costo`, async () => {
+    // Antes este caso también cambiaba `nota`; desde VH-035c §8 la nota es DEFINICIÓN (se imprime, describe el mueble)
+    // y la invalida: ver los casos [8]. Aquí sólo cambia lo que no altera el mueble: cantidad (sin lote) y lo comercial.
+    it(`[1] ${rol}: cambia cantidad (costo unitario sin lote) y precio/descuento → economía de Dirección ÍNTEGRA: primer nivel, config.costeo, insumos[].costo, componentes[].costo`, async () => {
       const id = await sembrar(db(), [P1, P2]);
-      const r = await reabrirYGuardar(db(), rol, id, (p) => ({ ...p, cantidad: 3, nota: 'urge' }));
+      const r = await reabrirYGuardar(db(), rol, id, (p) => ({ ...p, cantidad: 3, precioUnitario: 47000, descuento: 5 }));
       expect(r.c.ok).toBe(true);
       const p1 = await partidaDe(db(), id);
-      expect(p1).toMatchObject({ ...P1, cantidad: 3, nota: 'urge', cost_status: 'KNOWN' });
+      expect(p1).toMatchObject({ ...P1, cantidad: 3, precioUnitario: 47000, descuento: 5, cost_status: 'KNOWN' });
       expect(p1.config).toEqual(P1.config);                       // costeo + insumos[].costo volvieron
       expect(p1.pieza).toEqual(P1.pieza);                         // componentes[].costo volvieron
       expect(p1).not.toHaveProperty('cost_stale');
@@ -280,12 +282,15 @@ bloque('PROPUESTA_vh035c_preserva_economia_integral.sql', (db) => {
     expect(await partidaDe(db(), id, 'p1')).toMatchObject({ cantidad: 2, costoUnitario: 21000, cost_status: 'KNOWN' });
   });
 
-  it('[3] misma cantidad en la partida por lote (sólo cambia la nota) → el costo por lote se conserva; basta costoLote anidado sin la marca', async () => {
+  // Antes cambiaba la `nota` (desde VH-035c §8 eso es definición ⇒ STALE, casos [8]); el punto aquí es la regla de lote.
+  it('[3] misma cantidad en la partida por lote (sólo cambia el precio) → el costo por lote se conserva; basta costoLote anidado sin la marca', async () => {
     const sinMarca = { ...P3_LOTE, costo_por_lote: undefined };
     const id = await sembrar(db(), [sinMarca]);
     const vista = await vistaDe(db(), DISENO, id);
-    await guardar(db(), DISENO, id, { partidas: vista.partidas.map((p) => ({ ...p, nota: 'entregar en obra' })) });
-    expect(await partidaDe(db(), id, 'p3')).toMatchObject({ costoUnitario: 6100, margen: 40, nota: 'entregar en obra', config: { costeo: { costoLote: 12200 } } });
+    await guardar(db(), DISENO, id, { partidas: vista.partidas.map((p) => ({ ...p, precioUnitario: 12500 })) });
+    const p3Precio = await partidaDe(db(), id, 'p3');
+    expect(p3Precio).toMatchObject({ costoUnitario: 6100, margen: 40, precioUnitario: 12500, config: { costeo: { costoLote: 12200 } } });
+    expect(p3Precio).not.toHaveProperty('cost_stale');
     await guardar(db(), DISENO, id, { partidas: vista.partidas.map((p) => ({ ...p, cantidad: 5 })) });
     const p3 = await partidaDe(db(), id, 'p3');
     expect(p3.cost_stale?.motivo).toBe('RECOSTEO_LOTE_CAMBIADO');   // costoLote anidado basta como contrato
@@ -504,6 +509,115 @@ bloque('PROPUESTA_vh035c_preserva_economia_integral.sql', (db) => {
     expect(g.state).toBe('BLOCKED');
     expect(g.economics).toContain('linea_1_recosteo_pendiente_lote_cambiado');
     expect(d.partidas[0].cost_stale.motivo).toBe('RECOSTEO_LOTE_CAMBIADO');
+  });
+
+  // ---- 8. STALE por DEFINICIÓN (riesgo de composición con SEG-01: SEGURIDAD_10.md § Riesgos 1) ----
+  // Partida legacy (sin Producto Maestro) como la de SEG-01: el costo que usa la compuerta es el de la FILA, así que
+  // si el guardado re-pegara la economía sobre otro nombre/medidas, el mueble nuevo se emitiría con el costo viejo.
+  const ESCRITORIO = {
+    id: 'p1', nombre: 'Escritorio operativo melamina blanca', medidas: '120x60x75', material: 'Melamina 16 mm', nota: 'con pasacables',
+    w: 1200, d: 600, cantidad: 1, precioUnitario: 10000, costoUnitario: 6000, margen: 40,
+    config: { ancho: 1200, fondo: 600, costeo: { costoUnitario: 6000 } },
+  };
+  const emitibleDe = (id, email = VENDEDOR) => emitible(db(), email, id);
+
+  for (const rol of [VENDEDOR, DISENO]) {
+    it(`[8] ${rol} GUARDA el renglón con otro NOMBRE → no se re-pega el costo: UNKNOWN + cost_stale RECOSTEO_DEFINICION_CAMBIADA (campos ['nombre']), economía previa auditable; emisión bloqueada`, async () => {
+      const id = await sembrar(db(), [ESCRITORIO]);
+      expect(await emitibleDe(id)).toMatchObject({ ok: true, estado: 'ALLOWED' });
+      await reabrirYGuardar(db(), rol, id, (p) => ({ ...p, nombre: 'Escritorio ejecutivo NOGAL MACIZO con cajonera' }));
+      const p1 = await partidaDe(db(), id);
+      expect(p1.nombre).toBe('Escritorio ejecutivo NOGAL MACIZO con cajonera');
+      expect(p1).not.toHaveProperty('costoUnitario');
+      expect(p1).not.toHaveProperty('margen');
+      expect(p1.config).toEqual({ ancho: 1200, fondo: 600 });            // tampoco el costeo anidado
+      expect(p1.cost_status).toBe('UNKNOWN');
+      expect(p1.cost_stale).toMatchObject({ motivo: 'RECOSTEO_DEFINICION_CAMBIADA', campos: ['nombre'], previo: { cantidad: 1 } });
+      expect(p1.cost_stale.economia_previa).toEqual({ costoUnitario: 6000, margen: 40, config: { costeo: { costoUnitario: 6000 } } });
+      // El vendedor no ve la marca ni el costo previo.
+      expect(JSON.stringify(await vistaDe(db(), VENDEDOR, id))).not.toMatch(/cost_stale|economia_previa|6000|costo/);
+      // Compuerta: bloqueada para vendedor y Dirección con el motivo legible; emitir_revision_v2 rechaza.
+      for (const quien of [VENDEDOR, DIRECCION]) {
+        const g = await emitibleDe(id, quien);
+        expect(g.ok).toBe(false);
+        expect(g.estado).toBe('ECONOMICS_INCOMPLETE');
+        expect(g.motivos).toEqual(expect.arrayContaining(['linea_1_recosteo_pendiente_definicion_cambiada', 'linea_1_costo_desconocido']));
+      }
+      await expect(emitir(db(), VENDEDOR, id, snapshotDe(await vistaDe(db(), VENDEDOR, id)))).rejects.toThrow(/ECONOMICS_INCOMPLETE.*recosteo_pendiente_definicion_cambiada/);
+      expect((await rpc(db(), DIRECCION, 'select count(*)::int as n from public.cotizaciones_revisiones where cotizacion_id=$1', [id])).n).toBe(0);
+    });
+  }
+
+  it('[8] el vendedor cambia SÓLO lo comercial (precioUnitario, precio_unitario, descuento, descuento_solicitado, importe) → NO es recosteo: economía íntegra, KNOWN, emitible', async () => {
+    const id = await sembrar(db(), [ESCRITORIO]);
+    await reabrirYGuardar(db(), VENDEDOR, id, (p) => ({ ...p, precioUnitario: 9800, precio_unitario: 9800, descuento: 2, descuento_solicitado: 2, importe: 9800 }));
+    const p1 = await partidaDe(db(), id);
+    expect(p1).toMatchObject({ ...ESCRITORIO, precioUnitario: 9800, descuento: 2, importe: 9800, cost_status: 'KNOWN' });
+    expect(p1.config).toEqual(ESCRITORIO.config);
+    expect(p1).not.toHaveProperty('cost_stale');
+    expect(await emitibleDe(id)).toMatchObject({ ok: true, estado: 'ALLOWED' });
+  });
+
+  for (const [desc, editar, campos] of [
+    ['medidas (texto)', (p) => ({ ...p, medidas: '300x120x75' }), ['medidas']],
+    ['w/d de primer nivel', (p) => ({ ...p, w: 3000, d: 1200 }), ['d', 'w']],
+    ['config.ancho anidado (fuera de la huella de material)', (p) => ({ ...p, config: { ...p.config, ancho: 3000 } }), ['config']],
+    ['nota impresa', (p) => ({ ...p, nota: 'incluye cajonera de nogal' }), ['nota']],
+    ['una clave NUEVA del contrato (fail-closed)', (p) => ({ ...p, render: 'renders/nogal.png' }), ['render']],
+    ['quitar una clave de definición', (p) => { const { nota, ...resto } = p; return resto; }, ['nota']],
+  ]) {
+    it(`[8] el vendedor cambia ${desc} → STALE RECOSTEO_DEFINICION_CAMBIADA con campos ${JSON.stringify(campos)}; emisión bloqueada`, async () => {
+      const id = await sembrar(db(), [ESCRITORIO]);
+      await reabrirYGuardar(db(), VENDEDOR, id, editar);
+      const p1 = await partidaDe(db(), id);
+      expect(p1).not.toHaveProperty('costoUnitario');
+      expect(p1.cost_status).toBe('UNKNOWN');
+      expect(p1.cost_stale).toMatchObject({ motivo: 'RECOSTEO_DEFINICION_CAMBIADA', campos });
+      expect(p1.cost_stale.economia_previa.costoUnitario).toBe(6000);
+      expect((await emitibleDe(id)).motivos).toContain('linea_1_recosteo_pendiente_definicion_cambiada');
+    });
+  }
+
+  it('[8] sin falsos positivos: nulls que manda crearPartida, autoridad en false/null, cambios_rechazados y la economía colada por el cliente NO son cambio de definición', async () => {
+    const id = await sembrar(db(), [ESCRITORIO]);
+    await reabrirYGuardar(db(), VENDEDOR, id, (p) => ({
+      ...p, producto_id: null, producto_version_id: null, source_type: null, render: null, aprobado: false, precioAutorizado: false,
+      cambios_rechazados: [{ campo: 'x', motivo: 'y' }], costoUnitario: 1, cost_stale: { motivo: 'X' },
+    }));
+    const p1 = await partidaDe(db(), id);
+    expect(p1).toMatchObject({ costoUnitario: 6000, margen: 40, cost_status: 'KNOWN' });
+    expect(p1).not.toHaveProperty('cost_stale');
+    expect(await emitibleDe(id)).toMatchObject({ ok: true, estado: 'ALLOWED' });
+  });
+
+  it('[8] el orden de evaluación no cambia: producto/material/lote conservan su motivo y sus campos aunque también cambie el nombre', async () => {
+    const id = await sembrar(db(), [P1, P3_LOTE]);
+    const vista = await vistaDe(db(), VENDEDOR, id);
+    await guardar(db(), VENDEDOR, id, { partidas: vista.partidas.map((p) => (p.id === 'p1'
+      ? { ...p, nombre: 'Otra', config: { ...p.config, finish: 'chapa' } }
+      : { ...p, nombre: 'Otra credenza', cantidad: 5 })) });
+    expect((await partidaDe(db(), id)).cost_stale).toMatchObject({ motivo: 'RECOSTEO_MATERIAL_CAMBIADO', campos: ['.config.finish'] });
+    expect((await partidaDe(db(), id, 'p3')).cost_stale).toMatchObject({ motivo: 'RECOSTEO_LOTE_CAMBIADO', campos: ['cantidad'] });
+  });
+
+  it('[8] Dirección recostea el renglón renombrado (quita cost_stale, pone su costo) → KNOWN y se EMITE; el vendedor vuelve a guardar sin cambios y sigue emitible', async () => {
+    const id = await sembrar(db(), [ESCRITORIO]);
+    await reabrirYGuardar(db(), VENDEDOR, id, (p) => ({ ...p, nombre: 'Escritorio ejecutivo NOGAL MACIZO con cajonera', medidas: '300x120x75', precioUnitario: 18000 }));
+    expect((await partidaDe(db(), id)).cost_stale.campos).toEqual(['medidas', 'nombre']);
+    expect((await emitibleDe(id)).ok).toBe(false);
+    const d = await vistaDe(db(), DIRECCION, id);
+    const recosteada = d.partidas.map((p) => { const { cost_stale, cost_status, ...resto } = p; return { ...resto, costoUnitario: 11000, margen: 39 }; });
+    await guardar(db(), DIRECCION, id, { partidas: recosteada });
+    const p1 = await partidaDe(db(), id);
+    expect(p1).toMatchObject({ nombre: 'Escritorio ejecutivo NOGAL MACIZO con cajonera', costoUnitario: 11000, cost_status: 'KNOWN' });
+    expect(p1).not.toHaveProperty('cost_stale');
+    expect(await emitibleDe(id)).toMatchObject({ ok: true, estado: 'ALLOWED' });
+    // El vendedor reabre y guarda tal cual (mismo mueble que Dirección costeó): el costo nuevo se conserva.
+    await reabrirYGuardar(db(), VENDEDOR, id, (p) => p);
+    expect(await partidaDe(db(), id)).toMatchObject({ costoUnitario: 11000, cost_status: 'KNOWN' });
+    const vd = await vistaDe(db(), DIRECCION, id);
+    expect((await emitir(db(), VENDEDOR, id, snapshotDe(await vistaDe(db(), VENDEDOR, id)))).c).toMatchObject({ revision: 1, nueva: true, gate: 'ALLOWED' });
+    expect(vd.partidas[0].costoUnitario).toBe(11000);
   });
 
   // ---- lo que ya hacía bien vh035b sigue igual ----

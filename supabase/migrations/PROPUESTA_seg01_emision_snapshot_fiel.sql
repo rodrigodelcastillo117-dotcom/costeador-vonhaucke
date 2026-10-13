@@ -75,12 +75,14 @@
 --     (supabase/tests/seguridadGateEmisionSnapshot.test.js, describe "COMPOSICIÓN SEG-01 × VH-035c × VH-148").
 --   · Cada rollback es independiente: el de esta propuesta sólo devuelve private_api.evaluar_emision_cotizacion al
 --     cuerpo de producción y borra sus 3 ayudas; el wrapper de VH-035c sigue llamándolo igual.
---   · ⚠️ RIESGO DE COMPOSICIÓN (no lo corrige este archivo): con VH-035c, un vendedor que GUARDA un renglón con
---     otro nombre/medidas/dimensiones (claves fuera de la huella de material de VH-035c) conserva el costo de
---     Dirección; luego el snapshot coincide con la fila y este gate lo deja pasar. Producción hoy no tiene ese
---     hueco (el guardado del vendedor despoja el costo). Antes de aplicar VH-035c hay que ampliar su criterio de
---     STALE a todo lo no comercial (la misma proyección que private_api.partida_cotejable_emision, menos cantidad
---     sin marca de lote). Documentado con it.fails en la prueba.
+--   · RIESGO DE COMPOSICIÓN (no lo corrige este archivo; CORREGIDO en VH-035c §8, 2026-10-13): con la versión
+--     anterior de VH-035c, un vendedor que GUARDABA un renglón con otro nombre/medidas/dimensiones (claves fuera de
+--     la huella de material) conservaba el costo de Dirección; luego el snapshot coincidía con la fila y este gate lo
+--     dejaba pasar. VH-035c ahora marca STALE (RECOSTEO_DEFINICION_CAMBIADA) ante todo cambio no comercial, con la
+--     MISMA lista blanca que private_api.claves_libres_emision_partida (más cantidad, regida por su regla de lote, y
+--     las claves de autoridad que el servidor ya fija) ⇒ el wrapper de VH-035c da ECONOMICS_INCOMPLETE. Si se cambia
+--     la lista blanca aquí, cambiarla también en private_api.claves_libres_definicion_partida (VH-035c) y en el
+--     espejo e2e/nubeFalsa.js. Prueba: el antiguo it.fails "RIESGO VH-035c" es ahora `it` en los tres órdenes.
 --
 --  ROLLBACK: bloque comentado al final (entre marcadores), con el cuerpo de producción copiado BYTE A BYTE de
 --  supabase/tests/fixtures/private_api_emision_prod_20261013.sql (la prueba verifica md5 = 9c660b09… tras revertir).

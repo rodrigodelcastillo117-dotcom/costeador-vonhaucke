@@ -12,12 +12,19 @@ export function textoRazonEmision(code) {
   const k = m ? m[2] : String(code || '');
   const L = n ? `Línea ${n}: ` : '';
   if (/costo_desconocido/.test(k)) return `${L}falta confirmar el costo con Diseño/Dirección.`;
-  // VH-035c: la línea cambió de producto, versión, BOM, material o cantidad (costo por lote) después de costearse.
+  // VH-035c: la línea cambió de producto, versión, BOM, material, cantidad (costo por lote) o cualquier otra
+  // especificación no comercial (nombre, medidas, nota…) después de costearse.
   // El costo anterior se conserva para auditoría, pero no es válido: Dirección debe recostearla.
   if (/recosteo_pendiente/.test(k)) {
     const motivo = k.replace(/^recosteo_pendiente_?/, '');
-    // Códigos de private_api.motivos_recosteo_pendiente (vh035c): RECOSTEO_PRODUCTO/MATERIAL/LOTE_CAMBIADO.
-    const por = { producto_cambiado: 'cambió el producto, su versión o su despiece', material_cambiado: 'cambió un material', lote_cambiado: 'cambió la cantidad y su costo depende del lote' }[motivo] || 'cambió después de costearse';
+    // Códigos de private_api.motivos_recosteo_pendiente (vh035c): RECOSTEO_PRODUCTO/MATERIAL/LOTE_CAMBIADO y
+    // RECOSTEO_DEFINICION_CAMBIADA.
+    const por = {
+      producto_cambiado: 'cambió el producto, su versión o su despiece',
+      material_cambiado: 'cambió un material',
+      lote_cambiado: 'cambió la cantidad y su costo depende del lote',
+      definicion_cambiada: 'cambió su descripción, medidas u otra especificación',
+    }[motivo] || 'cambió después de costearse';
     return `${L}${por}; su costo anterior ya no vale y Dirección debe recostearla antes de emitir.`;
   }
   // VH-047: códigos del servidor que antes salían crudos al vendedor, y los locales.

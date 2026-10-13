@@ -478,16 +478,35 @@ for (const [orden, archivos] of ORDENES_SEG01) {
       expect(await revisiones(db, id)).toBe(0);
     });
 
-    // RIESGO DE COMPOSICIÓN (vigente en VH-035c, NO en producción hoy): VH-035c re-pega la economía si el vendedor
-    // GUARDA otro nombre/medidas (claves fuera de su huella de material) ⇒ la fila ya dice "nogal 300x120" con el
-    // costo de la melamina y el snapshot coincide con ella. it.fails: exige lo correcto y hoy falla. Se corrige en
-    // VH-035c (STALE ante cualquier cambio no comercial), no en el gate. Ver SEGURIDAD_10.md § Propuesta SEG-01.
-    it.fails('RIESGO VH-035c: renombrar/redimensionar el renglón GUARDANDO no debe conservar el costo de Dirección para emitir', async () => {
+    // RIESGO DE COMPOSICIÓN (era it.fails): VH-035c re-pegaba la economía si el vendedor GUARDABA otro nombre/medidas
+    // (claves fuera de su huella de material) ⇒ la fila decía "nogal 300x120" con el costo de la melamina, el snapshot
+    // coincidía con ella y el gate salía ALLOWED. CORREGIDO en VH-035c §8 (STALE RECOSTEO_DEFINICION_CAMBIADA ante
+    // cualquier cambio no comercial), no en el gate. Ver SEGURIDAD_10.md § Riesgos 1 y VH035C_INTEGRAL.md § 9.
+    it('RIESGO VH-035c (corregido): renombrar/redimensionar el renglón GUARDANDO no conserva el costo de Dirección para emitir', async () => {
       const id = await sembrarCosteadaPorDireccion(db);
       const vista = await vistaDe(db, VENDEDOR, id);
       await guardar(db, VENDEDOR, id, { partidas: vista.partidas.map((p) => ({ ...p, nombre: 'Escritorio ejecutivo NOGAL MACIZO con cajonera', medidas: '300x120x75', precioUnitario: 9000 })) });
-      const g = await evaluar(db, VENDEDOR, id, await snapshotFiel(db, id));
-      expect(g.state).not.toBe('ALLOWED');
+      // La fila: costo de la melamina fuera (auditable en cost_stale), recosteo pendiente por definición.
+      const fila = (await vistaDe(db, DIRECCION, id)).partidas[0];
+      expect(fila).not.toHaveProperty('costoUnitario');
+      expect(fila.cost_stale).toMatchObject({ motivo: 'RECOSTEO_DEFINICION_CAMBIADA', campos: ['medidas', 'nombre'], economia_previa: { costoUnitario: 6000 } });
+      // El snapshot fiel (= la fila guardada) pasa SEG-01, pero el wrapper VH-035c lo bloquea por recosteo pendiente.
+      const snap = await snapshotFiel(db, id);
+      const g = await evaluar(db, VENDEDOR, id, snap);
+      expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+      expect(g.reasons).toEqual(expect.arrayContaining(['linea_1_recosteo_pendiente_definicion_cambiada', 'linea_1_costo_desconocido']));
+      expect(g.reasons).not.toContain('linea_1_no_corresponde_a_lo_costeado');
+      expect(await emitible(db, VENDEDOR, id)).toMatchObject({ ok: false, estado: 'ECONOMICS_INCOMPLETE' });
+      await expect(emitir(db, VENDEDOR, id, snap)).rejects.toThrow(/ECONOMICS_INCOMPLETE/);
+      expect(await revisiones(db, id)).toBe(0);
+      expect(await folioOficial(db, id)).toBeNull();
+      // Dirección recostea el escritorio de nogal (quita la marca, pone su costo) ⇒ el mismo snapshot fiel se emite.
+      const vd = await vistaDe(db, DIRECCION, id);
+      await guardar(db, DIRECCION, id, { partidas: vd.partidas.map(({ cost_stale, cost_status, ...p }) => ({ ...p, costoUnitario: 5500 })) });
+      const snap2 = await snapshotFiel(db, id);
+      expect((await evaluar(db, VENDEDOR, id, snap2)).state).toBe('ALLOWED');     // (9000-5500)/9000 = 39% ≥ 30%
+      expect(await emitir(db, VENDEDOR, id, snap2)).toMatchObject({ nueva: true, revision: 1 });
+      expect(await folio(db, VENDEDOR, id)).toMatch(/^VH-\d{4}-\d{5}$/);
     });
 
     it('rollback de SEG-01 con VH-035c presente: el gate vuelve a producción (md5) y el wrapper de VH-035c sigue', async () => {

@@ -193,9 +193,11 @@ async function sembrar(db, partidas = [P1, P2]) {
     [VENDEDOR, JSON.stringify(partidas), t, n]);
   return id;
 }
-// Edición típica del vendedor sobre su vista despojada: cantidad, nota, y un intento de pisar la autoridad.
+// Edición típica del vendedor sobre su vista despojada: cantidad, descuento, y un intento de pisar la autoridad.
+// (Antes cambiaba `nota`; desde VH-035c §8 la nota es definición del renglón ⇒ STALE, probado en
+// preservaEconomiaIntegral.test.js casos [8]. Aquí el punto es que la ruta de 3 fusione igual que la de 2.)
 const editarVendedor = (vista) => vista.partidas.map((p) => (p.id === 'p1'
-  ? { ...p, cantidad: 3, nota: 'entregar en obra', aprobado: false, estado_costo: 'incompleto', lista_precio_item_id: 20 }
+  ? { ...p, cantidad: 3, descuento: 5, aprobado: false, estado_costo: 'incompleto', lista_precio_item_id: 20 }
   : { ...p, cantidad: p.cantidad + 1 }));
 
 // ---------------------------------------------------------------------------------------------
@@ -269,7 +271,7 @@ for (const [orden, archivos] of ORDENES) {
       const dDos = await vistaDe(db, DIRECCION, idDos), dTres = await vistaDe(db, DIRECCION, idTres);
       expect(dTres.partidas).toEqual(dDos.partidas);                                    // ruta de 3 = ruta de 2
       const p1 = dTres.partidas[0];
-      expect(p1).toMatchObject({ ...ECONOMIA_P1, cantidad: 3, nota: 'entregar en obra' });
+      expect(p1).toMatchObject({ ...ECONOMIA_P1, cantidad: 3, descuento: 5 });
       expect(p1).not.toHaveProperty('cost_stale');
       expect(p1.cambios_rechazados.map((c) => c.campo).sort()).toEqual(['aprobado', 'estado_costo', 'lista_precio_item_id']);
       expect(dTres.partidas[1]).toMatchObject({ cantidad: 7, costoUnitario: 1400, margen: 35, cost_status: 'KNOWN' });
@@ -350,8 +352,12 @@ for (const [orden, archivos] of ORDENES) {
       expect(await partidaDe(db, id)).toMatchObject({ costoUnitario: 21000, config: { costeo: { costoUnitario: 21000 } } });
       // Diseño (sin economía, edita config) por la ruta de 2: también fusiona.
       const vd = await vistaDe(db, DISENO, id);
-      await guardar2(db, DISENO, id, { partidas: vd.partidas.map((p) => ({ ...p, nota: 'diseño' })) });
-      expect(await partidaDe(db, id)).toMatchObject({ costoUnitario: 21000, nota: 'diseño' });
+      await guardar2(db, DISENO, id, { partidas: vd.partidas.map((p) => ({ ...p, precioUnitario: 47500 })) });
+      expect(await partidaDe(db, id)).toMatchObject({ costoUnitario: 21000, precioUnitario: 47500 });
+      // ...y si Diseño cambia la definición (nota) por la ruta de 2, el núcleo VH-035c §8 la marca para recosteo.
+      const vd2 = await vistaDe(db, DISENO, id);
+      await guardar2(db, DISENO, id, { partidas: vd2.partidas.map((p) => ({ ...p, nota: 'diseño' })) });
+      expect(await partidaDe(db, id)).toMatchObject({ nota: 'diseño', cost_status: 'UNKNOWN', cost_stale: { motivo: 'RECOSTEO_DEFINICION_CAMBIADA', campos: ['nota'] } });
     });
   });
 
@@ -400,7 +406,8 @@ for (const [orden, archivos] of ORDENES) {
       expect(await md5Def(db, 'public.strip_seller_economics_on_cotizacion_write()')).toBe(REF.stripProd);
       expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).toBe(REF.gateProd);
       const { n } = (await db.query(`select count(*)::int as n from pg_proc p join pg_namespace s on s.oid=p.pronamespace
-        where s.nspname='private_api' and p.proname in ('fusionar_economia_partidas','repegar_economia','motivos_recosteo_pendiente','es_clave_economia','huella_material_filas')`)).rows[0];
+        where s.nspname='private_api' and p.proname in ('fusionar_economia_partidas','repegar_economia','motivos_recosteo_pendiente','es_clave_economia','huella_material_filas',
+          'claves_libres_definicion_partida','jsonb_objetos_sin_orden','partida_definicion','campos_definicion_cambiados')`)).rows[0];
       expect(n).toBe(0);
       expect((await sobrecargas(db)).every((s) => s.defaults === 0)).toBe(true);
       expect(await sobrecargas(db)).toHaveLength(4);

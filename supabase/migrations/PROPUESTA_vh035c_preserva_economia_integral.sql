@@ -88,6 +88,24 @@
 --      actualizar_cotizacion_segura tenga DEFAULT (eso detecta el borrador VIEJO de VH-148, que traía
 --      una copia del cuerpo SIN estas protecciones y un DEFAULT que volvía ambiguas las llamadas de
 --      dos argumentos: si aparece, este archivo aborta). Prueba: supabase/tests/composicionVh035cVh148.test.js.
+--
+--   8. STALE POR DEFINICIÓN (corrección 2026-10-13, riesgo de composición con SEG-01; docs/auditoria/SEGURIDAD_10.md
+--      § Riesgos punto 1 y docs/auditoria/VH035C_INTEGRAL.md § 9). Los puntos 2-3 sólo miraban identidad, huella de
+--      material y cantidad por lote: si el vendedor GUARDABA el renglón con otro `nombre` o `medidas` (fuera de la
+--      huella), la economía de Dirección se re-pegaba como KNOWN; la fila decía "nogal 300x120" con el costo de la
+--      melamina, el snapshot de SEG-01 coincidía con ella y el gate salía ALLOWED ⇒ folio oficial para un mueble que
+--      nadie costeó (SEG-01 reabierto por la vía del guardado). Ahora, si ninguno de los motivos anteriores aplicó
+--      (se evalúa AL FINAL, así producto/material/lote conservan su motivo y sus `campos`), cualquier diferencia NO
+--      comercial entre la partida guardada y la que queda tras la fusión (`private_api.campos_definicion_cambiados`)
+--      marca STALE con motivo RECOSTEO_DEFINICION_CAMBIADA y `campos` = claves de primer nivel que cambiaron
+--      (sólo nombres, nunca valores). La compuerta lo lee como `linea_N_recosteo_pendiente_definicion_cambiada`.
+--      Libres (no invalidan): precioUnitario, precio_unitario, descuento, descuento_solicitado, importe y
+--      cambios_rechazados (la MISMA lista blanca que SEG-01), la economía (jsonb_sin_economia), null = ausente,
+--      `cantidad` (la gobierna la regla de lote del punto 3) y las claves de autoridad (punto 5, ya forzadas a lo
+--      guardado). Todo lo demás (nombre, medidas, w/d/h, nota, config, render, ruta, catálogo…) es definición.
+--      Reordenar los elementos de un arreglo de OBJETOS (componentes, insumos) no es cambio (multiconjunto, igual que
+--      la huella de material); un arreglo con escalares conserva su orden.
+--      El costo anterior NO se pierde: va a cost_stale.economia_previa como en los demás motivos; Dirección recostea.
 -- ============================================================================
 
 -- ----------------------------------------------------------------------------
@@ -284,6 +302,73 @@ returns text[] language sql immutable as $$
                'price_status','identity_status','product_status','product_source_ref','economia_por_lote'];
 $$;
 
+-- (8) DEFINICIÓN del renglón (ver encabezado, punto 8). Lo ÚNICO que el rol sin economía puede cambiar en una
+-- partida existente sin invalidar el costo de Dirección: lo comercial. MISMA lista blanca que el gate de
+-- PROPUESTA_seg01_emision_snapshot_fiel.sql (private_api.claves_libres_emision_partida), copiada aquí a propósito:
+-- cada propuesta es autocontenida y se revierte sola (el rollback de SEG-01 borra sus ayudas; ésta no depende de
+-- ellas). Lista blanca y no negra: una clave nueva del contrato de partida invalida el costo por omisión (fail-closed).
+create or replace function private_api.claves_libres_definicion_partida()
+returns text[] language sql immutable as $$
+  select array['precioUnitario','precio_unitario','descuento','descuento_solicitado','importe','cambios_rechazados'];
+$$;
+
+-- Forma canónica para comparar definiciones: un arreglo cuyos elementos son TODOS objetos se compara como
+-- multiconjunto (ordenado por el valor jsonb de cada elemento ya canonizado): reordenar componentes o insumos no
+-- cambia el mueble (igual que la huella de material), pero quitar, añadir o editar uno sí. Un arreglo con algún
+-- escalar (p.ej. [120, 60, 75]) conserva su orden: ahí el orden puede ser significado (fail-closed).
+create or replace function private_api.jsonb_objetos_sin_orden(p jsonb)
+returns jsonb language plpgsql immutable as $$
+declare k text; v jsonb; out jsonb;
+begin
+  if p is null then return null; end if;
+  if jsonb_typeof(p) = 'object' then
+    out := '{}'::jsonb;
+    for k, v in select * from jsonb_each(p) loop
+      out := out || jsonb_build_object(k, private_api.jsonb_objetos_sin_orden(v));
+    end loop;
+    return out;
+  end if;
+  if jsonb_typeof(p) = 'array' then
+    if exists (select 1 from jsonb_array_elements(p) e where jsonb_typeof(e) <> 'object') then
+      return (select coalesce(jsonb_agg(private_api.jsonb_objetos_sin_orden(x.e) order by x.o), '[]'::jsonb)
+              from jsonb_array_elements(p) with ordinality x(e, o));
+    end if;
+    return (select coalesce(jsonb_agg(s.c order by s.c), '[]'::jsonb)
+            from (select private_api.jsonb_objetos_sin_orden(e) as c from jsonb_array_elements(p) e) s);
+  end if;
+  return p;
+end $$;
+
+-- Proyección de la DEFINICIÓN de una partida: sin economía (a cualquier profundidad), null = ausente, sin claves
+-- libres, sin `cantidad` (su efecto sobre el costo lo decide la regla de lote, punto 3: un costo unitario sin marca
+-- de lote se conserva aunque cambie la cantidad), sin claves de AUTORIDAD (el servidor ya las fijó a lo guardado,
+-- punto 5; un `aprobado:false` nuevo no cambia el mueble) y con los arreglos de objetos sin orden.
+create or replace function private_api.partida_definicion(p jsonb)
+returns jsonb language sql immutable set search_path to 'public' as $$
+  select case when jsonb_typeof(p) = 'object'
+    then private_api.jsonb_objetos_sin_orden(
+           jsonb_strip_nulls(public.jsonb_sin_economia(p))
+           - private_api.claves_libres_definicion_partida()
+           - private_api.claves_autoridad_partida()
+           - 'cantidad'::text)
+    else p end;
+$$;
+
+-- Claves de PRIMER nivel en que la definición de la partida cambió (vacío = mismo mueble). Sólo NOMBRES de claves.
+create or replace function private_api.campos_definicion_cambiados(p_vieja jsonb, p_nueva jsonb)
+returns text[] language sql immutable set search_path to 'public' as $$
+  with a as (select private_api.partida_definicion(p_vieja) as v, private_api.partida_definicion(p_nueva) as n)
+  select case
+    when jsonb_typeof(a.v) is distinct from 'object' or jsonb_typeof(a.n) is distinct from 'object' then
+      case when a.v is not distinct from a.n then '{}'::text[] else array['partida'] end
+    else coalesce((
+      select array_agg(ks.k order by ks.k)
+      from (select jsonb_object_keys(a.v) as k union select jsonb_object_keys(a.n)) ks
+      where (a.v -> ks.k) is distinct from (a.n -> ks.k)), '{}'::text[])
+  end
+  from a;
+$$;
+
 -- ----------------------------------------------------------------------------
 --  Fusión por partida. STABLE: consulta productos para fijar la versión vigente.
 -- ----------------------------------------------------------------------------
@@ -388,6 +473,16 @@ begin
     begin v_cant_n := nullif(n->>'cantidad','')::numeric; exception when others then v_cant_n := null; end;
     if v_cant_v is distinct from v_cant_n and private_api.economia_por_lote(v) then
       motivo := coalesce(motivo, 'RECOSTEO_LOTE_CAMBIADO'); campos := campos || array['cantidad'];
+    end if;
+    -- (8) Definición: si nada de lo anterior aplicó, cualquier cambio NO comercial (nombre, medidas, w/d/h, nota,
+    -- config, render, catálogo…) también deja de describir lo que Dirección costeó. Se evalúa al FINAL y sólo si no
+    -- hay motivo: los casos producto/material/lote conservan su motivo y sus `campos` tal cual. Se compara contra
+    -- `res` (autoridad y procedencia ya devueltas a lo guardado), no contra lo que mandó el cliente.
+    if motivo is null then
+      campos := private_api.campos_definicion_cambiados(v, res);
+      if coalesce(array_length(campos, 1), 0) > 0 then
+        motivo := 'RECOSTEO_DEFINICION_CAMBIADA';
+      end if;
     end if;
 
     if motivo is null then
@@ -768,6 +863,10 @@ AS $function$
 
 drop function if exists private_api.motivos_recosteo_pendiente(bigint);
 drop function if exists private_api.fusionar_economia_partidas(jsonb, jsonb);
+drop function if exists private_api.campos_definicion_cambiados(jsonb, jsonb);
+drop function if exists private_api.partida_definicion(jsonb);
+drop function if exists private_api.jsonb_objetos_sin_orden(jsonb);
+drop function if exists private_api.claves_libres_definicion_partida();
 drop function if exists private_api.claves_procedencia_partida();
 drop function if exists private_api.claves_autoridad_partida();
 drop function if exists private_api.economia_por_lote(jsonb);

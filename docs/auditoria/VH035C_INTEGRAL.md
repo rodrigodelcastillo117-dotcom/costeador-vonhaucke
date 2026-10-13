@@ -11,15 +11,18 @@ Entregables:
 
 - `supabase/migrations/PROPUESTA_vh035c_preserva_economia_integral.sql` (prefijo `PROPUESTA_`, nunca se aplica solo;
   autocontenida; rollback al final). Sustituye a `20261010170000` y a `PROPUESTA_vh035b`.
-- `supabase/tests/preservaEconomiaIntegral.test.js` — **32 casos, todos en verde** (27 sobre vh035c + 5 de referencia
-  sobre vh035b que documentan por qué hacía falta la c). `npx vitest run supabase/tests/preservaEconomiaIntegral.test.js` ≈ 5–15 s.
+- `supabase/tests/preservaEconomiaIntegral.test.js` — **44 casos, todos en verde** (39 sobre vh035c, 12 de ellos del §9
+  STALE por definición, + 5 de referencia sobre vh035b que documentan por qué hacía falta la c). `npx vitest run supabase/tests/preservaEconomiaIntegral.test.js` ≈ 5–15 s.
 - `supabase/tests/preservaEconomia.test.js` intacto (24 casos: 23 ✓ + 1 `it.fails` intencional) como documentación de vh035b.
 - Verificación de apilado (script efímero, no versionado): base + `20261010170000` + vh035b + vh035c → misma conducta que
   vh035c sola (economía anidada íntegra, re-pin rechazado).
 - **Composición con VH-148 (§8)**: `supabase/tests/composicionVh035cVh148.test.js` — 21 casos, ambos órdenes de
   aplicación y rollback de cada archivo. **Orden de aplicación con VH-148: cualquier orden.**
 - **Nube falsa**: `crearNubeFalsa({ preservaEconomia: 'vh035c' })` en `e2e/nubeFalsa.js` (espejo JS; paridad SQL↔espejo en
-  `supabase/tests/espejoNubeFalsaVh035c.test.js`, 15 casos) y `e2e/persistenciaVh035c.e2e.js` (3 escenarios en Chromium).
+  `supabase/tests/espejoNubeFalsaVh035c.test.js`, 27 casos) y `e2e/persistenciaVh035c.e2e.js` (5 escenarios en Chromium).
+- **§9 (corrección 2026-10-13): STALE por DEFINICIÓN** — cierra el riesgo de composición con SEG-01
+  (`docs/auditoria/SEGURIDAD_10.md` § Riesgos 1): el vendedor ya no puede guardar otro nombre/medidas conservando el costo
+  de Dirección y emitirlo con folio.
 
 ## 1. Qué cambia respecto a vh035b (decisión de Dirección: corregir el diseño antes de aplicar)
 
@@ -62,7 +65,9 @@ Columnas: **Prod** = producción hoy (fixture 2026-10-13) · **2026-10-10** = mi
 | Cambia `piezaId`/`bom_hash` (mismo id) | perdido | **re-pega** 21000 KNOWN | UNKNOWN + `cost_stale` (sin economía previa) | UNKNOWN + `cost_stale` **con `economia_previa` completa** (1er nivel + anidada); anidado no se hereda |
 | Cambia material (`config.finish`, `insumos[].clave`, `componentes[].insumoId`) | perdido | re-pega 21000 KNOWN | **re-pega 21000 KNOWN** (ref. vh035b) | **STALE** `RECOSTEO_MATERIAL_CAMBIADO`, `campos` con la(s) ruta(s) |
 | Cambia cantidad; costo **por lote** (`costo_por_lote:true` o `costoLote` anidado) | perdido | re-pega costo unitario del lote viejo | **re-pega** (ref. vh035b) | **STALE** `RECOSTEO_LOTE_CAMBIADO`, `previo.cantidad`; la silla sin lote conserva 1400 |
-| Misma cantidad en la partida por lote (sólo nota) | perdido | conserva | conserva | conserva (incluido `costoLote` anidado) |
+| Misma cantidad en la partida por lote (sólo precio) | perdido | conserva | conserva | conserva (incluido `costoLote` anidado) |
+| Cambia `nombre`, `medidas`, `w`/`d`, `nota`, `config.ancho`, `render` o cualquier clave **no comercial** fuera de identidad/material (§9) | perdido (falla cerrado) | **re-pega** KNOWN | **re-pega** KNOWN | **STALE** `RECOSTEO_DEFINICION_CAMBIADA`, `campos` = claves de 1er nivel (antes de §9: re-pegaba KNOWN ⇒ SEG-01 reabierto) |
+| Cambia sólo `precioUnitario`/`precio_unitario`/`descuento`/`descuento_solicitado`/`importe` | perdido | conserva | conserva | conserva, KNOWN, emitible |
 | Cambia `producto_version_id` 1933→9999 en partida existente | **persiste 9999** | persiste 9999 + re-pega costo | persiste 9999, UNKNOWN + `cost_stale` (ref. vh035b) | **rechazado** (`identidad de producto protegida`), nada se escribe |
 | Cambia `producto_id` 1→2 en partida existente | persiste | persiste + re-pega (defecto, `it.fails`) | persiste, UNKNOWN + `cost_stale` | **rechazado** |
 | Liga partida legacy (sin producto) a `producto_id 2, versión 9999` | persiste 9999 | persiste 9999 + costo viejo | persiste 9999, STALE | se admite; versión **fijada a 2044** + `cambios_rechazados`; STALE `RECOSTEO_PRODUCTO_CAMBIADO` |
@@ -109,7 +114,7 @@ Está al final de la PROPUESTA, ahora como bloque **ejecutable** entre `-- >>> R
 de `/* */`, en una transacción). Hace: (1) reinstala `private_api.actualizar_cotizacion_segura(bigint, jsonb)` y
 `public.strip_seller_economics_on_cotizacion_write` con los cuerpos de `private_api_prod_20261013.sql` copiados byte a byte
 (líneas 39-148 y 150-178); (2) restaura el wrapper de `public.evaluar_emision_cotizacion` de `03_funciones.sql:535`;
-(3) `drop function` de las 16 ayudas de `private_api`; (4) datos: nada; `cost_stale`/`cambios_rechazados` que hayan
+(3) `drop function` de las 20 ayudas de `private_api` (16 + 4 del §9); (4) datos: nada; `cost_stale`/`cambios_rechazados` que hayan
 quedado son inertes y Dirección los quita al recostear; `vh.economia_preservada` es `set_config` local a la transacción.
 **No toca** la sobrecarga de tres argumentos de VH-148 ni `cotizacion_segura`: si VH-148 está aplicada, su control de
 versión sigue y delega en el núcleo de producción. Probado en `composicionVh035cVh148.test.js`: tras el rollback,
@@ -117,13 +122,15 @@ versión sigue y delega en el núcleo de producción. Probado en `composicionVh0
 
 ## 5. Limitaciones residuales
 
-1. **Dimensiones** (`w`, `d`, `largoMM`, `fondoMM`, `piezas` de componentes) no están en la huella de material: cambiarlas
-   conserva el costo. Si el cliente calcula `bom_hash`, ese sí invalida. Decisión pendiente (ampliar `es_clave_material`).
+1. ~~**Dimensiones** (`w`, `d`, `largoMM`, `fondoMM`, `piezas` de componentes) no están en la huella de material: cambiarlas
+   conserva el costo.~~ **Resuelto 2026-10-13 (§9)**: siguen fuera de la huella de material, pero cualquier cambio no
+   comercial invalida por DEFINICIÓN (`RECOSTEO_DEFINICION_CAMBIADA`).
 2. `totales`/`acomodo` del rol sin economía se **strippean** (como 2026-10-10 y vh035b), no se re-pegan: su economía
    (costo total, margen global) depende de las partidas y quedaría rancia; Dirección la recalcula al abrir.
-3. Elementos de arreglos sin clave se casan por igualdad exacta de su forma sin economía: si el vendedor edita un campo no
-   económico de un componente (p. ej. `nombre`), ese componente pierde su `costo` anidado (el 1er nivel se conserva). Dos
-   elementos idénticos sin clave reciben la misma economía.
+3. Elementos de arreglos sin clave se casan por igualdad exacta de su forma sin economía. Desde §9, editar un campo no
+   económico de un componente (p. ej. `nombre`) ya es cambio de DEFINICIÓN: toda la partida queda STALE (antes sólo ese
+   componente perdía su `costo` anidado y el 1er nivel se re-pegaba). Dos elementos idénticos sin clave reciben la misma
+   economía.
 4. `cambios_rechazados` es visible al vendedor (a propósito, para la UI) y persiste hasta que Dirección guarde sin él.
 5. `estado` **dentro** de la partida sigue sin protección (sólo el de la fila), igual que antes. `precioUnitario` y
    `descuento` siguen siendo del vendedor (la compuerta los valida contra el precio autorizado al emitir).
@@ -194,7 +201,8 @@ Lista original de requisitos (cumplida):
    productos a renglones existentes (hoy no).
 3. **Marca de lote**: que el cliente de Dirección (`App.jsx`, `partidaDeCosteo`) escriba `costo_por_lote:true` cuando el
    costo venga de `calcular()`; sin eso, el punto 3 es letra muerta para las partidas costeadas con el motor.
-4. **Huella de material**: ¿incluir dimensiones (`w`, `d`, `largoMM`…)? ¿`color` sí o no? Hoy: `color` sí, dimensiones no.
+4. **Huella de material**: ¿incluir dimensiones (`w`, `d`, `largoMM`…)? ¿`color` sí o no? Hoy: `color` sí, dimensiones no
+   en la huella, pero desde §9 un cambio de dimensiones invalida igual (motivo `definicion_cambiada` en vez de `material_cambiado`).
 5. ~~**VH-148**: ordenar la coexistencia~~ **Resuelto** (§8): cualquier orden.
 6. **Cliente de Dirección**: al recostear debe quitar `cost_stale`/`cost_status` del patch (el test lo hace a mano) y puede
    limpiar `cambios_rechazados`; conviene que la UI muestre `cambios_rechazados` al vendedor y `cost_stale.motivo` a Dirección.
@@ -230,10 +238,94 @@ Cómo verificar:
 npx vitest run supabase/tests/composicionVh035cVh148.test.js supabase/tests/preservaEconomiaIntegral.test.js \
   supabase/tests/controlOptimista.test.js supabase/tests/preservaEconomia.test.js supabase/tests/espejoNubeFalsaVh035c.test.js
 PW_EXECUTABLE=/opt/pw-browsers/chromium npx playwright test e2e/persistenciaVh035c.e2e.js e2e/persistencia.e2e.js --reporter=line
-#   → persistenciaVh035c 3/3 ✓; persistencia 5 ✓ · 1 ✗ exactamente en persistencia.e2e.js:125 (VH-035, a propósito)
+#   → persistenciaVh035c 5/5 ✓ (3/3 antes del §9); persistencia 5 ✓ · 1 ✗ exactamente en persistencia.e2e.js:125 (VH-035, a propósito)
 ```
 
 En RC (cuando Dirección autorice, en cualquier orden): tras aplicar ambas,
 `select p.oid::regprocedure, p.pronargdefaults from pg_proc p where p.proname='actualizar_cotizacion_segura'` → 4 filas,
 todas con 0; `md5(pg_get_functiondef('private_api.actualizar_cotizacion_segura(bigint,jsonb)'::regprocedure))` = el de
 VH-035c; y `prosrc` del 3-args no contiene `update public.cotizaciones`.
+
+## 9. STALE por DEFINICIÓN — cierre del riesgo de composición con SEG-01 (corrección 2026-10-13)
+
+**Riesgo demostrado** (`docs/auditoria/SEGURIDAD_10.md` § 6 "Riesgos" punto 1; `it.fails` en
+`supabase/tests/seguridadGateEmisionSnapshot.test.js`, bloque de composición SEG-01 × VH-035c × VH-148): los puntos 2-3 sólo
+invalidaban por identidad de producto, huella de material o cantidad por lote. Si el **vendedor guardaba** el renglón con otro
+`nombre` u otras `medidas` (claves fuera de la huella), VH-035c re-pegaba el costo de Dirección como KNOWN; la fila decía
+"Escritorio NOGAL MACIZO 300x120" con el costo de la melamina 120x60, el snapshot de SEG-01 coincidía con esa fila y el gate
+salía `ALLOWED` ⇒ folio oficial para un mueble que nadie costeó (SEG-01 reabierto por la vía del guardado). Producción hoy no
+tiene el hueco (el guardado del vendedor despoja el costo y la compuerta falla cerrada con `costo_desconocido`).
+
+**Corrección (causa raíz, en `fusionar_economia_partidas`)**: tras los motivos existentes, y **sólo si ninguno aplicó**
+(mismo orden de evaluación: producto → material → lote → definición; los tres primeros conservan su motivo y sus `campos`
+exactos), se compara la partida guardada con la que queda tras la fusión (`res`: autoridad y procedencia ya devueltas a lo
+guardado):
+
+| Pieza nueva (PROPUESTA_vh035c) | Qué hace |
+|---|---|
+| `private_api.claves_libres_definicion_partida()` | Lista blanca de lo comercial: `precioUnitario`, `precio_unitario`, `descuento`, `descuento_solicitado`, `importe`, `cambios_rechazados` — **la misma** que `private_api.claves_libres_emision_partida()` de SEG-01, copiada (cada propuesta se aplica y se revierte sola; el rollback de SEG-01 no rompe a VH-035c) |
+| `private_api.jsonb_objetos_sin_orden(jsonb)` | Arreglos de **puros objetos** se comparan como multiconjunto (reordenar componentes/insumos no es cambio, como la huella de material); un arreglo con algún escalar conserva su orden (fail-closed: `[120,60,75]` ≠ `[60,120,75]`) |
+| `private_api.partida_definicion(jsonb)` | `jsonb_strip_nulls(jsonb_sin_economia(p))` − libres − claves de AUTORIDAD − `cantidad`, canonizado |
+| `private_api.campos_definicion_cambiados(vieja, nueva)` | Claves de 1er nivel que difieren (sólo nombres, nunca valores) |
+| Bloque `(8)` en `fusionar_economia_partidas` | Si hay campos ⇒ `cost_status:'UNKNOWN'` + `cost_stale:{motivo:'RECOSTEO_DEFINICION_CAMBIADA', campos, previo, economia_previa}`; la economía previa se conserva para auditoría (dentro de `cost_stale`, invisible al vendedor) y **no** se re-pega |
+
+Por qué cada exclusión: **economía** — la despoja `jsonb_sin_economia` y la gobierna la fusión; **null = ausente** —
+`crearPartida` manda `producto_id`, `source_type`, `render`… en `null`; **`cantidad`** — su efecto sobre el costo lo decide la
+regla de lote (§1.3): sin marca de lote el costo unitario se conserva (caso `[1]`), con marca ⇒ `RECOSTEO_LOTE_CAMBIADO`;
+**autoridad** — el servidor ya la fijó a lo guardado (§1.5) y un `aprobado:false` nuevo no cambia el mueble. Todo lo demás
+es definición: `nombre`, `medidas`, `w`/`d`/`h`, `nota` (se imprime), `config` no material, `render`, `ruta`, catálogo y
+**cualquier clave nueva del contrato** (lista blanca ⇒ fail-closed).
+
+**Compuerta**: sin cambios de código; `private_api.motivos_recosteo_pendiente` ya traduce el motivo a
+`linea_N_recosteo_pendiente_definicion_cambiada` ⇒ `ECONOMICS_INCOMPLETE` (en legacy, además `linea_N_costo_desconocido`);
+`cotizacion_emitible` y `emitir_revision_v2` heredan el bloqueo. **UI**: `src/datos/emisionUX.js#textoRazonEmision` →
+"Línea N: cambió su descripción, medidas u otra especificación; su costo anterior ya no vale y Dirección debe recostearla
+antes de emitir." (`src/datos/preliminaryEmissionGate.test.js`). **Rollback**: borra las 4 ayudas nuevas (bloque al final).
+
+**Nube falsa**: `fusionarVh035c` (`e2e/nubeFalsa.js`) replica el bloque (8) (`partidaDefinicion`, `camposDefinicionCambiados`,
+`objetosSinOrdenJ`, `stripNullsJ`); paridad SQL↔espejo con 12 entradas nuevas en `espejoNubeFalsaVh035c.test.js` (nombre,
+medidas+`w`, `config` anidado, quitar clave, sólo comercial, nulls/autoridad/`cambios_rechazados`, reorden de objetos,
+reorden de escalares, material+nombre, lote+nombre, partida ya STALE con y sin cambios).
+
+**Pruebas**:
+
+- `preservaEconomiaIntegral.test.js` casos `[8]`: vendedor y diseño cambian `nombre` ⇒ STALE `['nombre']`, economía previa
+  auditable, invisible al vendedor, `cotizacion_emitible` bloqueada para vendedor y Dirección, `emitir_revision_v2` rechaza,
+  0 revisiones; sólo comercial ⇒ **no** STALE y emitible; `medidas`, `w/d`, `config.ancho`, `nota`, clave nueva (`render`),
+  quitar `nota` ⇒ STALE con sus `campos`; sin falsos positivos por nulls/autoridad/`cambios_rechazados`/economía colada; el
+  orden de evaluación no cambia (material y lote conservan motivo y `campos` aunque también cambie el nombre); Dirección
+  recostea ⇒ KNOWN, emitible, y un guardado posterior del vendedor sin cambios conserva el costo nuevo y se emite.
+- `seguridadGateEmisionSnapshot.test.js`: el `it.fails` "RIESGO VH-035c" pasa a `it` en los tres órdenes de aplicación
+  (SEG01→vh035c→vh148, vh035c→vh148→SEG01, vh148→SEG01→vh035c), ahora con aserciones de punta a punta: STALE
+  `['medidas','nombre']`, gate `ECONOMICS_INCOMPLETE` con `recosteo_pendiente_definicion_cambiada` (y **no**
+  `no_corresponde_a_lo_costeado`: el snapshot fiel es la fila), `emitir_revision_v2` rechaza, sin revisión ni folio; tras el
+  recosteo de Dirección el mismo snapshot sale `ALLOWED`, se emite y recibe folio.
+- `e2e/persistenciaVh035c.e2e.js`: (1) ahora además afirma que el guardado real de la interfaz **sí lleva las partidas** y no
+  dispara definición; (3) nuevo: el vendedor guarda otro nombre y medidas ⇒ "Línea 1: cambió su descripción, medidas u otra
+  especificación…", PDF BORRADOR, 0 revisiones; Dirección recostea ⇒ "Lista para emitir"; (4) nuevo: "+" en un mueble sin
+  lote conserva el costo y sigue lista (sin falso positivo desde la interfaz real).
+
+**Pruebas existentes ajustadas (no debilitadas)**: cuatro casos cambiaban `nota` de paso para ilustrar *otra* regla
+(cantidad sin lote en `[1]`, regla de lote en `[3]`, fusión por la ruta de 3 argumentos en `composicionVh035cVh148.test.js`
+`editarVendedor`, y diseño por la ruta de 2 en (d)). Con §9 la `nota` es definición, así que esos casos ahora cambian un campo
+comercial (`precioUnitario`/`descuento`) y conservan TODAS sus aserciones originales sobre la economía; el efecto de cambiar la
+`nota` se afirma explícitamente (casos `[8]` y composición (d): `RECOSTEO_DEFINICION_CAMBIADA`, `campos:['nota']`). El rollback
+de composición ahora también exige que desaparezcan las 4 ayudas nuevas.
+
+**Efectos que Dirección debe conocer (decisiones)**:
+
+1. **Más recosteos legítimos**: corregir una errata en el `nombre`, editar la `nota` o adjuntar/cambiar el `render` de un
+   renglón ya costeado deja la línea en recosteo pendiente. Es el comportamiento fail-closed pedido; si Dirección quiere
+   liberar alguna clave cosmética (p. ej. `render`), se añade a `claves_libres_definicion_partida()` **y** a
+   `claves_libres_emision_partida()` de SEG-01 (deben seguir iguales) y al espejo.
+2. **Filas viejas con blobs**: `compactarPayloadNube` convierte strings > 120 KB (base64) en `null`. Si una fila histórica
+   guardó un blob así en una clave de definición, el primer guardado del vendedor lo manda en `null` ⇒ STALE por esa clave.
+   Falla cerrado (pide recosteo), no abre nada.
+3. **Diseño** también queda sujeto (rol sin economía): si edita medidas de un renglón costeado, Dirección recostea.
+
+Cómo verificar:
+
+```
+npx vitest run supabase/tests/ src/datos/preliminaryEmissionGate.test.js
+PW_EXECUTABLE=/opt/pw-browsers/chromium npx playwright test e2e/persistenciaVh035c.e2e.js --reporter=line   # 5/5
+```

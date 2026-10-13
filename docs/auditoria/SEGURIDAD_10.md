@@ -331,6 +331,9 @@ Ejecutar: `npx vitest run supabase/tests/seguridadGateEmisionSnapshot.test.js su
 ### Riesgos y pendientes
 
 1. **El riesgo de composición con VH-035c reabre SEG-01 por el guardado** (vigente en VH-035c, no en producción hoy).
+   **Corregido 2026-10-13 en la PROPUESTA VH-035c (§8 del SQL; `docs/auditoria/VH035C_INTEGRAL.md` § 9)**: todo cambio no
+   comercial guardado por un rol sin economía marca `RECOSTEO_DEFINICION_CAMBIADA` y la emisión queda bloqueada hasta que
+   Dirección recostee; el `it.fails` pasó a `it` en los tres órdenes. Lo que sigue es el análisis original.
    - El problema: VH-035c vuelve a pegar el costo de Dirección si el vendedor **guarda** otro `nombre`, otras `medidas` u otras dimensiones, porque esas claves están fuera de su huella de material (§5.1 de VH035C_INTEGRAL). Después, el snapshot coincide con la fila y el gate lo deja pasar.
    - La prueba `it.fails` lo demuestra en los tres órdenes: con `it` normal falla con `expected 'ALLOWED' not to be 'ALLOWED'`.
    - **Antes de aplicar VH-035c** hay que ampliar su criterio de STALE a todo lo no comercial: la misma proyección que `partida_cotejable_emision`, con `cantidad` sujeta a las reglas de lote. Hoy en producción el guardado del vendedor despoja el costo, así que falla cerrado.

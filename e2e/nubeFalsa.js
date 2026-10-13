@@ -14,7 +14,7 @@
 //     entra y RE-PEGA la economía vieja. Ambas semánticas están probadas contra PostgreSQL real
 //     en supabase/tests/preservaEconomia.test.js; ver docs/auditoria/VH035_SQL_VS_MOCK.md.
 //     `crearNubeFalsa({ preservaEconomia: 'vh035c' })` simula PROPUESTA_vh035c_preserva_economia_integral.sql
-//     (tampoco aplicada): fusión recursiva, STALE por producto/material/lote, re-pin rechazado (42501),
+//     (tampoco aplicada): fusión recursiva, STALE por producto/material/lote/definición, re-pin rechazado (42501),
 //     autoridad protegida, normalize de cost_status y compuerta de emisión que lee `cost_stale` de la
 //     fila. Espejo de la SQL probada en supabase/tests/preservaEconomiaIntegral.test.js y
 //     composicionVh035cVh148.test.js; e2e en e2e/persistenciaVh035c.e2e.js. El DEFAULT (false) sigue
@@ -66,7 +66,9 @@ function fusionar(viejas, nuevas) {
 //   · fusión RECURSIVA de la economía guardada (repegarVh035c), arreglos casados por id/piezaId/clave/key/codigo
 //     o por forma idéntica sin economía;
 //   · STALE (cost_status UNKNOWN + cost_stale{motivo,campos,previo,economia_previa}) por identidad de
-//     producto, por material (huella a cualquier profundidad) y por cantidad en economía por lote;
+//     producto, por material (huella a cualquier profundidad), por cantidad en economía por lote y, si
+//     ninguno aplicó, por DEFINICIÓN (cualquier cambio no comercial: nombre, medidas, nota, config…;
+//     libres sólo precio/descuento/importe/cambios_rechazados, cantidad, autoridad y nulls);
 //   · re-pin de producto_id/producto_version_id en partida existente → error 42501; renglón nuevo con
 //     producto_id: debe existir (f.productos) y la versión la fija el servidor (cambios_rechazados);
 //   · autoridad (aprobado…) nunca escribible y procedencia congelada en partida existente;
@@ -165,6 +167,30 @@ const economiaPorLote = (p) => ['true', '1'].includes(String(txtJ(p?.costo_por_l
   || tieneClaveProfunda(p, 'costoLote') || tieneClaveProfunda(p, 'costoLoteConMerma');
 const CLAVES_AUTORIDAD = ['aprobado', 'aprobado_por', 'aprobado_en', 'aprobacion', 'estado_costo', 'precio_autorizado', 'precioAutorizado'];
 const CLAVES_PROCEDENCIA = ['lista_precio_item_id', 'listaPrecioItemId', 'precio_lista_snapshot', 'source_type', 'source_ref', 'price_status', 'identity_status', 'product_status', 'product_source_ref', 'economia_por_lote'];
+// (8) Definición: private_api.claves_libres_definicion_partida / partida_definicion / campos_definicion_cambiados.
+const CLAVES_LIBRES_DEFINICION = ['precioUnitario', 'precio_unitario', 'descuento', 'descuento_solicitado', 'importe', 'cambios_rechazados'];
+// jsonb_strip_nulls: quita campos de OBJETO con null, recursivo; los null dentro de arreglos se quedan.
+const stripNullsJ = (x) => (Array.isArray(x) ? x.map(stripNullsJ)
+  : esObjeto(x) ? Object.fromEntries(Object.entries(x).filter(([, v]) => v !== null).map(([k, v]) => [k, stripNullsJ(v)])) : x);
+// private_api.jsonb_objetos_sin_orden: arreglo de puros objetos = multiconjunto; con algún escalar, conserva el orden.
+const objetosSinOrdenJ = (x) => {
+  if (Array.isArray(x)) {
+    const hijos = x.map(objetosSinOrdenJ);
+    return x.every(esObjeto) ? hijos.map((h) => [canonJ(h), h]).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([, h]) => h) : hijos;
+  }
+  return esObjeto(x) ? Object.fromEntries(Object.entries(x).map(([k, v]) => [k, objetosSinOrdenJ(v)])) : x;
+};
+const partidaDefinicion = (p) => {
+  if (!esObjeto(p)) return p;
+  const out = stripNullsJ(sinEconomia(p));
+  for (const k of [...CLAVES_LIBRES_DEFINICION, ...CLAVES_AUTORIDAD, 'cantidad']) delete out[k];
+  return objetosSinOrdenJ(out);
+};
+const camposDefinicionCambiados = (v, n) => {
+  const a = partidaDefinicion(v), b = partidaDefinicion(n);
+  if (!esObjeto(a) || !esObjeto(b)) return canonJ(a) === canonJ(b) ? [] : ['partida'];
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].sort().filter((k) => canonJ(a[k]) !== canonJ(b[k]));
+};
 const errSql = (code, message) => Object.assign(new Error(message), { code });
 
 // private_api.fusionar_economia_partidas: `nuevas` ya viene SIN economía (lo que manda el rol que no la ve).
@@ -218,6 +244,8 @@ export function fusionarVh035c(viejas, nuevas, productos = new Map()) {
     const mat = camposMaterialCambiados(v, n);
     if (mat.length) { motivo = motivo ?? 'RECOSTEO_MATERIAL_CAMBIADO'; campos.push(...mat); }
     if (numJ(v.cantidad) !== numJ(n.cantidad) && economiaPorLote(v)) { motivo = motivo ?? 'RECOSTEO_LOTE_CAMBIADO'; campos.push('cantidad'); }
+    // (8) Definición: sólo si no hubo otro motivo; contra `res` (autoridad/procedencia ya devueltas a lo guardado).
+    if (motivo == null) { const def = camposDefinicionCambiados(v, res); if (def.length) { motivo = 'RECOSTEO_DEFINICION_CAMBIADA'; campos.push(...def); } }
     if (motivo == null) res = repegarVh035c(v, res);
     else {
       let previa;
