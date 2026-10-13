@@ -9,7 +9,8 @@
   "esperado": [
     { "clave": "cristal_m2", "patron": "cristal|cubierta", "ids": "^cristal-templado$|^erp-cri", "areaM2": 0.6, "tolPct": 5 },
     { "clave": "tubular_m", "patron": "tubular|tubo|base|marco|poste", "noPatron": "cromad|ecocrom|acabado", "ids": "^tubular-redondo-34$|^erp-tub", "metros": [7.0, 7.4], "tramos6m": true, "suma": true },
-    { "clave": "cromado", "patron": "crom|ecocrom|acabado", "ids": "ecocrom|crom", "presente": true, "evidencia": "plano: ACABADO CROMADO (ECOCROM); superficie del tubo ≈ π × 19 mm × 7.17 m = 0.43 m²" }
+    { "clave": "cromado", "patron": "crom|ecocrom|acabado", "ids": "^ecocrom$", "rango": [0.39, 0.47], "unidad": "m²", "sinMedida": true, "evidencia": "plano: ACABADO CROMADO (ECOCROM); superficie del tubo ≈ π × 19 mm × 7.17 m = 0.43 m²" }
   ],
-  "extrasPermitidos": "soldadura|tope|regat|silic|pulido|canto|consumible"
+  "extrasPermitidos": "soldadura|tope|regat|silic|pulido|canto|consumible|nivelador",
+  "notaExtras": "nivelador: regla de casa 3 (aprobada por Dirección 2026-10-12): mueble con base/patas lleva 4 niveladores. El plano no los dibuja; no es error del BOM."
 }

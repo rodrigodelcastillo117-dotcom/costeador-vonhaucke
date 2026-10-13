@@ -76,7 +76,9 @@ export function perimetroPerfilMM(texto = '') {
   const inch = t.match(/(\d+(?:\s+\d+\/\d+|\/\d+)?)\s*["”]\s*(?:x|×)\s*(\d+(?:\s+\d+\/\d+|\/\d+)?)\s*["”]/i);
   if (inch) { const a = pulgadasANumero(inch[1]), b = pulgadasANumero(inch[2]); if (a && b) return { mm: 2 * (a + b) * PULG, declarado: true, perfil: `${inch[1]}" × ${inch[2]}"` }; }
   const inch1 = t.match(/(\d+(?:\s+\d+\/\d+|\/\d+)?)\s*["”]/);
-  if (inch1) { const a = pulgadasANumero(inch1[1]); if (a) return { mm: 4 * a * PULG, declarado: true, perfil: `${inch1[1]}" × ${inch1[1]}"` }; }
+  // VH-164b: el tubo REDONDO tiene perímetro π·d, no 4·d (antes salía +27 % de área a pintar).
+  const redondo = /redond|circular|\bround\b|ø|diám/i.test(t);
+  if (inch1) { const a = pulgadasANumero(inch1[1]); if (a) return redondo ? { mm: Math.PI * a * PULG, declarado: true, perfil: `Ø${inch1[1]}"` } : { mm: 4 * a * PULG, declarado: true, perfil: `${inch1[1]}" × ${inch1[1]}"` }; }
   const mm2 = t.match(/(\d{2,3})\s*(?:x|×)\s*(\d{2,3})\s*(?:mm)?\b/i);
   if (mm2) { const a = Number(mm2[1]), b = Number(mm2[2]); if (a >= 10 && b >= 10 && a <= 200 && b <= 200) return { mm: 2 * (a + b), declarado: true, perfil: `${a} × ${b} mm` }; }
   const d = REGLAS_TALLER.acero.perfilDefaultMM;

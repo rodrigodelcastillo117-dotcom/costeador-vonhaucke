@@ -192,6 +192,10 @@ const FAMILIAS = [
   ['herraje_nivelador', /nivelador|regat[oó]n|leveler|leveller/i],
   ['herraje_cerradura', /cerradura|\block\b/i],
   ['pintura_polvo',     /\bpintura\b|electrost[aá]tic|\bpowder\b|\blaca\b|lacado/i],
+  // VH-164 (2026-10-13): el ACABADO metálico (EcoCrom/cromado/niquelado) es un renglón propio, no
+  // acero. Sólo cuando el texto EMPIEZA por el acabado ("cromado (EcoCrom) en base tubular",
+  // "Acabado cromado de la base", "EcoCrom"); "tubular 3/4 cromado" sigue siendo el tubo.
+  ['acabado_metal',     /^\s*(?:acabado\s+)?(?:cromad[oa]|eco\s*crom[e]?|niquelad[oa]|cromo)\b|^\s*eco\s*crom/i],
   ['iluminacion',       /\bled\b|luminaria|iluminaci[oó]n|tira\s*led/i],
   ['electrico',         /contacto|multicontacto|caja\s+el[eé]ctrica|\busb\b|byrne/i],
   ['adhesivo',          /adhesivo|pegamento|resistol|silic[oó]n/i],

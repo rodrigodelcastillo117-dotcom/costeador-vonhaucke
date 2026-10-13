@@ -149,3 +149,62 @@ describe('reglas de casa · PTR sin perfil contra varias variantes', () => {
     expect(c.insumoId).toBe('a');
   });
 });
+
+// VH-164 (2026-10-13, mesa de centro V3-5): la base tubular cromada recibía pintura en polvo por la
+// regla de casa y el renglón "cromado (EcoCrom)" se leía como ACERO (por "tubular"), con 1000×1000
+// inventado y el tubular como candidato (doble conteo).
+describe('VH-164 · acabado metálico (EcoCrom) en lugar de pintura', () => {
+  const base = () => [
+    { nombre: 'Marcos rectangulares base (tubular redondo 3/4 cal.18)', insumoId: 'tubular-redondo-34', material_solicitado: 'tubular redondo 3/4" cal. 18', cantidad: 5.6, forma: 'lineal' },
+    { nombre: 'Postes verticales base (tubular redondo 3/4 cal.18)', insumoId: 'tubular-redondo-34', material_solicitado: 'tubular redondo 3/4" cal. 18', cantidad: 1.568, forma: 'lineal' },
+    { nombre: 'Acabado cromado de la base (EcoCrom)', insumoId: '', material_solicitado: 'cromado (EcoCrom) en base tubular', cantidad: 1, largoMM: 1000, anchoMM: 1000 },
+  ];
+  it('el acabado es su propia familia; el tubo cromado sigue siendo tubo', () => {
+    expect(familiaDeMaterial('cromado (EcoCrom) en base tubular')).toBe('acabado_metal');
+    expect(familiaDeMaterial('Acabado cromado de la base (EcoCrom)')).toBe('acabado_metal');
+    expect(familiaDeMaterial('EcoCrom')).toBe('acabado_metal');
+    expect(familiaDeMaterial('Acabado EcoCrome tensores')).toBe('acabado_metal');
+    expect(familiaDeMaterial('tubular redondo 3/4" cromado')).toBe('metal_lamina');
+    expect(familiaDeMaterial('Nivelador conico cromado 3/8')).toBe('herraje_nivelador');
+    expect(familiaDeMaterial('Jaladera cromo 128 mm')).toBe('herraje_jaladera');
+  });
+  it('el acabado y EcoCrom son la misma familia: no es conflicto crítico ni propone el tubular', () => {
+    const r = clasificarMaterial({ solicitado: 'cromado (EcoCrom) en base tubular', insumoId: 'ecocrom', insumoNombre: 'EcoCrom' });
+    expect(r.clase).not.toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT);
+    const t = clasificarMaterial({ solicitado: 'cromado (EcoCrom) en base tubular', insumoId: 'tubular-redondo-34', insumoNombre: insumos['tubular-redondo-34'].nombre });
+    expect(t.insumoIdEfectivo || '').not.toBe('tubular-redondo-34');
+  });
+  it('no agrega pintura en polvo y el área del acabado sale de la geometría del tubo', () => {
+    const r = conAcompanantes(base(), insumos);
+    expect(r.some((c) => /pintura/i.test(c.nombre) || /^pintura-polvo/.test(c.insumoId || ''))).toBe(false);
+    const ac = r.find((c) => /cromado/i.test(c.nombre));
+    // 7.168 m × perímetro de 3/4" (π·19.05 mm = 59.85 mm) = 0.429 m²
+    expect(ac.cantidad).toBeCloseTo(0.43, 2);
+    expect(ac.largoMM).toBeUndefined(); expect(ac.anchoMM).toBeUndefined();
+    expect(ac._regla).toBe('acabado_metal'); expect(ac.iaMedida).toBe('1000×1000');
+    // Sólo se agrega la regla de casa 3 (4 niveladores por base con patas); nada de pintura.
+    expect(r.filter((c) => c._auto).map((c) => c._regla)).toEqual(['niveladores']);
+  });
+  it('una cantidad confirmada por la persona no se toca', () => {
+    const b = base(); b[2] = { ...b[2], cantidad: 0.6, cantidad_confirmada: true };
+    const r = conAcompanantes(b, insumos);
+    expect(r.find((c) => /cromado/i.test(c.nombre)).cantidad).toBe(0.6);
+  });
+  it('sin acabado metálico el acero sí lleva pintura (regla 5 intacta)', () => {
+    const r = conAcompanantes(base().slice(0, 2), insumos);
+    expect(r.some((c) => c._regla === 'pintura')).toBe(true);
+  });
+  it('una pintura que puso la IA no se borra aunque haya acabado (se dice, no se esconde)', () => {
+    const r = conAcompanantes([...base(), { nombre: 'Pintura electrostática base', material_solicitado: 'Pintura electrostática en polvo negra', cantidad: 1 }], insumos);
+    expect(r.some((c) => /Pintura electrostática base/.test(c.nombre))).toBe(true);
+  });
+});
+
+describe('VH-164b · perímetro de tubo redondo', () => {
+  it('Ø3/4" = π·19.05 mm; el cuadrado 3/4" sigue siendo 4·19.05 mm', () => {
+    expect(perimetroPerfilMM('Tubular redondo 3/4" cal. 18').mm).toBeCloseTo(Math.PI * 19.05, 3);
+    expect(perimetroPerfilMM('Tubular redondo 3/4" cal. 18').perfil).toBe('Ø3/4"');
+    expect(perimetroPerfilMM('Tubular cuadrado 3/4" cal. 18').mm).toBeCloseTo(4 * 19.05, 3);
+    expect(perimetroPerfilMM('PTR 3" x 1 1/2" cal. 14').mm).toBeCloseTo(2 * (3 + 1.5) * 25.4, 3);
+  });
+});

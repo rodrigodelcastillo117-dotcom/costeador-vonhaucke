@@ -52,6 +52,11 @@ export function compararConHoja(componentes = [], hoja = {}) {
       if (m < e.metros[0] || m > e.metros[1]) falla(`${f.metros} m, esperado ${e.metros[0]}–${e.metros[1]} m`);
       if (!e.suma && M.length > 1) falla(`duplicado: ${M.length} renglones`);
     }
+    if (e.rango) {   // cantidad total en la unidad del insumo (p. ej. m² de acabado), con intervalo
+      const q = M.reduce((s, x) => s + x.cantidad * (Number(x.c.piezas) > 0 ? Number(x.c.piezas) : 1), 0); f.cantidad = Math.round(q * 1000) / 1000;
+      if (q < e.rango[0] || q > e.rango[1]) falla(`cantidad ${f.cantidad}, esperado ${e.rango[0]}–${e.rango[1]}${e.unidad ? ' ' + e.unidad : ''}`);
+      if (Number(M[0]?.c?.largoMM) > 0 && Number(M[0]?.c?.anchoMM) > 0 && e.sinMedida) falla(`trae medida ${M[0].c.largoMM}×${M[0].c.anchoMM} que el plano no da`);
+    }
     if (e.cantidad != null) {
       const q = M.reduce((s, x) => s + x.cantidad * (Number(x.c.piezas) > 0 ? Number(x.c.piezas) : 1), 0); f.cantidad = q;
       if (q !== e.cantidad) falla(`cantidad ${q}, el plano dice ${e.cantidad}`);

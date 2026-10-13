@@ -63,8 +63,8 @@
     },
     {
       "clave": "cubierta_y_piso",
-      "patron": "cubierta|fondo|piso|tapa|base de cuerpo",
-      "noPatron": "chapa|ptr|pintura",
+      "patron": "cubierta|fondo|piso|\\btapa\\b|base de cuerpo",
+      "noPatron": "\\bchapa\\b|ptr|pintura",
       "ids": "^(mdf|erp-mdf19)$",
       "piezas": 2,
       "dims": [

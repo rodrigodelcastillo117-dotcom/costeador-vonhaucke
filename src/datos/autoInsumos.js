@@ -12,6 +12,8 @@
 //   5) Acero (PTR/tubo/lámina) → pintura electrostática en polvo (m² por geometría: metros ×
 //      perímetro del perfil; lámina × 2 caras). En tubular el motor deja el kg PENDIENTE
 //      mientras Producción no dé rendimiento (A14): se dice, no se inventa.
+//      Si el despiece trae un acabado metálico (EcoCrom/cromado) el acero NO se pinta: el área por
+//      geometría va a ese renglón (VH-164).
 // ============================================================================
 import { aplicarPoliticaMaterial, familiaDeMaterial } from './materialMatch.js';
 import { rolDe } from './revisionEstructural.js';
@@ -119,6 +121,22 @@ export function conAcompanantes(componentes = [], insumos = null) {
           const area = (x.c.largoMM / 1000) * (x.c.anchoMM / 1000) * Math.max(1, Number(x.c.piezas) || 1) * REGLAS_TALLER.acero.carasLamina;
           m2 += area; detalle.push(`${x.c.nombre}: ${r2(area)} m² (2 caras)`);
         }
+      }
+      // VH-164: si el despiece ya trae un ACABADO metálico (EcoCrom/cromado), el acero va con ese
+      // acabado, no pintado: su cantidad (m²) sale de la misma geometría y no se agrega pintura.
+      // Nunca se borra una línea de pintura que haya puesto la IA o la persona (se dice, no se esconde).
+      const acabados = conRol().filter((x) => x.fam === 'acabado_metal');
+      if (acabados.length) {
+        if (m2 > 0) {
+          const notaAc = `Regla de casa: el acero lleva el acabado de este renglón, no pintura. Área por geometría = ${r2(m2)} m² (${detalle.join(' · ')}).`;
+          for (const x of acabados) {
+            if (x.c._regla || x.c.cantidad_confirmada) continue;
+            const idx = comps.indexOf(x.c);
+            const { largoMM: _l, anchoMM: _a, ...resto } = x.c;
+            comps[idx] = { ...resto, iaCantidad: x.c.cantidad, iaMedida: (_l > 0 && _a > 0) ? `${_l}×${_a}` : undefined, cantidad: r2(m2 / acabados.length), piezas: 1, forma: 'pieza', _regla: 'acabado_metal', iaNota: notaAc };
+          }
+        }
+        return comps;
       }
       const colores = new Set();
       for (const x of acero) for (const [k, re] of [['negro', /negr[oa]|black/i], ['blanco', /blanc[oa]|white/i], ['gris', /\bgris\b|gr[ae]y/i]]) if (re.test(`${x.c.material_solicitado || ''} ${x.c.nombre || ''}`)) colores.add(k);
