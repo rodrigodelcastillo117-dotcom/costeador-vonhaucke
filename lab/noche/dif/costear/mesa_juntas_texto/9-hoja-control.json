@@ -1,0 +1,144 @@
+{
+  "producto": "Mesa de juntas 2400 × 1200 × 750 descrita sólo con texto",
+  "resumen": {
+    "esperados": 6,
+    "pass": 6,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 0,
+    "renglonesBom": 7,
+    "veredicto": "PASS"
+  },
+  "filas": [
+    {
+      "clave": "cubierta",
+      "renglones": 1,
+      "materiales": [
+        "melamina-28-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: cubierta melamina 28 mm Walnut 2400 × 1200",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "tapacanto_m",
+      "renglones": 1,
+      "materiales": [
+        "tapacanto"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: tapacanto en todo el perímetro de la cubierta (7.2 m) + regla de casa aprobada por Dirección (cantos visibles: paneles laterales 2 lados, faldón 4 lados) = 15.24 m. El texto no excluye esos cantos; la IA lo preguntó.",
+      "inferido": false,
+      "metros": 15.24
+    },
+    {
+      "clave": "paneles",
+      "renglones": 1,
+      "materiales": [
+        "melamina-28-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: dos paneles laterales 722 × 1000, melamina 28 mm Walnut",
+      "inferido": false,
+      "piezas": 2
+    },
+    {
+      "clave": "faldon",
+      "renglones": 1,
+      "materiales": [
+        "melamina-19-walnut"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: faldón central melamina 19 mm Walnut 2000 × 300",
+      "inferido": false,
+      "piezas": 1
+    },
+    {
+      "clave": "niveladores",
+      "renglones": 1,
+      "materiales": [
+        "nivelador"
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: Cuatro niveladores",
+      "inferido": false,
+      "cantidad": 4
+    },
+    {
+      "clave": "caja_electrica",
+      "renglones": 1,
+      "materiales": [
+        ""
+      ],
+      "estado": "PASS",
+      "motivos": [],
+      "evidencia": "texto: Una caja de conexiones eléctricas (si no hay curado, sin material con motivo; nunca otro artículo)",
+      "inferido": false,
+      "cantidad": 1
+    }
+  ],
+  "sobran": [
+    {
+      "nombre": "Tornillería y escuadras de ensamble",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué modelo de caja eléctrica se instala en la cubierta?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Byrne Phase 2",
+        "Byrne Node (USB+luz)",
+        "Caja Lisboa",
+        "Caja genérica contactos+USB",
+        "Por definir"
+      ],
+      "evidencia": "texto: Una caja de conexiones eléctricas"
+    },
+    {
+      "pregunta": "¿Se incluye acometida/chicote de alimentación a piso o muro?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas mesas se fabrican en este pedido?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Entrega armada o knock-down (desarmada en caja)?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Armada",
+        "Knock-down",
+        "Por definir"
+      ],
+      "evidencia": "texto: Una caja de conexiones eléctricas"
+    },
+    {
+      "pregunta": "¿Cuántos pasacables/grommets adicionales lleva la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva charola o ducto bajo cubierta para cableado?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se cantean todos los cantos de laterales y faldón o solo los vistos?",
+      "elegido": "(sin responder: ninguna opción coincide con el plano)",
+      "opciones": [
+        "Todos",
+        "Solo vistos",
+        "Por definir"
+      ],
+      "evidencia": "texto: dos paneles laterales de 722 × 1000"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,384.91",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "Costo preliminar — 7 decisión(es) pendiente(s): ¿Qué modelo de caja eléctrica se instala en la cubierta? · ¿Se incluye acometida/chicote de alimentación a piso o muro? · ¿Cuántas mesas se fabrican en este pedido? · ¿Entrega armada o knock-down (desarmada en caja)? · ¿Cuántos pasacables/grommets adicionales lleva la cubierta? · ¿Lleva charola o ducto bajo cubierta para cableado? · ¿Se cantean todos los cantos de laterales y faldón o solo los vistos?. Mientras haya materiales por confirmar o sin costear, el costo es provisional y NO se puede cotizar en firme: resuelve lo marcado arriba.",
+    "linea": "Material $2,726.08 · Mano de obra $414.71 · Fábrica $1,244.12",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

@@ -1,0 +1,67 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB dif mesa_juntas_texto 1013-1623 BORRADOR mesa mesa de juntas rectangular con base de paneles y electrificación central Melamina acabado nogal (Walnut) 28 y 19 mm",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$4,384.91",
+    "costoDespues": "$4,384.91",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,384.91",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,726.08 · Mano de obra $414.71 · Fábrica $1,244.12",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta 2400×1200",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "⚠ Medida de HOJA, no de pieza (2400×1200 mm): pon el largo×ancho de la pieza real; la hoja la calcula el motor."
+      ]
+    },
+    {
+      "nombre": "Panel lateral de base",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón central 2000×300",
+      "material": "Melamina 19 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto perímetro cubierta",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Caja de conexiones eléctricas",
+      "material": "Caja electrica generica (contactos+USB)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería y escuadras de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («herraje ensamble knock down») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

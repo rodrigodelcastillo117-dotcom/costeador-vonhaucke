@@ -1,0 +1,61 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 4 propuestos",
+    "diferencias": "2 difieren de lo pedido y se confirman uno por uno: Tapacanto perímetro cubierta, Tornillería y escuadras de ensamble. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta 2400×1200",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "⚠ Medida de HOJA, no de pieza (2400×1200 mm): pon el largo×ancho de la pieza real; la hoja la calcula el motor."
+      ]
+    },
+    {
+      "nombre": "Panel lateral de base",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Faldón central 2000×300",
+      "material": "Melamina 19 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto perímetro cubierta",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Caja de conexiones eléctricas",
+      "material": "Caja electrica generica (contactos+USB)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería y escuadras de ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («herraje ensamble knock down») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}
