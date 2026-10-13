@@ -1,0 +1,14 @@
+{
+  "resultado": {
+    "precios": [
+      "$4,345.21",
+      "$7,242.02"
+    ],
+    "margen": "Precio de lista (40% margen · política vigente (1 pieza))",
+    "estado": "COSTO PRELIMINAR",
+    "linea": "Material $2,633.11 · Mano de obra $428.02 · Fábrica $1,284.07",
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "piezas": []
+}

@@ -1,0 +1,94 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render (lab V2 corrida 12) Credenza Nogal BORRADOR guarda credenza de 3 puertas MDF enchapado en nogal natural Lista: $7,242 · preliminar",
+    "piezas": 14,
+    "mismoBom": true,
+    "costoAntes": "$4,345.21",
+    "costoDespues": "$4,345.21",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$4,345.21",
+        "$7,242.02"
+      ],
+      "margen": "Precio de lista (40% margen · del expediente guardado)",
+      "estado": "COSTO PRELIMINAR",
+      "linea": "Material $2,633.11 · Mano de obra $428.02 · Fábrica $1,284.07",
+      "pendiente": false,
+      "porConfirmar": false
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Laterales exteriores cuerpo (MDF 19 mm, base para chapa)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Cubierta y fondo estructural cuerpo (MDF 19 mm)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Frentes de puerta (MDF 19 mm, base para chapa)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, caras exteriores frentes de puerta",
+      "material": "Chapa Walnut Burl (poro sellado)",
+      "alertas": []
+    },
+    {
+      "nombre": "Chapa nogal natural, laterales exteriores",
+      "material": "Chapa Walnut Burl (poro sellado)",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño interior (1 por módulo)",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Divisiones verticales interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 9 mm - \"\"MDF8\"\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 (marco y patas)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Pintura electrostática negra base",
+      "material": "Pintura electrostatica",
+      "alertas": []
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "BISAGRA BIDIMENSIONAL INSERTA G01H91079CGGWS CON BASE G01B2182ZG60L1 (EN JUEGO 1 BASE Y 1 BISAGRA)-- \"\" BIBIPI\"\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "JALADERA EMBUTIDA DE ALUMINIO REDONDO COLOR PLATA, ANODIZADO MARCA HAFELE MODELO 151.75.903 - \"JAEM15175902\"",
+      "alertas": []
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": []
+    }
+  ]
+}

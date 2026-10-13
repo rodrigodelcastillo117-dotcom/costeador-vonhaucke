@@ -22,7 +22,7 @@ import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js
 import { buscarInsumosMotor } from '../nube.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
-import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { conservarMaterialesConfirmados } from '../datos/conservarConfirmados.js';
 import { proponerGemelosErp, fusionarGemelosEnBom, piezasConTamanoDeHoja } from '../datos/gemeloErp.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
@@ -531,12 +531,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     setRespuestas((prev) => { const next = { ...prev }; for (const k of Object.keys(auto.respuestas)) if (!String(next[k] || '').trim()) next[k] = auto.respuestas[k]; return next; });
   }, [preguntasIA]); // eslint-disable-line react-hooks/exhaustive-deps
   // Materiales propuestos por regla de casa (amarrados, por confirmar) y pendientes de verdad.
-  const propuestosPorRegla = b.componentes.filter((c) => c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar');
+  const propuestosTodos = b.componentes.filter((c) => c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar');
+  // VH-158: lo que difiere de lo pedido (p.ej. jaladera embutida redonda para «rectas 300 mm») NO entra al
+  // botón de confirmar en bloque: se revisa y confirma fila por fila, con la diferencia a la vista.
+  const propuestosConDiferencia = propuestosTodos.filter((c) => difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio));
+  const propuestosPorRegla = propuestosTodos.filter((c) => !difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio));
   const sinMaterial = b.componentes.filter((c) => !c.insumoId && !c.excluida);
   // UNA decisión humana en vez de una por renglón: confirma todo lo que la política amarró (queda
   // como confirmación de la persona, igual que si hubiera pulsado cada "Confirmar").
   function confirmarPropuestos() {
-    const comps = b.componentes.map((c) => (c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar' ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c));
+    const comps = b.componentes.map((c) => { const e = c.insumoId ? estadoMaterialUI(c, insumos) : null; return (e && e.badgeTipo === 'confirmar' && !difiereDeLoPedido(e.cambio) ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c); });
     editarComponentes(comps);
     setConfMsg(`✓ Confirmaste ${propuestosPorRegla.length} material(es) propuestos por regla de casa.`);
   }
@@ -996,14 +1000,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
         <div>
           <div className="pregunta">¿De qué está hecho?</div>
           <div className="pregunta-sub">Toca las piezas que lleva. Luego ajusta su material y medida.</div>
-          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
+          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || propuestosConDiferencia.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
             <div className="tarjeta" data-testid="piloto-costear" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--rojo,#E5484D)', margin: '12px 0' }}>
               <div style={{ fontWeight: 700, marginBottom: 4 }}>Piloto automático</div>
               <div className="ayuda" style={{ marginBottom: 8 }}>
                 {propuestosPorRegla.length > 0 && <span>{propuestosPorRegla.length} material(es) amarrados por regla de casa, por confirmar. </span>}
+                {propuestosConDiferencia.length > 0 && <span data-testid="piloto-con-diferencia" style={{ color: '#8a6d00' }}>{propuestosConDiferencia.length} difieren de lo pedido y se confirman uno por uno: {propuestosConDiferencia.map((c) => c.nombre).join(', ')}. </span>}
                 {autoDetalle.length > 0 && <span>{autoDetalle.length} pregunta(s) contestadas por regla de casa (puedes cambiarlas abajo). </span>}
                 {sinMaterial.length > 0 && <span style={{ color: '#8a6d00' }}>{sinMaterial.length} sin material: {sinMaterial.map((c) => c.nombre).join(', ')} (esto sí lo decides tú). </span>}
-                {propuestosPorRegla.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
+                {propuestosPorRegla.length === 0 && propuestosConDiferencia.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {propuestosPorRegla.length > 0 && <button type="button" className="boton primario" data-testid="piloto-confirmar" onClick={confirmarPropuestos}>Confirmar los {propuestosPorRegla.length} propuestos</button>}
@@ -1212,7 +1217,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   </div>
                 )}
                 {est.badge && (
-                  <div className="pieza-calc" data-testid="alerta-material" data-tono="ambar" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}</div>
+                  <div className="pieza-calc" data-testid="alerta-material" data-tono="ambar" style={{ color: 'var(--ambar,#8a6d00)', fontWeight: 600 }}>🟡 {est.badge}
+                    {est.badgeTipo === 'confirmar' && difiereDeLoPedido(est.cambio) && (
+                      <>{' '}<button type="button" className="chip" data-testid="confirmar-con-diferencia" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, c.insumoId, { confirmado: true })}>Acepto esta diferencia</button></>
+                    )}
+                  </div>
                 )}
                 {est.pendiente && !c._match?.sinPrecioCertificado && (
                   <div className="pieza-calc" data-testid="alerta-material" data-tono="rojo" style={{ color: 'var(--alerta,#b22a22)' }}>
@@ -1266,14 +1275,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       {paso === 3 && (
         <div className="tarjeta-precio">
           <div style={{ textAlign: 'left' }}>
-          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
+          {b.componentes.length > 0 && (propuestosPorRegla.length > 0 || propuestosConDiferencia.length > 0 || sinMaterial.length > 0 || autoDetalle.length > 0) && (
             <div className="tarjeta" data-testid="piloto-costear" style={{ background: 'var(--panel)', borderLeft: '4px solid var(--rojo,#E5484D)', margin: '12px 0' }}>
               <div style={{ fontWeight: 700, marginBottom: 4 }}>Piloto automático</div>
               <div className="ayuda" style={{ marginBottom: 8 }}>
                 {propuestosPorRegla.length > 0 && <span>{propuestosPorRegla.length} material(es) amarrados por regla de casa, por confirmar. </span>}
+                {propuestosConDiferencia.length > 0 && <span data-testid="piloto-con-diferencia" style={{ color: '#8a6d00' }}>{propuestosConDiferencia.length} difieren de lo pedido y se confirman uno por uno: {propuestosConDiferencia.map((c) => c.nombre).join(', ')}. </span>}
                 {autoDetalle.length > 0 && <span>{autoDetalle.length} pregunta(s) contestadas por regla de casa (puedes cambiarlas abajo). </span>}
                 {sinMaterial.length > 0 && <span style={{ color: '#8a6d00' }}>{sinMaterial.length} sin material: {sinMaterial.map((c) => c.nombre).join(', ')} (esto sí lo decides tú). </span>}
-                {propuestosPorRegla.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
+                {propuestosPorRegla.length === 0 && propuestosConDiferencia.length === 0 && sinMaterial.length === 0 && <span>Materiales completos.</span>}
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {propuestosPorRegla.length > 0 && <button type="button" className="boton primario" data-testid="piloto-confirmar" onClick={confirmarPropuestos}>Confirmar los {propuestosPorRegla.length} propuestos</button>}

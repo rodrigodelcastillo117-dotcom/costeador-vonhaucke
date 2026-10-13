@@ -388,3 +388,24 @@ describe('VH-086: EcoLegno es melamina (nombre real de melamina-19 en producció
     expect(conf.material_match).toBe(MATCH.USER_CONFIRMED);
   });
 });
+
+describe('VH-158 · diferencia frente a lo pedido no se confirma en bloque', () => {
+  it('espesor, calibre, perfil, variante y color son diferencias; reglas de casa no', async () => {
+    const { difiereDeLoPedido } = await import('./materialMatch.js');
+    expect(difiereDeLoPedido('Solicitado 18 mm → candidato 19 mm')).toBe(true);
+    expect(difiereDeLoPedido('Solicitado cal.14 → candidato cal.18')).toBe(true);
+    expect(difiereDeLoPedido('Variante pedida («recta 300») no está en el nombre del catálogo')).toBe(true);
+    expect(difiereDeLoPedido('Acabado/color distinto al solicitado')).toBe(true);
+    expect(difiereDeLoPedido('estándar de casa')).toBe(false);
+    expect(difiereDeLoPedido('perfil supuesto 1"×1" (regla de casa)')).toBe(false);
+    expect(difiereDeLoPedido('El color lo da la pintura electrostática (línea aparte); el acero va crudo')).toBe(false);
+    expect(difiereDeLoPedido('')).toBe(false);
+  });
+  it('AsistenteEspecial: el botón en bloque excluye las diferencias y cada una tiene su aceptación explícita', async () => {
+    const fs = await import('node:fs');
+    const s = fs.readFileSync('src/componentes/AsistenteEspecial.jsx', 'utf8');
+    expect(s).toContain("!difiereDeLoPedido(e.cambio) ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c");
+    expect(s).toContain('data-testid="confirmar-con-diferencia"');
+    expect(s).toContain('data-testid="piloto-con-diferencia"');
+  });
+});

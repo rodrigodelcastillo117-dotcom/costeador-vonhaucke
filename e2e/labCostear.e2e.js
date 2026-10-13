@@ -132,6 +132,14 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   let confirmacion = { ofrecida: false, respuestas };
   const btnConf = page.getByTestId('piloto-confirmar');
   if (await btnConf.count()) { confirmacion = { ofrecida: true, texto: await btnConf.first().innerText() }; await btnConf.first().click(); await page.waitForTimeout(3000); }
+  // VH-158: lo que DIFIERE de lo pedido no entra al bloque. El laboratorio lo registra y, por omisión, NO lo
+  // acepta (la cuenta QA no simula decisiones de diseño). LAB_ACEPTAR_DIFERENCIAS=1 sólo para medir mecánica.
+  const conDif = page.getByTestId('piloto-con-diferencia');
+  confirmacion.diferencias = (await conDif.count()) ? await conDif.first().innerText() : '';
+  confirmacion.diferenciasAceptadas = 0;
+  if (process.env.LAB_ACEPTAR_DIFERENCIAS === '1') {
+    for (let k = 0; k < 20 && (await page.getByTestId('confirmar-con-diferencia').count()); k++) { await page.getByTestId('confirmar-con-diferencia').first().click(); await page.waitForTimeout(800); confirmacion.diferenciasAceptadas++; }
+  }
   const piezas3 = await leerPiezas(page); const res3 = await leerResultado(page);
   guarda('3-tras-confirmar.json', { confirmacion, piezas: piezas3, resultado: res3 });
   await page.screenshot({ path: path.join(SALIDA, '3-tras-confirmar.png'), fullPage: true });

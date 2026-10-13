@@ -851,6 +851,13 @@ export function patchConfirmacionUI(insumoId) {
   };
 }
 
+// ¿El texto de cambio declara una DIFERENCIA real frente a lo pedido (espesor/calibre/perfil, variante o
+// acabado/color)? Las reglas de casa ('estándar de casa', 'perfil supuesto…', 'el color lo da la pintura…')
+// no son diferencias. Una diferencia NUNCA se confirma en bloque: la persona la ve y decide fila por fila (VH-158).
+export function difiereDeLoPedido(cambio = '') {
+  return /^(Solicitado |Variante pedida|Acabado\/color distinto)/.test(String(cambio || ''));
+}
+
 // Reglas de casa (amarre ERP): se exponen la severidad y el texto de cambio sin cambiar la API interna.
 export const severidadConflicto_ = severidadConflicto;
 export const textoCambio_ = textoCambio;

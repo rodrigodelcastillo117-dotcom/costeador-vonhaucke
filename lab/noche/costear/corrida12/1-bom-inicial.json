@@ -1,0 +1,130 @@
+{
+  "piezas": [
+    {
+      "nombre": "Laterales exteriores cuerpo (MDF 18 enchapado nogal)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Cubierta y fondo estructural cuerpo (MDF 18 enchapado nogal)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Frentes de puerta (MDF 18 enchapado nogal)",
+      "material": "MDF NATURAL HOJA 4 X 8 ESPESOR 19 mm - \"\"MDF19\"\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado 18 mm → candidato 19 mm"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal, caras exteriores frentes de puerta",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Chapa nogal, laterales exteriores",
+      "material": "Chapa de madera (sabana natural)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Entrepaño interior (1 por módulo)",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Divisiones verticales interiores",
+      "material": "Melamina BLANCA 16 mm",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Respaldo MDF 9 mm",
+      "material": "— ¿de qué es? —",
+      "alertas": [
+        "⚠ Varios materiales posibles — elige de cuál es."
+      ]
+    },
+    {
+      "nombre": "Base PTR 1x1 cal.14 (marco y patas)",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura electrostática negra base",
+      "material": "Pintura electrostatica",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado"
+      ]
+    },
+    {
+      "nombre": "Bisagras",
+      "material": "BISAGRA BIDIMENSIONAL INSERTA G01H91079CGGWS CON BASE G01B2182ZG60L1 (EN JUEGO 1 BASE Y 1 BISAGRA)-- \"\" BIBIPI\"\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Jaladeras rectas 300 mm",
+      "material": "JALADERA EMBUTIDA DE ALUMINIO REDONDO COLOR PLATA, ANODIZADO MARCA HAFELE MODELO 151.75.903 - \"JAEM15175902\"",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («recta 300») no está en el nombre del catálogo"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tapacanto (cantos visibles)",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: estándar de casa"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 11,
+    "producto": "Credenza Nogal 3 puertas 1800x450x750 mm",
+    "uso": {
+      "input_tokens": 22640,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 3304,
+      "output_tokens_details": {
+        "thinking_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  }
+}
