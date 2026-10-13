@@ -440,6 +440,11 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
     ...(Number.isFinite(Number(c?.anchoMM)) ? { anchoMM: Number(c.anchoMM) } : {}),
     ...(Number.isFinite(Number(c?.piezas)) ? { piezas: Number(c.piezas) } : {}),
     ...(Number.isFinite(Number(c?.hojas)) ? { hojas: Number(c.hojas) } : {}),
+    // VH-156 (paridad): el motor también lee areaPintadaM2 (pintura en polvo a 8 m²/kg), tubular y excluida;
+    // sin ellos el servidor veía la pintura "sin cantidad ni medidas" y costeaba piezas excluidas.
+    ...(Number.isFinite(Number(c?.areaPintadaM2)) && Number(c.areaPintadaM2) > 0 ? { areaPintadaM2: Number(c.areaPintadaM2) } : {}),
+    ...(c?.tubular === true ? { tubular: true } : {}),
+    ...(c?.excluida === true ? { excluida: true } : {}),
     ...(typeof c?.material_solicitado === 'string' ? { material_solicitado: c.material_solicitado.slice(0, 200) } : {}),
     ...(typeof c?.material_match === 'string' ? { material_match: c.material_match.slice(0, 40) } : {}),
     // INTENCIÓN de confirmación humana (P0.6/P0.8): el servidor la verifica y la convierte a
