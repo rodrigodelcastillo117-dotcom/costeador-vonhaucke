@@ -202,6 +202,12 @@ export function firmaGuardado(fila) {
 // emitida fallara en silencio (el guard de la DB lo rechaza).
 export function patchParaServidor(fila) {
   const { estado, usuario, ...patch } = fila || {};
+  // VH-173 (P0, producción desde el 10-oct): una cotización SIN acomodo (Voni "Empezar por los muebles", texto,
+  // banco de precios) mandaba `"acomodo": null`; PostgREST lo entrega como jsonb 'null' (no NULL de SQL) y
+  // crear/actualizar_cotizacion_segura lo rechazan con 'acomodo invalido'. La app lo mostraba como "Sin conexión"
+  // y la cotización sólo existía en ese navegador. Sin acomodo, el campo NO viaja (NULL de SQL en crear; en
+  // actualizar se conserva el que ya tenga la fila).
+  if (patch.acomodo == null) delete patch.acomodo;
   return patch;
 }
 
@@ -216,6 +222,9 @@ export function clasificarErrorGuardado(e) {
   if (m.includes('no existe')) return 'no-existe';
   if (m.includes('sin acceso') || m.includes('propietario') || m.includes('no autorizado') || m.includes('rol sin permiso')) return 'sin-acceso';
   if (m.includes('no editable')) return 'no-editable';
+  // VH-173: el servidor RESPONDIÓ y rechazó (SQLSTATE de Postgres, p.ej. P0001 'acomodo invalido'): no es la red.
+  // Antes caía en 'desconocido' y la app decía "Sin conexión" aunque la nube estuviera arriba.
+  if (/^[0-9A-Z]{5}$/.test(String(e?.code || '')) && !/fetch|network|timeout|abort/i.test(m)) return 'rechazado';
   return 'desconocido';
 }
 
@@ -255,7 +264,7 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
         if (tipo === 'conflicto') return { id, guardado: false, motivo: tipo, actualizadoServidor: actualizadoDeError(error) };
         // Emitida: no se toca (el flujo correcto es una revisión). Se conserva el id
         // para NO duplicar.
-        return { id, guardado: false, motivo: tipo };
+        return { id, guardado: false, motivo: tipo, ...(tipo === 'rechazado' ? { detalle: String(error?.message || '').slice(0, 200) } : {}) };
       }
       // `actualizado` = la versión que el servidor acaba de escribir (sólo con la migración VH-148;
       // la RPC de producción no la devuelve → null → el siguiente guardado va sin control).
@@ -267,7 +276,7 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
     const { data, error } = await nube.rpc('crear_cotizacion_segura', { p_payload: payload });
     if (error) {
       const tipo = clasificarErrorGuardado(error);
-      return { id: null, guardado: false, motivo: tipo, rotarClave: tipo === 'clave-reusada' };
+      return { id: null, guardado: false, motivo: tipo, rotarClave: tipo === 'clave-reusada', ...(tipo === 'rechazado' ? { detalle: String(error?.message || '').slice(0, 200) } : {}) };
     }
     return { id: data?.id ?? null, guardado: !!data?.id, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null };
   } catch (e) {

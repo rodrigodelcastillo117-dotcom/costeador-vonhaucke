@@ -549,7 +549,15 @@ export default function App() {
     // AVISO CLARO cuando la nube no recibe la cotización (antes fallaba en silencio y el
     // vendedor creía que estaba guardado). El punto del encabezado pasa a "Sin conexión"
     // y se avisa UNA vez por racha; al volver, el punto regresa a "En línea".
-    if (r.motivo === 'red' || r.motivo === 'desconocido') {
+    // VH-173: la nube respondió pero RECHAZÓ la cotización. No es "sin conexión": se dice el motivo y que el trabajo
+    // sigue sólo en esta computadora (no se reintenta en silencio como si fuera la red).
+    if (r.motivo === 'rechazado') {
+      setNubeEstado('rechazado');
+      if (!avisoNubeCaida.current) {
+        avisoNubeCaida.current = true;
+        mostrarAviso(`La nube no aceptó la cotización (${r.detalle || 'motivo no informado'}). Sigue guardada SÓLO en esta computadora: avisa a soporte antes de cerrar.`, 12000);
+      }
+    } else if (r.motivo === 'red' || r.motivo === 'desconocido') {
       setNubeEstado('sin-conexion');
       if (!avisoNubeCaida.current) {
         avisoNubeCaida.current = true;
@@ -796,7 +804,7 @@ export default function App() {
   }
 
   // ---- Nube (datos compartidos) ----
-  const [nubeEstado, setNubeEstado] = useState('conectando'); // conectando | conectado | sin-conexion
+  const [nubeEstado, setNubeEstado] = useState('conectando'); // conectando | conectado | sin-conexion | rechazado (VH-173)
   const aplicandoRemoto = useRef(false);   // true = el cambio vino de la nube, no re-subir
   const ultimoCompartido = useRef('');     // JSON de lo ultimo compartido, para no reescribir igual
   const timerNube = useRef(null);
@@ -1367,9 +1375,9 @@ export default function App() {
                 Mi cotización <span className="btn-cot-n">{nPartidas}</span>
               </button>
             )}
-            <span className="conexion" data-testid="nube-estado" data-estado={nubeEstado} title={nubeEstado === 'conectado' ? 'Conectado: los cambios se comparten' : nubeEstado === 'sin-conexion' ? 'Sin conexión: se guarda en esta computadora' : 'Conectando…'}>
-              <span className="punto" style={{ background: nubeEstado === 'conectado' ? '#3fbf8f' : nubeEstado === 'sin-conexion' ? '#B8912F' : '#8a8480' }} />
-              <span className="conexion-txt">{nubeEstado === 'conectado' ? 'En línea' : nubeEstado === 'sin-conexion' ? 'Sin conexión' : '...'}</span>
+            <span className="conexion" data-testid="nube-estado" data-estado={nubeEstado} title={nubeEstado === 'conectado' ? 'Conectado: los cambios se comparten' : nubeEstado === 'sin-conexion' ? 'Sin conexión: se guarda en esta computadora' : nubeEstado === 'rechazado' ? 'La nube rechazó el último guardado: el trabajo está sólo en esta computadora' : 'Conectando…'}>
+              <span className="punto" style={{ background: nubeEstado === 'conectado' ? '#3fbf8f' : nubeEstado === 'sin-conexion' ? '#B8912F' : nubeEstado === 'rechazado' ? '#B42318' : '#8a8480' }} />
+              <span className="conexion-txt">{nubeEstado === 'conectado' ? 'En línea' : nubeEstado === 'sin-conexion' ? 'Sin conexión' : nubeEstado === 'rechazado' ? 'No guardada' : '...'}</span>
             </span>
             {/* Cuenta: lo que no es trabajo (guía, usuarios, contraseña) va en un menú;
                 Salir se queda a la vista. */}

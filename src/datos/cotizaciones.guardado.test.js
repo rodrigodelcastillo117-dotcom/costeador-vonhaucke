@@ -71,6 +71,22 @@ describe('guardarCotizacion por RPCs seguros', () => {
     expect(r).toMatchObject({ id: 77, guardado: true });
   });
 
+  // VH-173: sin acomodo, el campo NO viaja (jsonb 'null' → 'acomodo invalido' en producción desde el 10-oct).
+  it('cotización sin acomodo (texto / banco): el payload no lleva "acomodo"; con acomodo, sí', async () => {
+    rpc.mockResolvedValue({ data: { ok: true, id: 78 }, error: null });
+    const sinAcomodo = { ...estado, cotizacion: { ...estado.cotizacion, acomodo: null } };
+    await guardarCotizacion(sinAcomodo, 'x@vh.mx', null, { claveCreacion: 'cot-sin-acomodo-1' });
+    expect(rpc.mock.calls[0][1].p_payload).not.toHaveProperty('acomodo');
+    expect(JSON.stringify(rpc.mock.calls[0][1].p_payload)).not.toMatch(/"acomodo":null/);
+    rpc.mockClear();
+    await guardarCotizacion(sinAcomodo, 'x@vh.mx', 78);
+    expect(rpc.mock.calls[0][1].p_patch).not.toHaveProperty('acomodo');
+    rpc.mockClear();
+    const conAcomodo = { ...estado, cotizacion: { ...estado.cotizacion, acomodo: { areasM: [] } } };
+    await guardarCotizacion(conAcomodo, 'x@vh.mx', 78);
+    expect(rpc.mock.calls[0][1].p_patch.acomodo).toEqual({ areasM: [] });
+  });
+
   it('con id → actualizar_cotizacion_segura con patch (sin estado)', async () => {
     rpc.mockResolvedValue({ data: { ok: true, id: 77 }, error: null });
     const r = await guardarCotizacion(estado, 'x@vh.mx', 77);
@@ -126,5 +142,16 @@ describe('guardarCotizacion por RPCs seguros', () => {
     expect(clasificarErrorGuardado({ message: 'rol sin permiso' })).toBe('sin-acceso');
     expect(clasificarErrorGuardado('propietario protegido')).toBe('sin-acceso');
     expect(clasificarErrorGuardado(null)).toBe('desconocido');
+  });
+});
+
+describe('VH-173 · rechazo del servidor ≠ sin conexión', () => {
+  it('SQLSTATE del servidor → rechazado con detalle; fetch failed → desconocido (red)', async () => {
+    expect(clasificarErrorGuardado({ code: 'P0001', message: 'acomodo invalido' })).toBe('rechazado');
+    expect(clasificarErrorGuardado(new Error('fetch failed'))).toBe('desconocido');
+    expect(clasificarErrorGuardado({ code: 'P0001', message: 'no existe' })).toBe('no-existe');
+    rpc.mockResolvedValue({ data: null, error: { code: 'P0001', message: 'acomodo invalido' } });
+    const r = await guardarCotizacion(estado, 'x@vh.mx', null, { claveCreacion: 'cot-rechazo-0001' });
+    expect(r).toMatchObject({ guardado: false, motivo: 'rechazado', detalle: 'acomodo invalido' });
   });
 });

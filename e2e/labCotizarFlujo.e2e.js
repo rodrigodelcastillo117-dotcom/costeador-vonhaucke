@@ -25,6 +25,11 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   const pageErrors = []; page.on('pageerror', (e) => pageErrors.push(String(e?.message || e)));
   const edges = []; let nubeOrigen = null, nubeApikey = null;
   page.on('request', (req) => { const u = req.url(); if (/\/rest\/v1\/rpc\//.test(u)) { try { nubeOrigen = new URL(u).origin; nubeApikey = req.headers().apikey || nubeApikey; } catch (_e) {} } });
+  const rpcs = [];
+  page.on('response', async (res) => {
+    const r = res.url().match(/\/rest\/v1\/rpc\/([a-z0-9_]+)/);
+    if (r && /cotizacion/.test(r[1])) { const t = await res.text().catch(() => ''); rpcs.push({ rpc: r[1], status: res.status(), t: Date.now(), body: t.slice(0, 1500) }); console.log('[lab-cot] rpc', r[1], res.status(), t.slice(0, 300)); }
+  });
   page.on('response', async (res) => {
     const m = res.url().match(/\/functions\/v1\/([a-z0-9-]+)/); if (!m) return;
     const txt = await res.text().catch(() => ''); edges.push({ fn: m[1], status: res.status(), t: Date.now(), body: txt.slice(0, 200000) });
@@ -74,7 +79,7 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   const cli = page.getByPlaceholder(/cliente/i).first();
   if ((await cli.count()) && !(await cli.inputValue().catch(() => ''))) await cli.fill(CLIENTE);
   const tG = Date.now();
-  await expect.poll(async () => (await leerCot(page))?.id || null, { timeout: 45000 }).not.toBeNull(); T('guardarSeg', tG);
+  await expect.poll(async () => (await leerCot(page))?.id || null, { timeout: 45000 }).not.toBeNull().catch((e) => { guarda('rpcs.json', rpcs); guarda('ERROR_guardado.txt', String(e)); throw e; }); T('guardarSeg', tG);
   const id = (await leerCot(page)).id;
   await page.waitForTimeout(3000);
   const leerNube = () => page.evaluate(async ([origen, apikey, idc]) => {
@@ -88,7 +93,9 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   guarda('2-nube.json', { id, ...nube });
   console.log('[lab-cot] nube', id, JSON.stringify(nube));
 
-  // 3) PDF: la compuerta decide BORRADOR o definitivo; se registra el porqué.
+  // 3) PDF: la compuerta decide BORRADOR o definitivo; se registra el porqué. El PDF vive en "Mi cotización".
+  await page.getByRole('button', { name: /Mi cotización/ }).first().click().catch(() => {});
+  await page.waitForTimeout(1500);
   const btnPdf = page.getByRole('button', { name: /Descargar PDF|Descargar BORRADOR/ }).first();
   await expect(btnPdf).toBeVisible({ timeout: 20000 });
   const etiquetaPdf = await btnPdf.innerText();
@@ -119,7 +126,7 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   if (firmaAntes.cliente !== firmaDespues.cliente) difs.push({ k: 'cliente', antes: firmaAntes.cliente, despues: firmaDespues.cliente });
   const cobrablesSugeridas = firmaDespues.partidas.filter((p) => p.sugerido && !p.noCobrar).length;
   guarda('4-reabierta.json', { id, identica: difs.length === 0, diferencias: difs, cobrablesSugeridas, firmaAntes, firmaDespues, tiempos });
-  guarda('edges.json', edges); guarda('pageErrors.json', pageErrors);
+  guarda('edges.json', edges); guarda('pageErrors.json', pageErrors); guarda('rpcs.json', rpcs);
   console.log('[lab-cot] RESUMEN', JSON.stringify({ modo: MODO, id, partidas: firmaDespues.partidas.length, identica: difs.length === 0, cobrablesSugeridas, pdf: etiquetaPdf, tiempos, pageErrors: pageErrors.length }));
   expect(pageErrors, 'sin errores de página').toEqual([]);
   expect(difs, 'la cotización reabierta es idéntica').toEqual([]);

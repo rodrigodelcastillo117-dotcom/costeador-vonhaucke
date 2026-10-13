@@ -149,7 +149,8 @@ test.describe('LAB · plano Torre Norte', () => {
     // 6) Render por área (edge real; puede tardar). Tope 8 minutos.
     const btnRender = page.getByRole('button', { name: /Generar las \d+ áreas|Generar la imagen del área/ });
     let render = { intentado: false };
-    if (await btnRender.count()) {
+    if (process.env.LAB_SIN_RENDER === '1') render.omitido = 'LAB_SIN_RENDER=1 (renders medidos aparte: lab/noche/render_v6)';
+    else if (await btnRender.count()) {
       render.intentado = true; const tr = Date.now();
       await btnRender.first().click();
       await expect(page.getByRole('button', { name: /Volver a generar|Generar las \d+ áreas|Generar la imagen del área/ })).toBeEnabled({ timeout: 8 * 60 * 1000 }).catch(() => {});
