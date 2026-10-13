@@ -198,6 +198,38 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   guarda('4-paridad.json', { paridad, servidor: srv?.body ?? null });
   console.log('[lab-costear] paridad', JSON.stringify(paridad));
 
+  // 4b) DIFICULTAD (Dirección 2026-10-13): "más difícil sube, más fácil baja". Atrás al paso de mano de obra,
+  // elige DIFÍCIL, vuelve al precio, mide costo y paridad con el servidor, y regresa a NORMAL (lo que se guarda
+  // después es el costo normal de siempre). Registra; la aserción dura vive en las pruebas unitarias.
+  if (costoCliente != null) {
+    const dif = { costoNormal: costoCliente };
+    const irA = async (rx) => { for (let k = 0; k < 4 && !(await page.getByTestId('costear-dificultad').count()); k++) { await page.getByRole('button', { name: rx }).first().click(); await page.waitForTimeout(800); } };
+    await irA(/Atrás/);
+    if (await page.getByTestId('costear-dificultad').count()) {
+      await page.getByTestId('dificultad-dificil').click();
+      dif.marcado = await page.getByTestId('dificultad-dificil').getAttribute('aria-checked');
+      const n0 = edges.filter((e) => e.fn.startsWith('costear-servidor')).length;
+      for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) { const vp = page.getByRole('button', { name: /Ver precio|Siguiente/ }); if (await vp.count()) await vp.first().click(); await page.waitForTimeout(1200); }
+      const rd = await leerResultado(page);
+      dif.costoDificil = rd.precios.length && !rd.pendiente ? pesosNum(rd.precios[0]) : null;
+      await page.waitForTimeout(6000);
+      const srvD = edges.filter((e) => e.fn.startsWith('costear-servidor')).slice(n0).pop();
+      dif.reqDificultad = srvD?.req?.pieza?.dificultad ?? null;
+      dif.costoSrvDificil = srvD?.body?.costo?.costoUnitario ?? srvD?.body?.costoUnitario ?? null;
+      dif.sube = dif.costoDificil != null && dif.costoDificil > dif.costoNormal;
+      dif.paridad = dif.costoDificil != null && dif.costoSrvDificil != null ? Math.round(dif.costoDificil * 100) === Math.round(Number(dif.costoSrvDificil) * 100) : null;
+      await page.screenshot({ path: path.join(SALIDA, '4b-dificil.png'), fullPage: true });
+      await irA(/Atrás/);
+      await page.getByTestId('dificultad-normal').click();
+      for (let k = 0; k < 3 && !(await page.locator('.precio-enorme').count()); k++) { const vp = page.getByRole('button', { name: /Ver precio|Siguiente/ }); if (await vp.count()) await vp.first().click(); await page.waitForTimeout(1200); }
+      const rn = await leerResultado(page);
+      dif.costoDeVueltaNormal = rn.precios.length && !rn.pendiente ? pesosNum(rn.precios[0]) : null;
+      dif.regresaIgual = dif.costoDeVueltaNormal === dif.costoNormal;
+    } else dif.error = 'no se encontró el selector de dificultad';
+    guarda('4b-dificultad.json', dif);
+    console.log('[lab-costear] dificultad', JSON.stringify(dif));
+  }
+
   // 5) Guardar expediente en la biblioteca.
   const btnGuardar = page.getByRole('button', { name: /^(Guardar|Actualizar) en biblioteca$/ }).first();
   await expect(btnGuardar).toBeVisible({ timeout: 10000 });

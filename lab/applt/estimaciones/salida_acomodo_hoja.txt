@@ -1,0 +1,6 @@
+base ATCUBD44ABS: tablero 0.5 hoja (ERP) vs acomodo 1/2; canto 94.47; resto 32.32
+  ATCUBD45ABS: hojas acomodo 1.000 (ERP 1) | MP estimada 1173.58 vs real 1163.28 (+0.9%)
+  ATCUBD46ABS: hojas acomodo 1.000 (ERP 1) | MP estimada 1193.46 vs real 1172.88 (+1.8%)
+base ATCUBS44ABS: tablero 0.25 hoja (ERP) vs acomodo 1/4; canto 69.49; resto 16.16
+  ATCUBS45ABS: hojas acomodo 0.500 (ERP 0.5) | MP estimada 614.72 vs real 608.70 (+1.0%)
+  ATCUBS46ABS: hojas acomodo 0.500 (ERP 0.5) | MP estimada 630.35 vs real 618.29 (+1.9%)
