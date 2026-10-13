@@ -150,7 +150,9 @@ test.describe('Bloque 1 · persistencia con VH-035c (propuesta)', () => {
     await expect(inputCliente(v)).toHaveValue('Tradeco');
     await verificar(v).click();
     await expect(v.getByText(/Faltan datos para cotizar/)).toBeVisible({ timeout: 15000 });
-    await expect(v.getByText(/Línea 1: recosteo_pendiente_producto_cambiado/)).toBeVisible();
+    // emisionUX: el motivo se dice en palabras (el código crudo ya no llega a la persona).
+    await expect(v.getByText(/Línea 1: cambió el producto, su versión o su despiece; su costo anterior ya no vale/)).toBeVisible();
+    await expect(v.getByText(/recosteo_pendiente_/)).toHaveCount(0);
     await botonPDF(v).click();
     await expect(v.locator('.aviso.rojo', { hasText: /BORRADOR · NO REGISTRADO/ })).toBeVisible({ timeout: 20000 });
     expect(nube.revisiones).toHaveLength(0);
@@ -162,7 +164,9 @@ test.describe('Bloque 1 · persistencia con VH-035c (propuesta)', () => {
     expect((await leerLocal(d)).cotizacion.partidas[0].cost_stale.motivo).toBe('RECOSTEO_PRODUCTO_CAMBIADO');
     await verificar(d).click();
     await expect(d.getByText(/Faltan datos para cotizar/)).toBeVisible({ timeout: 15000 });
-    await expect(d.getByText(/Línea 1: recosteo_pendiente_producto_cambiado/)).toBeVisible();
+    // emisionUX: el motivo se dice en palabras (el código crudo ya no llega a la persona).
+    await expect(d.getByText(/Línea 1: cambió el producto, su versión o su despiece; su costo anterior ya no vale/)).toBeVisible();
+    await expect(d.getByText(/recosteo_pendiente_/)).toHaveCount(0);
     expect(nube.revisiones).toHaveLength(0);
     await cd.close();
   });
@@ -184,7 +188,8 @@ test.describe('Bloque 1 · persistencia con VH-035c (propuesta)', () => {
 
     await verificar(page).click();
     await expect(page.getByText(/Faltan datos para cotizar/)).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText(/Línea 1: recosteo_pendiente_lote_cambiado/)).toBeVisible();
+    await expect(page.getByText(/Línea 1: cambió la cantidad y su costo depende del lote; su costo anterior ya no vale/)).toBeVisible();
+    await expect(page.getByText(/recosteo_pendiente_/)).toHaveCount(0);
     expect(nube.revisiones).toHaveLength(0);
     await ctx.close();
   });
