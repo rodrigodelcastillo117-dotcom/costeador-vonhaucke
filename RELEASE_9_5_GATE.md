@@ -349,16 +349,16 @@ El E2E final necesita dos casos reales que se puedan emitir. **Hoy no existen, y
 
 ## 9. Evidencia del SHA final
 
-**SHA evaluado: `66dd3a0359c8b233a7ebcd5871ae6b69720af59f`.** Es el último con código y evidencia. El commit que agrega esta sección sólo cambia este archivo, así que su CI y su preview se reportan en el paquete de reauditoría (`00_LEEME_AUDITOR.md`).
+**SHA evaluado: `2d0252739ea3083e1b607ac5e836453d2a8be99d`.** Es el último con código, pruebas y evidencia. El commit que agrega esta sección sólo cambia este archivo.
 
 | Evidencia | Resultado |
 |---|---|
-| CI | [run 786](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38589415579): `verify` en **success** (audit, vitest y `vite build`) y E2E en **success**: 93 passed, 12 skipped, **1 flaky** (`golden757Edicion`, riesgo residual 10). |
-| CI anterior, mismo código de app (`5057d61`) | [run 785](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38586081121): success, 94 passed, 12 skipped, 0 flaky |
-| Preview Vercel | `dpl_5SKh38tXAGNgXjtqjutxH1KB1xft` (`costeador-vonhaucke-m631befvd-rodrigos-eurotrip.vercel.app`), **READY**, `githubCommitSha` = `66dd3a0…` |
-| Suite local | 349 archivos, 3,306 pruebas, 0 fallas (`fcfedc2`) |
-| Pruebas focales | 11 archivos, 252/252 |
-| Holdout v5.1 | `--verificar` → **OK** (exit 0) sobre `corrida_humo_20261014b`; 9/9 casos alterados fallan cerrado |
-| Edge RC | `costear-servidor-rc` v22 `d97214c7…`, `analizar-mueble-rc` v8 `f226b792…` (releídas a las 15:25 UTC) |
+| CI | [run 789](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38615080108): `verify` **success** (audit, vitest y `vite build`) y E2E **success**: 93 passed, 12 skipped, **1 flaky** (`golden757Edicion`, el mismo de la ronda anterior; riesgo residual 14) |
+| Preview Vercel | `dpl_FH58juTmmPsdygy5wwGquvFedNCY` (`costeador-vonhaucke-i40389ikx-rodrigos-eurotrip.vercel.app`), **READY**, `githubCommitSha` = `2d02527…`, target preview. Su build corrió la suite: 352/3,390, 0 fallas. |
+| Suite local | 352 archivos, 3,390 pruebas, 0 fallas |
+| Focales | 8 archivos, 222/222 |
+| Antes/después | P0: 13 fallan con la rev4. Holdout: 6 fallan con la v5.1. Runbook: la cadena falla con los rollbacks anteriores. |
+| Holdout v5.2 | `--verificar` → **OK** (exit 0) sobre `corrida_humo_20261014c`, también re-corrido en el HEAD; 16/16 casos alterados fallan cerrado |
+| Edge RC | `costear-servidor-rc` v23 `3ba6d2b5…`, `analizar-mueble-rc` v8 `f226b792…` (releídas a las 18:12 UTC) |
 | Edge de producción | `costear-servidor` v9 `f0722f95…`, `analizar-mueble` v35 `1e1d496e…`: **sin cambios** |
-| Producción | sin SQL de esquema ni promoción del cliente; SEG-01c no aplicada, así que tampoco está en estricto; sin merge |
+| Producción | sin SQL de esquema, sin promoción del cliente, sin merge; SEG-01c no aplicada, así que tampoco hay estricto |
