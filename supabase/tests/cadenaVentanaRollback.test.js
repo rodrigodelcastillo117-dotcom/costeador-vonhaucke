@@ -170,3 +170,28 @@ describe('Runbook §4–§5 · cadena completa de la ventana: aplicar en orden y
     expect(diferencia(sinResiduo(aplicado), sinResiduo(otraVez))).toEqual([]);
   });
 });
+
+describe('Runbook §5.4 · el ORDEN del rollback importa (dependencias reales, no convención)', () => {
+  it('VH-148 revertido ANTES que VH-148b: el rollback de VH-148b vuelve a crear la sobrecarga de 3 argumentos que VH-148 quitó', async () => {
+    const db = await baseVentana();
+    const antes = await catalogo(db);
+    for (const m of VENTANA) await db.exec(leer(m.aplicar));
+    const orden = ['VH-100', 'SEG-01c', 'SEG-01', 'VH-148', 'VH-148b', 'P1-03b'];   // VH-148 y VH-148b invertidos
+    for (const id of orden) await db.exec(VENTANA.find((m) => m.id === id).revertir());
+    const sobra = diferencia(await catalogo(db), antes).filter((x) => !RESIDUO_DECLARADO.some((re) => re.test(x)));
+    expect(sobra.some((x) => x.startsWith('funcion private_api.actualizar_cotizacion_segura(p_cotizacion_id bigint, p_patch jsonb, p_actualizado_esperado timestamp with time zone)'))).toBe(true);
+    await db.close();
+  }, 120_000);
+  it('P1-03b sin CASCADE: si algo fuera de producción depende de la vista, el rollback falla y no deja nada a medias', async () => {
+    const db = await baseVentana();
+    for (const m of VENTANA) await db.exec(leer(m.aplicar));
+    // Un dependiente que no es de producción (p. ej. una vista de reporte creada a mano): el DROP sin CASCADE lo detecta.
+    await db.exec('create view public.reporte_tmp as select insumo_id, precio_id from public.catalogo_vigente');
+    const antesRb = await catalogo(db);
+    let error = null; try { await db.exec(VENTANA.find((m) => m.id === 'P1-03b').revertir()); } catch (e) { error = e; }
+    expect(String(error?.message)).toMatch(/depend/);
+    await db.exec('rollback').catch(() => {});
+    expect(diferencia(await catalogo(db), antesRb)).toEqual([]);   // la transacción no dejó nada a medias
+    await db.close();
+  }, 120_000);
+});
