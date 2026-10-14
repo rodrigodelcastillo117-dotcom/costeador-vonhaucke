@@ -1,0 +1,9 @@
+auth
+postgrest
+migrations/
+node_modules/
+jwt_secret
+gotrue.env
+postgrest.conf
+*.log
+gotrue

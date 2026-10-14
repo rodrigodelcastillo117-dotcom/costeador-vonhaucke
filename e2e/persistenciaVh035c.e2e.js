@@ -147,10 +147,10 @@ test.describe('Bloque 1 · persistencia con VH-035c (propuesta)', () => {
     expect(p1.cost_status).toBe('UNKNOWN');
     expect(p1.cost_stale).toMatchObject({ motivo: 'RECOSTEO_PRODUCTO_CAMBIADO', campos: ['piezaId'], previo: { piezaId: 'bench-6' } });
     expect(p1.cost_stale.economia_previa).toMatchObject({ costoUnitario: 21000, margen: 30 });   // auditable, no perdida
-    // Re-guardar con la versión VIEJA (la otra pestaña) choca: 40001 y nada cambia (VH-148 delante del núcleo VH-035c).
+    // Re-guardar con la versión VIEJA (la otra pestaña) choca: PT409 y nada cambia (VH-148 delante del núcleo VH-035c).
     const antes = JSON.stringify(nube.filas.get(id));
     const viejo = await rpcDesdeNavegador(page, 'ventas@vh.mx', 'actualizar_cotizacion_segura', { p_cotizacion_id: id, p_patch: { partidas: seg.json.partidas }, p_actualizado_esperado: seg.json.actualizado });
-    expect(viejo.json.code).toBe('40001');
+    expect(viejo.json.code).toBe('PT409');
     expect(JSON.stringify(nube.filas.get(id))).toBe(antes);
 
     // El vendedor reabre: la emisión queda bloqueada con el motivo de recosteo.

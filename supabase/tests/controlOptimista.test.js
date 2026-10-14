@@ -8,7 +8,7 @@
 //  PROPUESTA_vh148_control_optimista_cotizacion.sql y se juega el escenario de dos "pestañas":
 //    · A y B abren la misma fila (mismo `actualizado`).
 //    · A guarda con su `actualizado` esperado → ok; la fila avanza.
-//    · B guarda con el suyo (ya viejo) → SQLSTATE 40001 'CONFLICTO_VERSION' y NADA cambió.
+//    · B guarda con el suyo (ya viejo) → SQLSTATE PT409 'CONFLICTO_VERSION' y NADA cambió.
 //    · B recarga y guarda con el `actualizado` fresco → ok.
 //    · La firma de dos argumentos (clientes viejos) sigue funcionando sin control.
 //  Nada toca producción. Harness: el mismo de preservaEconomia.test.js (VH-035).
@@ -111,12 +111,12 @@ async function sembrar(db, usuario = VENDEDOR) {
     [usuario, JSON.stringify(PARTIDAS)]);
   return id;
 }
-// ¿Lanzó con SQLSTATE 40001 y el mensaje del contrato? Devuelve el error para inspeccionarlo.
+// ¿Lanzó con SQLSTATE PT409 y el mensaje del contrato? Devuelve el error para inspeccionarlo.
 async function esperarConflicto(promesa) {
   let err = null;
   try { await promesa; } catch (e) { err = e; }
   expect(err, 'debió lanzar').toBeTruthy();
-  expect(err.code).toBe('40001');
+  expect(err.code).toBe('PT409');
   expect(err.message).toMatch(/CONFLICTO_VERSION/);
   return err;
 }
@@ -170,7 +170,7 @@ describe('VH-148 · DESPUÉS (PROPUESTA_vh148): la segunda edición detecta el c
     expect(eq).toBe(true);
   });
 
-  it('dos pestañas: A guarda (ok, avanza `actualizado`); B con el esperado viejo → 40001 y NADA cambió; B recarga y guarda → ok', async () => {
+  it('dos pestañas: A guarda (ok, avanza `actualizado`); B con el esperado viejo → PT409 y NADA cambió; B recarga y guarda → ok', async () => {
     const id = await sembrar(db);
     const vA = await vistaDe(db, VENDEDOR, id), vB = await vistaDe(db, VENDEDOR, id);
     expect(vA.actualizado).toBe(vB.actualizado);

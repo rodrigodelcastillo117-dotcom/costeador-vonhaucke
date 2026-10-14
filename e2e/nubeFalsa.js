@@ -26,7 +26,7 @@
 //   - VH-148 (control optimista, PROPUESTA_vh148_control_optimista_cotizacion.sql, probada contra
 //     PostgreSQL real en supabase/tests/controlOptimista.test.js): `cotizacion_segura` devuelve
 //     `actualizado`; `actualizar_cotizacion_segura` honra `p_actualizado_esperado` si viene en el body
-//     (si difiere del `actualizado` de la fila → error PostgREST con code '40001', mensaje
+//     (si difiere del `actualizado` de la fila → error PostgREST con code 'PT409', mensaje
 //     'CONFLICTO_VERSION … (<ISO>)', details 'actualizado=<ISO>', y NADA cambia). Sin el parámetro la
 //     semántica es la de siempre (firma de dos argumentos). `f.conflictos` cuenta los rechazos y
 //     `f.esperados` guarda qué versión mandó cada intento (undefined = llamada vieja).
@@ -398,7 +398,7 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = 'vh035c', rpcVieja
     idempotencia: new Map(),     // `${email}|${key}` → { id, hash }
     siguienteId: 100,
     creates: 0, updates: 0, llamadas: [],
-    conflictos: 0, esperados: [],   // VH-148: rechazos 40001 y qué p_actualizado_esperado mandó cada intento (undefined = llamada vieja)
+    conflictos: 0, esperados: [],   // VH-148: rechazos PT409 y qué p_actualizado_esperado mandó cada intento (undefined = llamada vieja)
     revisiones: [],              // cotizaciones_revisiones (lo que emitir_revision conservó)
     aprobaciones: [],            // tabla aprobaciones (solicitar_aprobacion_snapshot / resolver_aprobacion)
     // Dirección resuelve (misma regla que private_api.resolver_aprobacion: sólo PENDIENTE).
@@ -441,7 +441,7 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = 'vh035c', rpcVieja
   // El cliente decide por `code`/mensaje, no por el status HTTP (PostgREST reporta la clase 40 como 500;
   // aquí se usa 409 por legibilidad en los reportes: ambas rutas las cubre el cliente).
   const errConflicto = (route, actualizado) => route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({
-    code: '40001',
+    code: 'PT409',
     message: `CONFLICTO_VERSION: la cotización cambió en el servidor (${actualizado}). Recarga antes de guardar.`,
     details: `actualizado=${actualizado}`,
     hint: 'Vuelve a cargar la cotización (cotizacion_segura) y decide: ver la versión del servidor o volver a aplicar tus cambios con el actualizado nuevo.',
@@ -608,7 +608,7 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = 'vh035c', rpcVieja
         if (!(c.usuario === email || editaConfig(email))) return err(route, 'sin acceso');
         if ((c.estado || 'borrador') !== 'borrador') return err(route, `cotizacion no editable en estado ${c.estado}`);
         // VH-148: mismo lugar que en la migración (tras existencia/acceso/estado, antes de validar el patch).
-        // NULL explícito = sin control. Si la versión no es la de la fila → 40001 y NADA cambia.
+        // NULL explícito = sin control. Si la versión no es la de la fila → PT409 y NADA cambia.
         if (conVersion && body.p_actualizado_esperado != null && !mismaVersion(c.actualizado, body.p_actualizado_esperado)) { f.conflictos += 1; return errConflicto(route, c.actualizado); }
         if ('estado' in patch && patch.estado !== 'borrador') return err(route, 'estado protegido; use el flujo de emision');
         let partidas = 'partidas' in patch ? patch.partidas : c.partidas;

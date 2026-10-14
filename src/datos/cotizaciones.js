@@ -214,7 +214,7 @@ export function patchParaServidor(fila) {
 
 // Clasifica el error del servidor para que el llamador decida sin leer texto suelto.
 export function clasificarErrorGuardado(e) {
-  // VH-148: conflicto de versión (SQLSTATE 40001 / 'CONFLICTO_VERSION'). Se revisa ANTES del texto:
+  // VH-148: conflicto de versión (SQLSTATE PT409 = HTTP 409; antes 40001 / 'CONFLICTO_VERSION'). Se revisa ANTES del texto:
   // su mensaje también dice "cambió en el servidor" y no debe caer en 'desconocido' (= "sin conexión").
   if (esConflictoGuardado(e)) return 'conflicto';
   const m = String(e?.message || e?.error?.message || e || '').toLowerCase();
@@ -277,7 +277,7 @@ export async function vincularCosteos(cotizacionId, partidas, actualizadoInicial
     });
     if (error) {
       if (/PGRST202|42883|Could not find the function|does not exist/i.test(`${error.code || ''} ${error.message || ''}`)) return { actualizado, fallidos, sinRpc: true };
-      const conflicto = error.code === '40001';
+      const conflicto = error.code === 'PT409' || error.code === '40001';
       fallidos.push({ partidaId: p.partidaId, error: String(error.message || error).slice(0, 160), ...(conflicto ? { conflicto: true } : {}) });
       if (conflicto) {
         for (const r of pendientes.slice(i + 1)) fallidos.push({ partidaId: r.partidaId, error: 'no intentado: la cotización cambió', conflicto: true });

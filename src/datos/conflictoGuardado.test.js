@@ -50,6 +50,7 @@ describe('el error de conflicto del servidor', () => {
   it('se reconoce por SQLSTATE 40001 o por el texto CONFLICTO', () => {
     expect(esConflictoGuardado(errPostgrest)).toBe(true);
     expect(esConflictoGuardado({ code: '40001', message: 'x' })).toBe(true);
+    expect(esConflictoGuardado({ code: 'PT409', message: 'x' })).toBe(true);   // lo que responde PostgREST (HTTP 409)
     expect(esConflictoGuardado({ message: 'CONFLICTO_VERSION: …' })).toBe(true);
     expect(esConflictoGuardado(new Error('CONFLICTO: cambió'))).toBe(true);
   });

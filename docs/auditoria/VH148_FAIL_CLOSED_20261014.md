@@ -1,5 +1,7 @@
 # VH-148b · Control optimista FAIL-CLOSED (2026-10-14)
 
+> **Actualización 14-oct (cierre pre-deploy):** el conflicto de versión ya no usa SQLSTATE `40001`. PostgREST reintenta `40001` sin fin; con PostgREST v12.2.3 real la llamada no regresaba. Ahora el código es **`PT409`**: PostgREST responde HTTP 409 y no reintenta. El mensaje y el DETAIL no cambian. Donde este documento dice `40001`, léase `PT409`. Evidencia: `VH148_DOS_CONEXIONES_20261014.md`.
+
 Rama del worktree (base `claude/costing-app-architecture-psf02g` @ `6d1cd13`). **Producción no cambió**: no se
 aplicó ninguna migración, no se corrió `supabase` CLI ni `apply_migration`, no se desplegó cliente ni Edge, no se
 consultó producción en esta tarea (los hechos de producción son los medidos por Dirección el 14-oct, sólo lectura,

@@ -390,7 +390,7 @@ begin
   if v_c.actualizado is distinct from p_actualizado_esperado then
     v_iso := to_json(v_c.actualizado)#>>'{}';
     raise exception 'CONFLICTO_VERSION: la cotización cambió entre tu guardado y el vínculo del costeo (%). Recarga y revisa la partida.', v_iso
-      using errcode = '40001', detail = 'actualizado=' || v_iso;
+      using errcode = 'PT409', detail = 'actualizado=' || v_iso;
   end if;
   select * into v_k from public.costeos_servidor where id = p_costeo_id for update;
   if not found then raise exception 'costeo inexistente'; end if;

@@ -1,5 +1,7 @@
 # VH-148 · Control optimista del guardado de cotizaciones (2026-10-13)
 
+> **Actualización 14-oct (cierre pre-deploy):** el conflicto de versión ya no usa SQLSTATE `40001`. PostgREST reintenta `40001` sin fin; con PostgREST v12.2.3 real la llamada no regresaba. Ahora el código es **`PT409`**: PostgREST responde HTTP 409 y no reintenta. El mensaje y el DETAIL no cambian. Donde este documento dice `40001`, léase `PT409`. Evidencia: `VH148_DOS_CONEXIONES_20261014.md`.
+
 Rama `claude/costing-app-architecture-psf02g`. **Producción no cambió**: no se corrió `supabase` CLI ni
 `apply_migration`, no se desplegó cliente. Todo lo que sigue está en el árbol de trabajo y probado contra
 PostgreSQL real aislado (PGlite), vitest y Chromium con la nube falsa.

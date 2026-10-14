@@ -22,6 +22,10 @@ describe('contrato del conflicto de versión', () => {
     expect(ESTADO_VERSION_CONFLICT).toBe(409);
     expect(MENSAJE_VERSION_CONFLICT).toBe(MENSAJE);
   });
+  it('PT409 (HTTP 409 de PostgREST, el código que usa el SQL) es conflicto aunque el mensaje no diga CONFLICTO', () => {
+    expect(esConflictoVersion({ code: 'PT409', message: 'x' })).toBe(true);
+    expect(resultadoDeErrorEscritura({ code: 'PT409', message: 'x', details: 'revision=7' })).toEqual({ ok: false, code: 'VERSION_CONFLICT', status: 409, error: MENSAJE, revisionServidor: 7 });
+  });
   it('40001, 23505 y VERSION_REQUIRED son conflicto; permisos, red y "no existe" NO', () => {
     for (const e of [E40001, E23505, E22004, { message: 'CONFLICTO_VERSION: x' }, { code: 'VERSION_CONFLICT' }]) expect(esConflictoVersion(e), JSON.stringify(e)).toBe(true);
     for (const e of [E42501, new Error('fetch failed'), { code: 'P0001', message: 'expediente no existe' }, { code: '22004', message: 'null value' }, null, undefined]) expect(esConflictoVersion(e), String(e?.message)).toBe(false);

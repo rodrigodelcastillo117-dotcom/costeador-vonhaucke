@@ -47,14 +47,14 @@ const DEFECTOS = [
     expect(e.message).toMatch(/VERSION_REQUIRED/);
     expect(await filaCot(db, id)).toBe(trasA);
   }],
-  ['H2 · cotización: un UPDATE directo (archivar, PostgREST) sube la versión ⇒ la pestaña con la versión vieja choca (40001) y no escribe', async (db) => {
+  ['H2 · cotización: un UPDATE directo (archivar, PostgREST) sube la versión ⇒ la pestaña con la versión vieja choca (PT409) y no escribe', async (db) => {
     const id = await sembrarCot(db);
     const v = await vista(db, DIRECCION, id);
     await q(db, DIRECCION, 'update public.cotizaciones set activa = false where id = $1', [id]);   // archivarCotizacion
     expect(await mismaVersion(db, id, v.actualizado)).toBe(false);
     const antes = await filaCot(db, id);
     const e = await fallo(guardar3(db, DIRECCION, id, { cliente: 'pestaña vieja' }, v.actualizado));
-    expect(e?.code, e?.message).toBe('40001');
+    expect(e?.code, e?.message).toBe('PT409');
     expect(await filaCot(db, id)).toBe(antes);
   }],
   ['H2 · cotización: una RPC del servidor que no tocaba `actualizado` (vincular_cotizacion) también sube la versión', async (db) => {
@@ -63,10 +63,10 @@ const DEFECTOS = [
     await uno(db, VENDEDOR, 'select private_api.vincular_cotizacion($1, 7, null, 9)', [id], null);
     expect(await mismaVersion(db, id, v.actualizado)).toBe(false);
     const e = await fallo(guardar3(db, VENDEDOR, id, { cliente: 'pestaña vieja', proyecto_id: null }, v.actualizado));
-    expect(e?.code, e?.message).toBe('40001');
+    expect(e?.code, e?.message).toBe('PT409');
     expect(String((await db.query('select proyecto_id from public.cotizaciones where id=$1', [id])).rows[0].proyecto_id)).toBe('9');
   }],
-  ['H2b · VH-148d: vincular_cotizacion SIN versión ya no la puede llamar una sesión (42501); con versión vieja 40001, sin versión 22004', async (db) => {
+  ['H2b · VH-148d: vincular_cotizacion SIN versión ya no la puede llamar una sesión (42501); con versión vieja PT409, sin versión 22004', async (db) => {
     const id = await sembrarCot(db);
     const v = await vista(db, VENDEDOR, id);
     expect((await fallo(uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 7, null, 9)', [id])))?.code).toBe('42501');
@@ -76,7 +76,7 @@ const DEFECTOS = [
     const a = (await uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 7, null, 9, $2::timestamptz) as r', [id, v.actualizado])).r;
     expect(a.ok).toBe(true);
     const e = await fallo(uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 8, null, 10, $2::timestamptz) as r', [id, v.actualizado]));
-    expect(e?.code, e?.message).toBe('40001');
+    expect(e?.code, e?.message).toBe('PT409');
     expect(String((await db.query('select proyecto_id from public.cotizaciones where id=$1', [id])).rows[0].proyecto_id)).toBe('9');
     // Con la versión que devolvió A, sí.
     expect((await uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 8, null, 10, $2::timestamptz) as r', [id, a.actualizado])).r.ok).toBe(true);
@@ -88,12 +88,12 @@ const DEFECTOS = [
     expect(e?.code, e?.message).toBe('42501');
     expect(await filaCot(db, id)).toBe(antes);
   }],
-  ['H4 · expediente: dos editores en la misma revisión por UPDATE directo ⇒ el segundo choca (40001) y no pisa', async (db) => {
+  ['H4 · expediente: dos editores en la misma revisión por UPDATE directo ⇒ el segundo choca (PT409) y no pisa', async (db) => {
     const id = await sembrarExp(db);
     await updateDirectoExp(db, DISENO, id, 1, 'Lo de Diseño');          // A: rev 1 → 2
     const trasA = await filaExp(db, id);
     const e = await fallo(updateDirectoExp(db, DIRECCION, id, 1, 'Lo de Dirección'));   // B: también cree que va en la 1
-    expect(e?.code, e?.message).toBe('40001');
+    expect(e?.code, e?.message).toBe('PT409');
     expect(e.message).toMatch(/CONFLICTO_VERSION/);
     expect(await filaExp(db, id)).toBe(trasA);
   }],
@@ -104,14 +104,14 @@ const DEFECTOS = [
     const { mayor } = await uno(db, DIRECCION, 'select actualizado > $2::timestamptz as mayor from public.expedientes where id=$1', [id, antes], null);
     expect(mayor).toBe(true);
   }],
-  ['H4 · expediente: RPC con revisión esperada: revisión vieja ⇒ 40001 sin escribir; NULL ⇒ VERSION_REQUIRED; la buena escribe fila + snapshot', async (db) => {
+  ['H4 · expediente: RPC con revisión esperada: revisión vieja ⇒ PT409 sin escribir; NULL ⇒ VERSION_REQUIRED; la buena escribe fila + snapshot', async (db) => {
     const id = await sembrarExp(db);
     const rA = (await rpcExp(db, DISENO, id, { nombre: 'Lo de Diseño', bom: [{ pieza: 'tapa', mm: 25 }] }, 1)).r;
     expect(rA).toMatchObject({ ok: true, revision: 2, revision_registrada: true });
     expect(await revisionesDe(db, id)).toEqual([{ rev: 1, nombre: 'Credenza nogal' }, { rev: 2, nombre: 'Lo de Diseño' }]);
     const trasA = await filaExp(db, id);
     const e = await fallo(rpcExp(db, DIRECCION, id, { nombre: 'Lo de Dirección' }, 1));
-    expect(e?.code, e?.message).toBe('40001');
+    expect(e?.code, e?.message).toBe('PT409');
     expect(e.detail).toBe('revision=2');
     expect((await fallo(rpcExp(db, DIRECCION, id, { nombre: 'sin versión' }, null)))?.code).toBe('22004');
     expect(await filaExp(db, id)).toBe(trasA);
@@ -126,14 +126,14 @@ const DEFECTOS = [
     expect(e?.code, e?.message).toBe('23505');
     expect(await filaExp(db, id)).toBe(antes);                           // ni nombre ni revisión cambiaron
   }],
-  ['H4 · cocreación: guardar con la revisión vieja ⇒ 40001 y lo de la otra pestaña se queda', async (db) => {
+  ['H4 · cocreación: guardar con la revisión vieja ⇒ PT409 y lo de la otra pestaña se queda', async (db) => {
     const { r: c } = await cocrear2(db, VENDEDOR, null, { nombre: 'Banca', intent: { v: 1 } });
     const id = c.expediente_id;
     const rA = (await cocrear3(db, VENDEDOR, id, { nombre: 'Banca', intent: { v: 'A' } }, 1)).r;
     expect(rA).toMatchObject({ ok: true, revision: 2, nueva_revision: true });
     const trasA = await filaExp(db, id);
     const e = await fallo(cocrear3(db, VENDEDOR, id, { nombre: 'Banca', intent: { v: 'B' } }, 1));
-    expect(e?.code, e?.message).toBe('40001');
+    expect(e?.code, e?.message).toBe('PT409');
     expect(await filaExp(db, id)).toBe(trasA);
     expect((await fallo(cocrear3(db, VENDEDOR, id, { nombre: 'Banca', intent: { v: 'C' } }, null)))?.code).toBe('22004');
   }],
@@ -192,13 +192,13 @@ describe(`VH-148b · CON la propuesta${OMITIR_PROPUESTA ? ' (VH148B_OMITIR=1: SI
     expect(r.c.ok).toBe(true);
     expect(r.c.cliente).toBe('cliente viejo');
   });
-  it('el flujo con versión sigue: A guarda, B con la versión vieja choca (40001), B recarga y guarda', async () => {
+  it('el flujo con versión sigue: A guarda, B con la versión vieja choca (PT409), B recarga y guarda', async () => {
     const id = await sembrarCot(db);
     const vA = await vista(db, VENDEDOR, id), vB = await vista(db, VENDEDOR, id);
     const rA = await guardar3(db, VENDEDOR, id, { cliente: 'A' }, vA.actualizado);
     const trasA = await filaCot(db, id);
     const e = await fallo(guardar3(db, VENDEDOR, id, { cliente: 'B' }, vB.actualizado));
-    expect(e?.code).toBe('40001');
+    expect(e?.code).toBe('PT409');
     expect(await filaCot(db, id)).toBe(trasA);
     expect((await guardar3(db, VENDEDOR, id, { cliente: 'B' }, rA.c.actualizado)).c.cliente).toBe('B');
   });
@@ -416,7 +416,7 @@ describe('VH-148b · COMPOSICIÓN con VH-035c, SEG-01 y SEG-01c', () => {
         await guardar3(db, VENDEDOR, id, { cliente: 'Vendedor', partidas: v.partidas }, v.actualizado);
         expect((await vista(db, DIRECCION, id)).partidas.find((p) => p.id === 'p1').costoUnitario).toBe(6000);
         // La versión vieja choca; NULL exige versión.
-        expect((await fallo(guardar3(db, VENDEDOR, id, { cliente: 'viejo' }, v.actualizado)))?.code).toBe('40001');
+        expect((await fallo(guardar3(db, VENDEDOR, id, { cliente: 'viejo' }, v.actualizado)))?.code).toBe('PT409');
         expect((await fallo(guardar3(db, VENDEDOR, id, { cliente: 'nulo' }, null)))?.code).toBe('22004');
         // El gate de emisión (SEG-01) sigue rechazando un snapshot que no es lo costeado.
         const vv = await vista(db, VENDEDOR, id);

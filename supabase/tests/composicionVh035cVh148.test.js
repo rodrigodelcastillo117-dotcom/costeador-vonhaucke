@@ -11,11 +11,11 @@
 //    · núcleo económico ÚNICO = private_api.actualizar_cotizacion_segura(bigint, jsonb), de VH-035c
 //      (o de producción si VH-035c no está);
 //    · la sobrecarga de TRES argumentos de VH-148 valida acceso, BLOQUEA la fila, compara la versión
-//      (40001) y DELEGA en el núcleo; ninguna sobrecarga lleva DEFAULT.
+//      (PT409) y DELEGA en el núcleo; ninguna sobrecarga lleva DEFAULT.
 //
 //  Aquí se carga el esquema real (baseline + cuerpos de producción del 2026-10-13 + compuerta de
 //  emisión real + wrappers públicos de producción) y se aplican LAS DOS propuestas en los DOS
-//  órdenes. En cada orden se prueba (a) conflicto 40001 sin escritura, (b) guardado con versión =
+//  órdenes. En cada orden se prueba (a) conflicto PT409 sin escritura, (b) guardado con versión =
 //  guardado sin versión (economía anidada y autoridad de Dirección intactas), (c) cambio de producto
 //  con versión → STALE y emisión bloqueada, (d) llamadas de dos argumentos sin ambigüedad, y (e) el
 //  rollback de cada archivo deja al otro funcionando. Nada toca producción.
@@ -157,7 +157,7 @@ async function esperarConflicto(promesa) {
   let err = null;
   try { await promesa; } catch (e) { err = e; }
   expect(err, 'debió lanzar').toBeTruthy();
-  expect(err.code).toBe('40001');
+  expect(err.code).toBe('PT409');
   expect(err.message).toMatch(/CONFLICTO_VERSION/);
   return err;
 }
@@ -245,7 +245,7 @@ for (const [orden, archivos] of ORDENES) {
       expect(await fuente(db, 'private_api.actualizar_cotizacion_segura(bigint, jsonb)')).toMatch(/fusionar_economia_partidas/);
     });
 
-    it('(a) vendedor guarda por la ruta de TRES argumentos con versión vieja → 40001 (DETAIL con la versión del servidor) y la fila queda byte a byte igual', async () => {
+    it('(a) vendedor guarda por la ruta de TRES argumentos con versión vieja → PT409 (DETAIL con la versión del servidor) y la fila queda byte a byte igual', async () => {
       const id = await sembrar(db);
       const vieja = await vistaDe(db, VENDEDOR, id);
       const r1 = await guardar3(db, VENDEDOR, id, { cliente: 'Tradeco Norte' }, vieja.actualizado);   // otra pestaña avanza la fila
@@ -413,7 +413,7 @@ for (const [orden, archivos] of ORDENES) {
       expect(await sobrecargas(db)).toHaveLength(4);
     });
 
-    it('el control de versión sigue: 40001 sin escritura con versión vieja; con la correcta guarda (con la semántica de producción, VH-035 incluida)', async () => {
+    it('el control de versión sigue: PT409 sin escritura con versión vieja; con la correcta guarda (con la semántica de producción, VH-035 incluida)', async () => {
       const id = await sembrar(db);
       const v = await vistaDe(db, VENDEDOR, id);
       expect(typeof v.actualizado).toBe('string');

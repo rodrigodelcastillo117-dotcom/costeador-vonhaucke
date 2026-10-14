@@ -58,7 +58,7 @@ export function esperadoParaGuardar(actualizadoConocido, activo) {
 // ============================================================================
 //  VH-148b · RESULTADO ÚNICO DE "VERSIÓN EN CONFLICTO" para TODAS las escrituras versionadas
 //  (cotizaciones, expedientes y sus revisiones, cocreaciones). El servidor lo señala con:
-//   · SQLSTATE 40001 'CONFLICTO_VERSION' (otra persona guardó antes),
+//   · SQLSTATE PT409 'CONFLICTO_VERSION' (otra persona guardó antes; HTTP 409 en PostgREST),
 //   · SQLSTATE 23505 (el número de revisión ya existe: índice único expediente_id, rev),
 //   · SQLSTATE 22004 'VERSION_REQUIRED' (se pidió escribir sin decir desde qué versión).
 //  El cliente lo convierte SIEMPRE en { ok:false, code:'VERSION_CONFLICT', status:409 } y la UI muestra
@@ -73,7 +73,9 @@ export function esConflictoVersion(e) {
   if (!e) return false;
   if (e.code === CODIGO_VERSION_CONFLICT) return true;
   const code = String(e.code ?? e.error?.code ?? '');
-  if (code === '40001' || code === '23505') return true;
+  // PT409: el servidor responde HTTP 409 (PostgREST). 40001 se acepta por compatibilidad: PostgREST lo REINTENTA y
+  // no debe usarse en el SQL (docs/auditoria/VH148_DOS_CONEXIONES_20261014.md).
+  if (code === 'PT409' || code === '40001' || code === '23505') return true;
   const m = String(e.message || e.error?.message || e || '');
   return /VERSION_REQUIRED|CONFLICTO_VERSION/.test(m);
 }

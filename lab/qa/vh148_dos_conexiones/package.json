@@ -1,0 +1,5 @@
+{
+  "name": "qa-vh148-dos-conexiones",
+  "private": true,
+  "description": "Arnés QA VH-148 (fuera del build): Postgres 16 + GoTrue + PostgREST reales. Ver LEEME.md."
+}

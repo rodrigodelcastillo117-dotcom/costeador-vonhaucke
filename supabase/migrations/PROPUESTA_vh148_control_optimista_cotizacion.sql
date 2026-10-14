@@ -1,4 +1,9 @@
 -- ============================================================================
+--  NOTA PT409 (cierre pre-deploy 14-oct, prueba real de dos conexiones): el conflicto de versión se levantaba con
+--  SQLSTATE 40001 (serialization_failure). PostgREST REINTENTA la transacción ante 40001: con PostgREST v12.2.3 real la
+--  llamada nunca regresa (≈2,400 reintentos por segundo, aun con el cliente desconectado) y el 409 nunca llega.
+--  Ahora es SQLSTATE 'PT409', el código propio de PostgREST para responder HTTP 409 sin reintentar. Mismo mensaje
+--  'CONFLICTO_VERSION' y mismo DETAIL. Evidencia: docs/auditoria/VH148_DOS_CONEXIONES_20261014.md.
 --  PROPUESTA · VH-148 · control optimista de versión en actualizar_cotizacion_segura.
 --  ⚠️ NO APLICAR sin autorización de Dirección (prefijo PROPUESTA_: no entra en `db push`).
 --
@@ -12,7 +17,7 @@
 --   1. `cotizacion_segura` expone `actualizado` (hoy devuelve `creado` pero NO `actualizado`).
 --   2. Nueva sobrecarga `actualizar_cotizacion_segura(p_cotizacion_id, p_patch, p_actualizado_esperado
 --      timestamptz)`. Si p_actualizado_esperado no es NULL y es distinto del `actualizado` de la fila →
---      excepción SQLSTATE 40001 (serialization_failure) con mensaje 'CONFLICTO_VERSION: ... (<actualizado
+--      excepción SQLSTATE PT409 (HTTP 409 en PostgREST; ver NOTA PT409 abajo) con mensaje 'CONFLICTO_VERSION: ... (<actualizado
 --      ISO del servidor>)', DETAIL 'actualizado=<ISO>'. NADA se escribe (la excepción aborta la
 --      transacción antes del UPDATE). NULL explícito = sin control (misma semántica que dos argumentos).
 --   3. El cliente (detrás de la bandera VITE_CONTROL_OPTIMISTA / localStorage vh:controlOptimista) NO
@@ -152,7 +157,7 @@ begin
   if v_c.actualizado is distinct from p_actualizado_esperado then
     v_actualizado_iso := to_json(v_c.actualizado)#>>'{}';
     raise exception 'CONFLICTO_VERSION: la cotización cambió en el servidor (%). Recarga antes de guardar.', v_actualizado_iso
-      using errcode = '40001',
+      using errcode = 'PT409',
             detail = 'actualizado=' || v_actualizado_iso,
             hint = 'Vuelve a cargar la cotización (cotizacion_segura) y decide: ver la versión del servidor o volver a aplicar tus cambios con el actualizado nuevo.';
   end if;

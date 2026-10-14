@@ -142,7 +142,7 @@ begin
   if v_c.actualizado is distinct from p_actualizado_esperado then
     v_actualizado_iso := to_json(v_c.actualizado)#>>'{}';
     raise exception 'CONFLICTO_VERSION: la cotización cambió en el servidor (%). Recarga antes de guardar.', v_actualizado_iso
-      using errcode = '40001',
+      using errcode = 'PT409',
             detail = 'actualizado=' || v_actualizado_iso,
             hint = 'Vuelve a cargar la cotización (cotizacion_segura) y decide: ver la versión del servidor o volver a aplicar tus cambios con el actualizado nuevo.';
   end if;
@@ -172,7 +172,7 @@ as $function$
 begin
   if current_user = 'authenticated' and NEW.revision is distinct from OLD.revision + 1 then
     raise exception 'CONFLICTO_VERSION: el expediente % ya está en la revisión % (se intentó escribir la %)', OLD.id, OLD.revision, NEW.revision
-      using errcode = '40001',
+      using errcode = 'PT409',
             detail = 'revision=' || OLD.revision,
             hint = 'Recarga el expediente o compara antes de guardar.';
   end if;
@@ -226,7 +226,7 @@ begin
   if not found then raise exception 'expediente no existe'; end if;
   if e.revision is distinct from p_revision_esperada then
     raise exception 'CONFLICTO_VERSION: el expediente cambió en el servidor (revisión %)', e.revision
-      using errcode = '40001',
+      using errcode = 'PT409',
             detail = 'revision=' || e.revision,
             hint = 'Recarga el expediente o compara antes de guardar.';
   end if;
@@ -305,7 +305,7 @@ begin
   end if;
   if e.revision is distinct from p_revision_esperada then
     raise exception 'CONFLICTO_VERSION: la cocreación cambió en el servidor (revisión %)', e.revision
-      using errcode = '40001',
+      using errcode = 'PT409',
             detail = 'revision=' || e.revision,
             hint = 'Recarga la cocreación o compara antes de guardar.';
   end if;
@@ -428,7 +428,7 @@ begin
   if v_c.actualizado is distinct from p_actualizado_esperado then
     v_iso := to_json(v_c.actualizado)#>>'{}';
     raise exception 'CONFLICTO_VERSION: la cotización cambió en el servidor (%). Recarga antes de vincular.', v_iso
-      using errcode = '40001', detail = 'actualizado=' || v_iso;
+      using errcode = 'PT409', detail = 'actualizado=' || v_iso;
   end if;
   update public.cotizaciones set cliente_id = p_cliente_id, contacto_id = p_contacto_id, proyecto_id = p_proyecto_id
    where id = p_cotizacion_id returning actualizado into v_c.actualizado;
@@ -538,7 +538,7 @@ commit;
 -- RB   if v_c.actualizado is distinct from p_actualizado_esperado then
 -- RB     v_actualizado_iso := to_json(v_c.actualizado)#>>'{}';
 -- RB     raise exception 'CONFLICTO_VERSION: la cotización cambió en el servidor (%). Recarga antes de guardar.', v_actualizado_iso
--- RB       using errcode = '40001',
+-- RB       using errcode = 'PT409',
 -- RB             detail = 'actualizado=' || v_actualizado_iso,
 -- RB             hint = 'Vuelve a cargar la cotización (cotizacion_segura) y decide: ver la versión del servidor o volver a aplicar tus cambios con el actualizado nuevo.';
 -- RB   end if;

@@ -1,0 +1,434 @@
+{
+  "generado": "2026-10-14T14:39:57.623Z",
+  "entorno": {
+    "postgres": "PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu",
+    "gotrue": "v2.178.0",
+    "postgrest": "v12.2.3",
+    "supabase_js": "2.112.3",
+    "sesiones": [
+      {
+        "email": "qa148-direccion@vonhaucke.test",
+        "uid": "2af70359-860e-43da-b4b8-eaf95b4c23ba",
+        "rol": "direccion"
+      },
+      {
+        "email": "qa148-ventas@vonhaucke.test",
+        "uid": "2a08188a-643c-47ee-a338-95e17cbbb0df",
+        "rol": "vendedor"
+      },
+      {
+        "email": "qa148-diseno@vonhaucke.test",
+        "uid": "91e09c8c-7c7d-4567-8ebd-60c56dfde24b",
+        "rol": "diseno"
+      }
+    ],
+    "sql": [
+      "baseVh148b (producción 14-oct)",
+      "PROPUESTA_p103b",
+      "PROPUESTA_vh148",
+      "PROPUESTA_vh148b",
+      "PROPUESTA_seg01",
+      "PROPUESTA_seg01c (rev4)"
+    ]
+  },
+  "casos": [
+    {
+      "caso": "1 · cotización: dos sesiones guardan desde la MISMA versión",
+      "pasos": [
+        {
+          "t": "2026-10-14T14:39:58.292Z",
+          "quien": "A y B",
+          "accion": "leen cotizacion_segura",
+          "version_A": "2026-10-14T14:39:58.261874+00:00",
+          "version_B": "2026-10-14T14:39:58.261874+00:00"
+        },
+        {
+          "t": "2026-10-14T14:39:58.303Z",
+          "quien": "A",
+          "accion": "guarda con su versión",
+          "esperado": "ok",
+          "status": 200,
+          "error": null,
+          "version_nueva": "2026-10-14T14:39:58.300073+00:00"
+        },
+        {
+          "t": "2026-10-14T14:39:58.308Z",
+          "quien": "B",
+          "accion": "guarda con la versión VIEJA",
+          "esperado": "PT409 (HTTP 409) CONFLICTO_VERSION",
+          "status": 409,
+          "error": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.300073+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.300073+00:00"
+          },
+          "revision_esperada_por_B": "2026-10-14T14:39:58.261874+00:00"
+        },
+        {
+          "t": "2026-10-14T14:39:58.313Z",
+          "quien": "B",
+          "accion": "guarda sin versión (p_actualizado_esperado = null)",
+          "esperado": "22004 VERSION_REQUIRED",
+          "status": 400,
+          "error": {
+            "code": "22004",
+            "message": "VERSION_REQUIRED: falta p_actualizado_esperado (la versión desde la que editas)",
+            "details": null
+          }
+        }
+      ],
+      "final": {
+        "cliente": "QA-VH148 · editado por A",
+        "actualizado": "2026-10-14T14:39:58.300073+00:00"
+      },
+      "ok": true
+    },
+    {
+      "caso": "1b · cotización: A y B guardan al MISMO tiempo desde la misma versión (10 rondas)",
+      "pasos": [
+        {
+          "t": "2026-10-14T14:39:58.335Z",
+          "ronda": 1,
+          "version_comun": "2026-10-14T14:39:58.315101+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.325367+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.325367+00:00"
+          },
+          "final": "QA-VH148 carrera 1 · A",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.352Z",
+          "ronda": 2,
+          "version_comun": "2026-10-14T14:39:58.325367+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.34784+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.34784+00:00"
+          },
+          "final": "QA-VH148 carrera 2 · A",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.365Z",
+          "ronda": 3,
+          "version_comun": "2026-10-14T14:39:58.34784+00:00",
+          "gano": "B",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.36051+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.36051+00:00"
+          },
+          "final": "QA-VH148 carrera 3 · B",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.377Z",
+          "ronda": 4,
+          "version_comun": "2026-10-14T14:39:58.36051+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.3737+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.3737+00:00"
+          },
+          "final": "QA-VH148 carrera 4 · A",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.388Z",
+          "ronda": 5,
+          "version_comun": "2026-10-14T14:39:58.3737+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.385407+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.385407+00:00"
+          },
+          "final": "QA-VH148 carrera 5 · A",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.401Z",
+          "ronda": 6,
+          "version_comun": "2026-10-14T14:39:58.385407+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.396998+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.396998+00:00"
+          },
+          "final": "QA-VH148 carrera 6 · A",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.412Z",
+          "ronda": 7,
+          "version_comun": "2026-10-14T14:39:58.396998+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.409198+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.409198+00:00"
+          },
+          "final": "QA-VH148 carrera 7 · A",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.423Z",
+          "ronda": 8,
+          "version_comun": "2026-10-14T14:39:58.409198+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.419496+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.419496+00:00"
+          },
+          "final": "QA-VH148 carrera 8 · A",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.437Z",
+          "ronda": 9,
+          "version_comun": "2026-10-14T14:39:58.419496+00:00",
+          "gano": "B",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.432634+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.432634+00:00"
+          },
+          "final": "QA-VH148 carrera 9 · B",
+          "coherente": true
+        },
+        {
+          "t": "2026-10-14T14:39:58.452Z",
+          "ronda": 10,
+          "version_comun": "2026-10-14T14:39:58.432634+00:00",
+          "gano": "A",
+          "ganadores": 1,
+          "conflictos": 1,
+          "error_perdedor": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.445527+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.445527+00:00"
+          },
+          "final": "QA-VH148 carrera 10 · A",
+          "coherente": true
+        }
+      ],
+      "ok": true
+    },
+    {
+      "caso": "2 · expediente: dos sesiones editan la MISMA revisión",
+      "pasos": [
+        {
+          "t": "2026-10-14T14:39:58.464Z",
+          "quien": "A",
+          "accion": "RPC actualizar_expediente_seguro con revisión 1",
+          "esperado": "ok (rev 2)",
+          "status": 200,
+          "error": null,
+          "data": {
+            "id": 1,
+            "ok": true,
+            "revision": 2,
+            "actualizado": "2026-10-14T14:39:58.461946+00:00",
+            "revision_registrada": true
+          }
+        },
+        {
+          "t": "2026-10-14T14:39:58.470Z",
+          "quien": "C",
+          "accion": "RPC con la revisión VIEJA (1)",
+          "esperado": "PT409",
+          "status": 409,
+          "error": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: el expediente cambió en el servidor (revisión 2)",
+            "details": "revision=2"
+          }
+        },
+        {
+          "t": "2026-10-14T14:39:58.477Z",
+          "quien": "C",
+          "accion": "UPDATE directo por PostgREST con revision = 2 (la que ya escribió A)",
+          "esperado": "PT409",
+          "status": 409,
+          "error": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: el expediente 1 ya está en la revisión 2 (se intentó escribir la 2)",
+            "details": "revision=2"
+          }
+        },
+        {
+          "t": "2026-10-14T14:39:58.483Z",
+          "quien": "A y C",
+          "accion": "carrera simultánea con revisión 2",
+          "esperado": "uno gana, otro PT409",
+          "A": "ok",
+          "C": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: el expediente cambió en el servidor (revisión 3)",
+            "details": "revision=3"
+          }
+        }
+      ],
+      "final": {
+        "expediente": {
+          "revision": 3,
+          "nombre": "QA-VH148 Credenza · carrera A"
+        },
+        "historial": [
+          {
+            "rev": 1,
+            "nombre": "QA-VH148 Credenza de prueba"
+          },
+          {
+            "rev": 2,
+            "nombre": "QA-VH148 Credenza · A"
+          },
+          {
+            "rev": 3,
+            "nombre": "QA-VH148 Credenza · carrera A"
+          }
+        ]
+      },
+      "ok": true
+    },
+    {
+      "caso": "3 · adjuntar_costeo_a_partida con versión vieja",
+      "pasos": [
+        {
+          "t": "2026-10-14T14:39:58.495Z",
+          "quien": "servidor (service_role)",
+          "accion": "registra el costeo K",
+          "K": "2a1fb953-bc24-4716-8937-61266fa0355e",
+          "promesa_version": "v1",
+          "promesa_huella": "94c48e663bc37ef4e25c1f233e46edba"
+        },
+        {
+          "t": "2026-10-14T14:39:58.501Z",
+          "quien": "A",
+          "accion": "lee la versión tras su guardado",
+          "version": "2026-10-14T14:39:58.496051+00:00"
+        },
+        {
+          "t": "2026-10-14T14:39:58.525Z",
+          "quien": "B",
+          "accion": "guarda en medio (cambia precio)",
+          "status": 200,
+          "error": null,
+          "version_nueva": "2026-10-14T14:39:58.522108+00:00"
+        },
+        {
+          "t": "2026-10-14T14:39:58.532Z",
+          "quien": "A",
+          "accion": "adjunta con la versión VIEJA",
+          "esperado": "PT409 (HTTP 409) y nada vinculado",
+          "revision_esperada_por_A": "2026-10-14T14:39:58.496051+00:00",
+          "revision_real": "2026-10-14T14:39:58.522108+00:00",
+          "status": 409,
+          "error": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió entre tu guardado y el vínculo del costeo (2026-10-14T14:39:58.522108+00:00). Recarga y revisa la partida.",
+            "details": "actualizado=2026-10-14T14:39:58.522108+00:00"
+          },
+          "vinculos_vigentes": 0
+        },
+        {
+          "t": "2026-10-14T14:39:58.537Z",
+          "quien": "A",
+          "accion": "adjunta sin versión",
+          "esperado": "22004",
+          "status": 400,
+          "error": {
+            "code": "22004",
+            "message": "VERSION_REQUIRED: falta p_actualizado_esperado (el actualizado que devolvió tu guardado)",
+            "details": null
+          }
+        },
+        {
+          "t": "2026-10-14T14:39:58.552Z",
+          "quien": "A",
+          "accion": "control: recarga y adjunta con la versión fresca",
+          "esperado": "ok",
+          "status": 200,
+          "error": null,
+          "data": {
+            "ok": true,
+            "estado": "certificado",
+            "costeo_id": "2a1fb953-bc24-4716-8937-61266fa0355e",
+            "partida_id": "p1",
+            "actualizado": "2026-10-14T14:39:58.549079+00:00",
+            "cotizacion_id": 3
+          }
+        },
+        {
+          "t": "2026-10-14T14:39:58.580Z",
+          "quien": "A y B",
+          "accion": "carrera: A adjunta K2 y B guarda, misma versión",
+          "esperado": "uno gana, otro PT409",
+          "A": "ok",
+          "B": {
+            "code": "PT409",
+            "message": "CONFLICTO_VERSION: la cotización cambió en el servidor (2026-10-14T14:39:58.575092+00:00). Recarga antes de guardar.",
+            "details": "actualizado=2026-10-14T14:39:58.575092+00:00"
+          },
+          "vigente": [
+            "2911e18e-a0aa-4a5a-b9b1-1f3ada97a079"
+          ],
+          "precio_final": 9900,
+          "costeoId_final": "2911e18e-a0aa-4a5a-b9b1-1f3ada97a079"
+        }
+      ],
+      "final": {
+        "actualizado": "2026-10-14T14:39:58.575092+00:00",
+        "partida": {
+          "d": 600,
+          "w": 1200,
+          "id": "p1",
+          "nombre": "QA-VH148 Escritorio de prueba",
+          "piezas": [
+            "Cubierta"
+          ],
+          "bomHash": "qa148",
+          "cantidad": 1,
+          "costeoId": "2911e18e-a0aa-4a5a-b9b1-1f3ada97a079",
+          "materiales": [
+            "m16"
+          ],
+          "cost_status": "UNKNOWN",
+          "costoEstado": "certificado",
+          "costoUnitario": 6000,
+          "precioUnitario": 9900
+        },
+        "vigente": [
+          "2911e18e-a0aa-4a5a-b9b1-1f3ada97a079"
+        ]
+      },
+      "ok": true
+    }
+  ],
+  "ok": true
+}

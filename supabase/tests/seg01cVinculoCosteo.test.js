@@ -308,25 +308,25 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
   });
 
   // ---------------- P0-02 · CAS en el vínculo ----------------
-  it('P0-02: otra pestaña cambia la partida ENTRE el guardado y el vínculo ⇒ 40001; sin versión ⇒ 22004; nada se vincula', async () => {
+  it('P0-02: otra pestaña cambia la partida ENTRE el guardado y el vínculo ⇒ PT409; sin versión ⇒ 22004; nada se vincula', async () => {
     const k = await h.reg();
     const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);
     const deMiGuardado = await h.version(id);             // A: guardó y va a vincular con esta versión
     await h.guardarP1(id, { nombre: 'Mesa de juntas 12 personas', medidas: '480x140x75' });   // B: cambia la partida
     const e = await fallo(h.adjuntar(DIRECCION, id, 'p1', k, deMiGuardado));
-    expect(e?.code).toBe('40001');
+    expect(e?.code).toBe('PT409');
     expect(e?.message).toMatch(/CONFLICTO_VERSION/);
     expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k, null)))?.code).toBe('22004');
     expect((await db.query('select cotizacion_id from public.costeos_servidor where id = $1', [k])).rows[0].cotizacion_id).toBeNull();
   });
 
-  it('P0-02: dos vínculos encadenados — el segundo usa el `actualizado` que devolvió el primero; con el viejo ⇒ 40001', async () => {
+  it('P0-02: dos vínculos encadenados — el segundo usa el `actualizado` que devolvió el primero; con el viejo ⇒ PT409', async () => {
     const ka = await h.reg(); const kb = await h.reg();
     const id = await h.sembrar([{ ...COSTEADO, id: 'a', costeoId: ka }, { ...COSTEADO, id: 'b', costeoId: kb }]);
     const v0 = await h.version(id);
     const ra = await h.adjuntar(DIRECCION, id, 'a', ka, v0);
     expect(ra.actualizado).not.toBe(v0);
-    expect((await fallo(h.adjuntar(DIRECCION, id, 'b', kb, v0)))?.code).toBe('40001');
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'b', kb, v0)))?.code).toBe('PT409');
     expect(await h.adjuntar(DIRECCION, id, 'b', kb, ra.actualizado)).toMatchObject({ ok: true });
     expect(await h.motivos(id)).toEqual([]);
   });
@@ -693,7 +693,7 @@ describe('SEG-01c rev 2 · el cliente encadena la versión en los vínculos (P0-
     expect(await h.motivos(id)).toEqual([]);
   });
 
-  it('otra pestaña escribió después del guardado ⇒ 40001, la cadena se detiene, NADA queda vinculado y el aviso lo dice', async () => {
+  it('otra pestaña escribió después del guardado ⇒ PT409, la cadena se detiene, NADA queda vinculado y el aviso lo dice', async () => {
     const ka = await h.reg(); const kb = await h.reg();
     const partidas = [{ ...COSTEADO, id: 'a', costeoId: ka }, { ...COSTEADO, id: 'b', costeoId: kb }];
     const id = await h.sembrar(partidas);
