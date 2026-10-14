@@ -32,7 +32,7 @@ porque el negocio **no puede emitir en firme** sin estas condiciones:
 | Estado del costo (incompleto/preliminar) | 6 | **9** | Antes, el servidor devolvía `incompleto` con 0 motivos en el librero 5×8; ahora `preliminar` con 5 motivos (smoke vivo, exp. 159). 7 pruebas del estado, invariante "no certificado ⇒ con motivo". | No | Falta verlo en más familias vivas. |
 | P1-03: aprobación del precio exacto | 3 (regex por e-mail) | **8** | 13 pruebas con datos reales de producción (aprobadores, empate real `lamina-3x10-14`). Botón de Dirección en Costear. | No | Ningún precio tiene aprobación humana real. El primer VALIDADO requiere a Rodrigo; no se puede verificar con QA. |
 | VH-100: costo oficial de líneas | 2 | **5** | Migración convertida en PROPUESTA (estaba en riesgo de `db push`). Hueco de rol por `user_metadata` cerrado. Historial y fin de la escritura directa. 6 pruebas que fallan con la versión anterior. | No | Falta el dato: 1,931/1,931 sin costo, 116 sin clave. **Bloqueado por Compras.** |
-| VH-148: concurrencia (409) | 5 | *pendiente del agente* | ver §4 | | |
+| VH-148: concurrencia (409) | 5 | **8** | PROPUESTA_vh148b (paso 1) y vh148c (paso 2, retira las escrituras sin versión). La versión la sube un trigger del servidor; VERSION_REQUIRED; UPDATE directo solo de `activa`; compare-and-swap de expedientes (el 23505 ya no se traga); ProductRevision publicada inmutable; el cliente devuelve 409 con el mensaje exacto. 72 pruebas nuevas; **15 fallan sin la propuesta** (verificado de forma independiente con `VH148B_OMITIR=1`). | No | Sin aplicar. La espera real en el candado y la selección de sobrecarga de PostgREST no se probaron (PGlite es de una sola conexión). Playwright no corrido. Habrá más avisos 409 que hoy (emitir o folio suben la versión). |
 | Costear motor (paridad, unidades, $0) | 7 | **8** | Paridad al centavo en vivo ($6,614.24; difícil $7,362.69). Hoja de control 6/6. 3,007 pruebas. | No | Holdout fuera de muestra no corrido (no hay datos nuevos). In-sample: MAPE 33.2 %, sesgo +18.9 %. |
 | Holdout Intelisis (preparación) | 0 | **9** (preparación) | Congelamiento de 37 archivos más huellas de base de datos, `--verificar`, métricas fijadas y probadas | n/a | La medición en sí no existe; faltan de 10 a 15 reportes nuevos de Compras. |
 | ERP / precios | 6 | 6 | Medido: 1,763 aprobados por QA, 30 por `reconciliacion`, 0 por personas | No | Datos de origen sin sanear; D1 sin firmar. |
@@ -53,7 +53,7 @@ holdout) dependen de datos o de decisiones que no son de código.
 
 | Gate | Cómo se reproduce | Resultado |
 |---|---|---|
-| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | 332 archivos, 3,007 pruebas (e549839), ambos entornos |
+| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | 339 archivos, 3,096 pruebas (41b4109), ambos entornos; `vite build` OK |
 | SEG-01b adversarial | `npx vitest run supabase/tests/seguridadGateEmisionSnapshot.test.js -t "SEG-01b"` | 15/15; 14 fallan sin la propuesta |
 | VH-100 | `npx vitest run supabase/tests/cargarCostosOficiales.test.js`; con `VH100_MIG=<archivo viejo>` fallan 7 | 12/12 |
 | Estado y precio exacto | `npx vitest run src/datos/autoridadCosteoServidor.test.js` | 20/20 |
@@ -63,7 +63,6 @@ holdout) dependen de datos o de decisiones que no son de código.
 
 ## 4. Pendiente de integrar en este documento
 
-- VH-148 fail-closed: el agente trabaja en un worktree; se integrará con su evidencia.
 - Static guards → comportamiento: el agente trabaja en un worktree; se integrará con sus mutaciones probadas.
 
 ## 5. No verificable en esta operación (y por qué)
@@ -79,7 +78,7 @@ holdout) dependen de datos o de decisiones que no son de código.
 
 1. Autorizar SEG-01b (y elegir: estricto, o fecha de transición `legacy_sin_costeo_hasta`; hay 27 cotizaciones con
    folio y renglones sin costeo del servidor).
-2. Autorizar VH-148 y VH-100.
+2. Autorizar VH-148b (paso 1; el paso 2 `vh148c` solo cuando no quede ningún cliente viejo abierto) y VH-100.
 3. D1: vigencia de 24 meses, y firma por política o precio por precio.
 4. ¿Compras puede aprobar precios, o solo Dirección?
 5. Umbral de aceptación del holdout (propuesta: MAPE ≤ 10 %, sesgo ±5 %, ≥ 80 % dentro de ±10 %).
