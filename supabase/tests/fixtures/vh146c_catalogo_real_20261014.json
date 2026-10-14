@@ -1,0 +1,6563 @@
+{
+ "origen": "producción mtuvnbgljwbsaizjjgzs, solo lectura con cuenta QA, 2026-10-14",
+ "insumos_catalogo": [
+  {
+   "id": "erp-lp48719758dw",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' DOVER WHITE 7197-58 FORMICA - \"LP48719758DW\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48719758DW",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100N0",
+     "fecha_uc": "2021-02-15"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48m4254bba",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BRUSHED BLACK ALUMINIUM M4254 FORMICA - \"LP48M4254BBA\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48M4254BBA",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100N1",
+     "fecha_uc": "2021-02-22"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfhomn485",
+   "nombre": "MDF HOMOGENEO NATURAL HOJA 4' X 8' ESPESOR 5.5 mm - \"MDFHOMN485\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDFHOMN485",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MECMMD47010200",
+     "fecha_uc": "2022-01-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-hlpbam2022",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BRUSHED ALUMINIUM FORMICA DECO METAL M2022 - \"HLPBAM2022\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "HLPBAM2022",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100B3",
+     "fecha_uc": "2017-09-25"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48cwmm3091",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' CRYSTAL WHITE MAGNETIC MARKERBOARD M3091 FORMICA - \"LP48CWMM3091\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48CWMM3091",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100B1",
+     "fecha_uc": "2021-09-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48bbsrw",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BRITE BRUSHED STERLING #L6441 (408) RALPH WILSON - \"LP48BBSRW\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48BBSRW",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100B8",
+     "fecha_uc": "2025-07-02"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48lw799828",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' LOW LINE 7998-28 - \"LP48LW799828\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48LW799828",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100R6",
+     "fecha_uc": "2022-05-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp487996nr",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' NATURAL RECON 7996-38 RALPH WILSON - \"LP487996NR\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP487996NR",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100M9",
+     "fecha_uc": "2023-01-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48gregr26230",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' GREENLAM GREY 262-30 - LP48GREGR26230",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48GREGR26230",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100T4",
+     "fecha_uc": "2022-12-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh25me408",
+   "nombre": "MDF HOMOGENEO LAMINADO PLASTICO UNA CARA WILSONART DECORATIVE METALS #L6441 (408) BRITE BRUSH STERLING Y UNA CARA EN MELAMINA BLANCA HOJA 4' X 8' ESPESOR 25 mm - \"MDFH25ME408\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH25ME408",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD42010700",
+     "fecha_uc": "2020-11-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48cp9558",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' CINZA P095 - 58 FORMICA - \"LP48CP9558\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48CP9558",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100O4",
+     "fecha_uc": "2026-04-09"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-acresp486",
+   "nombre": "ACRILICO ESPEJO HOJA 4 X 8 ESPESOR 3 mm - \"ACRESP486\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACRESP486",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEPAI08031700",
+     "fecha_uc": "2022-09-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf12chnoa",
+   "nombre": "MDF ENCHAPADO DOS CARAS MADERA DE NOGAL AMERICANO HOJA 4' X 8' ESPESOR 12 mm - \"MDF12CHNOA\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF12CHNOA",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD43010400",
+     "fecha_uc": "2019-07-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf1911037-30",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO Y UNA CARA EN LAMINADO PLASTICO GREEN LAM WENGUE SUPREME 1037-30 HOJA 4' X 8' ESPESOR 19 mm - \"MDF1911037-30\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF1911037-30",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD54010600",
+     "fecha_uc": "2020-10-16"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48f96158",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' FOG MODELO 961-58 FORMICA - \"LP48F96158\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48F96158",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100P5",
+     "fecha_uc": "2026-04-09"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48mg34160",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' COLOR SUNSET 2239MT LAMITECH - \"LP48SS2239\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48MG34160",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100T2",
+     "fecha_uc": "2022-10-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh12n",
+   "nombre": "MDF HOMOGENEO NATURAL HOJA 4' X 8' ESPESOR 12 mm - \"MDFH12N\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH12N",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD47010400",
+     "fecha_uc": "2022-12-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-chrob48",
+   "nombre": "CHAPA DE MADERA ROBLE FLAMA F197 VEROLEGNO HOJA 4' X 8' - \"CHROB48\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "chapa_madera",
+   "atributos": {
+    "erp": {
+     "clave": "CHROB48",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMCH03010000",
+     "fecha_uc": "2021-04-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16chnoa",
+   "nombre": "MDF ENCHAPADO DOS CARAS MADERA DE NOGAL AMERICANO HOJA 4' X 8' ESPESOR 16 mm - \"MDF16CHNOA\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16CHNOA",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD43010500",
+     "fecha_uc": "2019-12-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh5816",
+   "nombre": "MDF HOMOGENEO NATURAL HOJA 5' X 8' ESPESOR 16 mm - \"MDFH5816\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH5816",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD47070500",
+     "fecha_uc": "2020-10-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-agbn5828",
+   "nombre": "AGLOMERADO BOISE NATURAL HOJA 5' X 8' ESPESOR 28 mm - \"AGBN5828\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AGBN5828",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMAG16320800",
+     "fecha_uc": "2022-11-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mlemlp000100t1",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' COLOR MARIGOLD D341-60 (AMARILLO) RALPH WILSON - \"LP48MG34160\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48MG34160",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100T1",
+     "fecha_uc": "2022-09-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19112430",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA GREENLAM 1124-30 MYSORE IVORY Y EN MELAMINA BLANCA HOJA 4' X 8' ESPESOR 19 mm - \"MDF19112430\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19112430",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD26010600",
+     "fecha_uc": "2018-01-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48pg27530g",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' PEARL GREY 275-30 GREENLAM - \"LP48PG27530G\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48PG27530G",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100Ñ0",
+     "fecha_uc": "2021-01-31"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25chnoa",
+   "nombre": "MDF ENCHAPADO DOS CARAS MADERA DE NOGAL AMERICANO HOJA 4' X 8' ESPESOR 25 mm - \"MDF25CHNOA\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25CHNOA",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD43010700",
+     "fecha_uc": "2019-07-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48lw7998k18",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' LOW LINE 7998K-18 RALPH WILSON - \"LP48LW7998K18\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48LW7998K18",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100P7",
+     "fecha_uc": "2022-03-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48mgbl",
+   "nombre": "LAMINADO PLASTICO MARKET GRADE ACABADO BLANCO HOJA 4' X 8' - \"LP48MGBL\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48MGBL",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP01010000",
+     "fecha_uc": "2026-07-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19chnoa",
+   "nombre": "MDF ENCHAPADO DOS CARAS MADERA DE NOGAL AMERICANO HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CHNOA\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CHNOA",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD43010600",
+     "fecha_uc": "2019-07-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48chmap",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' CHELSEA MAPLE 9238-58 FORMICA - \"LP48CHMAP\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48CHMAP",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100N7",
+     "fecha_uc": "2021-02-22"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp482112bl",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BLANCO 2112 BR BLANCO - \"LP482112BL\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP482112BL",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100R8",
+     "fecha_uc": "2022-06-07"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48rl1467mt",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' ROBLE LINEAL 1467 MT LAMITECH - \"LP48RL1467MT\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48RL1467MT",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100S0",
+     "fecha_uc": "2022-05-25"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48sdbk319565",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' SOLID BLACK 3195-65 - \"LP48SDBK319565\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48SDBK319565",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100S2",
+     "fecha_uc": "2022-10-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-accr4855",
+   "nombre": "ACRILICO CRISTAL HOJA 4' X 8' ESPESOR 5.5 mm - \"ACCR4855\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACCR4855",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEPAC0064A500",
+     "fecha_uc": "2020-12-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48rwrc38",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' RALPH WILSON RIVER CHERRY 7937-38 - \"LP48RWRC38\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48RWRC38",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100F8",
+     "fecha_uc": "2018-10-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48black",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BLACK 909-58 FORMICA - \"LP48BLACK\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48BLACK",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100N8",
+     "fecha_uc": "2021-02-15"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp482111blpo",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' 2111 BR BLANCO POLAR - \"LP482111BLPO\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP482111BLPO",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100R9",
+     "fecha_uc": "2022-04-25"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48kema1077660",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' KENSINGTONG MAPLE 10776-60 - \"LP48KEMA1077660\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48KEMA1077660",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100Ñ3",
+     "fecha_uc": "2021-03-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp481037-30",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' GREEN LAM WENGUE SUPREME 1037-30 - \"LP481037-30\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP481037-30",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100M7",
+     "fecha_uc": "2020-10-19"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48nb96958",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' NAVY BLUE 969 - 58 FORMICA - \"LP48NB96958\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48NB96958",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100O5",
+     "fecha_uc": "2026-08-05"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-bachok",
+   "nombre": "BACKER CHAPA DE MADERA HOJA 4' X 8' EN OKUME - \"BACHOK\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "chapa_madera",
+   "atributos": {
+    "erp": {
+     "clave": "BACHOK",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMBF010100M0",
+     "fecha_uc": "2026-02-18"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lprwas419",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' RALPH WILSON ALUMA STEEL 6277-419 - \"LPRWAS419\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPRWAS419",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP00010076",
+     "fecha_uc": "2022-11-04"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lprwd40360",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' RALPH WILSON WHITE SAND D403-60 - \"LPRWD40360\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPRWD40360",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100H4",
+     "fecha_uc": "2021-09-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48lpd31560",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' PLATINUM (D315-60), RALPH WILSON - \"LP48LPD31560\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48LPD31560",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100Q7",
+     "fecha_uc": "2022-02-25"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf192c1037-30",
+   "nombre": "MDF CON DOS CARAS EN LAMINADO PLASTICO GREEN LAM WENGUE SUPREME 1037-30 HOJA 4' X 8' ESPESOR 19 mm - \"MDF192C1037-30\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF192C1037-30",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD55010600",
+     "fecha_uc": "2020-11-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfdb4816n",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 16 mm Y UNA AL NATURAL - \"MDFDB4816N\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDFDB4816N",
+     "opcion": null,
+     "estatus": "BLOQUEADO",
+     "articulo": "MLEMMD18010524",
+     "fecha_uc": "2021-02-09"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-acmt0958",
+   "nombre": "ACRILICO MATIZADO AMBAS CARAS HOJA DE 4 X 8 ESPESOR 9 mm -- ACMT0948",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACMT0958",
+     "opcion": null,
+     "estatus": "BLOQUEADO",
+     "articulo": "MLEPAM01016200",
+     "fecha_uc": "2021-08-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lpgop5054",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' GREENLAM ORNATE PRUNE (GWE5054) - \"LPGOP5054\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPGOP5054",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP00010077",
+     "fecha_uc": "2017-10-30"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lpmfsb1595",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' ESPESOR 1.2 mm 1595 - 60 MATE FINISH SOLID BLACK SOLICOR - \"LPMFSB1595\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPMFSB1595",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000113H6",
+     "fecha_uc": "2019-11-22"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh19me408",
+   "nombre": "MDF HOMOGENEO LAMINADO PLASTICO UNA CARA WILSONART DECORATIVE METALS #L6441 (408) BRITE BRUSH STERLING Y UNA CARA EN MELAMINA BLANCA HOJA 4' X 8' ESPESOR 19 mm - \"MDFH19ME408\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH19ME408",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD42010600",
+     "fecha_uc": "2020-12-07"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdpm2c5825wt",
+   "nombre": "MDP MELAMINA DOS CARAS HOJA 5' X 8' ESPESOR 25 mm COLOR WALNUT TEXTURIZADO -- MDFM2C5825WT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDPM2C5825WT",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMAMD02010202",
+     "fecha_uc": "2025-02-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lpbaf48",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' RALPH WILSON 6257-100 -- LPBAF48",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPBAF48",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMALP00010003",
+     "fecha_uc": "2023-08-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lpb48-60",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' RALPH WILSON BLACK 1595-60 -- LPB48-60",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPB48-60",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMALP00010005",
+     "fecha_uc": "2025-05-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16pgsg",
+   "nombre": "MDF CON 1 CARA EN LAMINADO PLASTICO PEARL GREY Y 1 CARA EN MELAMINA SOFT GREY HOJA 4' X 8' ESPESOR 16 mm -- MDF16PGSG",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16PGSG",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMAMD06010700",
+     "fecha_uc": "2025-11-18"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-agme4828ga",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 28 mm COLOR GRIS ARAUCO -- AGME4828GA",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AGME4828GA",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMAAG01010301",
+     "fecha_uc": "2026-01-21"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lpbafsm48",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BRUSHED ALUMINIUM FORMICA SOLID METAL M605 -- LPBAFSM48",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPBAFSM48",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMALP00010004",
+     "fecha_uc": "2026-04-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25pgsg",
+   "nombre": "MDF CON 1 CARA EN LAMINADO PLASTICO PEARL GREY Y 1 CARA EN MELAMINA SOFT GREY HOJA 4' X 8' ESPESOR 25 mm -- MDF25PGSG",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25PGSG",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMAMD06010200",
+     "fecha_uc": "2025-11-30"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48rb2933",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' ROYAL BLUE 293-30 -- LP48RB29330",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48RB2933",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMALP00010007",
+     "fecha_uc": "2025-07-15"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-agme4819ga",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 19 mm COLOR GRIS ARAUCO -- AGME4819GA",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AGME4819GA",
+     "opcion": null,
+     "estatus": "BLOQUEADO",
+     "articulo": "MPMAAG01010201",
+     "fecha_uc": "2025-12-19"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfntsca15",
+   "nombre": "MDF NATURAL HOJA 4' X 8' ESPESOR 15 mm CERTIFICADO TSCA PARA EXPORTACION -- MDFNTSCA15",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDFNTSCA15",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MPMAMD03010503",
+     "fecha_uc": "2026-02-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-accr948",
+   "nombre": "ACRILICO CRISTAL HOJA 4 X 8 ESPESOR 9 mm -- ACCR948",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACCR948",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MTLPAC00646200",
+     "fecha_uc": "2012-08-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lpgcb48",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' GREENLAM CELESTIAL BLUE (292-30) - \"LPGCB48\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPGCB48",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP00010080",
+     "fecha_uc": "2018-03-21"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-chpi48",
+   "nombre": "CHAPA DE MADERA DE PINO HOJA 4' X 8' (SABANA NATURAL) - \"CHPI48\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "chapa_madera",
+   "atributos": {
+    "erp": {
+     "clave": "CHPI48",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMCH01010010",
+     "fecha_uc": "2017-02-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48wc76w",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' WILD CHERRY 7054-60 WILSONART - \"LP48WC76W\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48WC76W",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100E8",
+     "fecha_uc": "2018-08-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lprw314965",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' CEREZO PR RW 3149-65 - \"LPRW314965\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LPRW314965",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100G3",
+     "fecha_uc": "2018-12-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18hn",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 18 mm HOMOGENEO - \"MDF18HN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18HN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17011702",
+     "fecha_uc": "2021-11-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4818nn",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 18 mm Y UNA AL NATURAL - \"MDF4818NN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4818NN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17011724",
+     "fecha_uc": "2019-01-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1648m706",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm MAHOGANY 706 - \"AME1648M706\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1648M706",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMAG010105O3",
+     "fecha_uc": "2021-09-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4825nn",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF4825NN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4825NN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17010724",
+     "fecha_uc": "2019-08-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-re1648me",
+   "nombre": "RESIPAN MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"RE1648ME\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "RE1648ME",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMRE01010500",
+     "fecha_uc": "2012-08-21"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-actr648z2",
+   "nombre": "ACRILICO TRASLUCIDO Z2 HOJA 4 X 8 ESPESOR 6 mm -- ACTR648Z2",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACTR648Z2",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLPAT00640000",
+     "fecha_uc": "2022-01-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16h58",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 5' X 8' ESPESOR 16 mm HOMOGENEO - \"MDF16H58\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16H58",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17070502",
+     "fecha_uc": "2015-07-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18h",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 18 mm HOMOGENEO - \"MDF18H\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18H",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18011702",
+     "fecha_uc": "2021-11-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4818am1800x",
+   "nombre": "MDF DECORLUX UNA CARA ACRILICO BLANCO AM1800X ALTO BRILLO HOJA 4' X 8' ESPESOR 18 mm Y UNA CARA EN MELAMINA BLANCO - \"MDF4818AM1800X\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4818AM1800X",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD300117B5",
+     "fecha_uc": "2018-10-24"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-accr648",
+   "nombre": "ACRILICO CRISTAL 4 X 8 ESPESOR 6 mm -- ACCR648",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACCR648",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLPAC00551700",
+     "fecha_uc": "2025-09-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ag48bbeab",
+   "nombre": "AGLOMERADO MELAMINA BLANCA UNA CARA HOJA 4 X 8 ESPESOR 18 mm Y UNA CARA CON LAMINADO PLASTICO ACRILICO BEIGE AM 1800X7496 ALTO BRILLO -- AG48BBEAB",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "AG48BBEAB",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMAG12011765",
+     "fecha_uc": "2016-05-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48ntrw",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' NEPAL TEAK WT-A8729-WO RALPH WILSON - \"LP48NTRW\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48NTRW",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100B6",
+     "fecha_uc": "2022-09-30"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-foch46r046rp",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' R046 RAPHIA FA POLYREY - \"FOCH46R046RP\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "FOCH46R046RP",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100B9",
+     "fecha_uc": "2018-03-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ag2c16cai",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm CAIRO - \"AG2C16CAI\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AG2C16CAI",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMAG010105F1",
+     "fecha_uc": "2018-09-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48migl",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' MYSORE IVORY 1124-30 GREEN LAM - \"LP48MIGL\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48MIGL",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100B7",
+     "fecha_uc": "2019-03-15"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfabam1800x",
+   "nombre": "MDF DECORLUX DOS CARAS ACRILICO BLANCO AM1800X ALTO BRILLO HOJA 4' X 8' ESPESOR 9.5 mm - \"MDFABAM1800X\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "MDFABAM1800X",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD23012800",
+     "fecha_uc": "2016-09-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-pf5548p14",
+   "nombre": "PERFOCEL EN MDF NATURAL HOJA 4' X 8' ESPESOR 5.5 mm CON PERFORACIÓN DE Ø 6 mm CADA 25.4 mm - \"PF5548P14\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "PF5548P14",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMPF01010244",
+     "fecha_uc": "2015-10-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-chnoa48",
+   "nombre": "CHAPA DE MADERA DE NOGAL AMERICANO HOJA 4' X 8' (SABANA NATURAL) - \"CHNOA48\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "chapa_madera",
+   "atributos": {
+    "erp": {
+     "clave": "CHNOA48",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMCH02010010",
+     "fecha_uc": "2019-11-26"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48lmfw",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' LINEN MATTE FINISH D427-60 WILSONART - \"LP48LMFW\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48LMFW",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100E3",
+     "fecha_uc": "2021-12-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48fw157360",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' 1573-60 FROSTY WHITE RALPH WILSON - \"LP48FW157360\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48FW157360",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100Q2",
+     "fecha_uc": "2022-11-04"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4855ccp",
+   "nombre": "MDF NATURAL HOJA 4' X 8' ESPESOR 5.5 mm CON CERTIFICACION CARB PHASE II - MDF4855CCP",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4855CCP",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD020102P9",
+     "fecha_uc": "2022-08-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25hb",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 25 mm HOMOGENEO - \"MDF25HB\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25HB",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18010702",
+     "fecha_uc": "2021-11-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-pr1948bl",
+   "nombre": "PANEL RANURADO CON DOS CARAS EN MELAMINA BLANCA HOJA 4' X 8' ESPESOR 19 mm - \"PR1948BL\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "PR1948BL",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMPR02010600",
+     "fecha_uc": "2015-02-19"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48gpt50037",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' GREENLAM PHILIPINE TEAK (5003-37) - \"LP48GPT50037\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48GPT50037",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100D5",
+     "fecha_uc": "2018-03-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfn5828",
+   "nombre": "MDF NATURAL HOJA 5' X 8' ESPESOR 28 mm - \"MDFN5828\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDFN5828",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD02070800",
+     "fecha_uc": "2022-10-04"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-accr348",
+   "nombre": "ACRILICO CRISTAL 4 X 8 ESPESOR 3 mm -- ACCR348",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACCR348",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLPAC00551600",
+     "fecha_uc": "2025-12-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48gw",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' 1101-31 WHITE GREENLAM - \"LP48GW\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48GW",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100D0",
+     "fecha_uc": "2018-03-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf2858hn",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 5' X 8' ESPESOR 28 mm HOMOGENEO - \"MDF2858HN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF2858HN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17070802",
+     "fecha_uc": "2013-12-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4825bn",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF4825BN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4825BN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18010724",
+     "fecha_uc": "2026-07-31"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfa28",
+   "nombre": "MDF AMERICANO CON UNA CARA EN MELAMINA DURABLE GRIS HOJA 5' X 8' ESPESOR 28 mm - \"MDFA28\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDFA28",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD53070800",
+     "fecha_uc": "2020-04-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-acttr4815z29",
+   "nombre": "ACRILICO TRASLUCIDO Z2 HOJA 4 X 8 ESPESOR 9 mm -- ACTTR4815Z29",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACTTR4815Z29",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLPAT00646200",
+     "fecha_uc": "2016-10-31"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-agb9482mn",
+   "nombre": "AGLOMERADO BOISE MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 9 mm COLOR NEGRO - \"AGB9482MN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AGB9482MN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMAG15010322",
+     "fecha_uc": "2021-08-04"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-foch48lid4271",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' LINEN D427-1WILSONART - \"FOCH48LID4271\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "FOCH48LID4271",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100B4",
+     "fecha_uc": "2021-03-24"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48gb40131",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' GREENLAM BLACK 401 - 31 - \"LP48GB40131\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48GB40131",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100J2",
+     "fecha_uc": "2019-05-09"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp482112mt",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BLANCO 2112 MT - \"LP482112MT\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP482112MT",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100S4",
+     "fecha_uc": "2022-07-05"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf1848rev",
+   "nombre": "MDF ENCHAPADO UNA CARA HOJA 4' X 8' ESPESOR 18 mm ROBLE EUROPEO AHUMADO TEXTURIZADO Y TRASCARA OKUME, VEROLEGNO - \"MDF1848REV\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF1848REV",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD060117A8",
+     "fecha_uc": "2017-06-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mvlmmd18010424",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 12 mm Y UNA AL NATURAL - \"MDF4812NN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": null,
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18010424",
+     "fecha_uc": "2020-07-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18mdb",
+   "nombre": "MDF MELAMINA DURABLE BLANCA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18MDB\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18MDB",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD21011700",
+     "fecha_uc": "2016-11-07"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4816nn",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 16 mm Y UNA AL NATURAL - \"MDF4816NN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4816NN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17010524",
+     "fecha_uc": "2026-02-25"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh25n",
+   "nombre": "MDF HOMOGENEO NATURAL HOJA 4' X 8' ESPESOR 25 mm - \"MDFH25N\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH25N",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD47010700",
+     "fecha_uc": "2020-11-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh16n",
+   "nombre": "MDF HOMOGENEO NATURAL HOJA 4' X 8' ESPESOR 16 mm - \"MDFH16N\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH16N",
+     "opcion": null,
+     "estatus": "BLOQUEADO",
+     "articulo": "MVLMMD47010500",
+     "fecha_uc": "2025-02-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48bo76w",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' BANNISTER OAK 7806-60 WILSONART - \"LP48BO76W\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48BO76W",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP000100E9",
+     "fecha_uc": "2018-09-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-accr4824",
+   "nombre": "ACRILICO CRISTAL HOJA 4 X 8 ESPESOR DE 24 mm -- ACCR4824",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACCR4824",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLPAC0064A200",
+     "fecha_uc": "2018-09-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ag489fw",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 9 mm EN COLOR FROSTY WHITE - \"AG489FW\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AG489FW",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMAG010103D7",
+     "fecha_uc": "2018-06-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4818hpivy",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm COLOR IVORY - \"MDF4818HPIVY\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4818HPIVY",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011793",
+     "fecha_uc": "2017-02-01"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf12hb",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 12 mm HOMOGENEO - \"MDF12HB\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF12HB",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18010402",
+     "fecha_uc": "2020-02-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf481reat",
+   "nombre": "MDF ENCHAPADO UNA CARA ROBLE EUROPEO AHUMADO TEXTURIZADO HOJA 4' X 8' ESPESOR 16 mm Y TRASCARA OKUME, VEROLEGNO -- MDF481REAT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF481REAT",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD24010595",
+     "fecha_uc": "2018-04-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp4812dw",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' ESPESOR 1.2 mm D354-60 TIPO 160 SOLICOR DESIGNER WHITE - \"LP4812DW\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP4812DW",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMLP00011373",
+     "fecha_uc": "2017-03-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf55h",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF55H\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF55H",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17010200",
+     "fecha_uc": "2014-07-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfdb4816h",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 16 mm HOMOGENEO - \"MDFDB4816H\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDFDB4816H",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18010502",
+     "fecha_uc": "2021-11-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf4818bn",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 18 mm Y UNA AL NATURAL - \"MDF4818BN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF4818BN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18011724",
+     "fecha_uc": "2026-07-31"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-acmz0648mf2",
+   "nombre": "ACRILICO MATIZADO AMBAS CARAS HOJA DE 4 X 8 ESPESOR 6 mm -- ACMZ0648MF2",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACMZ0648MF2",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLPAM01031700",
+     "fecha_uc": "2021-04-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-acfv0948",
+   "nombre": "ACRILICO FROSTED VERDE HOJA 4 X 8 ESPESOR 9 mm -- ACFV0948",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACFV0948",
+     "opcion": null,
+     "estatus": "BLOQUEADO",
+     "articulo": "MCIPAF00016200",
+     "fecha_uc": "2026-02-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25h",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 25 mm HOMOGENEO - \"MDF25H\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25H",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MVLMMD17010702",
+     "fecha_uc": "2019-10-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18",
+   "nombre": "MDF CON UNA CARA EN MELAMINA NEGRA HOJA 4' X 8' ESPESOR 18 mm - \"MDF18\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMMD03281700",
+     "fecha_uc": "2019-10-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-lp48fos318160",
+   "nombre": "LAMINADO PLASTICO HOJA 4' X 8' RALPH WILSON FOSSIL 3181-60 - \"LP48FOS318160\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "LP48FOS318160",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEMLP000100N9",
+     "fecha_uc": "2021-12-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-acaz348p2114",
+   "nombre": "ACRILICO AZUL PLEXIGLAS 2114 BLUE 4 X 8 ESPESOR 3 mm -- ACAZ348P2114",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACAZ348P2114",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MTLPAA68551600",
+     "fecha_uc": "2013-07-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mvlpam01011700",
+   "nombre": "ACRILICO MATIZADO AMBAS CARAS HOJA DE 5 X 8 ESPESOR 6 mm -- ACMZ0648MF2",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "acrilico",
+   "atributos": {
+    "erp": {
+     "clave": "ACMZ0648MF2",
+     "opcion": null,
+     "estatus": "BLOQUEADO",
+     "articulo": "MVLPAM01011700",
+     "fecha_uc": "2016-09-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1958-b716",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5' X 8' ESPESOR 19 mm - \"AME1958\" · ACABADO MADERA WHITE ASH",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1958",
+     "opcion": "B716",
+     "estatus": "ALTA",
+     "articulo": "MLEMAG01320600",
+     "fecha_uc": "2022-11-04"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1958-b718",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5' X 8' ESPESOR 19 mm - \"AME1958\" · ACABADO MADERA SOFT GREY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1958",
+     "opcion": "B718",
+     "estatus": "ALTA",
+     "articulo": "MLEMAG01320600",
+     "fecha_uc": "2022-07-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfm18n-b744",
+   "nombre": "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 18 mm Y UNA AL NATURAL - \"MDFM18N\" · ACABADO MADERA FROSTY WHITE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDFM18N",
+     "opcion": "B744",
+     "estatus": "ALTA",
+     "articulo": "MLEMMD08011724",
+     "fecha_uc": "2025-07-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25lpf-b718",
+   "nombre": "MDF CON UNA CARA LAMINADO PLASTICO Y UNA CARA CON BACKER FENOLICO HOJA 4' X 8' ESPESOR 25 mm - \"MDF25LPF\" · ACABADO MADERA SOFT GREY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25LPF",
+     "opcion": "B718",
+     "estatus": "ALTA",
+     "articulo": "MLEMMD35010700",
+     "fecha_uc": "2022-12-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1658-b39",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 16 mm --AME1658 · ACABADO MADERA CAOBA 374",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1658",
+     "opcion": "B39",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320500",
+     "fecha_uc": "2013-04-02"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1658-b709",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 16 mm --AME1658 · ACABADO MADERA WALNUT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1658",
+     "opcion": "B709",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320500",
+     "fecha_uc": "2022-05-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1658-b713",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 16 mm --AME1658 · ACABADO MADERA ANTRACITE OAK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1658",
+     "opcion": "B713",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320500",
+     "fecha_uc": "2016-09-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1658-b716",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 16 mm --AME1658 · ACABADO MADERA WHITE ASH",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1658",
+     "opcion": "B716",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320500",
+     "fecha_uc": "2022-09-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame1658-b746",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 16 mm --AME1658 · ACABADO MADERA WHITE ASH TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME1658",
+     "opcion": "B746",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320500",
+     "fecha_uc": "2017-09-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b1013",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WHITE LAMINOVA CRE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B1013",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2015-11-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b14",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA BLANCO 570",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B14",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2013-04-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b16",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA NEGRO 595 (DESCONTINUADO)",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B16",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2011-10-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b39",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA CAOBA 374",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B39",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2013-06-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b6",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA GRIS 590 (DESCONTINUADO)",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B6",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2010-03-18"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b709",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B709",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2022-12-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b713",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA ANTRACITE OAK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B713",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2015-08-05"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b716",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WHITE ASH",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B716",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2022-09-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b717",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA IVORY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B717",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2023-02-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b718",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA SOFT GREY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B718",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2020-11-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b746",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WHITE ASH TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B746",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2021-12-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b747",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA ANTRACITE OAK TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B747",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2022-06-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b8",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA OYAMEL 303",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B8",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2013-09-25"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b88",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA ROVERE GRIS LL-0382T11S - LAMINOVA",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B88",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2014-10-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28152-b9",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA PIEL BLANCA 829",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28152",
+     "opcion": "B9",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG01320800",
+     "fecha_uc": "2012-08-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ame28581-b14",
+   "nombre": "AGLOMERADO MELAMINA UNA CARA HOJA 5 X 8 ESPESOR 28 mm Y UNA AL NATURAL -- AME28581 · ACABADO MADERA BLANCO 570",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AME28581",
+     "opcion": "B14",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG03320824",
+     "fecha_uc": "2012-05-16"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ag1248hp-b268",
+   "nombre": "AGLOMERADO LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 12 mm - \"AG1248HP\" · ACABADO MADERA GREY 1262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AG1248HP",
+     "opcion": "B268",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG09010400",
+     "fecha_uc": "2020-12-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ag489-b716",
+   "nombre": "AGLOMERADO MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 9 mm -- AG489 · ACABADO MADERA WHITE ASH",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AG489",
+     "opcion": "B716",
+     "estatus": "ALTA",
+     "articulo": "MPMAAG01010100",
+     "fecha_uc": "2023-09-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdp2858me2c-b718",
+   "nombre": "MDP CON DOS CARAS EN MELAMINA HOJA 5' X 8' ESPESOR 28 mm -- MDP2858ME2C · ACABADO MADERA SOFT GREY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDP2858ME2C",
+     "opcion": "B718",
+     "estatus": "ALTA",
+     "articulo": "MPMAMP02020200",
+     "fecha_uc": "2025-03-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b1098",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA NEGRO FOREST",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B1098",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2026-08-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b713",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA ANTRACITE OAK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B713",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2025-03-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b717",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA IVORY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B717",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2020-08-18"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b721",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA BLACK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B721",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2025-11-06"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b744",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA FROSTY WHITE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B744",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2026-05-19"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b747",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA ANTRACITE OAK TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B747",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2020-10-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b806",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA ROBLE MERIDA TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B806",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2026-07-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18m-b840",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDF18M\" · ACABADO MADERA VERDE ESMERALDA",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18M",
+     "opcion": "B840",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01011700",
+     "fecha_uc": "2026-04-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b1054",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA ENCINO POLAR TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B1054",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b712",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA WENGUE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B712",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b719",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA GREY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B719",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-12-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b721",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA BLACK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B721",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b744",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA FROSTY WHITE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B744",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b805",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA NOGAL NEO TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B805",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b806",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA ROBLE MERIDA TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B806",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2026-08-04"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b807",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA FRESNO BRUMA TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B807",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b809",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA BLANCO ABSOLUTO",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B809",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b834",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA RIOJA TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B834",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b835",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA DURANGO TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B835",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b836",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA MONARCA TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B836",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-b837",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · ACABADO MADERA LATTE TX",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "B837",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2025-06-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6-e508",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6\" · TIPO DE MATERIAL MELAMINA OYAMEL 303 DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6",
+     "opcion": "E508",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280200",
+     "fecha_uc": "2010-02-19"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16m-b713",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16M\" · ACABADO MADERA ANTRACITE OAK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16M",
+     "opcion": "B713",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280500",
+     "fecha_uc": "2025-03-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16m-b716",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16M\" · ACABADO MADERA WHITE ASH",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16M",
+     "opcion": "B716",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280500",
+     "fecha_uc": "2016-04-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16m-b717",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16M\" · ACABADO MADERA IVORY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16M",
+     "opcion": "B717",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280500",
+     "fecha_uc": "2019-08-22"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16m-b721",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16M\" · ACABADO MADERA BLACK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16M",
+     "opcion": "B721",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280500",
+     "fecha_uc": "2023-01-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16m-b744",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16M\" · ACABADO MADERA FROSTY WHITE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16M",
+     "opcion": "B744",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280500",
+     "fecha_uc": "2026-01-09"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16m-e503",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16M\" · TIPO DE MATERIAL MELAMINA CEREZO SIERRA 363 DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16M",
+     "opcion": "E503",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280500",
+     "fecha_uc": "2010-03-16"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16m-e558",
+   "nombre": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16M\" · TIPO DE MATERIAL BLANCO FROSTY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16M",
+     "opcion": "E558",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD01280500",
+     "fecha_uc": "2013-12-18"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf12hp-e374",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 12 mm - \"MDF12HP\" · TIPO DE MATERIAL FROSTY WHITE 1113-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF12HP",
+     "opcion": "E374",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010400",
+     "fecha_uc": "2013-05-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf12hp-e377",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 12 mm - \"MDF12HP\" · TIPO DE MATERIAL MAPLE GLEN GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF12HP",
+     "opcion": "E377",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010400",
+     "fecha_uc": "2012-10-16"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp-b1026",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP\" · ACABADO MADERA FROSTY WHITE 1113-30 GREENLAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP",
+     "opcion": "B1026",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010600",
+     "fecha_uc": "2016-08-17"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp-b709",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP\" · ACABADO MADERA WALNUT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP",
+     "opcion": "B709",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010600",
+     "fecha_uc": "2016-07-26"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp-e268",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP\" · TIPO DE MATERIAL GREY 1262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP",
+     "opcion": "E268",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010600",
+     "fecha_uc": "2016-03-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp-e368",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP\" · TIPO DE MATERIAL GREY 262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP",
+     "opcion": "E368",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010600",
+     "fecha_uc": "2014-05-15"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp-e378",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP\" · TIPO DE MATERIAL DUST 268-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP",
+     "opcion": "E378",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010600",
+     "fecha_uc": "2012-03-22"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25hp-b1097",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 25 mm - \"MDF25HP\" · ACABADO MADERA CLARET SELET 1496.30",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25HP",
+     "opcion": "B1097",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010700",
+     "fecha_uc": "2025-11-19"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25hp-b268",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 25 mm - \"MDF25HP\" · ACABADO MADERA GREY 1262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25HP",
+     "opcion": "B268",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010700",
+     "fecha_uc": "2016-03-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25hp-e378",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 25 mm - \"MDF25HP\" · TIPO DE MATERIAL DUST 268-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25HP",
+     "opcion": "E378",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04010700",
+     "fecha_uc": "2012-03-22"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6hp-b1026",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6HP\" · ACABADO MADERA FROSTY WHITE 1113-30 GREENLAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6HP",
+     "opcion": "B1026",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04280200",
+     "fecha_uc": "2016-08-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6hp-e308",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6HP\" · TIPO DE MATERIAL OYAMEL 303",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6HP",
+     "opcion": "E308",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04280200",
+     "fecha_uc": "2010-01-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6hp-e374",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6HP\" · TIPO DE MATERIAL FROSTY WHITE 1113-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6HP",
+     "opcion": "E374",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04280200",
+     "fecha_uc": "2013-12-24"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16hp-b1026",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16HP\" · ACABADO MADERA FROSTY WHITE 1113-30 GREENLAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16HP",
+     "opcion": "B1026",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04280500",
+     "fecha_uc": "2016-08-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16hp-b1097",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16HP\" · ACABADO MADERA CLARET SELET 1496.30",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16HP",
+     "opcion": "B1097",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04280500",
+     "fecha_uc": "2025-11-19"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf16hp-b709",
+   "nombre": "MDF LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDF16HP\" · ACABADO MADERA WALNUT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF16HP",
+     "opcion": "B709",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD04280500",
+     "fecha_uc": "2016-07-26"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25chfpa-m24",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 25 mm CON FONDO Y ASENTADO - \"MDF25CHFPA\" · CHAPA DE MADERA NOGAL FRANCES 1F-643",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25CHFPA",
+     "opcion": "M24",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05010752",
+     "fecha_uc": "2014-06-24"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf28ch-m2",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 28 mm - \"MDF28CH\" · CHAPA DE MADERA ENCINO DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF28CH",
+     "opcion": "M2",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05010800",
+     "fecha_uc": "2013-08-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf28ch-m3",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 28 mm - \"MDF28CH\" · CHAPA DE MADERA OKUME DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF28CH",
+     "opcion": "M3",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05010800",
+     "fecha_uc": "2015-06-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf30ch-m2",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 30 mm - \"MDF30CH\" · CHAPA DE MADERA ENCINO DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF30CH",
+     "opcion": "M2",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05010900",
+     "fecha_uc": "2017-08-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf30ch-m3",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 30 mm - \"MDF30CH\" · CHAPA DE MADERA OKUME DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF30CH",
+     "opcion": "M3",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05010900",
+     "fecha_uc": "2015-06-30"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf47ch-m2",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 4.7 mm - \"MDF47CH\" · CHAPA DE MADERA ENCINO DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF47CH",
+     "opcion": "M2",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05012500",
+     "fecha_uc": "2014-12-16"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m1",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA MAPLE DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M1",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2014-09-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m2",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA ENCINO DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M2",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2017-08-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m23",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA CAOBA KHAYA",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M23",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2020-08-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m24",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA NOGAL FRANCES 1F-643",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M24",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2015-11-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m3",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA OKUME DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M3",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2023-05-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m5",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA CEREZO DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M5",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2010-10-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m701",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA DANISH MAPLE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M701",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2015-02-16"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m729",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA MAPLE RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M729",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2018-10-24"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m731",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA NAVAJO CHERRY RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M731",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2017-01-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m733",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA PALISANDRO PREMIUM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M733",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2018-04-26"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m734",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA WALNUT RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M734",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2018-07-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m735",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA FRENCH WALNUT PREMIUM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M735",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2016-11-24"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m738",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA ANTRACITE RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M738",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2017-01-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m740",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA CHARCOAL RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M740",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2018-02-16"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m781",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA ANTRACITE LEGACY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M781",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2024-10-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19ch-m785",
+   "nombre": "MDF ENCHAPADO DOS CARAS HOJA 4' X 8' ESPESOR 19 mm - \"MDF19CH\" · CHAPA DE MADERA EBONY LEGACY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19CH",
+     "opcion": "M785",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD05280600",
+     "fecha_uc": "2024-12-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf28hp1-e377",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 28 mm HOMOGENEO CON UNA CARA EN LAMINADO PLASTICO - \"MDF28HP1 - \" · TIPO DE MATERIAL MAPLE GLEN GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF28HP1",
+     "opcion": "E377",
+     "estatus": "BLOQUEADO",
+     "articulo": "MVLMMD17010816",
+     "fecha_uc": "2012-07-30"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf28hp1-e416",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 28 mm HOMOGENEO CON UNA CARA EN LAMINADO PLASTICO - \"MDF28HP1 - \" · TIPO DE MATERIAL NEGRO 595",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": false,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF28HP1",
+     "opcion": "E416",
+     "estatus": "BLOQUEADO",
+     "articulo": "MVLMMD17010816",
+     "fecha_uc": "2010-12-24"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf6ch1-m729",
+   "nombre": "MDF ENCHAPADO UNA CARA HOJA 4' X 8' ESPESOR 5.5 mm - \"MDF6CH1\" · CHAPA DE MADERA MAPLE RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF6CH1",
+     "opcion": "M729",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD06010200",
+     "fecha_uc": "2015-09-15"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25m1-b1095",
+   "nombre": "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF25M1\" · ACABADO MADERA GRIS HUMO LM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25M1",
+     "opcion": "B1095",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD08010724",
+     "fecha_uc": "2026-07-03"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25m1-b717",
+   "nombre": "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF25M1\" · ACABADO MADERA IVORY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25M1",
+     "opcion": "B717",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD08010724",
+     "fecha_uc": "2020-07-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf25m1-e514",
+   "nombre": "MDF MELAMINA UNA CARA HOJA 4' X 8' ESPESOR 25 mm Y UNA AL NATURAL - \"MDF25M1\" · TIPO DE MATERIAL BLANCO 570",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF25M1",
+     "opcion": "E514",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD08010724",
+     "fecha_uc": "2013-05-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf1968chcr-m738",
+   "nombre": "MDF ENCHAPADO DOS CARAS BETA EN CROSS HOJA 4' X 8' ESPESOR 19 mm - \"MDF1968CHCR\" · CHAPA DE MADERA ANTRACITE RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF1968CHCR",
+     "opcion": "M738",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD09010600",
+     "fecha_uc": "2016-03-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf1968chcr-m740",
+   "nombre": "MDF ENCHAPADO DOS CARAS BETA EN CROSS HOJA 4' X 8' ESPESOR 19 mm - \"MDF1968CHCR\" · CHAPA DE MADERA CHARCOAL RIFT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "mdf",
+   "atributos": {
+    "erp": {
+     "clave": "MDF1968CHCR",
+     "opcion": "M740",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD09010600",
+     "fecha_uc": "2017-12-21"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf12hp1h-e309",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 12 mm HOMOGENEO - \"MDF12HP1H\" · TIPO DE MATERIAL PIEL BLANCA 829",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF12HP1H",
+     "opcion": "E309",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010402",
+     "fecha_uc": "2011-12-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf12hp1h-e384",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 12 mm HOMOGENEO - \"MDF12HP1H\" · TIPO DE MATERIAL WHITE 101-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF12HP1H",
+     "opcion": "E384",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010402",
+     "fecha_uc": "2012-06-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp1n-b1038",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP1N\" · ACABADO MADERA DESIGNER WHITE 1111-30 GREENLAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP1N",
+     "opcion": "B1038",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010600",
+     "fecha_uc": "2017-06-09"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp1n-e378",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP1N\" · TIPO DE MATERIAL DUST 268-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP1N",
+     "opcion": "E378",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010600",
+     "fecha_uc": "2012-07-10"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp1n-e383",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP1N\" · TIPO DE MATERIAL PEARL GREY 275-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP1N",
+     "opcion": "E383",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010600",
+     "fecha_uc": "2012-06-13"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp1n-e384",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP1N\" · TIPO DE MATERIAL WHITE 101-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP1N",
+     "opcion": "E384",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010600",
+     "fecha_uc": "2012-08-01"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf19hp1n-e709",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 19 mm - \"MDF19HP1N\" · TIPO DE MATERIAL WALNUT",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF19HP1N",
+     "opcion": "E709",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010600",
+     "fecha_uc": "2016-07-26"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf28hp1m-b283",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 28 mm Y UNA CARA EN MELAMINA DURABLE NEGRA - \"MDF28HP1M\" · ACABADO MADERA PEARL GREY 1275-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF28HP1M",
+     "opcion": "B283",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010843",
+     "fecha_uc": "2013-10-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf28hp1mb-b274",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 28 mm Y UNA CARA EN MELAMINA DURABLE BLANCA - \"MDF28HP1MB\" · ACABADO MADERA FROSTY WHITE 1113-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF28HP1MB",
+     "opcion": "B274",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10010845",
+     "fecha_uc": "2013-10-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18hp1mb-b274",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 18 mm Y UNA CARA EN MELAMINA DURABLE BLANCA - \"MDF18HP1MB\" · ACABADO MADERA FROSTY WHITE 1113-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18HP1MB",
+     "opcion": "B274",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10011745",
+     "fecha_uc": "2013-10-22"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mvlmmd10280200-e308",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 5.5 mm · TIPO DE MATERIAL OYAMEL 303",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": null,
+     "opcion": "E308",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10280200",
+     "fecha_uc": "2010-03-29"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mvlmmd10280200-e408",
+   "nombre": "MDF LAMINADO PLASTICO UNA CARA HOJA 4' X 8' ESPESOR 5.5 mm · TIPO DE MATERIAL OYAMEL 303",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": null,
+     "opcion": "E408",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD10280200",
+     "fecha_uc": "2010-04-07"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18hp1-b717",
+   "nombre": "MDF CON UNA CARA EN MELAMINA DURABLE BLANCO HOJA 4' X 8' ESPESOR 18 mm HOMOGENEO CON UNA CARA EN LAMINADO PLASTICO - \"MDF18HP1\" · ACABADO MADERA IVORY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18HP1",
+     "opcion": "B717",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD18011716",
+     "fecha_uc": "2020-10-23"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf18hp1vn-e376",
+   "nombre": "MDF CON UNA CARA EN VINYL NEGRO HOJA 4' X 8' ESPESOR 18 mm CON UNA CARA EN LAMINADO PLASTICO - \"MDF18HP1VN\" · TIPO DE MATERIAL WENGUE CROW 7553-60 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF18HP1VN",
+     "opcion": "E376",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD20011718",
+     "fecha_uc": "2011-12-30"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdf28lpf-b268",
+   "nombre": "MDF CON UNA CARA LAMINADO PLASTICO Y UNA CARA CON BACKER FENOLICO HOJA 4' X 8' ESPESOR 28 mm - \"MDF28LPF\" · ACABADO MADERA GREY 1262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDF28LPF",
+     "opcion": "B268",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD35010800",
+     "fecha_uc": "2021-01-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh16ph-b717",
+   "nombre": "MDF HOMOGENEO LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDFH16PH\" · ACABADO MADERA IVORY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH16PH",
+     "opcion": "B717",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD50010500",
+     "fecha_uc": "2021-08-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh16ph-b721",
+   "nombre": "MDF HOMOGENEO LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 16 mm - \"MDFH16PH\" · ACABADO MADERA BLACK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH16PH",
+     "opcion": "B721",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD50010500",
+     "fecha_uc": "2021-08-27"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh18ph-b717",
+   "nombre": "MDF HOMOGENEO LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDFH18PH\" · ACABADO MADERA IVORY",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH18PH",
+     "opcion": "B717",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD50011700",
+     "fecha_uc": "2020-10-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdfh18ph-b721",
+   "nombre": "MDF HOMOGENEO LAMINADO PLASTICO DOS CARAS HOJA 4' X 8' ESPESOR 18 mm - \"MDFH18PH\" · ACABADO MADERA BLACK",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "laminado_hpl",
+   "atributos": {
+    "erp": {
+     "clave": "MDFH18PH",
+     "opcion": "B721",
+     "estatus": "ALTA",
+     "articulo": "MVLMMD50011700",
+     "fecha_uc": "2020-11-12"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdp28hp1-e307",
+   "nombre": "MDP CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 28 mm CON UNA CARA EN LAMINADO PLASTICO - \"MDP28HP1\" · TIPO DE MATERIAL GRIS CALIDO 591",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDP28HP1",
+     "opcion": "E307",
+     "estatus": "ALTA",
+     "articulo": "MVLMMP17010818",
+     "fecha_uc": "2012-12-26"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdp28hp1-e368",
+   "nombre": "MDP CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 28 mm CON UNA CARA EN LAMINADO PLASTICO - \"MDP28HP1\" · TIPO DE MATERIAL GREY 262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDP28HP1",
+     "opcion": "E368",
+     "estatus": "ALTA",
+     "articulo": "MVLMMP17010818",
+     "fecha_uc": "2013-06-04"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-mdp28hp1-e468",
+   "nombre": "MDP CON UNA CARA EN MELAMINA DURABLE NEGRA HOJA 4' X 8' ESPESOR 28 mm CON UNA CARA EN LAMINADO PLASTICO - \"MDP28HP1\" · TIPO DE MATERIAL GREY 262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "MDP28HP1",
+     "opcion": "E468",
+     "estatus": "ALTA",
+     "articulo": "MVLMMP17010818",
+     "fecha_uc": "2012-09-14"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-ag1948ch-m1",
+   "nombre": "AGLOMERADO ENCHAPADO DOS CARAS HOJA 4 X 8 ESPESOR 19 mm -- AG1948CH · CHAPA DE MADERA MAPLE DOS CARAS",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AG1948CH",
+     "opcion": "M1",
+     "estatus": "ALTA",
+     "articulo": "MCIMAG05010600",
+     "fecha_uc": "2014-09-11"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": {
+     "tipo": "tablero",
+     "corto": "tablero",
+     "medida": 2.9768,
+     "nombre": "tablero 1.22 x 2.44",
+     "anchoMM": 1220,
+     "largoMM": 2440
+    },
+    "fraccion": true,
+    "inventario": false,
+    "mermaCorte": 6
+   }
+  },
+  {
+   "id": "erp-ag1948ch-m701",
+   "nombre": "AGLOMERADO ENCHAPADO DOS CARAS HOJA 4 X 8 ESPESOR 19 mm -- AG1948CH · CHAPA DE MADERA DANISH MAPLE",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AG1948CH",
+     "opcion": "M701",
+     "estatus": "ALTA",
+     "articulo": "MCIMAG05010600",
+     "fecha_uc": "2015-01-15"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": {
+     "tipo": "tablero",
+     "corto": "tablero",
+     "medida": 2.9768,
+     "nombre": "tablero 1.22 x 2.44",
+     "anchoMM": 1220,
+     "largoMM": 2440
+    },
+    "fraccion": true,
+    "inventario": false,
+    "mermaCorte": 6
+   }
+  },
+  {
+   "id": "erp-ag1948hp-b268",
+   "nombre": "AGLOMERADO LAMINADO PLASTICO DOS CARAS HOJA 4 X 8 ESPESOR 19 mm -- AG1948HP · ACABADO MADERA GREY 1262-30 GREEN LAM",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "melamina",
+   "atributos": {
+    "erp": {
+     "clave": "AG1948HP",
+     "opcion": "B268",
+     "estatus": "ALTA",
+     "articulo": "MVLMAG09010600",
+     "fecha_uc": "2021-02-02"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": {
+     "tipo": "tablero",
+     "corto": "tablero",
+     "medida": 2.9768,
+     "nombre": "tablero 1.22 x 2.44",
+     "anchoMM": 1220,
+     "largoMM": 2440
+    },
+    "fraccion": true,
+    "inventario": false,
+    "mermaCorte": 6
+   }
+  },
+  {
+   "id": "erp-acrcpuin",
+   "nombre": "CRISTAL SATINADO DOS CARAS DE 352 X 400 mm ESPESOR 9 mm CANTOS PULIDOS ESQUINAS REDONDEADAS RADIO 3 mm - \"ACRCPUIN\"",
+   "seccion": "cubiertas",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": "cristal",
+   "atributos": {
+    "erp": {
+     "clave": "ACRCPUIN",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MCICCA033502I8",
+     "fecha_uc": "2015-01-28"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-al044912bl",
+   "nombre": "ALUCOBOND EN HOJA DE 4980 X 1580 mm ESPESOR 4 mm COLOR BLANCO -- AL044912BL",
+   "seccion": "erp-otros",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": null,
+   "atributos": {
+    "erp": {
+     "clave": "AL044912BL",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MLEPAL00E21409",
+     "fecha_uc": "2013-08-08"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  },
+  {
+   "id": "erp-co068699",
+   "nombre": "CORCHO HOJA DE 86.1 X 99.1 cm ESPESOR 6 mm -- CO068699 --",
+   "seccion": "erp-otros",
+   "unidad_costeo": "hoja",
+   "activo": true,
+   "clasificacion": "erp",
+   "familia": null,
+   "atributos": {
+    "erp": {
+     "clave": "CO068699",
+     "opcion": null,
+     "estatus": "ALTA",
+     "articulo": "MIMCCO00010100",
+     "fecha_uc": "2022-01-20"
+    },
+    "veta": false,
+    "clase": "directa",
+    "unidad": "hoja",
+    "formato": null,
+    "fraccion": false,
+    "inventario": false,
+    "mermaCorte": 0
+   }
+  }
+ ],
+ "insumo_precios": [
+  {
+   "id": 561,
+   "insumo_id": "erp-acrcpuin",
+   "precio": 279.83,
+   "unidad_compra": "hoja",
+   "precio_compra": 279.83,
+   "factor_conversion": 1,
+   "propiedades": null,
+   "proveedor": null,
+   "fuente": "Compras · ERP Intelisis última compra (corte 2026-08-10)",
+   "evidencia": "ERP última compra 2015-01-28 · ACRCPUIN · ANTIGUA >24 meses: re-cotizar con Compras antes de certificar",
+   "vigente_desde": "2015-01-28",
+   "vigente_hasta": null,
+   "estado": "propuesto_validado",
+   "creado_por": "vh088-erp-2026-10-12",
+   "creado_en": "2026-10-12T03:40:00.441753+00:00",
+   "confidence": "alta",
+   "evidence_status": "documentada",
+   "approved_by": null,
+   "approved_at": null,
+   "requiere_validacion_compras": false,
+   "contract_status": "DATA_TRUTH_V1",
+   "source_price": 279.83,
+   "source_currency": "MXN",
+   "source_unit": "hoja",
+   "source_units_per_cost_unit": 1,
+   "fx_rate": null,
+   "fx_date": null,
+   "fx_source": null,
+   "cost_unit": "hoja",
+   "source_system": "erp_intelisis",
+   "source_document": "ERP Intelisis · Costos de Materia Prima Ultima Compra al 10082026.xlsx (Drive, Compras)",
+   "source_record_id": "MCICCA033502I8|",
+   "source_hash": "0307ebda2f8e7ddc451b0de18a7ce25a9ba49ea11978b8dd4255b274e10a271e"
+  },
+  {
+   "id": 9372,
+   "insumo_id": "erp-ag1948ch-m1",
+   "precio": 868.95,
+   "unidad_compra": "hoja",
+   "precio_compra": 868.95,
+   "factor_conversion": 1,
+   "propiedades": null,
+   "proveedor": null,
+   "fuente": "Compras · ERP Intelisis última compra (corte 2026-08-10)",
+   "evidencia": "ERP última compra 2014-09-11 · AG1948CH CHAPA DE MADERA MAPLE DOS CARAS · ANTIGUA >24 meses: re-cotizar con Compras antes de certificar",
+   "vigente_desde": "2014-09-11",
+   "vigente_hasta": null,
+   "estado": "propuesto_validado",
+   "creado_por": "vh088-erp-2026-10-12",
+   "creado_en": "2026-10-12T03:40:12.087253+00:00",
+   "confidence": "alta",
+   "evidence_status": "documentada",
+   "approved_by": null,
+   "approved_at": null,
+   "requiere_validacion_compras": false,
+   "contract_status": "DATA_TRUTH_V1",
+   "source_price": 868.95,
+   "source_currency": "MXN",
+   "source_unit": "hoja",
+   "source_units_per_cost_unit": 1,
+   "fx_rate": null,
+   "fx_date": null,
+   "fx_source": null,
+   "cost_unit": "hoja",
+   "source_system": "erp_intelisis",
+   "source_document": "ERP Intelisis · Costos de Materia Prima Ultima Compra al 10082026.xlsx (Drive, Compras)",
+   "source_record_id": "MCIMAG05010600|M1",
+   "source_hash": "7d4beb754e3012c8da3248f0f803ae35b7c926d538fe20f6abd8317a8733e96e"
+  },
+  {
+   "id": 5314,
+   "insumo_id": "erp-ame1648m706",
+   "precio": 616,
+   "unidad_compra": "hoja",
+   "precio_compra": 616,
+   "factor_conversion": 1,
+   "propiedades": null,
+   "proveedor": null,
+   "fuente": "Compras · ERP Intelisis última compra (corte 2026-08-10)",
+   "evidencia": "ERP última compra 2021-09-20 · AME1648M706 · ANTIGUA >24 meses: re-cotizar con Compras antes de certificar",
+   "vigente_desde": "2021-09-20",
+   "vigente_hasta": null,
+   "estado": "propuesto_validado",
+   "creado_por": "vh088-erp-2026-10-12",
+   "creado_en": "2026-10-12T03:40:06.717897+00:00",
+   "confidence": "alta",
+   "evidence_status": "documentada",
+   "approved_by": null,
+   "approved_at": null,
+   "requiere_validacion_compras": false,
+   "contract_status": "DATA_TRUTH_V1",
+   "source_price": 616,
+   "source_currency": "MXN",
+   "source_unit": "hoja",
+   "source_units_per_cost_unit": 1,
+   "fx_rate": null,
+   "fx_date": null,
+   "fx_source": null,
+   "cost_unit": "hoja",
+   "source_system": "erp_intelisis",
+   "source_document": "ERP Intelisis · Costos de Materia Prima Ultima Compra al 10082026.xlsx (Drive, Compras)",
+   "source_record_id": "MVLMAG010105O3|",
+   "source_hash": "c3f3634b77adac36c5d595a70ea6b7a85a6e36b91ed1e39fc7c8de0fe3e262bb"
+  },
+  {
+   "id": 9596,
+   "insumo_id": "erp-ame28152-b709",
+   "precio": 1924.2,
+   "unidad_compra": "hoja",
+   "precio_compra": 1924.2,
+   "factor_conversion": 1,
+   "propiedades": null,
+   "proveedor": null,
+   "fuente": "Compras · ERP Intelisis última compra (corte 2026-08-10)",
+   "evidencia": "ERP última compra 2022-12-17 · AME28152 ACABADO MADERA WALNUT · ANTIGUA >24 meses: re-cotizar con Compras antes de certificar",
+   "vigente_desde": "2022-12-17",
+   "vigente_hasta": null,
+   "estado": "propuesto_validado",
+   "creado_por": "vh088-erp-2026-10-12",
+   "creado_en": "2026-10-12T03:40:12.614502+00:00",
+   "confidence": "alta",
+   "evidence_status": "documentada",
+   "approved_by": null,
+   "approved_at": null,
+   "requiere_validacion_compras": false,
+   "contract_status": "DATA_TRUTH_V1",
+   "source_price": 1924.2,
+   "source_currency": "MXN",
+   "source_unit": "hoja",
+   "source_units_per_cost_unit": 1,
+   "fx_rate": null,
+   "fx_date": null,
+   "fx_source": null,
+   "cost_unit": "hoja",
+   "source_system": "erp_intelisis",
+   "source_document": "ERP Intelisis · Costos de Materia Prima Ultima Compra al 10082026.xlsx (Drive, Compras)",
+   "source_record_id": "MVLMAG01320800|B709",
+   "source_hash": "fb56ef96feed2dd3db7819ab5ca2c0bb975276d6f2f6fa81c33cec9f9a61764f"
+  },
+  {
+   "id": 3934,
+   "insumo_id": "erp-lp48black",
+   "precio": 662.72,
+   "unidad_compra": "hoja",
+   "precio_compra": 662.72,
+   "factor_conversion": 1,
+   "propiedades": null,
+   "proveedor": null,
+   "fuente": "Compras · ERP Intelisis última compra (corte 2026-08-10)",
+   "evidencia": "ERP última compra 2021-02-15 · LP48BLACK · ANTIGUA >24 meses: re-cotizar con Compras antes de certificar",
+   "vigente_desde": "2021-02-15",
+   "vigente_hasta": null,
+   "estado": "propuesto_validado",
+   "creado_por": "vh088-erp-2026-10-12",
+   "creado_en": "2026-10-12T03:40:04.805948+00:00",
+   "confidence": "alta",
+   "evidence_status": "documentada",
+   "approved_by": null,
+   "approved_at": null,
+   "requiere_validacion_compras": false,
+   "contract_status": "DATA_TRUTH_V1",
+   "source_price": 662.72,
+   "source_currency": "MXN",
+   "source_unit": "hoja",
+   "source_units_per_cost_unit": 1,
+   "fx_rate": null,
+   "fx_date": null,
+   "fx_source": null,
+   "cost_unit": "hoja",
+   "source_system": "erp_intelisis",
+   "source_document": "ERP Intelisis · Costos de Materia Prima Ultima Compra al 10082026.xlsx (Drive, Compras)",
+   "source_record_id": "MLEMLP000100N8|",
+   "source_hash": "e0307ef6ab79504c714f4aca4d08ae28332b84e844b1ef0fc52088b612a400c4"
+  },
+  {
+   "id": 5340,
+   "insumo_id": "erp-mdf18h",
+   "precio": 725.4,
+   "unidad_compra": "hoja",
+   "precio_compra": 725.4,
+   "factor_conversion": 1,
+   "propiedades": null,
+   "proveedor": null,
+   "fuente": "Compras · ERP Intelisis última compra (corte 2026-08-10)",
+   "evidencia": "ERP última compra 2021-11-17 · MDF18H · ANTIGUA >24 meses: re-cotizar con Compras antes de certificar",
+   "vigente_desde": "2021-11-17",
+   "vigente_hasta": null,
+   "estado": "propuesto_validado",
+   "creado_por": "vh088-erp-2026-10-12",
+   "creado_en": "2026-10-12T03:40:06.717897+00:00",
+   "confidence": "alta",
+   "evidence_status": "documentada",
+   "approved_by": null,
+   "approved_at": null,
+   "requiere_validacion_compras": false,
+   "contract_status": "DATA_TRUTH_V1",
+   "source_price": 725.4,
+   "source_currency": "MXN",
+   "source_unit": "hoja",
+   "source_units_per_cost_unit": 1,
+   "fx_rate": null,
+   "fx_date": null,
+   "fx_source": null,
+   "cost_unit": "hoja",
+   "source_system": "erp_intelisis",
+   "source_document": "ERP Intelisis · Costos de Materia Prima Ultima Compra al 10082026.xlsx (Drive, Compras)",
+   "source_record_id": "MVLMMD18011702|",
+   "source_hash": "3cefde9070ecad7183ebfacfcca636d6825bee98313a611a0cf79e051c5ed878"
+  }
+ ]
+}

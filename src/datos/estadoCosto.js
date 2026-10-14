@@ -9,7 +9,7 @@
 //     del servidor, o precios sin aprobación HUMANA verificada (los aprobados por la cuenta de prueba no cuentan).
 //   · VALIDADO: el servidor certifica Y declara que todos los precios tienen aprobación humana (`aprobacionHumana`).
 // ============================================================================
-import { esTubularD2 } from '../motor/calculo.js';
+import { piezasConD2, D2_RATIFICADA_POR_PRODUCCION } from './topeEstadoCosteo.js';
 
 export const ESTADO_COSTO = Object.freeze({ VALIDADO: 'validado', PRELIMINAR: 'preliminar', BLOQUEADO: 'bloqueado' });
 export const ETIQUETA_ESTADO = Object.freeze({ validado: 'COSTO VALIDADO', preliminar: 'COSTO PRELIMINAR', bloqueado: 'COSTO BLOQUEADO' });
@@ -55,7 +55,7 @@ export function clasificarCosto({ emision = {}, servidor = null, componentes = [
   if ((componentes || []).some((c) => c && !c.excluida && c.insumoId === TORNILLERIA_GENERICA))
     supuestos.push('Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3).');
   // D2 firmada por Dirección, pendiente la ratificación de Producción (merma de corte): calcula, pero no valida.
-  const tubD2 = insumos ? (componentes || []).filter((c) => c && !c.excluida && c.insumoId && esTubularD2(insumos[c.insumoId])) : [];
+  const tubD2 = insumos && !D2_RATIFICADA_POR_PRODUCCION ? piezasConD2(componentes, insumos) : [];
   if (tubD2.length) supuestos.push(`Tubular por fracción de tramo (D2): falta que Producción ratifique la merma de corte (${tubD2.slice(0, 3).map((c) => c.nombre).join(', ')}).`);
   // P1-01: confirmar el MATERIAL de una pieza no confirma que la pieza EXISTA. Una pieza que la IA infirió o supuso
   // (no la vio) necesita `pieza_confirmada` de una persona; mientras tanto el costo no puede quedar validado.

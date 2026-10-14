@@ -521,3 +521,46 @@ for (const [orden, archivos] of ORDENES_SEG01) {
     });
   });
 }
+
+// ============================================================================
+//  Auditoría 14-oct · posible P1 de D2: un costo con tubular por FRACCIÓN de tramo (D2, sin ratificación de Producción)
+//  nunca debe llegar a la emisión como certificado. La cadena real es: servidor → `estado` → renglón de Cotizar
+//  (`costoEstado: autoridad.estado`, App.jsx) → `evaluar_emision_cotizacion` (SQL EXACTO de producción, arriba).
+// ============================================================================
+import { topeEstadoPorPoliticas } from '../../src/datos/topeEstadoCosteo.js';
+
+describe('D2 sin ratificar ⇒ la emisión (SQL de producción) nunca lo trata como certificado', () => {
+  let db;
+  beforeAll(async () => { db = await baseAislada(); }, 60_000);
+  afterAll(async () => { await db?.close(); });
+  const insumos = { 'ptr-1x1': { id: 'ptr-1x1', nombre: 'PTR 1x1 cal 18', formato: { tipo: 'tramo', medida: 6 } } };
+  const conPatas = [{ nombre: 'Patas', insumoId: 'ptr-1x1' }];
+  const snapFiel = () => ({ cliente: 'Cliente demo', folio: 'COT-DEMO',
+    partidas: [{ id: 'p1', nombre: COSTEADO.nombre, medidas: COSTEADO.medidas, material: COSTEADO.material, cantidad: 1, precioUnitario: 10000 }],
+    totales: { precioLista: 10000, descuento: 0, contingencia: 0, maniobras: 0, flete: 0, iva: 1600 }, total: 11600 });
+  async function sembrar(costoEstado) {
+    const { id } = await uno(db, DIRECCION,
+      `insert into public.cotizaciones(usuario, cliente, folio, partidas, total, piezas) values ($1, 'Cliente demo', 'COT-DEMO', $2::jsonb, 11600, 1) returning id`,
+      [VENDEDOR, JSON.stringify([{ ...COSTEADO, costoEstado }])]);
+    return id;
+  }
+
+  it('el servidor topa en preliminar: con D2 un costo "certificado" sale "preliminar"; sin D2 no cambia; ratificada, tampoco', () => {
+    expect(topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos }).estado).toBe('preliminar');
+    expect(topeEstadoPorPoliticas('certificado', { componentes: [{ nombre: 'Cubierta', insumoId: 'mel' }], insumos }).estado).toBe('certificado');
+    expect(topeEstadoPorPoliticas('incompleto', { componentes: conPatas, insumos }).estado).toBe('incompleto');
+    expect(topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos, d2Ratificada: true }).estado).toBe('certificado');
+  });
+
+  it('renglón con el estado que entrega el servidor tras el tope D2 ⇒ ECONOMICS_INCOMPLETE (costo_preliminar_no_certificado)', async () => {
+    const estadoSrv = topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos }).estado;
+    const g = await evaluar(db, VENDEDOR, await sembrar(estadoSrv), snapFiel());
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(g.reasons).toContain('linea_1_costo_preliminar_no_certificado');
+  });
+
+  it('control: el mismo renglón marcado "certificado" pasa el gate — por eso el tope tiene que estar en el servidor', async () => {
+    const g = await evaluar(db, VENDEDOR, await sembrar('certificado'), snapFiel());
+    expect(g.reasons || []).not.toContain('linea_1_costo_preliminar_no_certificado');
+  });
+});

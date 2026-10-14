@@ -34,6 +34,7 @@ import { reconciliarMaterialServidor, puedeConfirmarMaterial, estadoConTopeLegac
 import { esSolicitudCocrear, validarSolicitudCocrear, accesoACocreacion, piezaDeCocreacion, decidirValidacionIngenieria, filaCostoCocreacion, respuestaCocreacionPorRol, precioSugeridoCocreado } from "../../../src/datos/cocrearServidor.js";
 // Validador estructural determinista (el mismo que ve Costear): un bloqueo impide validar ingeniería.
 import { revisarEstructura } from "../../../src/datos/revisionEstructural.js";
+import { topeEstadoPorPoliticas } from "../../../src/datos/topeEstadoCosteo.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -187,6 +188,9 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
     estado = "preliminar";
     warnings.push(`${noObservadas.length} pieza(s) inferidas por la IA sin confirmar que existen: estado tope 'preliminar'.`);
   }
+  // Auditoría 14-oct (P1 de D2): D2 sin ratificación de Producción nunca deja el costo 'certificado'.
+  const topeD2 = topeEstadoPorPoliticas(estado, { componentes: piezaReconciliada.componentes, insumos: insumos as any });
+  if (topeD2.estado !== estado) { warnings.push(...topeD2.warnings); estado = topeD2.estado as typeof estado; }
   // P0-04 (2026-10-12): el costo de RESPALDO (config-fallback) NUNCA es 'certificado'. Sólo el
   // catálogo central (catalogo_motor, precios aprobados con documento) certifica; si no estuvo,
   // el estado se topa en 'preliminar' aunque la evidencia por insumo diga certificable.

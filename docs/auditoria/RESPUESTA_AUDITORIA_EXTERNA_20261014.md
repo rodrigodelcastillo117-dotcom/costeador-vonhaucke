@@ -57,3 +57,39 @@ La cuenta de candidatos se midió en producción (solo lectura): 247 = 215 de 4�
 
 - Dos builds del link fallaron porque no corrí la suite simulando el entorno de Vercel.
 - Un `pkill -f` mató mi propia sesión de shell y dejó un archivo modificado. Lo restauré antes de hacer commit.
+
+---
+
+## Reauditoría (14-oct, tarde): vh146b → vh146c y posible P1 de D2
+
+### `PROPUESTA_vh146c_formato_hojas_erp.sql` (sin aplicar; sustituye a vh146 y vh146b; vh146b eliminada)
+
+| Gate pedido | Cómo quedó | Prueba (`supabase/tests/formatoHojasErpVh146c.test.js`, PGlite, datos reales) |
+|---|---|---|
+| Manifest exacto | 231 pares `(id, formato)` escritos en el SQL. Huella md5 `399f4b969536318069dd28459b79a13b`, la misma que se midió en producción en solo lectura. Antes del UPDATE se exige que la huella cuadre, que cada id siga como se auditó y que los candidatos vivos sean exactamente el manifest. | 231/231 ids exactos, 200 de 4×8 y 31 de 5×8. Abortos con 0 cambios en tres casos: un candidato nuevo, una fila que ya cambió y un manifest alterado. |
+| `fraccion=true` | Se conserva. | Verificado en las 231. |
+| No escribir `mermaCorte` | Conserva la merma original; la propia migración lo verifica. | Si se reintroduce `mermaCorte=6`, la migración aborta sola. |
+| Precios reales | El fixture trae 6 filas reales de `insumo_precios` (AME28152-b709, AME1648, MDF18H, LP48BLACK y otras). | Idénticas fila por fila después de la migración. |
+| One-shot | Si existe `respaldo_vh146c_atributos`, aborta. `atributos_despues` se escribe una sola vez. | Una segunda ejecución aborta con 0 cambios. |
+| AME28152 por id | Se verifica `erp-ame28152-b709` (Walnut, el del librero). | 1525×2440. |
+| 0 filas fuera del manifest | Huellas de las filas fuera del manifest, y de las demás columnas en las 231. | 0 modificadas, incluidos los 16 acrílicos. |
+| Rollback inmediato | Líneas `-- RB`. Solo restaura las filas que siguen igual a como las dejó la migración. | Byte a byte. |
+| Librero 5×8 | — | Con la hoja que devuelve `catalogo_motor` tras la migración: ya no bloquea por formato y cliente y servidor cuadran al centavo. Es la reconciliación y el motor de `costear-servidor-rc` corridos en Node; **la prueba en vivo solo es posible tras aplicar.** |
+
+Fixture: `supabase/tests/fixtures/vh146c_catalogo_real_20261014.json` (253 filas del catálogo y 6 precios, leídos en solo lectura con la cuenta QA).
+
+### Posible P1 de D2: **confirmado y corregido en RC**
+
+- **Cadena real.** El servidor podía devolver `certificado` con tubular cobrado por fracción (D2). Ese estado viajaba tal cual:
+  - al renglón de Cotizar (`App.jsx`, `costoEstado: autoridad.estado`);
+  - al expediente (`estado_costo`, y la Biblioteca lo mostraba como "· certificado").
+
+  La emisión, tanto la local como el SQL de producción, solo frena `preliminar`, `incompleto` o `bloqueado`.
+- **Latente hoy**: ningún precio tiene aprobación humana, así que el servidor nunca dice `certificado`. Con D1 firmada habría ocurrido.
+- **Corrección**:
+  - `src/datos/topeEstadoCosteo.js` define `D2_RATIFICADA_POR_PRODUCCION = false`, una sola bandera para la pantalla y el servidor;
+  - `costear-servidor-rc` topa en `preliminar` cualquier costo con D2. Como también es la ruta de registro de Cocrear, la cubre igual.
+- **Prueba** (`supabase/tests/seguridadGateEmisionSnapshot.test.js`, con el SQL EXACTO de producción, md5 verificado):
+  - con el estado que entrega el servidor tras el tope, `evaluar_emision_cotizacion` da `ECONOMICS_INCOMPLETE` (`linea_1_costo_preliminar_no_certificado`);
+  - control: el mismo renglón marcado `certificado` pasa. Eso demuestra que el tope tiene que vivir en el servidor.
+- **Fuera de alcance, sigue abierto**: el `costoEstado` del renglón lo escribe el cliente al guardar la cotización. Atar el estado al costeo persistido es SEG-01 (P0 heredado).
