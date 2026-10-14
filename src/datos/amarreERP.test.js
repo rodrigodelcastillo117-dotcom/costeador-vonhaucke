@@ -71,6 +71,11 @@ describe('amarre ERP · unidad compatible con el consumo', () => {
     const r = await amarrarPendientesERP([{ nombre: 'Bastidor', material_solicitado: 'PTR 1" cal. 14', material_match: 'NOT_AVAILABLE', insumoId: '', forma: 'lineal', cantidad: 30 }], { buscar: soloPza, agregarInsumo: () => {}, insumos: {} });
     expect(r.comps[0].insumoId).toBe(''); expect(r.comps[0].material_match).toBe(MATCH.SAME_FAMILY_CRITICAL_CONFLICT); expect(r.comps[0]._match.cambio).toMatch(/unidad/);
   });
+  it('la "pieza de 6000 mm" CON tramoPorPieza en el catálogo sí es compatible: el motor la consume en metros a $/pieza ÷ 6', async () => {
+    const conTramo = { ...ERP.find((x) => x.id === 'erp-ptr-pza'), tramoPorPieza: { tipo: 'tramo', medida: 6 }, mermaTramo: 6.94 };
+    const r = await amarrarPendientesERP([{ nombre: 'Bastidor', material_solicitado: 'PTR 1" cal. 14', material_match: 'NOT_AVAILABLE', insumoId: '', forma: 'lineal', cantidad: 30 }], { buscar: async () => [conTramo], agregarInsumo: () => {}, insumos: {} });
+    expect(r.comps[0].insumoId).toBe('erp-ptr-pza'); expect(r.comps[0].material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+  });
 });
 
 describe('fusionarAmarreEnBom (VH-149): el amarre tardío no pisa lo que la persona editó', () => {

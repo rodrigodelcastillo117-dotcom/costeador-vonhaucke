@@ -502,6 +502,14 @@ export function crearNubeFalsa({ usuarios, preservaEconomia = 'vh035c', rpcVieja
         f.cargasErp = (f.cargasErp || []).concat([{ documento: body.p_documento, catalogo: cat.length, precios: pre.length }]);
         return json(route, { catalogo_nuevos: cat.length, catalogo_existentes: 0, precios_nuevos: pre.length, precios_duplicados: 0, aprobados: pre.filter((p) => p.estado === 'propuesto').length, errores: [] });
       }
+      // Firma de Dirección (20261014140000): la regla real (QA y no-Dirección rechazados) se prueba en PGlite; aquí sólo el cableado.
+      //  Dos lotes (cursor null → 900 → fin) para ejercitar el bucle del cliente.
+      if (fn === 'firmar_precios_erp_lote') {
+        if (!editaConfig(email) || /^qa-/.test(email)) return err(route, 'no autorizado: sólo una persona de Dirección (no una cuenta de prueba) firma los precios', 400);
+        f.firmasErp = (f.firmasErp || []).concat([{ email, meses: body.p_meses, despues: body.p_despues_de }]);
+        const primero = body.p_despues_de == null;
+        return json(route, { firmados: primero ? 900 : 880, no_firmados: primero ? 0 : 3, motivos: primero ? {} : { 'precio aprobado no cumple contrato de integridad': 3 }, meses: body.p_meses, firmado_por: email, ultimo_id: primero ? 900 : null });
+      }
       // VH-063: política pública (sólo descuento máximo + versión). `f.politica` se sustituye por prueba.
       if (fn === 'politica_comercial_publica') return json(route, f.politica || { vigente: true, version: REGLAS_VERSION, descuento_max_sin_aprobacion: 40 });
       if (fn === 'cotizaciones_mias') {

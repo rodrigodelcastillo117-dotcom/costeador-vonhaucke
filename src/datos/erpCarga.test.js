@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { leerPrimeraHoja, filasAObjetos, serialAFechaISO, colAIndice, desescaparXml } from './xlsxMinimo.js';
-import { registroDesdeFila, prepararCargaErp, idErp, UNIDAD_ERP } from './erpCarga.js';
+import { registroDesdeFila, prepararCargaErp, idErp, UNIDAD_ERP, tramoPorPiezaDe } from './erpCarga.js';
 
 const FIX = path.join(path.dirname(new URL(import.meta.url).pathname), 'fixtures', 'erp_ultima_compra_mini.xlsx');
 
@@ -74,5 +74,39 @@ describe('formato de hoja por nombre (VH-146)', () => {
     expect(f('AME1948').formato.medida).toBeCloseTo(2.9768, 3);
     // 2400 x 1200 no es 4x8 literal ni 1.22/2.44: sigue sin formato (honesto; se decide con Compras)
     expect(f('X48').formato).toBeNull();
+  });
+});
+
+describe('tramo vendido por pieza (14-oct): barras comerciales de perfil/tubular en pza', () => {
+  const t = (n) => tramoPorPiezaDe(n, { unidad: 'pza', seccion: 'metal' });
+  it('tubular "PIEZA DE 6000 mm" → tramo de 6 m con la merma D2 calculada (6.94 %)', () => {
+    expect(t('TUBULAR INDUSTRIAL RECTANGULAR 1 1/2" X 3" CALIBRE 18 PIEZA DE 6000 mm - "TRE181123"'))
+      .toEqual({ tramoPorPieza: { tipo: 'tramo', nombre: 'pieza de 6000 mm', corto: 'pieza', medida: 6 }, mermaTramo: 6.94 });
+    expect(t('PTR CUADRADO 1"" CALIBRE 14 PIEZA DE 6000 mm - "PTR141"').mermaTramo).toBe(6.94);
+  });
+  it('ángulo/solera/redondo de acero → tramo con 5 %; aluminio no es D2 (5 %)', () => {
+    expect(t('ANGULO LADOS IGUALES DE 1" ESPESOR 3/16" PIEZA DE 6000 mm - "AN13166"')).toMatchObject({ tramoPorPieza: { medida: 6 }, mermaTramo: 5 });
+    expect(t('SOLERA 1/8" X 2" PIEZA DE 3000 mm, EN ACERO INOXIDABLE - "SO182INA"').tramoPorPieza.medida).toBe(3);
+    expect(t('REDONDO DE ø 1/4" X 6000 mm EN ACERO INOXIDABLE TIPO 304').tramoPorPieza.medida).toBe(6);
+    expect(t('BARRA REDONDA 5/8" EN ACERO INOXIDABLE, 6000 mm DE LARGO -- BARD58INOX').tramoPorPieza.medida).toBe(6);
+    expect(t('ANGULO DE ALUMINIO DE 1.6 X 31.7 X 3660 mm --ANG163136').mermaTramo).toBe(5);
+  });
+  it('NO: piezas ya cortadas, otra unidad, otra sección, o sin largo', () => {
+    expect(t('CORTE CON LASER DE TUBULAR CUADRADO DE 1" X 1230 mm CALIBRE 14 CON 6 PERFORACIONES')).toBeNull();
+    expect(tramoPorPiezaDe('PTR CUADRADO 1" PIEZA DE 6000 mm', { unidad: 'm', seccion: 'metal' })).toBeNull();
+    expect(tramoPorPiezaDe('PTR CUADRADO 1" PIEZA DE 6000 mm', { unidad: 'pza', seccion: 'herrajes' })).toBeNull();
+    expect(t('SILLA EN CAJA MODELO ALLEGRO (MAXI DIVA 155-16000)')).toBeNull();
+    expect(t('BISAGRA DE TUBO Ø 3/4" X 4" EN COLD ROLLED')).toBeNull();
+    expect(t('SONOTUBO DE CARTON ENROLLADO EN ESPIRAL DE Ø 400 mm, ESPESOR 5 mm PIEZA DE 3000 mm')).toBeNull();
+    expect(t('TUBO SANITARIO DE ACERO INOX SATINADO TIPO 304 DE 6" CALIBRE 12 DE 6 METROS CON CORTE A 3285 mm')).toBeNull();
+  });
+  it('la carga lo pone en atributos.tramoPorPieza, NUNCA en formato (el motor anterior lo cobraría 6×)', () => {
+    const { catalogo } = prepararCargaErp([{ articulo: 'TRE181123', opcion: '', clave: 'TRE181123', desc: 'TUBULAR INDUSTRIAL RECTANGULAR 1 1/2" X 3" CALIBRE 18 PIEZA DE 6000 mm', unidad: 'PIEZA', costo_uc: 383.28, fecha_uc: '2026-08-07', estatus: 'ALTA' }], { hoy: new Date('2026-10-14') });
+    if (catalogo[0].unidad_costeo === 'pza' && catalogo[0].seccion === 'metal') {
+      expect(catalogo[0].atributos.formato).toBeNull();
+      expect(catalogo[0].atributos.tramoPorPieza.medida).toBe(6); expect(catalogo[0].atributos.mermaTramo).toBe(6.94);
+    } else {
+      throw new Error(`unidad/sección inesperadas: ${catalogo[0].unidad_costeo}/${catalogo[0].seccion}`);
+    }
   });
 });

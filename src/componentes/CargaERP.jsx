@@ -10,9 +10,61 @@
 import { useState } from 'react';
 import { leerPrimeraHoja, filasAObjetos } from '../datos/xlsxMinimo.js';
 import { registroDesdeFila, prepararCargaErp } from '../datos/erpCarga.js';
-import { cargarErpLote } from '../nube.js';
+import { cargarErpLote, firmarPreciosErp } from '../nube.js';
 
 const LOTE = 400;
+
+// Firma de Dirección: los precios que cargó/aprobó una cuenta de prueba no cuentan como aprobación humana. Este botón los
+// firma con la sesión de quien da clic (la base rechaza la cuenta QA y a cualquiera que no sea Dirección). Pide confirmar.
+export function FirmaPreciosErp({ onAviso, firmar = firmarPreciosErp }) {
+  const [confirmando, setConfirmando] = useState(false);
+  const [firmando, setFirmando] = useState(false);
+  const [res, setRes] = useState(null);
+  const [error, setError] = useState('');
+  const [avance, setAvance] = useState(null);
+
+  async function alFirmar() {
+    setFirmando(true); setError(''); setRes(null); setAvance(null);
+    const r = await firmar(24, { alAvanzar: setAvance });
+    setFirmando(false); setConfirmando(false);
+    if (!r.ok) {
+      const ya = r.resultado?.firmados || 0;
+      setError(`${r.error}${ya ? ` Ya quedaron firmados ${ya}; vuelve a dar clic para seguir (no se duplica).` : ''}`);
+      return;
+    }
+    setRes(r.resultado);
+    onAviso?.(`Firmaste ${r.resultado.firmados} precios del ERP.`, 8000);
+  }
+
+  const motivos = Object.entries(res?.motivos || {});
+  return (
+    <div className="tarjeta" data-testid="firma-erp">
+      <h2>Firmar precios del ERP</h2>
+      <p className="ayuda">Aprueba <strong>con tu nombre</strong> cada precio vigente de Intelisis que tiene documento y fecha de compra en los últimos 24 meses y que todavía no tiene la firma de una persona (incluye los que aprobó la cuenta de pruebas). No cambia importes ni fechas. Se guarda quién aprobaba antes. Un precio que Compras marcó para validar no se firma: aparece abajo con su motivo.</p>
+      {!confirmando && !res && <button className="boton" onClick={() => setConfirmando(true)} data-testid="firma-erp-iniciar">Firmar precios del ERP</button>}
+      {confirmando && (
+        <div className="alerta" data-testid="firma-erp-confirmar">
+          <span className="texto">¿Confirmas que estos precios son los reales de compra y que los firmas como Dirección?</span>
+          <button className="boton" onClick={alFirmar} disabled={firmando} data-testid="firma-erp-si">{firmando ? `Firmando… ${avance?.firmados ?? 0}` : 'Sí, firmar'}</button>
+          <button className="boton fantasma" onClick={() => setConfirmando(false)} disabled={firmando}>Cancelar</button>
+        </div>
+      )}
+      {error && <div className="alerta roja" data-testid="firma-erp-error"><span className="texto">{error}</span></div>}
+      {res && (
+        <div data-testid="firma-erp-resultado">
+          <table className="datos">
+            <tbody>
+              <tr><td>Firmados</td><td className="num">{res.firmados}</td></tr>
+              <tr><td>No firmados</td><td className="num">{res.no_firmados}</td></tr>
+              <tr><td>Firmó</td><td>{res.firmado_por}</td></tr>
+            </tbody>
+          </table>
+          {motivos.length > 0 && <ul>{motivos.map(([m, n]) => <li key={m}>{n} × {m}</li>)}</ul>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function CargaERP({ onAviso }) {
   const [archivo, setArchivo] = useState(null);
@@ -71,6 +123,7 @@ export default function CargaERP({ onAviso }) {
   const r = prep?.resumen;
   return (
     <div className="contenido">
+      <FirmaPreciosErp onAviso={onAviso} />
       <div className="tarjeta">
         <h2>Cargar compras del ERP</h2>
         <p className="ayuda">Sube el reporte <strong>Costos de Materia Prima · Última Compra</strong> de Intelisis (.xlsx) tal como lo exporta Compras. Cada precio entra con su documento, registro y fecha; lo comprado en los últimos 24 meses queda certificado, lo más viejo queda preliminar (cuesta, pero no certifica) y lo que no tiene costo no entra.</p>

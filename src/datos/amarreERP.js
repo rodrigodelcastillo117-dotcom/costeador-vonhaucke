@@ -9,6 +9,7 @@
 //  Puro salvo por `buscar` y `agregarInsumo` (inyectados) para poder probarlo sin red.
 // ============================================================================
 import { candidatosDeFamilia, familiaDeMaterial, severidadConflicto_, textoCambio_, MATCH, FAMILIAS_HERRAJE } from './materialMatch.js';
+import { conTramoPorPieza } from '../motor/calculo.js';
 
 const PENDIENTES = new Set([MATCH.NOT_AVAILABLE, 'PENDING_MATERIAL', 'PENDING_PRICE', 'PENDING_PURCHASING', '']);
 const STOP_Q = new Set(['para', 'con', 'del', 'los', 'las', 'una', 'uno', 'por', 'sin', 'cal', 'calibre', 'mm', 'negro', 'negra', 'blanco', 'blanca', 'gris', 'estructura', 'puerta', 'puertas', 'cajon', 'cajones', 'kit', 'juego', 'pza']);
@@ -54,7 +55,8 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
     //  · área → fila con formato (sin formato no hay m² → hojas: P0-02);
     //  · lineal (metros) → unidad m o formato de tramo;
     //  · pieza → pza/juego/kit/par. Si nada es compatible, se preselecciona como CRÍTICO (no costea).
-    const unidadOk = (f) => esArea ? !!f.formato : esLineal ? (String(f.unidad || '').toLowerCase() === 'm' || (f.formato && /tramo/i.test(String(f.formato.tipo || '')))) : true;
+    // Tramo vendido por pieza (atributos.tramoPorPieza): el motor lo consume en metros → compatible con lineal.
+    const unidadOk = (f0) => { const f = conTramoPorPieza(f0); return esArea ? !!f.formato : esLineal ? (String(f.unidad || '').toLowerCase() === 'm' || (f.formato && /tramo/i.test(String(f.formato.tipo || '')))) : true; };
     const compatibles = filas.filter(unidadOk);
     const unidadForzada = compatibles.length === 0 && filas.length > 0;
     const utiles = compatibles.length ? compatibles : filas;

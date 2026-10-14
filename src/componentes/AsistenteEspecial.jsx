@@ -7,7 +7,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { patchMedidas, piezasDeExpediente } from '../datos/medidasMaterial.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
-import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza } from '../motor/calculo.js';
+import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza, unidadDeConsumo } from '../motor/calculo.js';
 import { DIFICULTAD, factorDificultad } from '../motor/dificultad.js';
 // Niveles de dificultad con ejemplos REALES (piezas APP LT medidas contra horas estándar del ERP).
 // Compartidos con Cocrear (un solo texto).
@@ -1364,7 +1364,7 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
                         <label>Cant<input type="number" className="numero" min="1" value={cnt} onChange={(e) => setPieza(i, { piezas: parseInt(e.target.value) || 1 })} /></label>
                       </>
                     ) : (
-                      <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad} onChange={(e) => setPieza(i, { cantidad: parseFloat(e.target.value) || 0 })} /></label>
+                      <label>Cantidad ({unidadDeConsumo(ins)})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad} onChange={(e) => setPieza(i, { cantidad: parseFloat(e.target.value) || 0 })} /></label>
                     )}
                     <span className="pieza-sub">{pesos2(costoPieza(c, ins))}</span>
                   </div>

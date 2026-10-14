@@ -62,3 +62,27 @@ test('un vendedor no ve el atajo de carga', async ({ browser }) => {
   await expect(page.getByRole('button', { name: /^Cargar compras del ERP/ })).toHaveCount(0);
   await context.close();
 });
+
+test('Dirección firma los precios del ERP con su sesión, tras confirmar; la cuenta de pruebas recibe el rechazo', async ({ browser }) => {
+  const nube = crearNubeFalsa({ usuarios: { 'rodrigo@vh.mx': 'direccion', 'qa-direccion@vh.mx': 'direccion' } });
+  for (const [email, ok] of [['rodrigo@vh.mx', true], ['qa-direccion@vh.mx', false]]) {
+    const { context, page } = await entrar(browser, nube, email);
+    await page.getByText('Más herramientas').click();
+    await page.getByRole('button', { name: /^Cargar compras del ERP/ }).click();
+    await page.getByTestId('firma-erp-iniciar').click();
+    expect(nube.firmasErp || []).toHaveLength(ok ? 0 : 2);            // nada se firma sin confirmar
+    await page.getByTestId('firma-erp-si').click();
+    if (ok) {
+      const res = page.getByTestId('firma-erp-resultado');
+      await expect(res).toBeVisible({ timeout: 10000 });
+      await expect(res).toContainText(/Firmados\s*1780/);
+      await expect(res).toContainText(/No firmados\s*3/);
+      await expect(res).toContainText('rodrigo@vh.mx');
+      expect(nube.firmasErp).toEqual([{ email: 'rodrigo@vh.mx', meses: 24, despues: null }, { email: 'rodrigo@vh.mx', meses: 24, despues: 900 }]);
+    } else {
+      await expect(page.getByTestId('firma-erp-error')).toContainText(/no autorizado/);
+      expect(nube.firmasErp).toHaveLength(2);
+    }
+    await context.close();
+  }
+});

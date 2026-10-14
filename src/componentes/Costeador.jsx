@@ -6,7 +6,7 @@ import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { patchMedidas } from '../datos/medidasMaterial.js';
 import { fuenteDeInsumo } from '../datos/senales.js';
 import { useMemo, useState, useEffect } from 'react';
-import { sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable } from '../motor/calculo.js';
+import { sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable, unidadDeConsumo } from '../motor/calculo.js';
 import { calcularCosteoVivo, parametrosEfectivosCosteo } from '../motor/costeoVivo.js';
 export { parametrosEfectivosCosteo as parametrosEfectivos } from '../motor/costeoVivo.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
@@ -539,7 +539,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                         placeholder="0.8"
                         onChange={(e) => setPieza(i, { hojas: parseFloat(e.target.value) || 0, cantidad: undefined })} /></label>
                     ) : (
-                      <label>Cantidad ({ins.unidad})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad}
+                      <label>Cantidad ({unidadDeConsumo(ins)})<input type="number" className="numero" step="0.01" min="0" value={c.cantidad}
                         onChange={(e) => setCantidad(i, parseFloat(e.target.value) || 0)} /></label>
                     )}
                     <span className="pieza-sub">{precioUsable(ins) ? pesos2(costoPieza(c, ins, costeo.piezas)) : <strong style={{ color: '#B42318' }} title="Material sin precio: pendiente de capturar (no cuenta como $0)">Pendiente</strong>}</span>
@@ -595,7 +595,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <span className="nom">
                   {c.nombre}
                   <div className="ayuda">
-                    neto {c.neto.toFixed(2)} {porHoja ? 'm²' : ins.unidad}
+                    neto {c.neto.toFixed(2)} {porHoja ? 'm²' : unidadDeConsumo(ins)}
                     {porHoja && <> <strong>≈ {fraccion.toFixed(2)} de hoja</strong></>}
                     {/* ⚠️ Aquí salía `comprar 0.37792260145122275 tablero` (2026-08-18).
                         El motor NO está mal: para un material con `fraccion` sí se
@@ -604,7 +604,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                         decimales en la pantalla donde el proyectista trabaja.
                         Entero cuando son tableros, 2 decimales cuando es fracción. */}
                     {' '}→ comprar {Number.isInteger(c.unidades) ? c.unidades : c.unidades.toFixed(2)}
-                    {' '}{fmt?.corto || 'u'}{c.unidades > 1 ? 's' : ''} ({c.comprado.toFixed(2)} {ins.unidad})
+                    {' '}{fmt?.corto || 'u'}{c.unidades > 1 ? 's' : ''} ({c.comprado.toFixed(2)} {unidadDeConsumo(ins)})
                   </div>
                 </span>
                 <span className={`semaforo ${colorMerma(c.pct)}`}>{pct(c.pct)}</span>

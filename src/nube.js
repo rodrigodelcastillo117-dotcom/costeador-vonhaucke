@@ -59,6 +59,27 @@ export async function cargarErpLote(documento, catalogo, precios) {
   return data || {};
 }
 
+// Firma de Dirección (migraciones 20261014140000/150000): aprueba con la sesión de quien da clic los precios vigentes de
+// Intelisis con documento y compra ≤ `meses`. La RPC rechaza la cuenta QA y cualquier rol que no sea direccion. Va por lotes
+// con cursor porque `authenticated` corta a los 8 s; si un lote falla, lo ya firmado queda y se reporta dónde se detuvo.
+export async function firmarPreciosErp(meses = 24, { limite = 200, alAvanzar, rpc = (fn, a) => nube.rpc(fn, a) } = {}) {
+  const acc = { firmados: 0, no_firmados: 0, motivos: {}, meses, firmado_por: null, lotes: 0 };
+  let cursor = null;
+  for (let i = 0; i < 1000; i++) {
+    const { data, error } = await rpc('firmar_precios_erp_lote', { p_meses: meses, p_despues_de: cursor, p_limite: limite });
+    if (error) return { ok: false, error: error.message || 'No se pudo firmar.', resultado: acc };
+    const r = data || {};
+    acc.firmados += Number(r.firmados || 0); acc.no_firmados += Number(r.no_firmados || 0); acc.lotes += 1;
+    acc.firmado_por = r.firmado_por || acc.firmado_por;
+    for (const [m, n] of Object.entries(r.motivos || {})) acc.motivos[m] = (acc.motivos[m] || 0) + Number(n || 0);
+    alAvanzar?.({ ...acc });
+    if (r.ultimo_id == null) return { ok: true, resultado: acc };
+    if (cursor != null && Number(r.ultimo_id) <= Number(cursor)) return { ok: false, error: 'El cursor de firma no avanzó.', resultado: acc };
+    cursor = r.ultimo_id;
+  }
+  return { ok: false, error: 'Demasiados lotes.', resultado: acc };
+}
+
 export async function escribirConfig(datosCompartidos) {
   const { error } = await nube
     .from('config')

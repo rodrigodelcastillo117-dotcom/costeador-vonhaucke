@@ -20,7 +20,7 @@ import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA
 // 2026-10-13 (RC, sin desplegar; requiere autorización de Dirección): la rejilla de corte usa las medidas del
 // FORMATO DEL INSUMO cuando las trae (5×8 = 2440×1525, lámina 3×10 = 3048×914) en vez de las globales 2440×1220.
 // Para todo insumo 4×8 el resultado es idéntico. Ver docs/auditoria/MOTOR_FORMATO_REJILLA.md.
-export const MOTOR_VERSION = '2026-10-13c';
+export const MOTOR_VERSION = '2026-10-14a';   // tramo vendido por pieza: $/m = $/pieza ÷ medida
 
 // Parámetros de corte con las medidas del formato del insumo (si las declara). Sin medidas → globales (4×8).
 export function parametrosDeFormato(par, insumo) {
@@ -165,6 +165,7 @@ export function calcularCostoHora(p = PARAMETROS_DEFAULT) {
 // D2 aplica al TUBULAR DE ACERO (PTR / tubo / tubular), que es lo que firmó Dirección con evidencia Intelisis. Otros
 // materiales por tramo (p. ej. perfil de aluminio) siguen por tramo entero hasta que se decidan.
 export function esTubularD2(insumo) {
+  insumo = conTramoPorPieza(insumo);
   return insumo?.formato?.tipo === 'tramo' && /\b(ptr|tubo|tubular)\b|^ptr/i.test(`${insumo.id || ''} ${insumo.nombre || ''}`) && !/alumin/i.test(`${insumo.id || ''} ${insumo.nombre || ''}`);
 }
 
@@ -327,12 +328,43 @@ export function formatoUsable(insumo) {
   const f = insumo?.formato;
   return !!f && typeof f === 'object' && Number(f.medida) > 0;
 }
+
+// -----------------------------------------------------------------------------
+//  TRAMO VENDIDO POR PIEZA (14-oct-2026). En Intelisis 142 perfiles/tubulares se compran por "PIEZA DE 6000 mm"
+//  (unidad pza, p. ej. erp-ptr141 $/pieza). El consumo de un tramo en el motor va SIEMPRE en METROS (formato.medida en
+//  m; la IA da largoMM × piezas → metros), así que su precio por metro es $/pieza ÷ medida. Sin esto: metros × $/pieza
+//  = 6 veces el costo. Sólo aplica con formato tramo explícito; un insumo en metros no cambia.
+// -----------------------------------------------------------------------------
+const UNIDADES_PIEZA = new Set(['pza', 'pz', 'pzas', 'pieza', 'piezas', 'tramo', 'tramos']);
+//  El catálogo lo declara en `atributos.tramoPorPieza` (+ `mermaTramo`), NO en `formato`: el motor anterior (producción
+//  hasta la ventana) no conoce la conversión y con `formato` cobraría metros × $/pieza. Este motor lo adopta como
+//  formato. Un `formato` ya declarado manda siempre.
+export function conTramoPorPieza(insumo) {
+  const t = insumo?.tramoPorPieza;
+  if (!insumo || insumo.formato || !t || typeof t !== 'object' || t.tipo !== 'tramo' || !(Number(t.medida) > 0)) return insumo;
+  const merma = Number(insumo.mermaTramo);
+  return { ...insumo, formato: t, mermaCorte: Number.isFinite(merma) && merma >= 0 ? merma : (insumo.mermaCorte || 0) };
+}
+export function precioPorTramo(insumo) {
+  const i = conTramoPorPieza(insumo);
+  return i?.formato?.tipo === 'tramo' && formatoUsable(i) && UNIDADES_PIEZA.has(unidadNormalizada(i.unidad));
+}
+/** Unidad en la que el motor espera el consumo (cantidad) del insumo. */
+export function unidadDeConsumo(insumo) {
+  return precioPorTramo(insumo) ? 'm' : insumo?.unidad;
+}
+/** Precio por unidad de consumo: $/m para un tramo vendido por pieza; si no, el precio del insumo. */
+export function precioPorUnidadDeConsumo(insumo, par = PARAMETROS_DEFAULT) {
+  const p = precioDeInsumo(insumo, par);
+  return precioPorTramo(insumo) ? p / Number(conTramoPorPieza(insumo).formato.medida) : p;
+}
 /**
  * Motivo por el que el consumo del componente NO se puede expresar en la unidad
  * del insumo (null = compatible). Puro; lo usa el motor (cliente y servidor).
  */
 export function incompatibilidadUnidad(comp, insumo) {
   if (!comp || !insumo) return null;
+  insumo = conTramoPorPieza(insumo);
   const unidad = unidadNormalizada(insumo.unidad);
   const conFormato = formatoUsable(insumo);
   if (Number(comp.hojas) > 0 && !conFormato) {
@@ -341,6 +373,8 @@ export function incompatibilidadUnidad(comp, insumo) {
   const porArea = Number(comp.largoMM) > 0 && Number(comp.anchoMM) > 0 && !(Number(comp.hojas) > 0);
   if (!porArea) return null;
   if (Number(comp.areaPintadaM2) > 0 && esPinturaPolvo(insumo)) return null; // va por kg (A14)
+  // Un tramo (perfil/tubular) se consume por LARGO: m² × $/m no significa nada.
+  if (insumo.formato?.tipo === 'tramo') return 'perfil/tubular por tramo consumido como largo×ancho: indica el largo de cada corte (forma lineal)';
   if (conFormato || UNIDADES_AREA.has(unidad)) return null;
   return `precio por ${unidad || 'unidad'} sin formato del material: no se convierte largo×ancho (m²) sin una conversión técnica documentada`;
 }
@@ -351,6 +385,7 @@ export function incompatibilidadUnidad(comp, insumo) {
 // `comp.hojas`, el estimador ya dio la fraccion de hoja que rinde (como el
 // T.D.C. real) — el costo es fraccion x precio_hoja, sin merma inventada.
 export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAULT) {
+  insumo = conTramoPorPieza(insumo);
   // ⚠️ P0-03 (bug hojas:0): la PRESENCIA de `hojas` NO decide el modo de consumo.
   // Antes esto era `comp.hojas != null`, y `hojas:0` (que el esquema de la IA permite
   // como "no aplica") daba `0 != null → true` → costo `0 × precio = $0`, ignorando
@@ -362,7 +397,7 @@ export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAUL
   // P0-02: unidad incompatible con el consumo → $0 visible en el renglón (el motor lo
   // deja PENDIENTE con motivo; nunca m² × $/hoja).
   if (incompatibilidadUnidad(comp, insumo)) return 0;
-  return netoComponente(comp, n, insumo) * precioDeInsumo(insumo, par);
+  return netoComponente(comp, n, insumo) * precioPorUnidadDeConsumo(insumo, par);
 }
 
 // -----------------------------------------------------------------------------
@@ -375,7 +410,7 @@ export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAUL
 //  "los que pide el area total". Asi el faldon no compra su propio tablero.
 // -----------------------------------------------------------------------------
 function comprarInsumo(insumo, comps, n, par) {
-  const precio = precioDeInsumo(insumo, par);
+  const precio = precioPorUnidadDeConsumo(insumo, par);   // $/m si es tramo vendido por pieza
   const factorMerma = 1 + (insumo.mermaCorte || 0) / 100;
 
   let neto = 0;
@@ -629,7 +664,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     if (comp.excluida) { componentesExcluidos.push(comp.nombre || 'Partida excluida'); continue; }
     const porConfirmar = requiereConfirmacion(comp);
     if (porConfirmar) materialesPorConfirmar.push(comp.nombre || 'Pieza por confirmar');
-    const insumo = insumos[comp.insumoId] || comp.insumo;
+    const insumo = conTramoPorPieza(insumos[comp.insumoId] || comp.insumo);
     // Sin insumo (crítico/ambiguo/candidato sin id): ya quedó en materialesPorConfirmar; no se
     // duplica como "sin material" (su pendiente es "confirmar", no "hueco de datos").
     if (!insumo) { if (!porConfirmar) componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }

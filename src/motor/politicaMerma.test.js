@@ -115,7 +115,7 @@ describe('contrato DTO (cliente → costear-servidor)', () => {
 
 describe('versión del motor', () => {
   it('la fórmula cambió → MOTOR_VERSION avanzó (las cotizaciones viejas conservan su huella)', () => {
-    expect(MOTOR_VERSION).toBe('2026-10-13c'); // 13c: tubular por fracción de tramo (D2); 13b: regla de tablero de Producción inclusiva en 1.50 m (VH-183); 13: rejilla con el formato del insumo
+    expect(MOTOR_VERSION).toBe('2026-10-14a'); // 14a: tramo vendido por pieza ($/m = $/pieza ÷ medida); 13c: tubular por fracción de tramo (D2); 13b: regla de tablero de Producción inclusiva en 1.50 m (VH-183); 13: rejilla con el formato del insumo
   });
 });
 

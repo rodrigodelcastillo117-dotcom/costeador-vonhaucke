@@ -13,6 +13,23 @@ const TABLERO5X8 = { tipo: 'tablero', nombre: 'tablero 1.52 x 2.44', corto: 'tab
 export const RE_HOJA_4X8 = /(?:^|[^0-9])4\s*'?\s*x\s*'?\s*8(?![0-9])|1\.?22\b|2\.?44\b/;
 export const RE_HOJA_5X8 = /(?:^|[^0-9])5\s*'?\s*x\s*'?\s*8(?![0-9])|1\.?52(?:5)?\b/;
 const TRAMO6 = { tipo: 'tramo', nombre: 'tramo de 6 m', corto: 'tramo', medida: 6 };
+
+// TRAMO VENDIDO POR PIEZA (14-oct-2026): perfil/tubular de acero que Intelisis vende por "PIEZA DE 6000 mm" (unidad pza).
+// Va en `atributos.tramoPorPieza` (no en `formato`) para que el motor anterior no lo cobre como metros × $/pieza; el motor
+// 2026-10-14a lo adopta (calculo.js · conTramoPorPieza). Sólo barras comerciales (≥ 2,400 mm): "CORTE CON LASER ... X 1230 mm"
+// es una pieza ya cortada y se consume por pieza. Merma: tubular D2 6.94 % (calculada de los reportes Intelisis de las
+// patas U ATPU2M/75M/3M, autorizada por Dirección el 14-oct); otros perfiles 5 % (la misma regla que los tramos en metros).
+export const MERMA_TUBULAR_D2 = 6.94;
+const RE_PERFIL = /(ptr|tubular|tubo|perfil|[aá]ngulo|solera|redondo|cuadrado|barra|canal|monten|zeta)/i;
+const RE_LARGO_BARRA = /(?:pieza de|x|ø[^x]*x)\s*([0-9]{4,5})\s?mm|([0-9]{4,5})\s?mm de largo/i;
+export function tramoPorPiezaDe(nombre, { unidad, seccion } = {}) {
+  if (unidad !== 'pza' || seccion !== 'metal' || !RE_PERFIL.test(nombre || '') || /cart[oó]n/i.test(nombre || '')) return null;
+  const m = String(nombre).match(RE_LARGO_BARRA);
+  const mm = m ? Number(m[1] || m[2]) : 0;
+  if (!(mm >= 2400 && mm <= 12000)) return null;
+  const d2 = /(ptr|tubular|\btubo\b)/i.test(nombre) && !/alumin/i.test(nombre);
+  return { tramoPorPieza: { tipo: 'tramo', nombre: `pieza de ${mm} mm`, corto: 'pieza', medida: mm / 1000 }, mermaTramo: d2 ? MERMA_TUBULAR_D2 : 5 };
+}
 export const UNIDAD_ERP = { pieza: 'pza', pza: 'pza', hoja: 'hoja', m: 'm', mt: 'm', mts: 'm', jgo: 'juego', juego: 'juego', kg: 'kg', lt: 'lt', l: 'lt', m2: 'm2', 'm²': 'm2', caja: 'caja', 'dm²': 'dm2', dm2: 'dm2', rollo: 'rollo', 'ud./serv.': 'servicio', servicio: 'servicio', ft: 'ft', yd: 'yd', lb: 'lb', par: 'par' };
 export const MESES_CERTIFICABLE = 24;
 
@@ -84,10 +101,11 @@ export function prepararCargaErp(registros, { documento, hoy = new Date() } = {}
     else if (unidad === 'hoja' && ['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'acrilico'].includes(fam) && RE_HOJA_4X8.test(d)) { formato = TABLERO; fraccion = true; mermaCorte = 6; }
     else if (unidad === 'hoja' && fam === 'metal_lamina') { mermaCorte = 8; }
     else if (unidad === 'm' && seccion === 'metal' && /\bptr\b|tubular|\btubo\b|perfil|[aá]ngulo|solera|redondo|cuadrado/.test(d)) { formato = TRAMO6; mermaCorte = 5; }
+    const tramoPza = formato ? null : tramoPorPiezaDe(nombre, { unidad, seccion });
     const clase = (seccion === 'herrajes' || seccion === 'electrico') ? 'indirecta' : 'directa';
     const key = `${r.articulo}|${r.opcion}`;
     catalogo.push({ id, nombre, seccion, unidad_costeo: unidad, activo, clasificacion: 'erp', familia: fam || null,
-      atributos: { unidad, clase, formato, fraccion, mermaCorte, veta: false, inventario: false, erp: { articulo: r.articulo, opcion: r.opcion || null, clave: r.clave || null, estatus: r.estatus, fecha_uc: r.fecha_uc || null } } });
+      atributos: { unidad, clase, formato, fraccion, mermaCorte, ...(tramoPza || {}), veta: false, inventario: false, erp: { articulo: r.articulo, opcion: r.opcion || null, clave: r.clave || null, estatus: r.estatus, fecha_uc: r.fecha_uc || null } } });
     if (!r.fecha_uc) { resumen.sinFecha++; continue; }
     const reciente = r.fecha_uc >= corteISO;
     if (reciente) resumen.recientes++; else resumen.antiguos++;

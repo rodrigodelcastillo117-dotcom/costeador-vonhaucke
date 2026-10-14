@@ -12,6 +12,7 @@ import { footprintDe, precioDePieza } from '../datos/lineas.js';
 import { buscarPrecioVenta, precioDeLista } from '../datos/preciosVenta.js';
 import { resolverArticuloCatalogo } from '../datos/resolverArticulo.js';
 import { autorizadoPorRef } from '../datos/precioAutorizado.js';
+import { unidadDeConsumo } from '../motor/calculo.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 
@@ -279,7 +280,7 @@ export default function CosteadorLinea({ estado, titulo, productos, generar, onA
                   return (
                     <tr key={i}>
                       <td>{c.nombre}{c.largoMM ? <span className="gris"> · {c.largoMM}×{c.anchoMM} mm</span> : ''}</td>
-                      <td className="num">{c.cantidad.toFixed(2)} {ins?.unidad}</td>
+                      <td className="num">{c.cantidad.toFixed(2)} {unidadDeConsumo(ins)}</td>
                     </tr>
                   );
                 })}
