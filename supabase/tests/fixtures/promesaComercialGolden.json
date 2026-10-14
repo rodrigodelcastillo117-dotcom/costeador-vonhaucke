@@ -1,0 +1,142 @@
+{
+  "_doc": "SEG-01c rev4 · fixtures doradas de promesa_comercial_v1. Las corren src/datos/promesaComercial.test.js (JS) y supabase/tests/promesaComercialGolden.test.js (SQL, private_api.promesa_partida). Los 'esperado' están escritos a mano, no generados.",
+  "casos": [
+    {
+      "nombre": "costeo especial del Costeador: despiece con una pieza excluida",
+      "entrada": {
+        "nombre": "Escritorio operativo", "w": 1200, "d": 600, "piezas": 1, "margen": 35,
+        "componentes": [
+          { "nombre": "Cubierta", "insumoId": "m16", "largoMM": 1200, "anchoMM": 600 },
+          { "nombre": "Faldón", "insumoId": "m16", "largoMM": 1100, "anchoMM": 300 },
+          { "nombre": "Cristal templado", "insumoId": "cr6", "excluida": true },
+          { "nombre": "Pata", "insumoId": "ptr2", "cantidad": 4 }
+        ]
+      },
+      "esperado": {
+        "v": "v1", "nombre": "Escritorio operativo", "w": 1200, "d": 600,
+        "materiales": ["cr6", "m16", "ptr2"],
+        "piezas": ["Cubierta", "Faldón", "Pata"],
+        "nombresExcluidos": ["Cristal templado"]
+      }
+    },
+    {
+      "nombre": "partida especial rev4 (lo que agrega Costear): su promesa es ella misma",
+      "entrada": {
+        "id": "p9", "piezaId": "pz-1", "ruta": null, "productoId": null, "nombre": "Escritorio operativo", "w": 1200, "d": 600,
+        "cantidad": 3, "costoUnitario": 6000, "costoPendiente": false, "costoEstado": "certificado", "costeoId": "11111111-1111-1111-1111-111111111111",
+        "bomHash": "b0", "versionMotor": "2026-10-14b", "versionCatalogo": "cat1", "precioUnitario": 10000, "margen": 40,
+        "piezasSinMaterial": 0, "nombresSinMaterial": [],
+        "materiales": ["cr6", "m16", "ptr2"], "piezas": ["Cubierta", "Faldón", "Pata"], "nombresExcluidos": ["Cristal templado"]
+      },
+      "esperado": {
+        "v": "v1", "nombre": "Escritorio operativo", "w": 1200, "d": 600,
+        "materiales": ["cr6", "m16", "ptr2"],
+        "piezas": ["Cubierta", "Faldón", "Pata"],
+        "nombresExcluidos": ["Cristal templado"]
+      }
+    },
+    {
+      "nombre": "partida de línea: config (acabado, accesorios, electrificación) y variante entran; render, acomodo, economía y UI no",
+      "entrada": {
+        "id": "l1", "origen": "linea", "piezaId": "linea-APPLT", "nombre": "Estación App LT 4 usuarios", "ruta": "applt",
+        "linea": "App LT", "productoId": "APPLT", "producto_id": 12, "producto_version_id": "77",
+        "w": 2400, "d": 1200, "cantidad": 2, "precioUnitario": 45000, "costoUnitario": 30000, "margen": 33,
+        "config": { "largoMM": 2400, "fondoMM": 1200, "usuarios": 4, "finish": "nogal", "color": null, "electrico": true,
+                    "biombo": { "tipo": "tela", "alto": 400, "nota": null }, "gavetas": [] },
+        "catalogo": { "clave": "  APPLT-4U-NOG ", "lista": 52000, "minimo": 41000, "full": 30000 },
+        "variantes": [{ "clave": "APPLT-4U-BCO", "lista": 50000 }],
+        "render": "https://x/r.png", "zone_id": "z1", "instance_id": "i1", "anchor_instance_id": "a1", "functional_group_id": "g1",
+        "nota": "sugerido por la IA", "confianza": 0.8, "avisos": ["revisar"], "loteIA": "L7", "sellerSafe": true,
+        "candadoUsuarios": true, "requiereProyectista": false, "costoEstado": "preliminar", "price_status": "OK"
+      },
+      "esperado": {
+        "v": "v1", "nombre": "Estación App LT 4 usuarios", "w": 2400, "d": 1200,
+        "config": { "largoMM": 2400, "fondoMM": 1200, "usuarios": 4, "finish": "nogal", "electrico": true,
+                    "biombo": { "tipo": "tela", "alto": 400 }, "gavetas": [] },
+        "catalogo": { "clave": "APPLT-4U-NOG" },
+        "producto_id": "12", "producto_version_id": "77", "productoId": "APPLT"
+      }
+    },
+    {
+      "nombre": "partida de IA: pieza.componentes da materiales y piezas; excluida sin nombre = 'Partida excluida'",
+      "entrada": {
+        "nombre": "Credenza", "w": "1800", "d": 450, "h": "750.0", "origen": "ia",
+        "pieza": { "nombre": "Credenza", "horas": { "carpinteria": 3 }, "componentes": [
+          { "nombre": " Cubierta ", "insumoId": "m19" },
+          { "nombre": "Puerta", "insumoId": "m16" },
+          { "nombre": "Puerta", "insumoId": "m16" },
+          { "insumoId": "jal1", "excluida": true },
+          { "nombre": "", "insumoId": "" },
+          "basura", null
+        ] }
+      },
+      "esperado": {
+        "v": "v1", "nombre": "Credenza", "w": 1800, "d": 450, "h": 750,
+        "materiales": ["jal1", "m16", "m19"],
+        "piezas": ["Cubierta", "Puerta"],
+        "nombresExcluidos": ["Partida excluida"]
+      }
+    },
+    {
+      "nombre": "normalización: texto con tab/CR/LF, números como texto, tipos ajenos = ausente",
+      "entrada": {
+        "nombre": "\t Mesa de juntas \r\n", "w": "120.50", "d": "  045 ", "h": true, "medidas": "", "material": "  Melamina 16 mm",
+        "acabado": "   ", "descripcion": 7, "usuarios": "8", "productoId": 33, "claveLinea": "  ",
+        "producto_id": null, "product_id": 15, "productVersionId": "  90 ", "config": {}
+      },
+      "esperado": {
+        "v": "v1", "nombre": "Mesa de juntas", "w": 120.5, "d": 45, "material": "Melamina 16 mm", "usuarios": 8,
+        "producto_id": "15", "producto_version_id": "90", "productoId": "33"
+      }
+    },
+    {
+      "nombre": "listas: sin vacíos, sin repetidos, orden por punto de código (= COLLATE \"C\")",
+      "entrada": {
+        "piezas": ["Ñandú", "Zeta", "alfa", "éter", "😀 emoji", "� raro", "Zeta", "", "  ", 5, null],
+        "materiales": ["b", "A", "a", "B"],
+        "nombresExcluidos": ["  Zeta  ", "Zeta"]
+      },
+      "esperado": {
+        "v": "v1",
+        "materiales": ["A", "B", "a", "b"],
+        "piezas": ["alfa", "Ñandú", "éter", "� raro", "😀 emoji"],
+        "nombresExcluidos": ["Zeta"]
+      }
+    },
+    {
+      "nombre": "config: nulos fuera a cualquier profundidad, los nulos dentro de arreglos se quedan",
+      "entrada": { "config": { "x": [1, null, { "a": null, "b": 2 }], "y": null, "z": { "w": null } } },
+      "esperado": { "v": "v1", "config": { "x": [1, null, { "b": 2 }], "z": {} } }
+    },
+    {
+      "nombre": "catálogo sin clave y valores raros: ausentes",
+      "entrada": { "catalogo": { "lista": 100 }, "config": "texto", "nombresExcluidos": "Cristal", "piezas": { "a": 1 } },
+      "esperado": { "v": "v1" }
+    },
+    {
+      "nombre": "idempotencia: la promesa de una promesa es la misma",
+      "entrada": {
+        "v": "v1", "nombre": "Estación App LT 4 usuarios", "w": 2400, "d": 1200,
+        "config": { "largoMM": 2400, "fondoMM": 1200, "usuarios": 4, "finish": "nogal", "electrico": true, "biombo": { "tipo": "tela", "alto": 400 }, "gavetas": [] },
+        "catalogo": { "clave": "APPLT-4U-NOG" }, "producto_id": "12", "producto_version_id": "77", "productoId": "APPLT",
+        "materiales": ["m16"], "piezas": ["Cubierta"], "nombresExcluidos": ["Cristal templado"]
+      },
+      "esperado": {
+        "v": "v1", "nombre": "Estación App LT 4 usuarios", "w": 2400, "d": 1200,
+        "config": { "largoMM": 2400, "fondoMM": 1200, "usuarios": 4, "finish": "nogal", "electrico": true, "biombo": { "tipo": "tela", "alto": 400 }, "gavetas": [] },
+        "catalogo": { "clave": "APPLT-4U-NOG" }, "producto_id": "12", "producto_version_id": "77", "productoId": "APPLT",
+        "materiales": ["m16"], "piezas": ["Cubierta"], "nombresExcluidos": ["Cristal templado"]
+      }
+    },
+    {
+      "nombre": "una pieza que también está excluida no cuenta como incluida",
+      "entrada": { "piezas": ["Cristal templado", "Cubierta"], "nombresExcluidos": ["Cristal templado"] },
+      "esperado": { "v": "v1", "piezas": ["Cubierta"], "nombresExcluidos": ["Cristal templado"] }
+    },
+    {
+      "nombre": "no es un objeto: no hay promesa",
+      "entrada": ["no", "objeto"],
+      "esperado": null
+    }
+  ]
+}

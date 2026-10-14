@@ -14,8 +14,11 @@ describe('costearServidor · intención técnica saneada', () => {
   it('intentDesdePieza quita margen/factores/modelo/precio/insumo y conserva lo técnico', () => {
     const i = intentDesdePieza(b, 2);
     // SEG-01c rev3: además viaja la identidad del mueble (nombre/medidas), que no es económica.
+    // rev4: y la promesa DECLARADA (identidad, clave de línea, excluidas); materiales y piezas los saca el validador.
     expect(i).toEqual({ cantidad: 2, pieza: { componentes: [{ nombre: 'Cubierta', insumoId: 'mdf-16', largoMM: 1200, anchoMM: 600, piezas: 1 }], horas: { pm: 1, carpinteria: 2 } },
-      identidad: { nombre: 'Especial', w: null, d: null } });
+      identidad: { nombre: 'Especial', w: null, d: null },
+      promesa: { nombre: 'Especial', w: null, d: null, productoId: null, nombresExcluidos: [] } });
+    expect(validarIntentCosteo(i).intent.promesa).toEqual({ v: 'v1', nombre: 'Especial', materiales: ['mdf-16'], piezas: ['Cubierta'] });
     expect(validarIntentCosteo(i).ok).toBe(true);   // antes: FORBIDDEN_FINANCIAL_FIELD
   });
   it('la llamada al servidor lleva SÓLO la intención validada', async () => {

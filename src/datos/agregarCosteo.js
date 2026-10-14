@@ -12,7 +12,8 @@
 import { calcular as calcularMotor, modeloParaPieza as modeloMotor, pendientesDeCosteo as pendientesMotor } from '../motor/calculo.js';
 import { aCentavosEnteros, dinero } from '../motor/dinero.js';
 import { crearPartida } from './partida.js';
-import { identidadDeCosteo } from './validarIntentCosteo.js';
+import { identidadDeCosteo, intentDesdePieza, validarIntentCosteo, promesaDeclaradaDeCosteo } from './validarIntentCosteo.js';
+import { promesaDeOrigen } from './promesaComercial.js';
 
 /**
  * GATE AUTORITATIVO de "Costear especial → Agregar a cotización".
@@ -63,12 +64,14 @@ export async function partidaAutoritativaDeCosteo({ costeo, resultado, precio, m
   const sinMat = Array.isArray(resultado?.componentesIgnorados)
     ? resultado.componentesIgnorados
     : pendientes();
-  const excl = Array.isArray(resultado?.componentesExcluidos)
-    ? resultado.componentesExcluidos
-    : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
-
   // SEG-01c rev3: nombre y medidas son EXACTAMENTE la identidad que viajó al servidor con el despiece.
   const idt = identidadDeCosteo(costeo);
+  // SEG-01c rev4: la promesa comercial de la partida sale de la MISMA función y los MISMOS datos que la promesa de
+  // origen que el servidor selló con el costeo (lo declarado + materiales y piezas del despiece costeado).
+  // Si la intención no valida (el servidor real la habría rechazado), la promesa sale de la misma función sobre el
+  // despiece tal cual: si no coincide con la que selló el servidor, el vínculo falla cerrado.
+  const v = validarIntentCosteo(intentDesdePieza(costeo, n));
+  const promesa = (v.ok ? v.intent.promesa : null) ?? promesaDeOrigen(promesaDeclaradaDeCosteo(costeo), costeo.componentes);
   const partida = {
     id: nuevoId(),
     piezaId: costeo.piezaId || null,
@@ -89,7 +92,10 @@ export async function partidaAutoritativaDeCosteo({ costeo, resultado, precio, m
     margen,
     piezasSinMaterial: sinMat.length,
     nombresSinMaterial: sinMat,
-    nombresExcluidos: excl,
+    // Lo que se promete (promesa_comercial_v1): materiales del despiece, piezas incluidas y excluidas.
+    materiales: promesa.materiales ?? [],
+    piezas: promesa.piezas ?? [],
+    nombresExcluidos: promesa.nombresExcluidos ?? [],
   };
   return { ok: true, partida, costoUnitario: costoServidor, estado: autoridad.estado };
 }

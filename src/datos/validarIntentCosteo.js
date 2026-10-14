@@ -18,6 +18,7 @@
 //  (intención), no en el string de match.
 // ============================================================================
 import { MATCH_VALIDOS } from './materialMatch.js';
+import { promesaDeOrigen } from './promesaComercial.js';
 
 // Campos económicos PROHIBIDOS en la intención del cliente (a cualquier profundidad).
 // El cliente no define dinero: precio/costo/margen/factores/proveedor/insumo inline.
@@ -188,6 +189,16 @@ export function validarIntentCosteo(body) {
     }
   }
 
+  // SEG-01c rev4 (promesa_comercial_v1): lo que el mueble PROMETE (configuración, acabado, accesorios, exclusiones,
+  // variante…). Lo declarado se queda sólo en PROMESA_DECLARABLE; materiales y piezas salen del despiece que se costea
+  // (compsLimpios), nunca de lo que declare el navegador. El servidor la sella con su huella al registrar el costeo.
+  let promesaOk = null;
+  if (body.promesa != null) {
+    if (typeof body.promesa !== 'object' || Array.isArray(body.promesa)) issues.push({ field: 'promesa', msg: 'promesa debe ser un objeto.' });
+    else if (JSON.stringify(body.promesa).length > 50000) issues.push({ field: 'promesa', msg: 'promesa excede el tamaño máximo (50,000 caracteres).' });
+    else promesaOk = promesaDeOrigen(body.promesa, compsLimpios);
+  }
+
   if (issues.length) return { ok: false, code: 'INVALID_INPUT', issues };
 
   const intent = {
@@ -197,6 +208,7 @@ export function validarIntentCosteo(body) {
     cantidad,
     pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}), ...(dificultadOk != null ? { dificultad: dificultadOk } : {}) },
     ...(identidadOk ? { identidad: identidadOk } : {}),
+    ...(promesaOk ? { promesa: promesaOk } : {}),
   };
   return { ok: true, intent };
 }
@@ -216,6 +228,18 @@ export function identidadDeCosteo(c = {}) {
   return { nombre: (typeof c?.nombre === 'string' && c.nombre.trim()) || 'Mueble a la medida', w: num(c?.w), d: num(c?.d) };
 }
 
+/**
+ * SEG-01c rev4 · lo que Costear DECLARA del mueble especial al costearlo: la misma identidad que llevará la partida
+ * (nombre, w, d), la clave de línea si la hay y las piezas excluidas. agregarCosteo.js arma la partida con la promesa
+ * que devuelve el validador sobre ESTA declaración (misma función, mismos datos).
+ */
+export function promesaDeclaradaDeCosteo(c = {}) {
+  const idt = identidadDeCosteo(c);
+  const excluidas = (Array.isArray(c?.componentes) ? c.componentes : []).filter((x) => x && x.excluida === true)
+    .map((x) => (typeof x.nombre === 'string' && x.nombre.trim() ? x.nombre : 'Partida excluida'));
+  return { nombre: idt.nombre, w: idt.w, d: idt.d, productoId: c?.productoId || null, nombresExcluidos: excluidas };
+}
+
 export function intentDesdePieza(pieza, cantidad = 1) {
   const comps = Array.isArray(pieza?.componentes) ? pieza.componentes : [];
   const limpios = comps.map((c) => {
@@ -228,5 +252,5 @@ export function intentDesdePieza(pieza, cantidad = 1) {
     : undefined;
   const n = Math.max(1, Math.round(Number(cantidad) || 1));
   return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}) },
-    identidad: identidadDeCosteo(pieza) };
+    identidad: identidadDeCosteo(pieza), promesa: promesaDeclaradaDeCosteo(pieza) };
 }

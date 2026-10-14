@@ -337,6 +337,9 @@ Deno.serve(async (req) => {
       insumos_usados: usados, base_costo_huella: baseHuella,
       // SEG-01c rev3: identidad declarada en ESTA solicitud junto con el despiece, y el despiece costeado (auditoría).
       identidad_origen: intent.identidad ?? null, componentes_costeados: pieza.componentes ?? [],
+      // SEG-01c rev4: promesa comercial de origen (lo declarado + materiales/piezas del despiece que se costeó, ver
+      // validarIntentCosteo). La versión y la huella las sella el trigger de la base; sin promesa, el costeo no vincula.
+      promesa_origen: intent.promesa ?? null, promesa_version: intent.promesa ? "v1" : null,
     }).select("id").single();
     if (regErr) warnings.push("Costeo sin registro autoritativo (SEG-01c no aplicada): no servirá para emitir cuando se aplique.");
     else costeoId = regC?.id ?? null;

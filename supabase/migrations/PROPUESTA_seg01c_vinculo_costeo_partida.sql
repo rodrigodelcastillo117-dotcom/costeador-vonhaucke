@@ -50,6 +50,20 @@
 --     un costeo nuevo.
 --   · ACTIVACIÓN (P1-05): CHECK modo='estricto' ⇒ version_motor_vigente NOT NULL, y RPC
 --     `activar_autoridad_costeo(modo, frescura, version_motor)` sólo para Dirección humana (no cuentas_no_humanas).
+--  REVISIÓN 4 (cierre pre-deploy, 14-oct · promesa_comercial_v1):
+--   · HUECO de rev3: la identidad (nombre, w, d, h, medidas, material, descripción) no veía lo que de verdad cambia el
+--     mueble: material del despiece (insumoId), acabado/color/accesorios/electrificación (config), piezas incluidas y
+--     excluidas, variante de catálogo. El K de un escritorio de melamina blanca se vinculaba por primera vez a otro
+--     escritorio igual de nombre y medidas pero en nogal, con cajonera o con el cristal excluido.
+--   · PROMESA COMERCIAL v1 (private_api.promesa_partida ≡ src/datos/promesaComercial.js, mismas fixtures doradas): la
+--     proyección versionada de la partida a lo que se promete. Fuera: render, imagen, enlaces de acomodo, notas y
+--     metadatos de UI, economía y cantidad (la cantidad se compara aparte). Inventario: SEG01C_REV4_PROMESA_COMERCIAL.md.
+--   · La Edge guarda en el costeo `promesa_origen` (lo declarado al costear + materiales y piezas sacados del despiece
+--     que el servidor costea). `promesa_version` y `promesa_huella` los fija el TRIGGER (servidor), re-proyectando con
+--     la función SQL; nadie las cambia después.
+--   · adjuntar_costeo_a_partida exige huella_promesa(partida actual) = promesa_huella(K) en el primer vínculo y en el
+--     recosteo (K2 con SU promesa de origen) y también en la rama idempotente. Nunca aprende la promesa de la partida.
+--   · motivos_autoridad_costeo: costeo sin promesa ⇒ no emite; promesa distinta a la del costeo ⇒ no emite.
 --  Lo que NO hace: no reescribe filas existentes, no toca precios, no cambia emitir_revision_v2 / asignar_folio_oficial /
 --  private_api.evaluar_emision_cotizacion (cuerpo de producción intacto).
 -- ============================================================================
@@ -85,6 +99,10 @@ create table if not exists public.costeos_servidor (
   -- Identidad del mueble declarada EN LA MISMA solicitud que el despiece, y el despiece costeado (auditoría).
   identidad_origen jsonb,
   componentes_costeados jsonb,
+  -- rev4: promesa comercial de origen (proyección v1) y su huella; versión y huella las fija el trigger del servidor.
+  promesa_origen jsonb,
+  promesa_version text,
+  promesa_huella text,
   -- Dónde se CONSUMIÓ (un costeo, una partida, para siempre). El vínculo vigente vive en partida_costeo_vigente.
   cotizacion_id bigint references public.cotizaciones(id) on delete set null,
   partida_id text,
@@ -100,6 +118,9 @@ comment on table public.costeos_servidor is
 alter table public.costeos_servidor enable row level security;
 revoke all on table public.costeos_servidor from public, anon, authenticated;
 grant select, insert on table public.costeos_servidor to service_role;
+alter table public.costeos_servidor add column if not exists promesa_origen jsonb;
+alter table public.costeos_servidor add column if not exists promesa_version text;
+alter table public.costeos_servidor add column if not exists promesa_huella text;
 
 -- Vínculo VIGENTE: una fila por (cotización, partida); un costeo vigente en a lo más una partida.
 create table if not exists public.partida_costeo_vigente (
@@ -202,6 +223,115 @@ returns jsonb language sql immutable set search_path to 'public' as $$
 revoke all on function private_api.identidad_partida(jsonb) from public, anon;
 grant execute on function private_api.identidad_partida(jsonb) to authenticated, service_role;
 
+-- ----------------------------------------------------------------------------
+-- rev4 · PROMESA COMERCIAL v1. Gemela EXACTA de src/datos/promesaComercial.js (fixtures doradas compartidas):
+--   texto = string recortado (espacio, tab, CR, LF) o ausente; número = número JSON o texto ^[0-9]+(\.[0-9]+)?$ sin ceros
+--   de sobra (120 = 120.0); ids = texto (un número, sin ceros de sobra); config sin nulos ({} = ausente); listas
+--   recortadas, sin vacíos ni repetidos, en COLLATE "C" (= orden por punto de código); materiales = insumoId de todo el
+--   despiece ∪ materiales; nombresExcluidos = nombresExcluidos ∪ componentes con excluida = true; piezas = nombres del
+--   despiece ∪ piezas, menos los excluidos. Salida con las claves de la partida, sin nulos: promesa(promesa(x)) = promesa(x).
+-- ----------------------------------------------------------------------------
+-- >>> promesa_v1 (bloque que también cargan las fixtures doradas: supabase/tests/promesaComercialGolden.test.js)
+create or replace function private_api.promesa_texto(v jsonb)
+returns text language sql immutable set search_path to 'pg_catalog' as $$
+  select case when jsonb_typeof(v) = 'string' then nullif(btrim(v #>> '{}', E' \t\n\r'), '') end $$;
+create or replace function private_api.promesa_numero(v jsonb)
+returns jsonb language sql immutable set search_path to 'pg_catalog', 'private_api' as $$
+  select case
+    when jsonb_typeof(v) = 'number' then to_jsonb(trim_scale((v #>> '{}')::numeric))
+    when private_api.promesa_texto(v) ~ '^[0-9]+(\.[0-9]+)?$' then to_jsonb(trim_scale(private_api.promesa_texto(v)::numeric))
+  end $$;
+create or replace function private_api.promesa_ident(v jsonb)
+returns text language sql immutable set search_path to 'pg_catalog', 'private_api' as $$
+  select case when jsonb_typeof(v) = 'number' then trim_scale((v #>> '{}')::numeric)::text else private_api.promesa_texto(v) end $$;
+create or replace function private_api.promesa_lista(xs jsonb)
+returns jsonb language sql immutable set search_path to 'pg_catalog', 'private_api' as $$
+  select jsonb_agg(to_jsonb(t) order by t collate "C")
+    from (select distinct private_api.promesa_texto(e) as t
+            from jsonb_array_elements(case when jsonb_typeof(xs) = 'array' then xs else '[]'::jsonb end) e) s
+   where t is not null $$;
+
+create or replace function private_api.promesa_partida(p jsonb)
+returns jsonb language plpgsql immutable set search_path to 'pg_catalog', 'private_api' as $$
+declare v_comps jsonb; v_excl jsonb; v_piezas jsonb; v_cfg jsonb; v_clave text;
+begin
+  if jsonb_typeof(p) is distinct from 'object' then return null; end if;
+  -- Despiece: componentes (costeo) y pieza.componentes (partida de IA); sólo objetos.
+  select coalesce(jsonb_agg(c), '[]'::jsonb) into v_comps from (
+    select c from jsonb_array_elements(case when jsonb_typeof(p->'componentes') = 'array' then p->'componentes' else '[]'::jsonb end) c
+     where jsonb_typeof(c) = 'object'
+    union all
+    select c from jsonb_array_elements(case when jsonb_typeof(p->'pieza') = 'object' and jsonb_typeof(p->'pieza'->'componentes') = 'array'
+                                            then p->'pieza'->'componentes' else '[]'::jsonb end) c
+     where jsonb_typeof(c) = 'object') s;
+  v_excl := private_api.promesa_lista(
+    case when jsonb_typeof(p->'nombresExcluidos') = 'array' then p->'nombresExcluidos' else '[]'::jsonb end
+    || coalesce((select jsonb_agg(to_jsonb(coalesce(private_api.promesa_texto(c->'nombre'), 'Partida excluida')))
+                   from jsonb_array_elements(v_comps) c where c->'excluida' = 'true'::jsonb), '[]'::jsonb));
+  select jsonb_agg(to_jsonb(t) order by t collate "C") into v_piezas
+    from jsonb_array_elements_text(coalesce(private_api.promesa_lista(
+           case when jsonb_typeof(p->'piezas') = 'array' then p->'piezas' else '[]'::jsonb end
+           || coalesce((select jsonb_agg(coalesce(c->'nombre', 'null'::jsonb)) from jsonb_array_elements(v_comps) c), '[]'::jsonb)), '[]'::jsonb)) t
+   where not coalesce(v_excl, '[]'::jsonb) ? t;
+  v_cfg := case when jsonb_typeof(p->'config') = 'object' then nullif(jsonb_strip_nulls(p->'config'), '{}'::jsonb) end;
+  v_clave := case when jsonb_typeof(p->'catalogo') = 'object' then private_api.promesa_texto(p->'catalogo'->'clave') end;
+  return jsonb_strip_nulls(jsonb_build_object(
+    'v', 'v1',
+    'nombre', private_api.promesa_texto(p->'nombre'),
+    'w', private_api.promesa_numero(p->'w'), 'd', private_api.promesa_numero(p->'d'), 'h', private_api.promesa_numero(p->'h'),
+    'medidas', private_api.promesa_texto(p->'medidas'), 'material', private_api.promesa_texto(p->'material'),
+    'acabado', private_api.promesa_texto(p->'acabado'), 'descripcion', private_api.promesa_texto(p->'descripcion'),
+    'usuarios', private_api.promesa_numero(p->'usuarios'),
+    'config', v_cfg,
+    'catalogo', case when v_clave is not null then jsonb_build_object('clave', v_clave) end,
+    'producto_id', private_api.promesa_ident(coalesce(nullif(p->'producto_id', 'null'::jsonb), p->'product_id')),
+    'producto_version_id', private_api.promesa_ident(coalesce(nullif(p->'producto_version_id', 'null'::jsonb),
+                                                     nullif(p->'productVersionId', 'null'::jsonb), p->'product_version_id')),
+    'productoId', private_api.promesa_ident(p->'productoId'),
+    'claveLinea', private_api.promesa_ident(p->'claveLinea'),
+    'materiales', private_api.promesa_lista(
+       case when jsonb_typeof(p->'materiales') = 'array' then p->'materiales' else '[]'::jsonb end
+       || coalesce((select jsonb_agg(coalesce(c->'insumoId', 'null'::jsonb)) from jsonb_array_elements(v_comps) c), '[]'::jsonb)),
+    'piezas', v_piezas,
+    'nombresExcluidos', v_excl));
+end $$;
+create or replace function private_api.huella_promesa(p jsonb)
+returns text language sql immutable set search_path to 'pg_catalog', 'private_api' as $$
+  select md5(private_api.promesa_partida(p)::text) $$;
+revoke all on function private_api.promesa_texto(jsonb) from public, anon;
+revoke all on function private_api.promesa_numero(jsonb) from public, anon;
+revoke all on function private_api.promesa_ident(jsonb) from public, anon;
+revoke all on function private_api.promesa_lista(jsonb) from public, anon;
+revoke all on function private_api.promesa_partida(jsonb) from public, anon;
+revoke all on function private_api.huella_promesa(jsonb) from public, anon;
+grant execute on function private_api.promesa_texto(jsonb), private_api.promesa_numero(jsonb), private_api.promesa_ident(jsonb),
+  private_api.promesa_lista(jsonb), private_api.promesa_partida(jsonb), private_api.huella_promesa(jsonb) to authenticated, service_role;
+-- <<< promesa_v1
+
+-- La promesa de origen la normaliza y la sella el SERVIDOR al registrar el costeo; después no se cambia.
+create or replace function private_api.costeo_promesa_servidor()
+returns trigger language plpgsql security definer set search_path to 'pg_catalog', 'private_api' as $$
+begin
+  if tg_op = 'UPDATE' then
+    if new.promesa_origen is distinct from old.promesa_origen or new.promesa_version is distinct from old.promesa_version
+       or new.promesa_huella is distinct from old.promesa_huella then
+      raise exception 'la promesa de origen de un costeo no se cambia: recostea';
+    end if;
+    return new;
+  end if;
+  if new.promesa_origen is null or jsonb_typeof(new.promesa_origen) <> 'object' then
+    new.promesa_origen := null; new.promesa_version := null; new.promesa_huella := null; return new;
+  end if;
+  if coalesce(new.promesa_version, 'v1') <> 'v1' then raise exception 'promesa_version desconocida: %', new.promesa_version; end if;
+  new.promesa_origen := private_api.promesa_partida(new.promesa_origen);
+  new.promesa_version := 'v1';
+  new.promesa_huella := md5(new.promesa_origen::text);
+  return new;
+end $$;
+revoke all on function private_api.costeo_promesa_servidor() from public, anon, authenticated;
+create or replace trigger trg_costeo_promesa_servidor before insert or update on public.costeos_servidor
+  for each row execute function private_api.costeo_promesa_servidor();
+
 -- P1-05 · activación atómica: sólo Dirección HUMANA (permitidos=direccion y fuera de cuentas_no_humanas); estricto exige
 -- versión de motor (además del CHECK). Nadie más escribe la política (sin grants sobre la tabla).
 create or replace function private_api.activar_autoridad_costeo(p_modo text, p_frescura text, p_version_motor text)
@@ -280,6 +410,10 @@ begin
     if v_vig.partida_huella <> private_api.huella_partida(v_p) then
       raise exception 'la partida cambió desde que se vinculó este costeo: recostea';
     end if;
+    -- rev4: y sigue prometiendo lo que se costeó (redundante con la huella, explícito por contrato).
+    if v_k.promesa_huella is null or private_api.huella_promesa(v_p) is distinct from v_k.promesa_huella then
+      raise exception 'la partida ya no promete lo que se costeó: recostea';
+    end if;
     return jsonb_build_object('ok', true, 'cotizacion_id', p_cotizacion_id, 'partida_id', p_partida_id, 'costeo_id', p_costeo_id,
       'estado', v_k.estado, 'idempotente', true, 'actualizado', to_json(v_c.actualizado)#>>'{}');
   end if;
@@ -298,6 +432,14 @@ begin
   if v_k.identidad_origen is null then raise exception 'el costeo no trae la identidad del mueble: recostea'; end if;
   if private_api.identidad_partida(v_p) is distinct from private_api.identidad_partida(v_k.identidad_origen) then
     raise exception 'el costeo es de otro mueble (nombre/medidas/material distintos a los declarados al costear): recostea';
+  end if;
+  -- rev4: la PROMESA comercial de la partida es la de origen de ESTE costeo (sellada por el servidor al costear).
+  -- Nunca se aprende de la partida: sin promesa de origen no hay vínculo.
+  if v_k.promesa_huella is null or v_k.promesa_version is distinct from 'v1' then
+    raise exception 'el costeo no trae la promesa comercial v1: recostea';
+  end if;
+  if private_api.huella_promesa(v_p) is distinct from v_k.promesa_huella then
+    raise exception 'la partida promete otra cosa que lo costeado (material, acabado, configuración, accesorios o exclusiones): recostea';
   end if;
   v_nueva := v_p || jsonb_build_object('costoUnitario', v_k.costo_unitario, 'costoEstado', v_k.estado, 'costeoId', v_k.id::text, 'bomHash', v_k.bom_hash);
   update public.cotizaciones set partidas = jsonb_set(partidas, array[v_i::text], v_nueva)
@@ -369,6 +511,11 @@ begin
     -- …y a ESTA definición: la partida no cambió (nombre, medidas, material, despiece…) desde que se vinculó.
     if v_vig.partida_huella <> private_api.huella_partida(v_p) then
       v_out := array_append(v_out, format('linea_%s_partida_cambio_desde_el_costeo', v_ord)); continue; end if;
+    -- rev4: …y promete lo mismo que se costeó.
+    if v_r.promesa_huella is null then
+      v_out := array_append(v_out, format('linea_%s_costeo_sin_promesa', v_ord)); continue; end if;
+    if private_api.huella_promesa(v_p) is distinct from v_r.promesa_huella then
+      v_out := array_append(v_out, format('linea_%s_promesa_distinta_al_costeo', v_ord)); continue; end if;
     if lower(v_r.rol) not in ('direccion', 'diseno') then
       v_out := array_append(v_out, format('linea_%s_costeo_sin_autoridad', v_ord)); continue; end if;
     if v_r.estado <> 'certificado' or not v_r.aprobacion_humana then
@@ -481,6 +628,14 @@ commit;
 -- RB drop function if exists public.activar_autoridad_costeo(text, text, text);
 -- RB drop function if exists private_api.activar_autoridad_costeo(text, text, text);
 -- RB drop function if exists private_api.identidad_partida(jsonb);
+-- RB drop trigger if exists trg_costeo_promesa_servidor on public.costeos_servidor;
+-- RB drop function if exists private_api.costeo_promesa_servidor();
+-- RB drop function if exists private_api.huella_promesa(jsonb);
+-- RB drop function if exists private_api.promesa_partida(jsonb);
+-- RB drop function if exists private_api.promesa_lista(jsonb);
+-- RB drop function if exists private_api.promesa_ident(jsonb);
+-- RB drop function if exists private_api.promesa_numero(jsonb);
+-- RB drop function if exists private_api.promesa_texto(jsonb);
 -- RB drop function if exists private_api.motivos_autoridad_costeo(bigint);
 -- RB drop function if exists private_api.modo_emision_autoridad();
 -- RB drop table if exists private_api.politica_emision_autoridad;

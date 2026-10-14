@@ -20,6 +20,7 @@ import {
 // src/nube.js crea su cliente al importarse: aquí no se usa (vincularCosteos recibe el cliente PGlite explícito).
 vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({}) }));
 import { tablaDeBaseline, vistaCatalogoVigenteProduccion, funcionDeMigracion, privateApiDeBaseline } from './fixtures/erpBaseAislada.js';
+import { promesaComercialDeCosteo } from '../../src/datos/promesaComercial.js';
 
 const P103B = 'supabase/migrations/PROPUESTA_p103b_precio_id_en_catalogo.sql';
 const VH088 = 'supabase/migrations/20261012043000_vh088_catalogo_motor.sql';
@@ -71,11 +72,13 @@ function ayudas(db) {
   // Como la Edge (service_role): registra el costeo con la huella de su base de costo.
   h.reg = async (o = {}) => (await db.query(
     `insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, aprobacion_humana, precios,
-       insumos_usados, base_costo_huella, version_motor, identidad_origen, componentes_costeados)
-     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[], case when $10 then private_api.huella_base_costo($9::text[]) end, $11, $12::jsonb, $13::jsonb) returning id`,
+       insumos_usados, base_costo_huella, version_motor, identidad_origen, componentes_costeados, promesa_origen)
+     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[], case when $10 then private_api.huella_base_costo($9::text[]) end, $11, $12::jsonb, $13::jsonb, $14::jsonb) returning id`,
     [o.por ?? DIRECCION, o.rol ?? 'direccion', o.bom ?? 'bom-escritorio', o.cantidad ?? 1, o.costo ?? 6000, o.estado ?? 'certificado',
       o.humana ?? true, JSON.stringify(o.precios ?? TRAZA), o.insumos ?? ['m16'], o.base !== false, o.motor ?? 'motor-1',
-      o.identidad === null ? null : JSON.stringify(o.identidad ?? IDENTIDAD), JSON.stringify(COSTEADO.pieza.componentes)])).rows[0].id;
+      o.identidad === null ? null : JSON.stringify(o.identidad ?? IDENTIDAD), JSON.stringify(COSTEADO.pieza.componentes),
+      // rev4: la promesa de origen que manda la Edge (por omisión, la del mueble costeado). El trigger la sella.
+      o.promesa === null ? null : JSON.stringify(promesaComercialDeCosteo(o.promesa ?? o.identidad ?? COSTEADO))])).rows[0].id;
   // Dirección guarda la cotización (a nombre del vendedor) con las partidas dadas.
   h.sembrar = async (partidas = [{ ...COSTEADO }]) => (await uno(db, DIRECCION,
     `insert into public.cotizaciones(usuario, cliente, folio, partidas, total, piezas) values ($1, 'Cliente demo', 'COT-DEMO', $2::jsonb, 11600, 1) returning id`,
@@ -334,8 +337,10 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
     const g = await h.evaluar(id);
     expect(g.state).toBe('ECONOMICS_INCOMPLETE');
     expect(g.reasons).toContain('linea_1_sin_costeo_servidor');
-    // …y se puede vincular un costeo del servidor a ese renglón (no es canónico).
-    const k = await h.reg();
+    // …y se puede vincular un costeo del servidor a ese renglón (no es canónico). rev4: la clave de línea es identidad
+    // de variante y entra a la promesa, así que el costeo tiene que declararla; uno costeado sin ella ya no vincula.
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', await h.reg())))?.message).toMatch(/promete otra cosa/);
+    const k = await h.reg({ promesa: { ...COSTEADO, productoId: 'LIBRERO', claveLinea: 'LIBRERO' } });
     expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
   });
 
@@ -447,7 +452,8 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
     const { id } = await h.legitima();
     await h.guardarP1(id, { nombre: 'Escritorio ejecutivo 180', medidas: '180x80x75' });
     expect((await h.evaluar(id)).reasons).toContain('linea_1_partida_cambio_desde_el_costeo');
-    const k2 = await h.reg({ costo: 8100, identidad: { ...IDENTIDAD, nombre: 'Escritorio ejecutivo 180', medidas: '180x80x75' } });
+    const k2 = await h.reg({ costo: 8100, identidad: { ...IDENTIDAD, nombre: 'Escritorio ejecutivo 180', medidas: '180x80x75' },
+      promesa: { ...COSTEADO, nombre: 'Escritorio ejecutivo 180', medidas: '180x80x75' } });
     expect(await h.adjuntar(DIRECCION, id, 'p1', k2)).toMatchObject({ ok: true });
     expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 13000 }))).state).toBe('ALLOWED');
   });
@@ -486,10 +492,166 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
     await db.exec(rb);
     try {
       expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).toBe(MD5_WRAPPER_PROD);
-      for (const f of ['public.adjuntar_costeo_a_partida(bigint, text, uuid, timestamptz)', 'private_api.huella_partida(jsonb)', 'public.huella_base_costo(text[])', 'public.activar_autoridad_costeo(text, text, text)', 'private_api.identidad_partida(jsonb)']) {
+      for (const f of ['public.adjuntar_costeo_a_partida(bigint, text, uuid, timestamptz)', 'private_api.huella_partida(jsonb)', 'public.huella_base_costo(text[])', 'public.activar_autoridad_costeo(text, text, text)', 'private_api.identidad_partida(jsonb)',
+        'private_api.promesa_partida(jsonb)', 'private_api.huella_promesa(jsonb)', 'private_api.costeo_promesa_servidor()']) {
         expect((await db.query('select to_regprocedure($1) is null as no', [f])).rows[0].no, f).toBe(true);
       }
     } finally { await db.exec(leer(SEG01C)); await h.politica(ESTRICTO); }
+  });
+});
+
+// ============================================================================
+//  rev4 · PROMESA COMERCIAL v1 (cierre pre-deploy 14-oct). El K de un mueble no se vincula por primera vez a otro con el
+//  mismo nombre, medidas y cantidad pero distinto material, acabado, accesorio, electrificación, exclusiones o
+//  configuración. La promesa de origen la sella el servidor al costear; adjuntar nunca la aprende de la partida.
+// ============================================================================
+describe('SEG-01c rev 4 · promesa comercial v1 atada al costeo', () => {
+  let db, h;
+  // A: escritorio de melamina blanca, sin electrificar, cristal incluido.
+  const A = { ...COSTEADO, config: { finish: 'blanco', electrico: false, largoLateralMM: null },
+    pieza: { componentes: [{ id: 'c1', nombre: 'Cubierta', largo: 1200, ancho: 600, insumoId: 'm16' }, { id: 'c2', nombre: 'Cristal templado', insumoId: 'cr6' }] } };
+  const conCristalExcluido = (p) => ({ ...p, pieza: { componentes: p.pieza.componentes.map((c) => (c.nombre === 'Cristal templado' ? { ...c, excluida: true } : c)) } });
+  const vigentes = async (k) => Number((await db.query('select count(*)::int n from public.partida_costeo_vigente where costeo_id = $1', [k])).rows[0].n);
+  beforeAll(async () => { db = await base(); h = ayudas(db); }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  it('control: el K de A se vincula a A (misma promesa) y emite', async () => {
+    const k = await h.reg({ promesa: A });
+    const id = await h.sembrar([{ ...A, costeoId: k }]);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('el servidor sella versión y huella; nadie las cambia después (ni service_role)', async () => {
+    const k = await h.reg({ promesa: A });
+    const r = (await db.query('select promesa_version, promesa_huella, promesa_origen, private_api.huella_promesa($2::jsonb) as esperada from public.costeos_servidor where id = $1',
+      [k, JSON.stringify(A)])).rows[0];
+    expect(r.promesa_version).toBe('v1');
+    expect(r.promesa_huella).toBe(r.esperada);
+    expect(r.promesa_origen).toEqual(promesaComercialDeCosteo(A));
+    expect((await fallo(db.query(`update public.costeos_servidor set promesa_origen = '{"v":"v1","nombre":"Mesa"}'::jsonb where id = $1`, [k])))?.message).toMatch(/no se cambia/);
+    expect((await fallo(db.query(`update public.costeos_servidor set promesa_huella = md5('x') where id = $1`, [k])))?.message).toMatch(/no se cambia/);
+    expect((await fallo(h.reg({ promesa: A, version: 'v9' }).then(() => db.query(`insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, promesa_origen, promesa_version)
+      values ('${DIRECCION}', 'direccion', 'b', 1, 1, 'preliminar', '{"nombre":"x"}'::jsonb, 'v9')`))))?.message).toMatch(/promesa_version desconocida/);
+  });
+
+  it.each([
+    ['material (insumo del despiece)', { pieza: { componentes: [{ id: 'c1', nombre: 'Cubierta', largo: 1200, ancho: 600, insumoId: 'm18' }, { id: 'c2', nombre: 'Cristal templado', insumoId: 'cr6' }] } }],
+    ['acabado', { config: { finish: 'nogal', electrico: false } }],
+    ['acabado (campo de texto)', { acabado: 'Nogal' }],
+    ['accesorio', { config: { finish: 'blanco', electrico: false, cajonera: true } }],
+    ['electrificación', { config: { finish: 'blanco', electrico: true } }],
+    ['configuración (lateral)', { config: { finish: 'blanco', electrico: false, largoLateralMM: 1200 } }],
+    ['nombresExcluidos', { nombresExcluidos: ['Faldón'] }],
+    ['variante de catálogo', { catalogo: { clave: 'ESC-120-NOG' } }],
+  ])('Q2: el K de A NO se vincula por primera vez a B con el mismo nombre, medidas y cantidad pero distinto %s', async (_n, cambio) => {
+    const k = await h.reg({ promesa: A });
+    const B = { ...A, ...cambio, costeoId: k };
+    const id = await h.sembrar([B]);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k)))?.message).toMatch(/promete otra cosa/);
+    expect(await vigentes(k)).toBe(0);
+    expect((await db.query('select cotizacion_id from public.costeos_servidor where id = $1', [k])).rows[0].cotizacion_id).toBeNull();
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_no_vinculado_a_esta_partida');
+  });
+
+  it('cristal: excluido ⇄ incluido falla en los DOS sentidos; cada uno con su propio K sí vincula', async () => {
+    const Y = conCristalExcluido(A);
+    const kX = await h.reg({ promesa: A }); const kY = await h.reg({ promesa: Y });
+    const enY = await h.sembrar([{ ...Y, costeoId: kX }]);
+    expect((await fallo(h.adjuntar(DIRECCION, enY, 'p1', kX)))?.message).toMatch(/promete otra cosa/);
+    const enX = await h.sembrar([{ ...A, costeoId: kY }]);
+    expect((await fallo(h.adjuntar(DIRECCION, enX, 'p1', kY)))?.message).toMatch(/promete otra cosa/);
+    expect(await h.adjuntar(DIRECCION, enY, 'p1', kY)).toMatchObject({ ok: true });
+    expect(await h.adjuntar(DIRECCION, enX, 'p1', kX)).toMatchObject({ ok: true });
+  });
+
+  it('nunca aprende la promesa en el primer vínculo: un K sin promesa de origen no se vincula', async () => {
+    const k = await h.reg({ promesa: null });
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k)))?.message).toMatch(/no trae la promesa comercial/);
+    expect(await vigentes(k)).toBe(0);
+  });
+
+  it('K1→K2: K2 vincula con SU promesa de origen; K1 queda histórico (reemplazado) y sólo K2 está vigente', async () => {
+    const k1 = await h.reg({ promesa: A });
+    const id = await h.sembrar([{ ...A, costeoId: k1 }]);
+    await h.adjuntar(DIRECCION, id, 'p1', k1);
+    const k2 = await h.reg({ promesa: A, costo: 6200 });
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k2)).toMatchObject({ ok: true });
+    expect((await db.query('select costeo_id from public.partida_costeo_vigente where cotizacion_id = $1', [id])).rows.map((r) => r.costeo_id)).toEqual([k2]);
+    expect((await db.query('select reemplazado_por, cotizacion_id from public.costeos_servidor where id = $1', [k1])).rows[0]).toEqual({ reemplazado_por: k2, cotizacion_id: id });
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k1)))?.message).toMatch(/reemplazado/);
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('K2 no lava un cambio hecho DESPUÉS de nacer K2; un K3 costeado con la promesa nueva sí', async () => {
+    const k1 = await h.reg({ promesa: A });
+    const id = await h.sembrar([{ ...A, costeoId: k1 }]);
+    await h.adjuntar(DIRECCION, id, 'p1', k1);
+    const k2 = await h.reg({ promesa: A });                                  // K2 nace con la promesa de A…
+    await h.guardarP1(id, { config: { finish: 'nogal', electrico: true } });  // …y DESPUÉS la partida cambia
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_partida_cambio_desde_el_costeo');
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k2)))?.message).toMatch(/promete otra cosa/);
+    expect(await vigentes(k2)).toBe(0);
+    const k3 = await h.reg({ promesa: { ...A, config: { finish: 'nogal', electrico: true } }, costo: 7100 });
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k3)).toMatchObject({ ok: true });
+    expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 11000 }))).state).toBe('ALLOWED');
+  });
+
+  it('campos visuales (render, imagen, acomodo, instancia) no fuerzan recosteo: vínculo idempotente y sigue ALLOWED', async () => {
+    const k = await h.reg({ promesa: A });
+    const id = await h.sembrar([{ ...A, costeoId: k }]);
+    await h.adjuntar(DIRECCION, id, 'p1', k);
+    await h.guardarP1(id, { render: 'https://x/otro.png', zone_id: 'z7', instance_id: 'i7', anchor_instance_id: 'a7', functional_group_id: 'g7', anchor_role: 'centro' });
+    expect(await h.motivos(id)).toEqual([]);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true, idempotente: true });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('rama idempotente: mismo K vigente + misma partida + misma promesa no exige al creador (Diseño costea, Dirección re-vincula)', async () => {
+    const k = await h.reg({ promesa: A, por: DISENO, rol: 'diseno' });
+    const id = await h.sembrar([{ ...A, costeoId: k }]);
+    await h.adjuntar(DISENO, id, 'p1', k);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true, idempotente: true });
+  });
+
+  it('emisión: si la promesa de la partida no es la del costeo vigente ⇒ no emite (defensa en la emisión, no sólo en adjuntar)', async () => {
+    const k = await h.reg({ promesa: A });
+    const id = await h.sembrar([{ ...A, costeoId: k }]);
+    await h.adjuntar(DIRECCION, id, 'p1', k);
+    // Simula un vínculo escrito por fuera de adjuntar con la huella de la partida pero otra promesa de origen.
+    const kOtro = await h.reg({ promesa: { ...A, acabado: 'Nogal' } });
+    await db.query(`update public.partida_costeo_vigente set costeo_id = $2 where cotizacion_id = $1`, [id, kOtro]);
+    await db.query(`update public.cotizaciones set partidas = jsonb_set(partidas, '{0,costeoId}', to_jsonb($2::text)) where id = $1`, [id, kOtro]);
+    await db.query(`update public.partida_costeo_vigente set partida_huella = private_api.huella_partida((select partidas->0 from public.cotizaciones where id = $1)) where cotizacion_id = $1`, [id]);
+    expect(await h.motivos(id)).toContain('linea_1_promesa_distinta_al_costeo');
+  });
+});
+
+// ============================================================================
+//  ANTES · rev3 (96bab98): los mismos ataques de promesa PASABAN (Q2 = SÍ). Las pruebas de arriba fallan contra rev3.
+// ============================================================================
+describe('ANTES · SEG-01c revisión 3 (96bab98): el K de A se vinculaba a B con otro material/acabado/exclusiones', () => {
+  let db, h;
+  const A = { ...COSTEADO, config: { finish: 'blanco', electrico: false } };
+  beforeAll(async () => {
+    db = await base({ seg01c: 'supabase/tests/fixtures/seg01c_rev3_96bab98.sql' }); h = ayudas(db);
+    const reg = h.reg;
+    h.reg = async (o = {}) => reg({ ...o, promesa: null });   // rev3 no tenía promesa
+    await db.exec('alter table public.costeos_servidor add column if not exists promesa_origen jsonb');
+  }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  it.each([
+    ['material', { pieza: { componentes: [{ id: 'c1', nombre: 'Cubierta', largo: 1200, ancho: 600, insumoId: 'm18' }] } }],
+    ['acabado', { config: { finish: 'nogal', electrico: false } }],
+    ['electrificación', { config: { finish: 'blanco', electrico: true } }],
+    ['cristal excluido', { nombresExcluidos: ['Cristal templado'] }],
+  ])('defecto rev3: distinto %s ⇒ vinculaba y quedaba ALLOWED', async (_n, cambio) => {
+    const k = await h.reg();
+    const id = await h.sembrar([{ ...A, ...cambio, costeoId: k }]);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
   });
 });
 
