@@ -44,7 +44,7 @@ porque el negocio **no puede emitir en firme** sin estas condiciones:
 | Biblioteca / datos QA | estimado 6 | **8** | Los 80 más recientes eran todos de QA, así que los reales no aparecían. Filtro con interruptor y límite de 400. PROPUESTA de etiquetado de 154 ids exactos con 4 pruebas PGlite. | No | Etiquetado sin aplicar. |
 | Seguridad (advisors) | 7 | **8** | 0 ERROR. 10 SECURITY DEFINER revisadas, todas con chequeo de rol interno. Escritura directa a la economía oficial detectada y cerrada (en PROPUESTA). | No | `qa-direccion` tiene rol `direccion` en `permitidos`: pasa `puede_certificar_costo()`. Mitigado en la Edge y en SEG-01b, no en la base. 7 funciones con `search_path` mutable. |
 | Rendimiento | estimado 7 | 7 | Advisors: solo INFO (3 llaves foráneas sin índice, 13 índices sin uso) | No | Sin medición de tiempos de usuario en esta operación. |
-| Pruebas (static → comportamiento) | 39 archivos STATIC GUARD | *pendiente del agente* | ver §4 | | |
+| Pruebas (static → comportamiento) | 39 archivos STATIC GUARD, ~137 casos string-assert | **8** | 13 archivos de costo, emisión y dinero convertidos a ejecución. La lógica salió de los componentes a funciones puras: `agregarCosteo`, `emisionViva`, `modoDocumento`, etc. `emissionExactCentsSql` ahora corre el SQL **desplegado** en PGlite, no `docs/sql`. 53/53 mutaciones plantadas detectadas, y las 8 mismas mutaciones sobreviven con las pruebas viejas. Casos string-assert: 137 → 118. | No | `edgeSpatialHardening` sigue estático (falta un arnés `deno test`). El cableado componente → función sigue siendo texto (no hay jsdom). Otros static guards (`recoverySource`, `cocrearVisualSync`, `layoutPublicationGate`, `voniTrustSurface`) no se tocaron. |
 
 **Ninguna área llega a 9.5 medida y defendible.** Las que más se acercan (estado del costo y preparación del
 holdout) dependen de datos o de decisiones que no son de código.
@@ -53,7 +53,7 @@ holdout) dependen de datos o de decisiones que no son de código.
 
 | Gate | Cómo se reproduce | Resultado |
 |---|---|---|
-| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | 339 archivos, 3,096 pruebas (41b4109), ambos entornos; `vite build` OK |
+| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | 339 archivos, 3,138 pruebas (2649de8), ambos entornos; `vite build` OK |
 | SEG-01b adversarial | `npx vitest run supabase/tests/seguridadGateEmisionSnapshot.test.js -t "SEG-01b"` | 15/15; 14 fallan sin la propuesta |
 | VH-100 | `npx vitest run supabase/tests/cargarCostosOficiales.test.js`; con `VH100_MIG=<archivo viejo>` fallan 7 | 12/12 |
 | Estado y precio exacto | `npx vitest run src/datos/autoridadCosteoServidor.test.js` | 20/20 |
@@ -61,9 +61,16 @@ holdout) dependen de datos o de decisiones que no son de código.
 | Edge RC | `scripts/edge_boot_check.sh costear-servidor-rc` y el workflow `deploy-edge.yml` run 38509149245 | arranca; despliegue OK |
 | Holdout | `node scripts/congelar_holdout.mjs --verificar` | OK (37 archivos) |
 
-## 4. Pendiente de integrar en este documento
+## 4. Hallazgos nuevos al ejecutar lo que antes solo se leía (visibles con `it.fails`, sin tocar producción)
 
-- Static guards → comportamiento: el agente trabaja en un worktree; se integrará con sus mutaciones probadas.
+- **P1 latente · medio centavo de diferencia entre JS y SQL.** `precioConDescuento(1000.10, 5)` da **950.09**, pero
+  `emitir_revision_v2` (desplegado) exige **950.10** y rechaza. Hoy no se dispara porque el descuento es global.
+  Saldrá cuando una línea traiga descuento propio. **Decisión:** qué regla de redondeo manda, y alinear la otra.
+- **P2 · la sombra cliente↔servidor redondea al peso el lado cliente.** El `diff` es distinto de 0 aunque la
+  paridad sea exacta. Solo afecta el diagnóstico.
+- **P2 · costo 0 "certificado".** Si cliente y servidor dicen costo 0 y estado `certificado`, se agrega la partida.
+  El servidor no debería producirlo (0 sin dato marca incompleto), pero el cliente no lo bloquea por su cuenta.
+
 
 ## 5. No verificable en esta operación (y por qué)
 
