@@ -103,7 +103,7 @@ Las cotizaciones son la 840, 757, 702, 703, 783, 784, 834, 1157, 1658 y 1668.
 - El registro **línea** viene de `src/datos/preciosLinea.js`, autogenerado del Excel `ARTICULOS-LINEAS-2026-08-18.xlsx` (`preciosLinea.js:1-15`). Trae clave ERP, descripción Intelisis, FULL, lista y mínimo.
 - El registro **banco** viene de `src/datos/banco.js`. Es un renglón leído del presupuesto **225120019 (PrestigeMotors, dic-2025)** (`banco.js:388,417`). Ese presupuesto cotizó las piezas sueltas a precio de lista, por eso el precio coincide. El nombre corto y buscable se generó con la regla "Línea · Qué es" (`banco.js:26-30`).
 - La migración base (`creado_por = baseline_migration`, 2026-10-02) cargó los dos lotes uno tras otro sin deduplicar por clave. El deduplicador `bancoUnico()` (`banco.js:393-490`) solo junta renglones **dentro del banco**, no banco contra línea.
-- La RPC de carga de costo oficial ya previó el choque. `supabase/migrations/20261012061000_vh100_cargar_costos_oficiales.sql:51-56` rechaza con `CODIGO_DUPLICADO` si no se manda `producto_id`. **Esa función no existe hoy en la base:** `pg_proc` no tiene `cargar_costos_oficiales` (Q6). La migración no está aplicada.
+- La RPC de carga de costo oficial ya previó el choque. `supabase/migrations/PROPUESTA_vh100_cargar_costos_oficiales.sql:51-56` rechaza con `CODIGO_DUPLICADO` si no se manda `producto_id`. **Esa función no existe hoy en la base:** `pg_proc` no tiene `cargar_costos_oficiales` (Q6). La migración no está aplicada.
 
 ### 1.5 Recomendación: canónico para cargar costo
 

@@ -8,9 +8,11 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto';
-import { tablaDeBaseline, funcionDeMigracion, como, fila, filas, DIRECCION, VENDEDOR } from './fixtures/erpBaseAislada.js';
+import { tablaDeBaseline, como, fila, filas, leer, DIRECCION, VENDEDOR } from './fixtures/erpBaseAislada.js';
 
-const MIG = 'supabase/migrations/20261012061000_vh100_cargar_costos_oficiales.sql';
+const MIG = process.env.VH100_MIG || 'supabase/migrations/PROPUESTA_vh100_cargar_costos_oficiales.sql';
+const DISENO = 'diseno@vh.mx';
+const QA = 'qa-direccion@vonhaucke.mx';
 let db;
 const economia = (pv) => fila(db, 'select costo_oficial_referencia::float8 as costo, formula_version, fuente from public.producto_version_economia where producto_version_id = $1', [pv]);
 const cargar = (filasRpc) => fila(db, `select public.cargar_costos_oficiales('Reportes cotizador APP LT 12/08/2026', $1::jsonb) as r`, [JSON.stringify(filasRpc)]);
@@ -25,19 +27,27 @@ describe('VH-100 · carga de costo oficial por código (P0-01)', () => {
       do $$ begin
         if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
         if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
+        if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin; end if;
       end $$;
+      -- user_metadata lo edita el propio usuario (supabase.auth.updateUser); el test lo deja falsificar como en la vida real.
       create function auth.jwt() returns jsonb language sql stable as $$
         select case when coalesce(current_setting('test.email', true), '') = '' then null
-          else jsonb_build_object('email', current_setting('test.email', true)) end $$;
+          else jsonb_build_object('email', current_setting('test.email', true),
+                                  'user_metadata', coalesce(nullif(current_setting('test.meta', true), ''), '{}')::jsonb) end $$;
       create function auth.role() returns text language sql stable as $$
         select case when coalesce(current_setting('test.email', true), '') = '' then 'anon' else 'authenticated' end $$;
       create table public.permitidos (email text primary key, rol text);
-      insert into public.permitidos values ('${DIRECCION}', 'direccion'), ('${VENDEDOR}', 'vendedor');
+      insert into public.permitidos values ('${DIRECCION}', 'direccion'), ('${VENDEDOR}', 'vendedor'), ('${DISENO}', 'diseno'), ('${QA}', 'direccion');
+      -- Tabla de SEG-01b (cuentas cuya firma no es humana), con la semilla real.
+      create table public.cuentas_no_humanas (email text primary key, motivo text not null);
+      insert into public.cuentas_no_humanas values ('${QA}', 'cuenta de pruebas QA');
       create function private_api.puede_editar_config() returns boolean language sql stable as $$
         select coalesce((select lower(rol) from public.permitidos where lower(email) = lower(auth.jwt()->>'email')) in ('direccion','diseno'), false) $$;
     `);
     for (const t of ['productos', 'producto_versiones', 'producto_version_economia']) await db.exec(tablaDeBaseline(t));
-    await db.exec(funcionDeMigracion(MIG, 'public.cargar_costos_oficiales'));
+    // Estado medido en producción el 14-oct: authenticated TIENE insert/update/delete sobre la economía (pm_eco_all).
+    await db.exec('grant select, insert, update, delete on public.producto_version_economia to authenticated');
+    await db.exec(leer(MIG));
     // Muestra con los ids reales de producción (consulta de sólo lectura 2026-10-13).
     await db.exec(`
       insert into public.productos (id, codigo, nombre, source_type, activo, version_tecnica_vigente_id) overriding system value values
@@ -54,7 +64,7 @@ describe('VH-100 · carga de costo oficial por código (P0-01)', () => {
     expect(r).toMatchObject({ ok: true, cargados: 1, sin_producto: 0 });
     const e = await economia(1668);
     expect(e.costo).toBe(195.27);
-    expect(e.fuente).toMatch(/Reportes cotizador APP LT 12\/08\/2026 · 2026-08-12 · sha256:[0-9a-f]{16} · direccion@vh\.mx/);
+    expect(e.fuente).toMatch(/Reportes cotizador APP LT 12\/08\/2026 · 2026-08-12 · sha256:[0-9a-f]{64} · direccion@vh\.mx/);
   });
 
   it('código DUPLICADO sin producto_id → se rechaza con los ids candidatos (no cae en uno al azar)', async () => {
@@ -89,5 +99,47 @@ describe('VH-100 · carga de costo oficial por código (P0-01)', () => {
   it('un vendedor no puede cargar costos', async () => {
     await expect(como(db, VENDEDOR, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/sólo Dirección/);
     expect((await filas(db, 'select * from public.producto_version_economia'))).toHaveLength(2);
+  });
+
+  // ---------------- OP9.5-03 (14-oct): huecos de la versión anterior; estas pruebas FALLAN con ella ----------------
+  it('un VENDEDOR que se pone rol "direccion" en su user_metadata NO carga costos (antes sí)', async () => {
+    await db.exec(`select set_config('test.meta', '{"rol":"direccion"}', false)`);
+    try {
+      await expect(como(db, VENDEDOR, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/sólo Dirección/);
+    } finally { await db.exec(`select set_config('test.meta', '', false)`); }
+    expect((await economia(1668)).costo).toBe(195.27);
+  });
+
+  it('Diseño no carga costos oficiales (antes entraba por puede_editar_config)', async () => {
+    await expect(como(db, DISENO, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/sólo Dirección/);
+  });
+
+  it('la cuenta QA (rol direccion en permitidos) NO carga costos oficiales: está en cuentas_no_humanas', async () => {
+    await expect(como(db, QA, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/cuenta no humana/);
+    expect((await economia(1668)).costo).toBe(195.27);
+  });
+
+  it('sobrescribir un costo oficial deja la fila anterior en el historial (antes se perdía)', async () => {
+    const { r } = await como(db, DIRECCION, () => cargar([{ codigo: 'ATACM', costo: 201.5, fecha: '2026-10-14' }]));
+    expect(r.cargados).toBe(1);
+    expect((await economia(1668)).costo).toBe(201.5);
+    const h = await filas(db, 'select costo_anterior::float8 as c, reemplazado_por, documento_nuevo, fuente_anterior from public.producto_version_economia_historial where producto_version_id = 1668');
+    expect(h).toHaveLength(1);
+    expect(h[0]).toMatchObject({ c: 195.27, reemplazado_por: DIRECCION, documento_nuevo: 'Reportes cotizador APP LT 12/08/2026' });
+    expect(h[0].fuente_anterior).toMatch(/2026-08-12/);
+  });
+
+  it('Dirección ya no puede escribir la economía oficial directo por PostgREST (sin procedencia); sí leerla', async () => {
+    for (const p of ['INSERT', 'UPDATE', 'DELETE']) {
+      expect((await fila(db, `select has_table_privilege('authenticated', 'public.producto_version_economia', $1) as ok`, [p])).ok, p).toBe(false);
+    }
+    expect((await fila(db, `select has_table_privilege('authenticated', 'public.producto_version_economia', 'SELECT') as ok`)).ok).toBe(true);
+  });
+
+  it('sin la tabla cuentas_no_humanas (SEG-01b sin aplicar) nadie carga: fail-closed', async () => {
+    await db.exec('alter table public.cuentas_no_humanas rename to cnh_tmp');
+    try {
+      await expect(como(db, DIRECCION, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/aplicar SEG-01b/);
+    } finally { await db.exec('alter table public.cnh_tmp rename to cuentas_no_humanas'); }
   });
 });
