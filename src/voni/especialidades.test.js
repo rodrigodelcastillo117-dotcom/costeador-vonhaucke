@@ -28,7 +28,9 @@ describe('VONI especialidades: banderas, contrato de resultados y procedencia', 
     expect(resultadoIngenieria({ lecturaIA: { motivos: ['una pieza'] } }).estado).toBe(RESULTADO.BLOCKED);
     expect(resultadoIngenieria({ lecturaIA: { motivos: ['una pieza'], revisada: true } }).estado).toBe(RESULTADO.PASS);
     expect(resultadoIngenieria({ componentes: [{ nombre: 'Divisiones', procedencia: 'INFERIDO' }] }).estado).toBe(RESULTADO.NEEDS_CONFIRMATION);
-    expect(resultadoIngenieria({ componentes: [{ nombre: 'Divisiones', procedencia: 'INFERIDO', material_confirmado: true }] }).estado).toBe(RESULTADO.PASS);
+    // Auditoría 2026-10-14 (P1-01): confirmar el MATERIAL no confirma que la pieza exista; sólo `pieza_confirmada` lo hace.
+    expect(resultadoIngenieria({ componentes: [{ nombre: 'Divisiones', procedencia: 'INFERIDO', material_confirmado: true }] }).estado).toBe(RESULTADO.NEEDS_CONFIRMATION);
+    expect(resultadoIngenieria({ componentes: [{ nombre: 'Divisiones', procedencia: 'INFERIDO', pieza_confirmada: true }] }).estado).toBe(RESULTADO.PASS);
     expect(resultadoIngenieria({ error: 'timeout' }).estado).toBe(RESULTADO.ERROR);
   });
   it('Costos: mapea los tres niveles sin exponer importes', () => {

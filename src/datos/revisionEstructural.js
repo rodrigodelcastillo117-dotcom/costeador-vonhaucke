@@ -122,7 +122,10 @@ export function revisarEstructura({ componentes = [], descripcion = '', insumos 
   //    no hay patas, base, estructura ni laterales, el despiece está INCOMPLETO y no se da el costo por bueno.
   //    (Una cubierta de reposición sola es legítima: por eso sólo aplica cuando la intención es el mueble completo.)
   const muebleCompleto = /\b(mesa|escritorio|mostrador|recepci[oó]n|credenza|gabinete|archivero|librero|alacena|table|desk)\b/i.test(descripcion)
-    && !/reposici[oó]n|refacci[oó]n|repuesto|s[oó]lo (la )?cubierta|cubierta suelta/i.test(descripcion);
+    && !/reposici[oó]n|refacci[oó]n|repuesto|s[oó]lo (la )?cubierta|cubierta suelta/i.test(descripcion)
+    // Auditoría 2026-10-14 (P1-07): si la descripción de la PERSONA empieza nombrando la cubierta ("Cubierta rectangular
+    // 1500×600 App LT…"), el producto ES la cubierta (componente de catálogo), aunque la IA lo clasifique como "mesa".
+    && !/^\s*(cubiertas?|tapas?|tops?|superficies?)\b/i.test(descripcion);
   if (muebleCompleto && hay('cubierta') && !hay('pata') && !hay('lateral')) {
     obs.push({ nivel: 'blocker', regla: 'sin_soporte',
       mensaje: 'El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.' });
@@ -186,6 +189,17 @@ const MM = (x) => Math.round(Number(x) || 0);
 /** "800 x 450 x 2000 mm" → [800, 450, 2000]; ignora números < 50 (no son medidas de mueble). */
 export function medidasDe(texto = '') {
   const t = String(texto || '').toLowerCase().replace(/(\d),(\d{3})\b/g, '$1$2');
+  // Auditoría 2026-10-14 (P2-03): primero un patrón dimensional explícito (A x B [x C]); sólo si no hay, los primeros
+  // números razonables. Así un modelo, un RAL o un calibre escritos antes no desplazan largo/ancho/alto.
+  const dim = t.match(/(\d+(?:\.\d+)?)\s*(?:mm|cm|m)?\s*[x×*]\s*(\d+(?:\.\d+)?)\s*(?:mm|cm|m)?(?:\s*[x×*]\s*(\d+(?:\.\d+)?))?\s*(mm|cm|m)?\b/);
+  if (dim) {
+    const unidad = dim[4] || (/\d\s*cm\b/.test(dim[0]) ? 'cm' : '');
+    const f = unidad === 'cm' ? 10 : unidad === 'm' ? 1000 : 1;
+    const v = [dim[1], dim[2], dim[3]].filter((x) => x != null).map((x) => Number(x) * f);
+    const enM = !unidad && v.every((n) => n < 50);
+    const out = v.map((n) => (enM ? n * 1000 : n)).filter((n) => n >= 50 && n <= 20000);
+    if (out.length >= 2) return out.slice(0, 3);
+  }
   const crudos = (t.match(/\d+(?:\.\d+)?/g) || []).map(Number);
   const enM = /\d\s*m\b/.test(t) && !/mm/.test(t) && crudos.every((n) => n < 50);
   return crudos.map((n) => (enM ? n * 1000 : n)).filter((n) => n >= 50 && n <= 20000).slice(0, 3);

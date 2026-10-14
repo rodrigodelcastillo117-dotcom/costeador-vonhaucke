@@ -180,6 +180,13 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
     warnings.push("Costo con material(es) histórico(s) (LEGACY_SELECTED): estado tope 'preliminar' hasta confirmar el material.");
     estado = estadoTopado as typeof estado;
   }
+  // Auditoría 2026-10-14 (P1-01): una pieza que la IA INFIRIÓ o SUPUSO (no la vio) y que ninguna persona con capability
+  // confirmó que existe no deja certificar el costo, aunque su material y su precio estén certificados.
+  const noObservadas = piezaReconciliada.componentes.filter((c: any) => c && (c.procedencia === "INFERIDO" || c.procedencia === "SUPUESTO") && !(c.pieza_confirmada === true && puedeConfirmar));
+  if (noObservadas.length && estado === "certificado") {
+    estado = "preliminar";
+    warnings.push(`${noObservadas.length} pieza(s) inferidas por la IA sin confirmar que existen: estado tope 'preliminar'.`);
+  }
   // P0-04 (2026-10-12): el costo de RESPALDO (config-fallback) NUNCA es 'certificado'. Sólo el
   // catálogo central (catalogo_motor, precios aprobados con documento) certifica; si no estuvo,
   // el estado se topa en 'preliminar' aunque la evidencia por insumo diga certificable.

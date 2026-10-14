@@ -930,6 +930,18 @@ export function estadoMaterialUI(c = {}, insumos = {}) {
 // Lleva el campo de INTENCIÓN dedicado `material_confirmado` (lo que el servidor verifica y
 // convierte a estado efectivo), además de material_match=USER_CONFIRMED para la UI/hash.
 // No se acepta que una UI mande USER_CONFIRMED y la otra conserve COMPATIBLE.
+// Auditoría 2026-10-14 (P2-01): el artículo que la persona eligió para UNA pieza se PROPONE a sus hermanas, pero eso no
+// es una decisión humana sobre cada una: entran al cálculo provisional marcadas "por confirmar" y con su origen.
+export function patchPropuestaHermana(insumoId, origen = '') {
+  return {
+    material_match: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED,
+    material_confirmado: false,
+    candidate_insumo_id: insumoId,
+    propagado_desde: String(origen || ''),
+    _match: { clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, confirmado_por_usuario: false, autollenado: true, autocosteable: true, candidate_insumo_id: insumoId },
+  };
+}
+
 export function patchConfirmacionUI(insumoId) {
   return {
     material_match: MATCH.USER_CONFIRMED,

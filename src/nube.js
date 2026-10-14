@@ -379,7 +379,23 @@ const envFn = (k, def) => (typeof import.meta !== 'undefined' && import.meta.env
 const FN_LEER_PLANO = (() => { const v = envFn('VITE_LEER_PLANO_FN', 'leer-plano'); return /^leer-plano(-rc)?$/.test(v) ? v : 'leer-plano'; })();
 // Carril RC publicado (link de prueba): sólo builds de Preview de Vercel con CARRIL_RC=si (ver vite.config.js).
 // Nombres fijos, no tomados de variables: el preview no puede apuntar a otra función que no sea su copia -rc.
-export const CARRIL_RC = typeof __CARRIL_RC__ !== 'undefined' && __CARRIL_RC__ === true;
+// Auditoría 2026-10-14 (P1-06): la bandera queda horneada en el build; si alguien PROMUEVE ese mismo artifact a producción,
+// seguiría en RC. Por eso además se exige, al ejecutar, estar en una URL de preview del equipo (*-rodrigos-eurotrip.vercel.app):
+// en el dominio de producción o en uno propio el carril se apaga solo (fail-closed: ante la duda, Edge productivas).
+export function carrilRcActivo(bandera, hostname) {
+  return bandera === true && /-rodrigos-eurotrip\.vercel\.app$/i.test(String(hostname || ''));
+}
+export const CARRIL_RC = carrilRcActivo(typeof __CARRIL_RC__ !== 'undefined' && __CARRIL_RC__ === true,
+  typeof window !== 'undefined' && window.location ? window.location.hostname : '');
+// P1-05: el preview escribe en la base REAL. Todo expediente guardado desde el carril RC lleva la etiqueta y el prefijo de
+// prueba para que nunca se confunda con uno real (los del 13-oct sin marca se listan aparte para que Dirección decida).
+export const ETIQUETA_CARRIL_RC = 'prueba-rc';
+export function marcarExpedienteRc(exp, activo = CARRIL_RC) {
+  if (!activo || !exp) return exp;
+  const etiquetas = Array.isArray(exp.etiquetas) ? exp.etiquetas : (exp.etiquetas ? [String(exp.etiquetas)] : []);
+  const nombre = String(exp.nombre || '');
+  return { ...exp, nombre: /^PRUEBA RC · /.test(nombre) ? nombre : `PRUEBA RC · ${nombre}`, etiquetas: etiquetas.includes(ETIQUETA_CARRIL_RC) ? etiquetas : [...etiquetas, ETIQUETA_CARRIL_RC] };
+}
 const FN_ANALIZAR = CARRIL_RC ? 'analizar-mueble-rc' : envFn('VITE_ANALIZAR_MUEBLE_FN', 'analizar-mueble');
 const FN_COTIZAR_TEXTO = envFn('VITE_COTIZAR_TEXTO_FN', 'cotizar-texto');
 const FN_GENERAR_RENDER = envFn('VITE_GENERAR_RENDER_FN', 'generar-render');
@@ -590,7 +606,7 @@ export async function subirPlano(base64, path) {
 }
 // Crea un expediente nuevo. Devuelve {ok,id}.
 export async function guardarExpediente(exp) {
-  const { data, error } = await nube.from('expedientes').insert(exp).select('id').maybeSingle();
+  const { data, error } = await nube.from('expedientes').insert(marcarExpedienteRc(exp)).select('id').maybeSingle();
   if (error) return { ok: false, error: error.message };
   return { ok: true, id: data?.id };
 }

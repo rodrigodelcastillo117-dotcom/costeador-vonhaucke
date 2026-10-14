@@ -32,7 +32,10 @@ const PROHIBIDOS = /^(margen|precio|preciobase|precioreal|preciounitario|costo|c
 // cruda de costeo — dejar que el cliente la mande aquí sería una fuga fail-OPEN.
 const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM', 'piezas', 'hojas', 'material_solicitado', 'material_match', 'material_confirmado', 'engineering_override', 'override_motivo',
   // A14 (2026-10-12): pintura en polvo por área pintada (m²) y bandera tubular → el motor convierte a kg (8 m²/kg).
-  'areaPintadaM2', 'tubular'];
+  'areaPintadaM2', 'tubular',
+  // Auditoría 2026-10-14 (P1-01): procedencia de la pieza (OBSERVADO/INFERIDO/SUPUESTO) y si una persona confirmó que
+  // EXISTE. Son técnicos, no económicos: con ellos el servidor no certifica un costo con piezas inferidas sin confirmar.
+  'procedencia', 'pieza_confirmada'];
 
 // MATERIAL_PENDING (P0-05): estados de match en los que la IA NO asignó insumoId
 // porque el catálogo no tiene la familia/precio. El componente NO se inventa ni se
@@ -138,6 +141,8 @@ export function validarIntentCosteo(body) {
       // existe; jamás se deriva de material_match='USER_CONFIRMED' mandado por el browser.
       if (campo === 'tubular') { if (c.tubular === true) limpio.tubular = true; continue; }
       if (campo === 'material_confirmado') { if (c.material_confirmado === true) limpio.material_confirmado = true; continue; }
+      if (campo === 'pieza_confirmada') { if (c.pieza_confirmada === true) limpio.pieza_confirmada = true; continue; }
+      if (campo === 'procedencia') { const p = String(c.procedencia || '').toUpperCase(); if (['OBSERVADO', 'INFERIDO', 'SUPUESTO', 'DESCONOCIDO'].includes(p)) limpio.procedencia = p; continue; }
       // ENGINEERING_OVERRIDE (cross-family): intención booleana + motivo auditable. El servidor
       // sólo lo HONRA con capability Diseño/Dirección (índice/reconcile); aquí sólo se sanea.
       if (campo === 'engineering_override') { if (c.engineering_override === true) limpio.engineering_override = true; continue; }

@@ -34,7 +34,7 @@ export function resultadoIngenieria({ lecturaIA = null, revision = { observacion
   const motivos = [];
   if (lecturaIA && !lecturaIA.revisada) for (const m of lecturaIA.motivos || []) motivos.push({ regla: 'lectura_incompleta', nivel: 'blocker', mensaje: m });
   for (const o of revision.observaciones || []) if (o.nivel === 'blocker' || o.nivel === 'warning') motivos.push({ regla: o.regla || 'estructura', nivel: o.nivel, pieza: o.pieza, mensaje: o.mensaje });
-  const inferidas = (componentes || []).filter((c) => c && !c.excluida && (c.procedencia === 'INFERIDO' || c.procedencia === 'SUPUESTO') && c.material_confirmado !== true);
+  const inferidas = (componentes || []).filter((c) => c && !c.excluida && (c.procedencia === 'INFERIDO' || c.procedencia === 'SUPUESTO') && c.pieza_confirmada !== true);
   for (const c of inferidas) motivos.push({ regla: 'pieza_no_observada', nivel: 'confirmar', pieza: c.nombre, mensaje: `«${c.nombre}» es ${c.procedencia === 'SUPUESTO' ? 'un supuesto' : 'una inferencia'} de la IA: confírmala.` });
   const estado = motivos.some((m) => m.nivel === 'blocker') ? RESULTADO.BLOCKED : motivos.length ? RESULTADO.NEEDS_CONFIRMATION : RESULTADO.PASS;
   return { ...base, estado, motivos };

@@ -1,7 +1,23 @@
 # Decisiones que necesita Costear · 2026-10-13
 
 Datos de solo lectura (producción) y de los REPORTES DEL COTIZADOR Intelisis del 12/08/2026 (`lab/applt/componentes`).
-Nada de esto está aplicado: cada punto dice quién firma.
+Cada punto dice quién firma.
+
+## Registro de firmas (agregado 2026-10-14 tras la auditoría externa, hallazgo P1-04)
+
+El documento original decía "pendiente" y no se actualizó cuando Dirección firmó: el código y el commit be8e419 decían
+"firmado" y este archivo no. Estado real:
+
+| Decisión | Dirección | Producción / Compras | Implementado (sólo RC) |
+|---|---|---|---|
+| D1 · vigencia ERP 24 m | **Pendiente** | Compras: pendiente | No (`vh147` sin aplicar) |
+| D2 · tubular por fracción + merma de corte | **Firmada** 2026-10-13 por Rodrigo del Castillo (Dirección), en la sesión de trabajo: *"firmo D2 fracción y D3 tornillería por BOM"* | Producción: **pendiente** ratificar la merma de corte (hoy 6 % por paridad con tableros, sin documento) | Sí, motor `2026-10-13c` (`esTubularD2`) |
+| D3 · tornillería por BOM; juego genérico nunca valida | **Firmada** 2026-10-13 (misma frase) | Producción: **pendiente** la tabla de tornillería por unión | Sí (`TORNILLERIA_GENERICA` → PRELIMINAR) |
+
+Consecuencia: con sólo la firma de Dirección, D2 y D3 pueden usarse para calcular, pero mientras Producción no ratifique
+la merma de corte y la tabla por unión, ningún costo con tubular o tornillería genérica debe presentarse como VALIDADO.
+La firma de Dirección quedó en el chat de la sesión, no en un documento firmado; si se requiere evidencia formal, falta
+que Dirección la deje por escrito (correo o este archivo con su visto bueno).
 
 ## D1 · Vigencia ERP de 24 meses (firma: Dirección + Compras)
 

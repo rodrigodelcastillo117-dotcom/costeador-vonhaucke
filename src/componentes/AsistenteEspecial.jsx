@@ -31,7 +31,7 @@ import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js
 import { buscarInsumosMotor } from '../nube.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
-import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, patchPropuestaHermana, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import { conservarMaterialesConfirmados } from '../datos/conservarConfirmados.js';
 import { proponerGemelosErp, fusionarGemelosEnBom, piezasConTamanoDeHoja } from '../datos/gemeloErp.js';
@@ -259,8 +259,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const emision = (bloqueosEstructura.length || bloqueosLectura.length) ? { ...emision0, emitible: false, pendientes: [...(emision0.pendientes || []), ...bloqueosEstructura.map((o) => `Estructura: ${o.mensaje}`), ...bloqueosLectura] } : emision0;
   const emitible = emision.emitible;
   // Estado para la persona en TRES niveles (validado / preliminar / bloqueado) con sus motivos: misma regla que se guarda.
-  const estadoCosto3 = clasificarCosto({ emision, componentes: b.componentes, servidor: validacionSrv && validacionSrv.bomHash === bomHash(b.componentes)
-    ? { estado: validacionSrv.estado, aprobacionHumana: validacionSrv.aprobacionHumana, bomVigente: true } : null });
+  const estadoCosto3 = clasificarCosto({ emision, componentes: b.componentes, insumos, servidor: validacionSrv && validacionSrv.bomHash === bomHash(b.componentes)
+    ? { estado: validacionSrv.estado, aprobacionHumana: validacionSrv.aprobacionHumana, advertencias: validacionSrv.advertencias, bomVigente: true } : null });
   // VH-151: piezas cuyo largo×ancho es el tamaño de la HOJA comercial (o excede el formato): la IA confundió hoja con pieza.
   const piezasTamanoHoja = useMemo(() => piezasConTamanoDeHoja(b.componentes, insumos), [b.componentes, insumos]);
   const esTamanoHoja = (nombre) => piezasTamanoHoja.find((x) => x.nombre === nombre) || null;
@@ -409,7 +409,7 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       else if (!costoFinito) razon = 'el costo del servidor no es finito.';
       else if (!cuadra) razon = `el costo local (${pesos2(resultado.costoUnitario)}) no coincide con el del servidor (${pesos2(costoSrv)}).`;
       // P0-04: la fuente y versión REAL del catálogo con que el servidor costeó viajan al snapshot.
-      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual, versionCatalogo: srv?.versionCatalogo || null, fuenteCosto: srv?.fuenteCosto || srv?.catalogoFuente || null, aprobacionHumana: srv?.aprobacionHumana === true };
+      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual, versionCatalogo: srv?.versionCatalogo || null, fuenteCosto: srv?.fuenteCosto || srv?.catalogoFuente || null, aprobacionHumana: srv?.aprobacionHumana === true, advertencias: Array.isArray(srv?.warnings) ? srv.warnings.map(String).slice(0, 12) : [] };
       setValidacionSrv(v);
       if (estadoSrv) setCostoEstado(estadoSrv);
       return v;
@@ -603,9 +603,11 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
     const parche = (c) => ({ ...c, insumoId, nombre: c.nombre || (ins ? ins.nombre : ''), ...patchMedidas(c, ins), ...(ins ? patchConfirmacionUI(insumoId) : {}) });
     comps[i] = parche(prev);
     // VH-179: el artículo exacto elegido en el buscador vale para las demás piezas del MISMO material sin decisión humana.
-    const { comps: finales, aplicadas } = hermanas ? aplicarAHermanas(comps, i, prev.insumoId, insumoId, parche) : { comps, aplicadas: [] };
+    // Auditoría P2-01: a las hermanas se les PROPONE (por confirmar), no se les confirma en nombre de la persona.
+    const parcheHermana = (c) => ({ ...c, insumoId, nombre: c.nombre || (ins ? ins.nombre : ''), ...patchMedidas(c, ins), ...(ins ? patchPropuestaHermana(insumoId, prev.nombre) : {}) });
+    const { comps: finales, aplicadas } = hermanas ? aplicarAHermanas(comps, i, prev.insumoId, insumoId, parcheHermana) : { comps, aplicadas: [] };
     editarComponentes(finales);
-    if (aplicadas.length) setConfMsg(`También apliqué ${ins?.nombre || insumoId} a ${aplicadas.length} pieza(s) del mismo material: ${aplicadas.join(', ')}.`);
+    if (aplicadas.length) setConfMsg(`Propuse ${ins?.nombre || insumoId} también para ${aplicadas.length} pieza(s) del mismo material (${aplicadas.join(', ')}). Quedan por confirmar.`);
   }
   function costoPieza(c, ins) {
     const neto = netoComponente(c, b.piezas); const p = ins.precio ?? ins.precioBase ?? 0;
@@ -1285,9 +1287,15 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
                   <input className="pieza-nom" placeholder="Nombre de la pieza" value={c.nombre || ''} onChange={(e) => setPieza(i, { nombre: e.target.value })} />
                   {ingenieriaOn && c.procedencia && c.procedencia !== 'DESCONOCIDO' && (
                     <span className="chip" data-testid="procedencia-pieza" title={[c.evidencia, c.pagina ? `pág. ${c.pagina}` : ''].filter(Boolean).join(' · ') || 'Sin evidencia citada'}
-                      style={{ fontSize: 10, marginLeft: 4, background: c.material_confirmado ? 'var(--ok,#1a7f37)' : c.procedencia === 'OBSERVADO' ? '#3b6ea5' : '#8a6d00', color: '#fff' }}>
-                      {c.material_confirmado ? 'CONFIRMADA' : c.procedencia === 'OBSERVADO' ? 'OBSERVADA' : c.procedencia === 'INFERIDO' ? 'INFERIDA' : 'SUPUESTA'}
+                      style={{ fontSize: 10, marginLeft: 4, background: c.pieza_confirmada ? 'var(--ok,#1a7f37)' : c.procedencia === 'OBSERVADO' ? '#3b6ea5' : '#8a6d00', color: '#fff' }}>
+                      {c.pieza_confirmada ? 'PIEZA CONFIRMADA' : c.procedencia === 'OBSERVADO' ? 'OBSERVADA' : c.procedencia === 'INFERIDO' ? 'INFERIDA' : 'SUPUESTA'}
                     </span>
+                  )}
+                  {/* Auditoría P1-01: confirmar el material NO confirma que la pieza exista. Esto sí. */}
+                  {ingenieriaOn && (c.procedencia === 'INFERIDO' || c.procedencia === 'SUPUESTO') && !c.pieza_confirmada && !c.excluida && (
+                    <button type="button" className="btn-mini" data-testid="confirmar-pieza" style={{ fontSize: 10, marginLeft: 4 }}
+                      title="La IA no vio esta pieza: la dedujo. Confírmala sólo si sabes que el mueble la lleva."
+                      onClick={() => setPieza(i, { pieza_confirmada: true })}>Sí lleva esta pieza</button>
                   )}
                   <select className="pieza-mat" value={est.selVal} onChange={(e) => onMaterial(i, e.target.value)}>
                     <option value="">— ¿de qué es? —</option>
