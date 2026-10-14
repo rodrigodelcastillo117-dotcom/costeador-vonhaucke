@@ -4,6 +4,7 @@
 // LAB_COSTEAR_IMG + TEST_EMAIL/TEST_PASSWORD (cuenta QA). Gasta 1–2 llamadas de IA.
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs'; import path from 'node:path';
+import { auditarLlamadasCorrida } from '../src/datos/holdoutHuellas.js';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
 const HOJA = process.env.LAB_HOJA ? JSON.parse(fs.readFileSync(process.env.LAB_HOJA, 'utf8')) : null;
@@ -58,7 +59,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // Holdout v4 (P1-04): el SHA que sirve el navegador es el que se congeló (correr.sh exporta LAB_GIT_SHA).
   const textoVersion = await page.getByText(/^v\S+ · \S+$/).first().innerText().catch(() => '');
   const shaApp = (textoVersion.match(/ · (\S+)$/) || [])[1] || null;
-  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url() });
+  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString() });
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
@@ -207,9 +208,6 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   const costoSrv = srv?.body?.costoUnitario ?? srv?.body?.resultado?.costoUnitario ?? srv?.body?.costo?.costoUnitario ?? null;
   const paridad = { costoCliente, costoSrv, estadoSrv: srv?.body?.estado ?? srv?.body?.estadoCosto ?? null, iguales: costoCliente != null && costoSrv != null ? Math.round(costoCliente * 100) === Math.round(Number(costoSrv) * 100) : null, llamadasSrv: edges.filter((e) => e.fn === FN_COSTEO).length };
   guarda('4-paridad.json', { paridad, servidor: srv?.body ?? null });
-  // Holdout v4 (P1-02): los request_id de IA de esta hoja; el verificador exige un ai_eventos con model_id para cada uno.
-  const iaRequests = edges.filter((e) => /^analizar-mueble/.test(e.fn)).map((e) => e.body?.request_id).filter(Boolean);
-  guarda('ia_requests.json', iaRequests);
   console.log('[lab-costear] paridad', JSON.stringify(paridad));
 
   // 4b) DIFICULTAD (Dirección 2026-10-13): "más difícil sube, más fácil baja". Atrás al paso de mano de obra,
@@ -323,4 +321,11 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     console.log('[lab-costear] hoja de control', JSON.stringify(hc.resumen), JSON.stringify(hc.filas.filter((f) => f.estado !== 'PASS').map((f) => `${f.estado} ${f.clave}: ${f.motivos.join(' · ')}`)));
   }
   console.log('[lab-costear] reabierta', JSON.stringify(reabierta));
+  // Holdout v5 (cierre pre-deploy): auditoría de TODAS las llamadas de la corrida, AL FINAL (no a mitad del test).
+  // Cada llamada de IA lleva su request_id (una sin ID se queda como null: nunca se filtra); toda llamada costear-servidor*
+  // fue EXACTAMENTE la RC; un caso costeable tuvo ≥ 1 llamada RC. El verificador (--corrida) lee llamadas.json.
+  const auditoria = auditarLlamadasCorrida(edges, { fnCosteo: FN_COSTEO, costeable: process.env.LAB_COSTEABLE !== '0' });
+  guarda('llamadas.json', auditoria);
+  guarda('ia_requests.json', auditoria.ia);
+  expect(auditoria.motivos, 'auditoría de llamadas de la corrida').toEqual([]);
 });

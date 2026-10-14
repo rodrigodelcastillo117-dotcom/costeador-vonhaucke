@@ -1,15 +1,23 @@
 import { describe, it, expect } from 'vitest';
-import { compararHuellas, importsRelativos, cierreDeImports } from './holdoutHuellas.js';
+import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida } from './holdoutHuellas.js';
 
 const M = {
   archivos: { 'src/motor/calculo.js': 'a1' },
   baseDatos: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-10-14' },
   edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
   modelosEsperados: { 'analizar-mueble-rc': { texto: 'claude-opus-5', imagen: 'claude-opus-5-5' } },
+  frontendSha: 'abc1234def',
 };
+// v5: la corrida se describe con la auditoría de llamadas de cada hoja (E2E) + su 0-binario.json.
+const edgesHoja = [
+  { fn: 'analizar-mueble-rc', body: { request_id: 'r1' } }, { fn: 'analizar-mueble-rc', body: { request_id: 'r2' } },
+  { fn: 'costear-servidor-rc', body: { ok: true } },
+];
+const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z' };
+const corridaDe = (edges, extra = {}) => unirCorrida([{ auditoria: auditarLlamadasCorrida(edges, extra), binario }]);
 const hoy = { archivos: { 'src/motor/calculo.js': 'a1' }, db: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-11-01' }, edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
   modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: 'claude-opus-5', request_id: 'r1' }, { fn: 'analizar-mueble-rc', modo: 'imagen', model_id: 'claude-opus-5-5', request_id: 'r2' }],
-  requests: ['r1', 'r2'] };
+  corrida: corridaDe(edgesHoja), cambiosGit: [] };
 
 describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
   it('archivos, base y Edge idénticos ⇒ OK (la fecha de medición no cuenta)', () => {
@@ -44,7 +52,7 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
     expect(compararHuellas(M, { ...hoy, modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: null }] }).estado).toBe('CAMBIO');
   });
   it('sin modelos observados, o un manifiesto sin modelos esperados ⇒ NO_VERIFICADO (registrar no es congelar)', () => {
-    expect(compararHuellas(M, { ...hoy, modelos: undefined }).falta).toEqual(['modelos observados (--modelos, no vacío)', 'evento de IA (ai_eventos) para 2 request(s): r1, r2']);
+    expect(compararHuellas(M, { ...hoy, modelos: undefined }).falta).toEqual(['modelos observados (--modelos, no vacío)', 'evento de IA (ai_eventos con función, modo y model_id) para 2 request(s): r1, r2']);
     const { modelosEsperados, ...sinModelos } = M;
     expect(compararHuellas(sinModelos, hoy).estado).toBe('NO_VERIFICADO');
   });
@@ -71,9 +79,50 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
     expect(r.estado).toBe('NO_VERIFICADO');
     expect(r.falta).toContain('modelos observados (--modelos, no vacío)');
   });
-  it('cada request de IA de la corrida necesita su evento con model_id; sin --requests no verifica', () => {
-    expect(compararHuellas(M, { ...hoy, requests: ['r1', 'r2', 'r3'] }).falta).toEqual(['evento de IA (ai_eventos) para 1 request(s): r3']);
-    expect(compararHuellas(M, { ...hoy, requests: undefined }).falta).toEqual(['requests de IA de la corrida (--requests)']);
+  it('cada request de IA de la corrida necesita su evento (función, modo y model_id); sin --corrida no verifica', () => {
+    const tres = corridaDe([...edgesHoja, { fn: 'analizar-mueble-rc', body: { request_id: 'r3' } }]);
+    expect(compararHuellas(M, { ...hoy, corrida: tres }).falta).toEqual(['evento de IA (ai_eventos con función, modo y model_id) para 1 request(s): r3']);
+    expect(compararHuellas(M, { ...hoy, corrida: undefined }).falta).toEqual(['auditoría de la corrida (--corrida)']);
+    // un evento con el request_id pero sin modo NO cuenta como evidencia
+    const sinModo = [{ fn: 'analizar-mueble-rc', model_id: 'claude-opus-5', request_id: 'r1' }, hoy.modelos[1]];
+    expect(compararHuellas(M, { ...hoy, modelos: sinModo }).estado).not.toBe('OK');
     expect(compararHuellas(M, hoy).estado).toBe('OK');
+  });
+  // ---- v5 (cierre pre-deploy 14-oct) ----
+  it('A · una llamada de IA SIN request_id ⇒ NO_VERIFICADO (antes `.filter(Boolean)` la borraba y daba OK)', () => {
+    const conHueco = [...edgesHoja, { fn: 'analizar-mueble-rc', body: { ok: true } }];
+    const a = auditarLlamadasCorrida(conHueco);
+    expect(a.ia).toEqual({ llamadas: 3, request_ids: ['r1', 'r2', null], sin_id: 1 });
+    expect(a.motivos).toEqual(['1 de 3 llamada(s) de IA sin request_id']);
+    const r = compararHuellas(M, { ...hoy, corrida: corridaDe(conHueco) });
+    expect(r.estado).toBe('NO_VERIFICADO'); expect(r.falta).toContain('1 llamada(s) de IA sin request_id');
+    // lo que el E2E v4 escribía (ids filtrados) ya no se acepta como corrida: no trae cuántas llamadas hubo
+    expect(compararHuellas(M, { ...hoy, corrida: { ia: { llamadas: 3, request_ids: ['r1', 'r2'], sin_id: 0 }, costeo: hoy.corrida.costeo, binarios: [binario] } }).falta)
+      .toContain('request_id (2) ≠ llamadas de IA (3)');
+  });
+  it('B · costeo con la Edge de PRODUCCIÓN (costear-servidor) ⇒ CAMBIO; caso costeable sin llamada RC ⇒ NO_VERIFICADO', () => {
+    const conProd = [...edgesHoja, { fn: 'costear-servidor', body: {} }];
+    expect(auditarLlamadasCorrida(conProd).motivos).toEqual(['costeo con Edge distinta de costear-servidor-rc: costear-servidor']);
+    const r = compararHuellas(M, { ...hoy, corrida: corridaDe(conProd) });
+    expect(r.estado).toBe('CAMBIO'); expect(r.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
+    const sinRc = edgesHoja.filter((e) => e.fn !== 'costear-servidor-rc');
+    expect(auditarLlamadasCorrida(sinRc).motivos).toEqual(['caso costeable sin ninguna llamada a costear-servidor-rc']);
+    const r2 = compararHuellas(M, { ...hoy, corrida: corridaDe(sinRc) });
+    expect(r2.estado).toBe('NO_VERIFICADO'); expect(r2.falta).toContain('1 caso(s) costeable(s) sin llamada a costear-servidor-rc');
+    // sólo un caso declarado no costeable puede pasar sin llamada (se registra; no se infiere)
+    expect(compararHuellas(M, { ...hoy, corrida: corridaDe(sinRc, { costeable: false }) }).estado).toBe('OK');
+    // una hoja sin auditoría (E2E viejo o que tronó antes del final) no verifica
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ binario }]) }).falta).toContain('1 hoja(s) sin auditoría de llamadas');
+  });
+  it('C · binario: SHA del navegador ≠ git, sin 0-binario, o código cambiado entre el SHA congelado y el servido ⇒ no OK', () => {
+    const otro = { ...binario, shaApp: 'fff0000' };
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario: otro }]) }).cambios)
+      .toEqual(['binario: el navegador sirvió fff0000 y git era abc1234']);
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja) }]) }).falta).toContain('evidencia del binario (0-binario.json)');
+    expect(compararHuellas(M, { ...hoy, cambiosGit: ['src/App.jsx'] }).cambios).toEqual(['código cambiado después del congelamiento: src/App.jsx']);
+    expect(compararHuellas(M, { ...hoy, cambiosGit: ['RELEASE_9_5_GATE.md', 'lab/costear/holdout_intelisis/MANIFIESTO.json'] }).estado).toBe('OK');
+    expect(compararHuellas(M, { ...hoy, cambiosGit: undefined }).falta).toContain('diferencias git entre el SHA congelado y el servido');
+    const { frontendSha, ...sinSha } = M;
+    expect(compararHuellas(sinSha, hoy).falta).toContain('SHA del frontend en el MANIFIESTO');
   });
 });

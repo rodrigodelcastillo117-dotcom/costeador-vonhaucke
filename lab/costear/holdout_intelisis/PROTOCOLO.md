@@ -31,11 +31,32 @@ todavía**: los debe entregar Compras.
    - el dev server sirve otro checkout (su `cwd`).
    Registra el SHA en `<BASE>/GIT_SHA`. El E2E exige que el navegador muestre ese mismo SHA (`0-binario.json`) y falla
    si alguna llamada de costeo fue a otra Edge. Cada hoja escribe `ia_requests.json` con los `request_id` de IA.
+1c. **Auditoría de llamadas y binario (v5, cierre pre-deploy 14-oct).**
+   - Al **final** de cada hoja, el E2E escribe `llamadas.json` (`auditarLlamadasCorrida`):
+     - **todas** las llamadas a `analizar-mueble*`; una respuesta sin `request_id` queda como `null`, nunca se filtra;
+     - las llamadas a `costear-servidor*` por Edge.
+   - El E2E falla si:
+     - falta un `request_id`;
+     - aparece otra Edge de costeo (p. ej. `costear-servidor` de producción);
+     - un caso costeable tuvo 0 llamadas a `costear-servidor-rc` (`LAB_COSTEABLE=0` lo declara no costeable, a mano).
+   - `0-binario.json` lleva SHA del navegador, SHA git, `baseURL` y fecha.
+   - El MANIFIESTO guarda `frontendSha` (HEAD al congelar, con el árbol limpio). Entre ese SHA y el servido no puede
+     cambiar código (`git diff`), aunque el archivo no esté en el cierre de imports (p. ej. `App.jsx`).
 2. **Antes y después de correr:** se vuelven a medir las huellas (`huellas_db.sql`, solo lectura, y la lista de Edge).
    Al terminar se extraen los modelos observados en la ventana de la corrida (`modelos_observados.sql`). Luego se ejecuta:
-   `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json> --modelos <modelos.json> --requests <ia_requests.json>`
-   (`ia_requests.json` = unión de los de todas las hojas; `modelos_observados.sql` consulta **por request_id**, no por
-   ventana de tiempo. Un arreglo de modelos vacío o un request sin evento = NO VERIFICADO.)
+   `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json> --modelos <modelos.json> --corrida <BASE>`
+   - `--corrida` lee `llamadas.json` y `0-binario.json` de cada hoja.
+   - `modelos_observados.sql` consulta **por request_id**, no por ventana de tiempo.
+   - Es NO VERIFICADO si:
+     - el arreglo de modelos está vacío;
+     - hay un request sin evento (función, modo y model_id);
+     - hay una llamada sin request_id;
+     - una hoja no tiene auditoría;
+     - un caso costeable no tiene llamada RC.
+   - Es CAMBIO (inválido) si:
+     - se usó una Edge de costeo ajena;
+     - el navegador sirvió un SHA distinto;
+     - cambió código después del congelamiento.
    - **exit 0 (OK):** la corrida cuenta.
    - **exit 1 (cambió algo, incluido un modelo distinto al esperado):** la corrida **no cuenta**.
    - **exit 2 (falta alguna de las tres huellas):** **no hay verificación**.

@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 // Holdout Intelisis v3 (reauditoría externa v2, 14-oct, P1-02): los archivos son el CIERRE TRANSITIVO de imports de las
 // ENTRADAS (más este script, el comparador y package-lock.json) y los modelos de IA quedan congelados por (fn, modo).
-//   … --verificar --db <huellas.json> --edges <edges.json> --modelos <modelos_observados.json> --requests <ia_requests.json>
+//   … --verificar --db <huellas.json> --edges <edges.json> --modelos <modelos_observados.json> --corrida <dir de la corrida>
+// v5 (cierre pre-deploy): --corrida lee llamadas.json (TODAS las llamadas de IA con su request_id, null si faltó; las de
+// costeo por Edge) y 0-binario.json de cada hoja; el MANIFIESTO guarda frontendSha y el SHA servido no puede traer código
+// distinto (git diff). Congelar exige árbol limpio y acepta --db/--edges frescos.
 // v4 (reauditoría v3): [] de modelos no verifica; cada request de IA de la corrida exige su evento; correr.sh exige la Edge
 // de costeo RC exacta y que el navegador sirva el SHA y el árbol limpio que se congelaron.
 // Holdout Intelisis v2 (Operación 9.5 · reauditoría externa 14-oct, P1-02). Congela TODO lo que influye en el costo
@@ -16,7 +19,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { compararHuellas, cierreDeImports } from '../src/datos/holdoutHuellas.js';
+import { execFileSync } from 'node:child_process';
+import { compararHuellas, cierreDeImports, unirCorrida } from '../src/datos/holdoutHuellas.js';
 
 const RAIZ = process.cwd();
 const SALIDA = 'lab/costear/holdout_intelisis/MANIFIESTO.json';
@@ -52,21 +56,41 @@ const total = crypto.createHash('sha256').update(JSON.stringify(huellas)).digest
 
 const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
 const leerJson = (f) => JSON.parse(fs.readFileSync(path.resolve(f), 'utf8'));
+const git = (...a) => { try { return execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8' }).trim(); } catch { return null; } };
+// v5: una corrida = un directorio con una carpeta por hoja (llamadas.json + 0-binario.json que escribe el E2E).
+function leerCorrida(dir) {
+  const hojas = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => {
+    const leer = (f) => { const p = path.join(dir, d.name, f); return fs.existsSync(p) ? leerJson(p) : null; };
+    return { hoja: d.name, auditoria: leer('llamadas.json'), binario: leer('0-binario.json') };
+  });
+  return unirCorrida(hojas);
+}
 if (process.argv.includes('--verificar')) {
   const m = JSON.parse(fs.readFileSync(path.join(RAIZ, SALIDA), 'utf8'));
+  const corrida = arg('--corrida') ? leerCorrida(arg('--corrida')) : undefined;
+  // Diferencias git entre el SHA congelado y el que sirvió el navegador (sólo si el SHA servido existe en este repo).
+  let cambiosGit;
+  if (corrida?.binarios?.length && m.frontendSha) {
+    const shas = [...new Set(corrida.binarios.map((b) => b?.shaGit).filter(Boolean))];
+    const diffs = shas.map((s) => (git('cat-file', '-e', `${s}^{commit}`) == null ? null : git('diff', '--name-only', m.frontendSha, s)));
+    cambiosGit = diffs.some((d) => d == null) ? undefined : [...new Set(diffs.flatMap((d) => (d ? d.split('\n') : [])))];
+  }
   const r = compararHuellas(m, { archivos: huellas, db: arg('--db') ? leerJson(arg('--db')) : null, edges: arg('--edges') ? leerJson(arg('--edges')) : null,
-    modelos: arg('--modelos') ? leerJson(arg('--modelos')) : undefined,
-    requests: arg('--requests') ? leerJson(arg('--requests')) : undefined });
+    modelos: arg('--modelos') ? leerJson(arg('--modelos')) : undefined, corrida, cambiosGit });
   if (r.cambios.length) { console.error(`HOLDOUT INVÁLIDO: cambió ${r.cambios.join(', ')}`); process.exit(1); }
-  if (r.estado === 'NO_VERIFICADO') { console.error(`NO VERIFICADO: archivos idénticos, pero faltan ${r.falta.join(' y ')}.`); process.exit(2); }
-  console.log(`OK: ${lista.length} archivos, base de datos, Edge y modelos idénticos al congelamiento (${m.huellaTotal.slice(0, 16)}).`);
+  if (r.estado === 'NO_VERIFICADO') { console.error(`NO VERIFICADO: faltan ${r.falta.join(' y ')}.`); process.exit(2); }
+  console.log(`OK: ${lista.length} archivos, base de datos, Edge, modelos, llamadas y binario idénticos al congelamiento (${m.huellaTotal.slice(0, 16)}).`);
   process.exit(0);
 }
+// Congelar: con --db/--edges se guardan las huellas FRESCAS (si no, se conservan las previas) y el SHA de HEAD exacto.
+if (git('status', '--porcelain', '--untracked-files=no')) { console.error('ABORTO: hay cambios sin commit; se congela sobre un árbol limpio'); process.exit(2); }
 const previo = fs.existsSync(path.join(RAIZ, SALIDA)) ? JSON.parse(fs.readFileSync(path.join(RAIZ, SALIDA), 'utf8')) : {};
 fs.writeFileSync(path.join(RAIZ, SALIDA), JSON.stringify({
-  congeladoEn: new Date().toISOString(), huellaTotal: total, nArchivos: lista.length, archivos: huellas,
-  baseDatos: previo.baseDatos || null,
-  edges: previo.edges || null,
+  congeladoEn: new Date().toISOString(), huellaTotal: total, nArchivos: lista.length,
+  frontendSha: git('rev-parse', 'HEAD'),
+  archivos: huellas,
+  baseDatos: arg('--db') ? leerJson(arg('--db')) : (previo.baseDatos || null),
+  edges: arg('--edges') ? leerJson(arg('--edges')) : (previo.edges || null),
   modelosEsperados: MODELOS_ESPERADOS,
 }, null, 1) + '\n');
-console.log(`Congelado: ${lista.length} archivos · ${total.slice(0, 16)}`);
+console.log(`Congelado: ${lista.length} archivos · ${total.slice(0, 16)} · frontend ${git('rev-parse', '--short', 'HEAD')}`);
