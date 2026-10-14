@@ -230,7 +230,7 @@ export function acomodarLocal(areas, piezas, opts = {}) {
       ...(caben ? [] : [`${sinColocar.length} pieza(s) no caben en el plano: ${[...new Set(nombres)].slice(0, 6).join(', ')}${nombres.length > 6 ? '…' : ''}. Quita muebles o usa otra área.`]),
     ],
     resumen: caben
-      ? `Los ${piezas.length} muebles quedan acomodados, con cada silla en su puesto.`
+      ? (piezas.length === 1 ? 'El mueble queda acomodado, con cada silla en su puesto.' : `Los ${piezas.length} muebles quedan acomodados, con cada silla en su puesto.`)
       : `Caben ${colocacion.length} de ${piezas.length}.`,
   };
 }
@@ -263,7 +263,7 @@ function acomodarLocalBase(areas, piezas, opts = {}) {
     ];
     return { colocacion, zonas: [], caben: todas, areas: nuevasAreas, notas: todas ? [] : [`${piezas.length - colocacion.length} pieza(s) no caben en el plano.`], auditoria,
       resumen: todas
-        ? `Los ${piezas.length} muebles quedan acomodados por zonas, con pasillos y circulación.`
+        ? (piezas.length === 1 ? 'El mueble queda acomodado, con pasillos y circulación.' : `Los ${piezas.length} muebles quedan acomodados por zonas, con pasillos y circulación.`)
         : `Se acomodaron ${colocacion.length} de ${piezas.length} muebles. Los demás no cupieron.` };
   }
 
@@ -531,7 +531,7 @@ function acomodarPorCuartos(areas, piezas) {
     // Qué NO se pudo colocar, con nombre: el usuario debe poder verlo (mandato §4).
     sinColocar: restantes.map((p) => p.id),
     resumen: caben
-      ? `Los ${piezas.length} muebles quedan repartidos por cuarto: ${porCuarto.join(' · ')}.`
+      ? `${piezas.length === 1 ? 'El mueble queda' : `Los ${piezas.length} muebles quedan`} repartidos por cuarto: ${porCuarto.join(' · ')}.`
       : `Caben ${colocacion.length} de ${piezas.length}. ${porCuarto.join(' · ')}.`,
   };
 }
@@ -540,5 +540,6 @@ function resumenTipos(arr) {
   const c = {};
   for (const p of arr) c[p.tipo || 'mueble'] = (c[p.tipo || 'mueble'] || 0) + 1;
   const et = { escritorio: 'estaciones', guarda: 'guardas', juntas: 'mesas de juntas', asiento: 'asientos', mesa: 'mesas', mampara: 'mamparas', mueble: 'muebles' };
-  return Object.entries(c).map(([k, v]) => `${v} ${et[k] || k}`).join(', ');
+  const uno = { escritorio: 'estación', guarda: 'guarda', juntas: 'mesa de juntas', asiento: 'asiento', mesa: 'mesa', mampara: 'mampara', mueble: 'mueble' };
+  return Object.entries(c).map(([k, v]) => `${v} ${(v === 1 ? uno[k] : et[k]) || k}`).join(', ');
 }
