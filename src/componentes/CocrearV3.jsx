@@ -26,6 +26,7 @@ import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
 import {diagnosticoDesarrolloProducto,compararVariantesProducto} from '../datos/desarrolloProducto.js';
 import {contextoCatalogoParaIA,recomendar as recomendarCatalogoVonHaucke} from '../voni/conocimiento.js';
 import {explicarCosteo} from '../datos/explicacionCosteo.js';
+import {estadoValidacionIngenieria,puedeAprobarIngenieria,piezasPendientesIngenieria,ingenieriaListaParaRevision as listaParaRevisionIngenieria,bloqueoValidacionIngenieria,sinValidacionIngenieria} from '../datos/validacionIngenieriaCocrear.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
@@ -138,20 +139,12 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  // El spec tal como lo reconstruye el SERVIDOR (sin validación en el JSON): contra él se compara la
  // respuesta de costear-servidor. Cualquier cambio (medida, BOM, revisión) la deja sin vigencia.
  const specBase=useMemo(()=>intent?specDeCocreacion(intent,historia):null,[intent,historia]);
- const servidorVigente=!!(servidor?.ok&&specBase&&servidor.spec_hash===specBase.hash);
- // D-03: "VALIDADA" sólo si el SERVIDOR la validó para ESTA revisión. La evidencia del JSON del
- // cliente ya no cuenta (D-05).
- const engineeringValidation=servidorVigente&&servidor.ingenieria_validada?{
-   fuente:'costear-servidor',validador:servidor.validada_por||null,fecha:servidor.validada_en||null,
-   visual_hash:servidor.visual_hash||null,motivo:'Validada en el servidor: costo emitible, sin bloqueos estructurales y misma revisión.',
- }:null;
- const engineeringValidated=!!(
-   engineeringValidation
-   && engineeringValidation.visual_hash
-   && engineeringValidation.visual_hash===visualRevisionHash(
-     construirProductSpec(intent,extraerDNA(intent),clasificarProducto(intent,{}),{rev,componentes:bom})
-   )
- );
+ // D-03: "VALIDADA" sólo si el SERVIDOR la validó para ESTA revisión y la misma revisión visual (la evidencia
+ // del JSON del cliente ya no cuenta, D-05). Lógica pura en datos/validacionIngenieriaCocrear.js.
+ const {servidorVigente,engineeringValidation,engineeringValidated}=estadoValidacionIngenieria({
+   servidor,specBase,
+   visualHashActual:()=>visualRevisionHash(construirProductSpec(intent,extraerDNA(intent),clasificarProducto(intent,{}),{rev,componentes:bom})),
+ });
  const spec=useMemo(()=>intent?construirProductSpec(intent,extraerDNA(intent),clasificarProducto(intent,{}),{
    rev,componentes:bom,
    engineering_validated:engineeringValidated,
@@ -187,14 +180,14 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    comparPipelineA?.costo?.official_cost,
    pipeline?.costo?.official_cost,
  ):null,[comparSpecA,spec,comparPipelineA,pipeline]);
- const puedeAprobarRol=rol==='direccion'||rol==='diseno';
+ const puedeAprobarRol=puedeAprobarIngenieria(rol);
  // Despiece 3D completo (largo × ancho × espesor en TODAS las piezas): diagnóstico visible. No bloquea:
  // un BOM real lleva PTR por metro y herrajes por pieza, que nunca tienen las tres medidas, y eso
  // dejaba "Validar ingeniería" inalcanzable (D-01/D-03). La compuerta autoritativa la corre el
  // SERVIDOR: rol, costo emitible, validador estructural y misma revisión.
  const despiece3DCompleto=!!(desarrollo?.estado==='ANALIZADO'&&modelo3d?.status==='EXPLODED_READY');
- const piezasPendientes=(spec?.componentes||[]).filter(c=>c&&!c.excluida&&(!c.insumoId||c._funcion));
- const ingenieriaListaParaRevision=!!(spec?.componentes?.length&&!piezasPendientes.length);
+ const piezasPendientes=piezasPendientesIngenieria(spec?.componentes);
+ const ingenieriaListaParaRevision=listaParaRevisionIngenieria(spec?.componentes);
  const alcance=useMemo(()=>detectarAlcanceCocrear(texto||intent?._brief||''),[texto,intent]);
 
  useEffect(()=>{
@@ -219,7 +212,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  };
  const commit=(next,label)=>{
   // Cualquier cambio técnico/visual invalida la aprobación de ingeniería previa.
-  const limpio={...prepararRevision(next),_engineering_validated:false,_engineering_validation:null};
+  const limpio=sinValidacionIngenieria(prepararRevision(next));
   setIntent(limpio);
   setHistoria(h=>[...h,{rev:h.length+1,intent:clone(limpio),label}]);
   setGuardado(false);
@@ -343,7 +336,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
   if(puente.retorno){
    const r=aplicarRetornoCosteo(s.intent,puente.retorno);
    if(r.ok){
-    const limpio={...sincronizarFuncionesPendientes(r.intent),_engineering_validated:false,_engineering_validation:null};
+    const limpio=sinValidacionIngenieria(sincronizarFuncionesPendientes(r.intent));
     setIntent(limpio);setHistoria(h=>[...(s.historia||[]),{rev:(s.historia?.length||0)+1,intent:clone(limpio),label:`BOM desde Costear (${r.intent._componentes.length} piezas)`}]);
     setRender(null);setGuardado(false);setCotizadoHash(null);
     setMensaje(`✓ Regresó de Costear con ${r.intent._componentes.length} pieza(s). Es una revisión nueva: costéala en el servidor y valida ingeniería.`);
@@ -458,14 +451,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  // SERVIDOR que la valide (rol, costo emitible, validador estructural, misma revisión visual); lo que
  // responde el servidor es lo que se muestra y lo que lee el registro del producto.
  const validarIngenieria=async()=>{
-  if(!puedeAprobarRol){
-    setMensaje('Sólo Diseño o Dirección pueden validar ingeniería.');
-    return;
-  }
-  if(!ingenieriaListaParaRevision){
-    setMensaje('Ingeniería todavía no puede validarse: falta el BOM o hay piezas pendientes (sin material o funciones sin despiece).');
-    return;
-  }
+  // Rol Diseño/Dirección y BOM sin piezas pendientes (datos/validacionIngenieriaCocrear.js).
+  const bloqueo=bloqueoValidacionIngenieria({rol,componentes:spec?.componentes});
+  if(bloqueo){setMensaje(bloqueo);return;}
   const visual_hash=visualRevisionHash(spec);
   const evidencia={validador:usuarioEmail||rol,rol,visual_hash,spec_hash_prevalidacion:spec.hash};
   setCotizadoHash(null);

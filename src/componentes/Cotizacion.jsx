@@ -23,6 +23,8 @@ import { leerPolitica, avisoDescuento } from '../datos/politicaComercial.js';   
 import { estadoRenderPartida, claveRenderPartida, ESTADO_RENDER } from '../datos/renderCanonico.js';
 import { textoRazonEmision, ESTADO_EMISION, razonesPorLinea } from '../datos/emisionUX.js';
 import { evaluarEmisionLocal, combinarGate, detalleBloqueo } from '../datos/emision.js';
+import { resolverModoDocumento as resolverModoDocumentoPuro } from '../datos/modoDocumento.js';
+import { rendersFaltantes, mensajeRenderOficina, cotizacionParaPdf } from '../datos/renderCotizacion.js';
 import MontoAnimado from './MontoAnimado.jsx';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
@@ -208,14 +210,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
 
   async function renderTodas() {
     setErrGen('');
-    const ps = partidas.slice();
-    const fallas = [];
-    for (let i = 0; i < ps.length; i++) {
-      if (ps[i].render) continue;
-      setGenPart(ps[i].id);
-      const r = await renderDePartida(ps[i]);
-      if (r.ok) ps[i] = { ...ps[i], render: r.url }; else fallas.push(`${ps[i].nombre || 'mueble'}: ${r.error}`);
-    }
+    // datos/renderCotizacion.js: sólo la URL de Storage entra al estado (probado en renderStoragePolicy.test.js).
+    const { partidas: ps, fallas } = await rendersFaltantes(partidas, renderDePartida, setGenPart);
     setGenPart(null); setCot({ partidas: ps });
     if (fallas.length) setErrGen(`Sin render en ${fallas.length} mueble(s): ${fallas.join(' · ')}`);
   }
@@ -239,21 +235,10 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   async function urlABase64(url) {
     try { const r = await fetch(url); const b = await r.blob(); return await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1]); fr.onerror = () => res(null); fr.readAsDataURL(b); }); } catch (e) { return null; }
   }
+  // El render final del espacio sólo viene del Acomodo validado: aquí NUNCA se genera (el layout visual vive en
+  // Acomodo, con su referencia isométrica y QA). Mensaje en datos/renderCotizacion.js.
   async function renderOficina() {
-    if (!acomodoClienteGate?.mostrar) {
-      setErrGen(acomodoClienteGate?.existe
-        ? `El acomodo todavía no está validado para cliente: ${(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. Revísalo en Acomodo primero.`
-        : 'Primero crea y valida el acomodo del proyecto.');
-      return;
-    }
-    // Un render "bonito" generado sólo con la lista de compras no es una propuesta
-    // exacta. El layout visual vive en Acomodo; ahí existe la referencia isométrica
-    // limpia y el QA puede comparar posición/orientación antes de certificar.
-    if (!cotCliente.acomodo?.render3d) {
-      setErrGen('Para un render exacto, genéralo desde Acomodo → Render de mi oficina. Ahí VONI usa el layout real como referencia; desde Cotización no voy a inventar una oficina genérica.');
-      return;
-    }
-    setErrGen('El render vigente ya viene del Acomodo validado. Para regenerarlo sin perder fidelidad, vuelve a Acomodo.');
+    setErrGen(mensajeRenderOficina(acomodoClienteGate, cotCliente));
   }
 
   // DESCARGAR de verdad: se genera el archivo y se baja. Antes esto abría el
@@ -291,44 +276,13 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // Un documento SIEMPRE debe poder salir como BORRADOR. Lo que se bloquea
   // fail-closed es la EMISIÓN DEFINITIVA, no el botón. Así un vendedor nunca
   // vuelve a sentir "clic y no pasó nada" por un gate, RPC o aprobación pendiente.
-  async function resolverModoDocumento() {
-    const razones = [];
-    if (probEmision.length) razones.push(probEmision[0]);
-    if (bloqueoExcluidas) razones.push('Falta confirmar las piezas excluidas.');
-    if (partidas.some((p) => p.candadoUsuarios || p.requiereProyectista)) {
-      razones.push('Requiere revisión/confirmación de proyecto antes de emitir definitivo.');
-    }
-
-    let g = null;
-    if (!razones.length && verificarEmision) {
-      setGateCargando(true);
-      try { g = await verificarEmision(); }
-      catch (e) { g = { estado: 'DESCONOCIDO', error: String(e?.message || e) }; }
-      finally { setGateCargando(false); }
-      setGate(g);
-      const estadoGate = g?.estado || 'DESCONOCIDO';
-      if (estadoGate !== 'ALLOWED') {
-        setVerPorque(true);
-        const titulo = estadoGate === 'DESCONOCIDO'
-          ? 'No se pudo verificar la emisión'
-          : ((ESTADO_EMISION[estadoGate] || {}).titulo || estadoGate);
-        razones.push(titulo);
-      }
-    }
-
-    if (razones.length) return { definitivo: false, motivo: razones.join(' · '), gate: g };
-
-    const reg = onEmitida ? await onEmitida() : { ok: false, motivo: 'sin-registro-emision' };
-    if (!reg?.ok) {
-      return {
-        definitivo: false,
-        motivo: /aprobaci|politica|supera/i.test(reg?.motivo || '')
-          ? 'Requiere aprobación de Dirección.'
-          : 'No se pudo conservar la revisión inmutable.',
-        gate: g,
-      };
-    }
-    return { definitivo: true, motivo: '', gate: g };
+  // Lógica pura en datos/modoDocumento.js (probada por comportamiento en quoteEmissionAuthority.test.js):
+  // definitivo SÓLO con gate 'ALLOWED' y revisión inmutable registrada; todo lo demás es BORRADOR.
+  function resolverModoDocumento() {
+    return resolverModoDocumentoPuro({
+      probEmision, bloqueoExcluidas, partidas, verificarEmision, onEmitida,
+      ui: { cargando: setGateCargando, gate: setGate, verPorque: () => setVerPorque(true) },
+    });
   }
 
   // Servidor + local en una sola vista (VH-047). Si el servidor no se ha consultado, es lo local.
@@ -347,9 +301,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         cargarMarca(),
         urlADataUrl(cotCliente.acomodo?.render3d),
       ]);
-      const cotParaPdf = cotCliente.acomodo?.render3d
-        ? { ...cotCliente, acomodo: { ...cotCliente.acomodo, render3d: render3dPdf || null } }
-        : cotCliente;
+      // Los bytes del render del acomodo existen SÓLO en esta copia en memoria (nunca en el estado).
+      const cotParaPdf = cotizacionParaPdf(cotCliente, render3dPdf);
 
       descargarPropuesta({
         cot: cotParaPdf, partidas, resumen, especificacion, nPzas, fotos, marca,

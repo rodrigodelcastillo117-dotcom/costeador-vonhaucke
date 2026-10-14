@@ -1,3 +1,11 @@
+// STATIC GUARD (todo el archivo, revisado 2026-10-14): verifica que los handlers Edge (Deno) conserven auth, roles,
+// rate-limit, gate espacial y política de evidencia. NO se pueden ejecutar en vitest/node: index.ts importa
+// "jsr:@supabase/supabase-js@2" y "jsr:@supabase/functions-js/edge-runtime.d.ts", registra el handler con
+// Deno.serve y llama a Gemini/Supabase; en este entorno no hay Deno ni un arnés que los simule. La lógica PURA que
+// esos handlers usan sí se prueba por comportamiento (supabase/functions/acomodar-espacio/*.test.js:
+// deterministic-first, spatial-semantics, repairLoopContract, exactZoneRecovery…). Pendiente: arnés `deno test`
+// con createClient/fetch simulados para ejecutar UNAUTHENTICATED/FORBIDDEN/RATE_LIMITED y el spoof de spatial_spec.
+// Ver docs/auditoria/STATIC_GUARDS_A_COMPORTAMIENTO_20261014.md.
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';

@@ -73,15 +73,17 @@ import RespaldoConflicto from './componentes/RespaldoConflicto.jsx';
 import { totalesCotizacion } from './datos/totales.js';
 import { aplicarRespaldo } from './datos/respaldo.js';
 import { crearPartida } from './datos/partida.js';
+import { partidaAutoritativaDeCosteo, partidaDeCosteo as partidaDeCosteoPura } from './datos/agregarCosteo.js';
+import { juntarIguales, costoDeBanco, margenDeBanco } from './datos/renglonesComerciales.js';
+import { verificarEmisionViva, registrarEmisionViva } from './datos/emisionViva.js';
+import { costeoVivoParaVoni, partidasLocalesVoni, economiaVoni } from './datos/contextoVoni.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
 import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerBorradorCosteo, guardarBorradorCosteo, borrarBorradorCosteo } from './datos/borradorCosteo.js';
 import { crearSeguroDobleClic, firmaAgregado } from './datos/dobleClic.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot, CARRIL_RC } from './nube.js';
-import { calcular, modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
-import { calcularCosteoVivo } from './motor/costeoVivo.js';
-import { aCentavosEnteros, dinero } from './motor/dinero.js';
+import { modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
 import { idNuevo } from './util.js';
 import { costoImplicito, precioDeLista } from './datos/preciosVenta.js';
 import { catalogoTecnicoMateriales } from './datos/materialKnowledge.js';
@@ -761,15 +763,13 @@ export default function App() {
   // Gate de emisión AUTORITATIVO (server-side): guarda la cotización para tener id
   // real y consulta `cotizacion_emitible`. Devuelve {ok, estado, motivos, economics}.
   // Degrada suave: si no hay sesión o falla, no bloquea (el servidor re-gatea al emitir).
-  async function verificarEmision() {
-    if (!sesion?.user?.email) return { ok: false, estado: 'DESCONOCIDO', motivos: [] };
-    try {
-      const r = await guardarEnNube();
-      // Sólo se gatea lo que SÍ quedó guardado (o sin cambios): nunca una versión vieja.
-      if (!r.id || !r.guardado) return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: r.motivo || 'sin-id' };
-      // VH-055: el MISMO snapshot que se emitirá, para que el hash de la aprobación cuadre.
-      return await evaluarEmision(r.id, snapshotEmitido(estado));
-    } catch (e) { return { ok: false, estado: 'DESCONOCIDO', motivos: [], error: String(e?.message || e) }; }
+  // Lógica pura en datos/emisionViva.js (probada por comportamiento en liveQuoteEmissionGate.test.js):
+  // sólo se gatea lo que SÍ quedó guardado, sobre el MISMO snapshot que se emitirá (VH-055).
+  function verificarEmision() {
+    return verificarEmisionViva({
+      haySesion: !!sesion?.user?.email, guardarEnNube, evaluarEmision,
+      snapshot: () => snapshotEmitido(estado),
+    });
   }
 
   // VH-055: pedir aprobación a Dirección sobre la versión EXACTA que se va a emitir.
@@ -782,17 +782,12 @@ export default function App() {
     } catch (e) { return { ok: false, error: String(e?.message || e) }; }
   }
 
-  async function onEmitida() {
-    if (!sesion?.user?.email) return { ok: false, motivo: 'sin-sesion' };
-    try {
-      const g = await guardarEnNube();
-      if (!g.id || !g.guardado) return { ok: false, motivo: g.motivo || 'no-se-guardo-estado-vivo' };
-      const r = await guardarRevision(estado, g.id);
-      if (r?.ok && r.nueva) mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`);
-      return r || { ok: false, motivo: 'desconocido' };
-    } catch (e) {
-      return { ok: false, motivo: String(e?.message || e) };
-    }
+  // datos/emisionViva.js: la revisión inmutable se congela contra el id del guardado VIVO confirmado.
+  function onEmitida() {
+    return registrarEmisionViva({
+      haySesion: !!sesion?.user?.email, guardarEnNube, guardarRevision, estado,
+      alNuevaRevision: (r) => mostrarAviso(`Revisión ${r.revision} guardada — se conservó lo que se emitió.`),
+    });
   }
 
   // permiso === 'error' (no se pudo consultar) NO cuenta como acceso: sin este
@@ -816,14 +811,8 @@ export default function App() {
 
   // VONI mira EXACTAMENTE el mismo resultado vivo que Costeador. No existe un
   // "costeo para IA" paralelo. Si no hay BOM o el rol no ve economía, no se crea.
-  const voniCosting = useMemo(() => {
-    if (!veCostos || !(costeo?.componentes || []).length) return null;
-    try {
-      return calcularCosteoVivo(estado, costeo).resultado;
-    } catch (_e) {
-      return null;
-    }
-  }, [veCostos, estado, costeo]);
+  // Lógica pura en datos/contextoVoni.js (probada en voniLiveCosting.test.js).
+  const voniCosting = useMemo(() => costeoVivoParaVoni({ veCostos, estado, costeo }), [veCostos, estado, costeo]);
   // Nomina, financieros y tablero: SOLO Direccion, resuelto por su correo.
   // Ya no hay PIN: el permiso lo da la base de datos, que a los demas ni
   // siquiera les manda estos datos.
@@ -991,77 +980,14 @@ export default function App() {
     }, { veCostos, origen: c.deBanco ? 'banco' : 'ia' }));
   }
 
+  // Lógica pura en datos/agregarCosteo.js (probada por comportamiento: lineItemCostFailClosed.test.js).
+  // VENDEDOR: no corre el motor ni siembra costo/margen. Quien ve costos: si el motor falla, el costo
+  // queda DESCONOCIDO (FAIL-CLOSED), nunca derivado del precio ni $0.
   function partidaDeCosteo(costeo, cantidad, precioUnitario, margen, costoUnitario) {
-    const n = Math.max(1, Number(cantidad) || 1);
-    // VENDEDOR (seller-safe): NO se corre el motor de costo en su navegador ni se
-    // siembra costo/margen en el estado. El precio sale del catálogo autorizado y la
-    // emisión revalida en el servidor por identidad (producto_id). Antes, si el
-    // costeo llegaba sin costo, este camino ejecutaba calcular() con estado.insumos y
-    // guardaba un costoUnitario REAL en la partida del vendedor (fuga client-side).
-    let costo = null;
-    let margenEf = null;
-    let costoDerivado = false;
-    if (veCostos) {
-      costo = costoUnitario != null && Number.isFinite(Number(costoUnitario))
-        ? Number(costoUnitario)
-        : null;
-      if (costo == null) {
-        try {
-          const calculado = calcular(costeo, n, estado.insumos, modeloParaPieza(estado.parametros, costeo).par).costoOficial;
-          costo = calculado != null && Number.isFinite(Number(calculado)) ? Number(calculado) : null;
-        } catch (_e) {
-          // FAIL-CLOSED: jamás derivar costo desde precio/margen ni sustituir por $0.
-          costo = null;
-        }
-      }
-      margenEf = costo != null && Number.isFinite(margen) ? margen : null;
-    }
-    return crearPartida({
-      piezaId: costeo.piezaId || null,
-      nombre: costeo.nombre,
-      ruta: costeo.ruta || null,
-      productoId: costeo.productoId || null,
-      // Identidad de Producto Maestro (Línea V2 / Cocrear): el contrato unifica grafías.
-      producto_id: costeo.producto_id ?? null,
-      producto_version_id: costeo.productVersionId || costeo.producto_version_id || null,
-      source_type: costeo.source_type ?? null, source_ref: costeo.source_ref ?? null,
-      lista_precio_item_id: costeo.lista_precio_item_id ?? null,
-      precio_lista_snapshot: costeo.precio_lista_snapshot ?? null,
-      catalogo: costeo.catalogo ?? null,
-      // Imagen canónica del especial co-diseñado (URL de Storage, nunca base64): la
-      // misma que el cliente vio en Cocrear viaja a la partida (una sola verdad).
-      render: costeo.render || null,
-      w: costeo.w || null, d: costeo.d || null,
-      cantidad: n,
-      costoUnitario: costo,
-      costoPendiente: veCostos && costo == null,
-      costoDerivado,
-      precioUnitario,
-      margen: margenEf,
-      config: costeo.config || null,
-      precioReal: !!costeo.precioReal,
-      // Mismo candado que ya trae `costearItem()` (camino de Voni) — este
-      // camino manual ("Cotizar de línea") lo armaba sin pasar por ahí, así
-      // que hasta hoy no detectaba NADA de esto (hueco real, más allá de lo
-      // que cubrió la auditoría original).
-      candadoUsuarios: !!(costeo.config?.usuarios && n > 1),
-      requiereProyectista: !!(costeo.config?.usuarios && Number(costeo.config.usuarios) > 14),
-      // Costeo incompleto: piezas del despiece sin material en el catálogo
-      // (se costean en $0). Bloquea la emisión, no el guardado.
-      // Completitud del costeo (piezas sin material en catálogo) SOLO para quien
-      // ve costos: el vendedor no corre el motor y su emisión revalida por identidad
-      // de catálogo, no por BOM — correr esto sin insumos lo marcaría todo "sin material".
-      // Una sola definición de "pendiente": la misma lista que vuelve INCOMPLETO al
-      // motor (material faltante, sin precio, sin cantidad), no sólo material faltante.
-      ...(veCostos
-        ? (() => { const s = pendientesDeCosteo(costeo, estado.insumos, modeloParaPieza(estado.parametros, costeo).par); return { piezasSinMaterial: s.length, nombresSinMaterial: s }; })()
-        : { piezasSinMaterial: 0, nombresSinMaterial: [] }),
-      // Piezas EXCLUIDAS ($0 por decisión: "lo pone el cliente / otra área"). No es
-      // economía (es una decisión del despiece) → viaja siempre, para que la
-      // cotización obligue a confirmarlas y el PDF imprima la cláusula. Sin esto, un
-      // clic apurado vende el mueble sin cristal/herrajes y nadie se entera.
-      nombresExcluidos: (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida'),
-    }, { veCostos, origen: costeo.producto_version_id || costeo.productVersionId ? 'cocrear' : (costeo.ruta ? 'linea' : 'costeo') });
+    return partidaDeCosteoPura({
+      costeo, cantidad, precioUnitario, margen, costoUnitario,
+      veCostos, insumos: estado.insumos, parametros: estado.parametros,
+    });
   }
 
   const sumarPartidas = (nuevas) => setEstado((e) => ({
@@ -1169,79 +1095,22 @@ export default function App() {
   // y no existían, así que "Costear especial" y "Catálogo" también morían en
   // blanco. `resultado` es el cálculo; el mueble en sí vive en `costeo`.
   async function onAgregarCotizacion(resultado, precio, margen) {
-    const n = Math.max(1, Number(costeo.piezas) || 1);
-
-    // GATE AUTORITATIVO: antes de convertir un costeo NUEVO en una línea comercial,
-    // el servidor recalcula con la configuración real. Un centavo de diferencia
-    // implica estado no reproducible y falla cerrado.
-    let autoridad;
-    try {
-      autoridad = await costearServidor(costeo, n);
-    } catch (_e) {
-      const error = 'No se agregó: no pude verificar el costo con el servidor.';
-      mostrarAviso(error, 8000);
-      return { ok: false, error };
+    // GATE AUTORITATIVO (lógica pura en datos/agregarCosteo.js, probada por comportamiento en
+    // authoritativeCostGate.test.js / advancedSpecialUnknownCost.test.js): antes de convertir un costeo
+    // NUEVO en una línea comercial, el servidor recalcula; un centavo de diferencia falla cerrado y la
+    // partida lleva el costo DEL SERVIDOR (con costoEstado/costeoId/bomHash para la emisión).
+    const r = await partidaAutoritativaDeCosteo({
+      costeo, resultado, precio, margen, costearServidor,
+      pendientes: () => pendientesDeCosteo(costeo, estado.insumos, modeloParaPieza(estado.parametros, costeo).par),
+      nuevoId: () => idNuevo('p'),
+    });
+    if (!r.ok) {
+      mostrarAviso(r.error, r.avisoMs);
+      return { ok: false, error: r.error };
     }
-    if (!autoridad?.ok) {
-      const error = 'No se agregó: ' + (autoridad?.error || 'el servidor no pudo verificar este costeo.');
-      mostrarAviso(error, 8000);
-      return { ok: false, error };
-    }
-    if (autoridad.estado === 'incompleto' || autoridad.estado === 'bloqueado') {
-      const motivos = (Array.isArray(autoridad.warnings) ? autoridad.warnings : []).slice(0, 3).join(' · ');
-      const error = `No se agregó: el servidor marca el costo como ${autoridad.estado}${motivos ? ` — ${motivos}` : ''}.`;
-      mostrarAviso(error, 8000);
-      return { ok: false, error };
-    }
-
-    const costoClienteRaw = resultado?.costoUnitario;
-    const costoServidorRaw = autoridad?.costo?.costoUnitario;
-    const clienteC = aCentavosEnteros(costoClienteRaw);
-    const servidorC = aCentavosEnteros(costoServidorRaw);
-    if (clienteC == null || servidorC == null) {
-      const error = 'No se agregó: el costo no es finito o no quedó certificado.';
-      mostrarAviso(error, 8000);
-      return { ok: false, error };
-    }
-    if (clienteC !== servidorC) {
-      const delta = Math.abs(clienteC - servidorC) / 100;
-      const error = `No se agregó: cliente y servidor difieren $${delta.toFixed(2)}. Recarga y vuelve a costear.`;
-      mostrarAviso(error, 9000);
-      return { ok: false, error };
-    }
-
-    const costoServidor = dinero(costoServidorRaw);
-    const sinMat = Array.isArray(resultado?.componentesIgnorados)
-      ? resultado.componentesIgnorados
-      : pendientesDeCosteo(costeo, estado.insumos, modeloParaPieza(estado.parametros, costeo).par);
-    const excl = Array.isArray(resultado?.componentesExcluidos)
-      ? resultado.componentesExcluidos
-      : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
-
-    sumarPartidas([{
-      id: idNuevo('p'),
-      piezaId: costeo.piezaId || null,
-      nombre: costeo.nombre || 'Mueble a la medida',
-      ruta: costeo.ruta || null,
-      productoId: costeo.productoId || null,
-      w: costeo.w || null, d: costeo.d || null,
-      cantidad: n,
-      costoUnitario: costoServidor,
-      costoPendiente: false,
-      costoEstado: autoridad.estado || null,
-      // SEG-01b: la emisión verifica en el servidor que este costo es el que registró costear-servidor.
-      costeoId: autoridad.costeoId || null,
-      bomHash: autoridad.bomHash || null,
-      versionMotor: autoridad.versionMotor || null,
-      versionCatalogo: autoridad.versionCatalogo || null,
-      precioUnitario: precio,
-      margen,
-      piezasSinMaterial: sinMat.length,
-      nombresSinMaterial: sinMat,
-      nombresExcluidos: excl,
-    }]);
+    sumarPartidas([r.partida]);
     mostrarAviso(`Agregado y verificado: ${costeo.nombre || 'mueble a la medida'}`);
-    return { ok: true, costoUnitario: costoServidor, estado: autoridad.estado };
+    return { ok: true, costoUnitario: r.costoUnitario, estado: r.estado };
   }
 
   // Guarda el despiece actual como pieza reutilizable del catálogo interno.
@@ -1274,23 +1143,7 @@ export default function App() {
   // Se agrupa por lo que de verdad lo hace el mismo mueble —nombre, precio,
   // producto y configuración—, nunca por nombre solo: dos muebles que se llaman
   // igual con distinto acabado SÍ son renglones distintos.
-  const mismoRenglon = (a, b) =>
-    a.nombre === b.nombre &&
-    aCentavosEnteros(a.precioUnitario) === aCentavosEnteros(b.precioUnitario) &&
-    (a.piezaId || null) === (b.piezaId || null) &&
-    (a.ruta || null) === (b.ruta || null) &&
-    (a.productoId || null) === (b.productoId || null) &&
-    JSON.stringify(a.config || null) === JSON.stringify(b.config || null);
-
-  function juntarIguales(lista) {
-    const out = [];
-    for (const p of lista) {
-      const ya = out.find((q) => mismoRenglon(q, p));
-      if (ya) ya.cantidad = (ya.cantidad || 0) + (p.cantidad || 0);
-      else out.push({ ...p });
-    }
-    return out;
-  }
+  // mismoRenglon / juntarIguales: datos/renglonesComerciales.js (precio comparado AL CENTAVO).
 
   function agregarItemsProyecto(costados, opts = {}) {
     const nuevas = partidasDeItemsIA(costados).map((p) => ({ ...p, loteIA: opts.lote || null }));
@@ -1339,17 +1192,7 @@ export default function App() {
   //  muestre para ella sale optimista. Sirve para que la alerta EXISTA —hoy no
   //  existía— y se sustituye en cuanto Compras dé el costo real de la silla.
   // ---------------------------------------------------------------------------
-  const costoDeBanco = (item) => {
-    const p = Number(item?.precio) || 0;
-    if (!p) return 0;
-    const esSilleria = item?.categoria === 'Sillería';
-    const precio2 = esSilleria ? p : p / 0.60;
-    return dinero(costoImplicito(precio2));
-  };
-  const margenDeBanco = (item) => {
-    const c = costoDeBanco(item), p = Number(item?.precio) || 0;
-    return p > 0 && c > 0 ? Math.round(((p - c) / p) * 100) : null;
-  };
+  // costoDeBanco / margenDeBanco: datos/renglonesComerciales.js (costo con dinero(), a centavos).
 
   // Banco de precios -> agrega una partida con el precio real ya cotizado.
   function agregarDeBanco(item, cantidad) {
@@ -1689,18 +1532,12 @@ export default function App() {
                 // en pantalla (no sólo lo guardado en la BD comercial). Las
                 // partidas van YA recortadas a seller-safe (nombre/cantidad/precio),
                 // NUNCA costo ni margen — fail-closed, aunque el saneador ya re-filtra.
-                partidasLocales: (estado.cotizacion?.partidas || []).map((p) => ({
-                  nombre: p.nombre,
-                  cantidad: p.cantidad,
-                  precioUnitario: p.precioUnitario,
-                  sinPrecioAutorizado: !(Number(p.precioUnitario) > 0),
-                })),
+                partidasLocales: partidasLocalesVoni(estado.cotizacion?.partidas),
                 // Acomodo vivo (geometría, sin economía) para "¿cabe? ¿está acomodado?".
                 acomodoLocal: estado.cotizacion?.acomodo || null,
                 // Fuente económica autorizada: SÓLO veCostos, y sólo el BOM del
                 // costeo actual (la tool igual bloquea a vendedor/cliente).
-                bom: veCostos ? (costeo?.componentes || null) : null,
-                costing: veCostos ? voniCosting : null,
+                ...economiaVoni({ veCostos, costeo, voniCosting }),
                 materialesTecnicos: materialesTecnicosVoni,
                 clientSafe: false,
               }}

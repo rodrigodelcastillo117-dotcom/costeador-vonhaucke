@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { catalogoVonHauckeCompacto, acabadosVonHaucke, conocimientoDe } from '../voni/conocimiento.js';
 import fs from 'node:fs';
+import { mensajeRenderOficina } from './renderCotizacion.js';
 
 describe('VONI · conocimiento real Von Haucke', () => {
   it('deriva líneas y variantes desde el registro costable', () => {
@@ -55,13 +56,18 @@ describe('Render premium · fidelidad antes que belleza', () => {
     expect(s).toContain('imagen:modelo');
   });
 
+  // 2026-10-14: el mensaje se EJECUTA (datos/renderCotizacion.js, ver también renderStoragePolicy.test.js).
   it('Cotización no inventa una oficina sin referencia de layout', () => {
+    const msg = mensajeRenderOficina({ mostrar: true }, { acomodo: {} });
+    expect(msg).toContain('desde Cotización no voy a inventar una oficina genérica');
+    // STATIC GUARD (cableado): Cotizacion.jsx no se monta en node; renderOficina sólo muestra ese mensaje, no genera.
     const s=fs.readFileSync('src/componentes/Cotizacion.jsx','utf8');
-    expect(s).toContain('desde Cotización no voy a inventar una oficina genérica');
     const i=s.indexOf('async function renderOficina()');
     const j=s.indexOf('// DESCARGAR de verdad:',i);
     const b=s.slice(i,j);
+    expect(b).toContain('setErrGen(mensajeRenderOficina(acomodoClienteGate, cotCliente))');
     expect(b).not.toContain("modo: 'oficina'");
+    expect(b).not.toMatch(/generarRender\(/);
   });
 });
 

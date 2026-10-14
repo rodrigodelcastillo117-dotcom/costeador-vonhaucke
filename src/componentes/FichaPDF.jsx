@@ -9,7 +9,7 @@ import MarcaLogo from './MarcaLogo.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
 import { imagenProducto, heroLinea } from '../datos/imagenes.js';
 import { pesos2 } from '../util.js';
-import { importePorCantidad, cargoPorcentaje, sumarMontos } from '../motor/comercialDinero.js';
+import { montosFicha } from '../datos/montosFicha.js';
 import { LINEAS } from '../datos/catalogo.js';
 
 // Foto real del lounge/showroom VH (2026-08-18, la mandó Rodrigo). Portada de
@@ -63,10 +63,9 @@ export default function FichaPDF({ estado, costeo, cantidad = 1, precioUnitario 
   const lineaObj = LINEAS.find((l) => l.nombre === costeo.linea);
   const que = lineaObj?.que && !lineaObj.confirmar ? lineaObj.que : '';
 
-  const importe = importePorCantidad(precioUnitario, cantidad);
   const ivaPct = estado.parametros?.ivaPorcentaje ?? 16;
-  const iva = importe == null ? null : cargoPorcentaje(importe, ivaPct);
-  const total = importe == null || iva == null ? null : sumarMontos([importe, iva]);
+  // Escalera a centavos canónicos (datos/montosFicha.js, probada en pdfMoneyTrust.test.js).
+  const { importe, iva, total } = montosFicha(precioUnitario, cantidad, ivaPct);
 
   const anticipoPct = estado.parametros?.anticipoPorcentaje ?? 50;
 

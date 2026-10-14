@@ -19,7 +19,8 @@ import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiec
 import { guardarExpedienteEditado, guardarExpedienteNuevo } from '../datos/expedienteVersionado.js';
 import { controlOptimistaActivo } from '../datos/conflictoGuardado.js';
 import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-072
-import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
+import { filaSombra, entradaSombraCliente } from '../datos/sombraCosteo.js';   // VH-073
+import { difierenAlCentavo } from '../datos/renglonesComerciales.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { clasificarCosto } from '../datos/estadoCosto.js';
@@ -196,7 +197,7 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
       try {
         const srv = await costearServidor(pieza, b.piezas);
         // VH-073: el motivo del fallo viaja en la fila (antes sólo 'error' y las llaves).
-        await registrarSombra(filaSombra(srv, { inputHash: h, precioCliente: dinero(precio), costoCliente: dinero(resultado.costoUnitario), nombre: b.nombre }));
+        await registrarSombra(filaSombra(srv, entradaSombraCliente({ inputHash: h, precio, costoUnitario: resultado.costoUnitario, nombre: b.nombre })));
       } catch (e) { /* shadow silencioso: jamás rompe el flujo */ }
     }, 1500);
     return () => clearTimeout(t);
@@ -1481,9 +1482,7 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
             </div>
           )}
           {costoGuardado
-            && aCentavosEnteros(costoGuardado.costoUnitario) != null
-            && aCentavosEnteros(resultado.costoUnitario) != null
-            && aCentavosEnteros(costoGuardado.costoUnitario) !== aCentavosEnteros(resultado.costoUnitario) && (
+            && difierenAlCentavo(costoGuardado.costoUnitario, resultado.costoUnitario) && (
             <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 6 }}>
               Re-costeo con catálogo de hoy: guardado {pesos2(costoGuardado.costoUnitario)} → hoy {pesos2(resultado.costoUnitario)}
               {' '}(Δ {pesos2(dinero(Number(resultado.costoUnitario) - Number(costoGuardado.costoUnitario)))}). Guarda para actualizar el expediente.

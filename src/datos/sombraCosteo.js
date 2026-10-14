@@ -9,6 +9,8 @@
 //  y el código en `estado_servidor`, sin tocar el esquema. Puro.
 // ============================================================================
 
+import { dinero } from '../motor/dinero.js';
+
 const recorta = (s, n) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
 
 /**
@@ -42,4 +44,12 @@ export function filaSombra(srv, { inputHash, precioCliente, costoCliente, nombre
     // nombre del mueble + motivo del fallo (si lo hubo), en la única columna de texto libre.
     nota: [recorta(nombre, 120) || null, motivo ? `ERR ${motivo}` : null].filter(Boolean).join(' · ') || null,
   };
+}
+
+/**
+ * Lado CLIENTE de la sombra, tal como lo arma AsistenteEspecial (extraído 2026-10-14, refactor puro):
+ * precio y costo a CENTAVOS con dinero(), nunca Math.round al peso. Probado en moneyBoundaries.test.js.
+ */
+export function entradaSombraCliente({ inputHash, precio, costoUnitario, nombre }) {
+  return { inputHash, precioCliente: dinero(precio), costoCliente: dinero(costoUnitario), nombre };
 }
