@@ -1,0 +1,15 @@
+# Cadena de la ventana · rollback ANTES de la corrección (PROPUESTAS p103b y seg01c de 3583acc), 14-oct
+# Comando: npx vitest run supabase/tests/cadenaVentanaRollback.test.js (con las dos PROPUESTAS anteriores)
+   × Runbook §4–§5 · cadena completa de la ventana: aplicar en orden y revertir en orden inverso > rollback en orden inverso (VH-100 → SEG-01c → SEG-01 → VH-148b → VH-148 → P1-03b): la base vuelve a producción salvo el residuo declarado 65ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+-   "falta": Array [],
+-   "sobra": Array [],
++   "falta": Array [
++     "comentario public.cuentas_no_humanas -",
++     "vista public.catalogo_vigente 6f682ebe64e033c26fde551762524c15",
++   "sobra": Array [
++     "columna public.catalogo_vigente.precio_id bigint -",
++     "comentario public.cuentas_no_humanas 975f758643d4067b8f34cadc379218a6",
++     "vista public.catalogo_vigente e36834e2bcac7b30e23acb211db2c247",
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 passed (4)

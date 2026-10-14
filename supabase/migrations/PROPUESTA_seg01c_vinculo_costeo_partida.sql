@@ -791,6 +791,7 @@ commit;
 -- RB drop function if exists private_api.motivos_autoridad_costeo(bigint);
 -- RB drop function if exists private_api.modo_emision_autoridad();
 -- RB drop table if exists private_api.politica_emision_autoridad;
+-- RB comment on table public.cuentas_no_humanas is null;   -- la tabla es de producción (firma de precios, 14-oct, sin comentario): SEG-01c sólo le agregó el comentario
 -- RB commit;
 -- (costeos_servidor, partida_costeo_vigente y cuentas_no_humanas se conservan como rastro; borrarlas sólo con decisión expresa.)
 -- ============================================================================
