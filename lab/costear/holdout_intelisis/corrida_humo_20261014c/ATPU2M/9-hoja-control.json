@@ -1,0 +1,81 @@
+{
+  "producto": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 5,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Tramo vertical pata U (poste)",
+      "insumoId": "ptr-3-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Travesaño horizontal pata U (unión superior/base)",
+      "insumoId": "ptr-3-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Placa de fijación a cubierta (lámina cal.12 troquelada)",
+      "insumoId": "lamina-12",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura MIG de ensamble",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura en polvo negro mate",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de montaje",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "preliminar",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas patas se van a fabricar?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué sección y calibre de perfil lleva la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La 'U' va invertida (travesaño arriba, apoyo en 2 puntos) o con travesaño al piso?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva placa superior barrenada para fijar a cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Apoyo con nivelador roscado o tapón plástico?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La pata requiere paso de cableado interno (perforaciones/tapa)?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

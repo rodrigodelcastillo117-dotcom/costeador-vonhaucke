@@ -1,0 +1,71 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB humo v5.2 ATPU2M 1014-1810 BORRADOR otro pata estructural tipo \"U\" metálica para mesa/escritorio línea App LT",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$610.89",
+    "costoDespues": "$610.89",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$610.89",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · 5 material(es) propuestos sin confirmar: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · 5 material(es) propuestos sin confirmar: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $339.38 · Mano de obra $67.88 · Fábrica $203.63",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Tramo vertical pata U (poste)",
+      "material": "PTR 3\" x 1 1/2\" cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Travesaño horizontal pata U (unión superior/base)",
+      "material": "PTR 3\" x 1 1/2\" cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Placa de fijación a cubierta (lámina cal.12 troquelada)",
+      "material": "Lamina de acero cal. 12",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Soldadura MIG de ensamble",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo negro mate",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («acabado electrostatica color especificado») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador cónico 3/8\"",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado apoyo pata») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de montaje",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («tornillo fijacion pata cubierta») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

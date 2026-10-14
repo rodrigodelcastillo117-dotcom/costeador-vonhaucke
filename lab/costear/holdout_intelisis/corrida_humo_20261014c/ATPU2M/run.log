@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:46:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:46:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Pata tipo \"U\" metálica 600 × 720 mm, modelo App LT","tipo":"otro","piezas":[{"nombre":"Tramo vertical pata U (poste)","insumoId":"ptr-3-14","material_solicitado":"Perfil metálico estructural (PTR) para pata tipo U modelo App LT; calibre no especificado","materia
+
+[lab-costear] analizar-mueble 200 en 41 s · piezas 7 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"5c61085e","piezas":1,"precioVenta":1018.15,"margen":40,"costo":{"costoUnitario":610.89,"materialTotal":339.38,"manoObra":67.88,"indirectosFabrica":203.63,"desperdicio":15.75,"detalleInsumos":[{"insumoId":"ptr-3-14",
+
+[lab-costear] BOM inicial {"piezas":7,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántas patas se van a fabricar?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Qué sección y calibre de perfil lleva la pata?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de pintura en polvo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La 'U' va invertida (travesaño arriba, apoyo en 2 puntos) o con travesaño al piso?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva placa superior barrenada para fijar a cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Apoyo con nivelador roscado o tapón plástico?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La pata requiere paso de cableado interno (perforaciones/tapa)?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"8b9f9140","piezas":1,"precioVenta":1018.15,"margen":40,"costo":{"costoUnitario":610.89,"materialTotal":339.38,"manoObra":67.88,"indirectosFabrica":203.63,"desperdicio":15.75,"detalleInsumos":[{"insumoId":"ptr-3-14",
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 2 propuestos","diferencias":"3 difieren de lo pedido y se confirman uno por uno: Pintura en polvo negro mate, Nivelador cónico 3/8\", Tornillería de montaje. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$610.89","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · 5 material(es) propuestos sin confirmar: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · 5 material(es) propuestos sin confirmar: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $339.38 · Mano de obra $67.88 · Fábrica $203.63","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":610.89,"costoSrv":610.89,"estadoSrv":"preliminar","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"8b9f9140","piezas":1,"precioVenta":1153.91,"margen":40,"costo":{"costoUnitario":692.35,"materialTotal":339.38,"manoObra":88.24,"indirectosFabrica":264.72,"desperdicio":15.75,"detalleInsumos":[{"insumoId":"ptr-3-14",
+
+[lab-costear] dificultad {"costoNormal":610.89,"marcado":"true","costoDificil":692.35,"reqDificultad":"dificil","costoSrvDificil":692.35,"sube":true,"paridad":true,"costoDeVueltaNormal":610.89,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":165}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"8b9f9140","piezas":1,"precioVenta":1018.15,"margen":40,"costo":{"costoUnitario":610.89,"materialTotal":339.38,"manoObra":67.88,"indirectosFabrica":203.63,"desperdicio":15.75,"detalleInsumos":[{"insumoId":"ptr-3-14",
+
+[lab-costear] guardado {"status":201,"id":165,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"8b9f9140","piezas":1,"precioVenta":1018.15,"margen":40,"costo":{"costoUnitario":610.89,"materialTotal":339.38,"manoObra":67.88,"indirectosFabrica":203.63,"desperdicio":15.75,"detalleInsumos":[{"insumoId":"ptr-3-14",
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":5,"renglonesBom":7,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render LAB humo v5.2 ATPU2M 1014-1810 BORRADOR otro pata estructural tipo \"U\" metálica para mesa/escritorio línea App LT","piezas":7,"mismoBom":true,"costoAntes":"$610.89","costoDespues":"$610.89","mismoCosto":true,"resultado":{"precios":["$610.89","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · 5 material(es) propuestos sin confirmar: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · 5 material(es) propuestos sin confirmar: Placa de fijación a cubierta (lámina cal.12 troquelada), Soldadura MIG de ensamble, Pintura en polvo negro mate, Nivelador cónico 3/8\"… · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $339.38 · Mano de obra $67.88 · Fábrica $203.63","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.7m)

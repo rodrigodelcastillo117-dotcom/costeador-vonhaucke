@@ -1,7 +1,96 @@
 # Holdout v5 · congelamiento y verificación (14-oct-2026)
 
-> **Vigente: v5.1** (sección siguiente). Las secciones "v5" de más abajo quedan como historia: aquel congelamiento sobre
-> `2bd5092` ya no vale, porque el verificador cambió.
+> **Vigente: v5.2** (sección siguiente). Las secciones v5.1 y v5 de más abajo quedan como historia: sus congelamientos
+> ya no valen, porque el verificador y la Edge RC cambiaron. La corrida `corrida_humo_20261014b` (v5.1) **ya no
+> verifica** con la v5.2: su `llamadas.json` no declara la hoja (es el caso "hoja sin declarar" de la tabla).
+
+## v5.2 · request_id 1:1, `costeable` desde la hoja congelada y assert final de Edge
+
+Hallazgos de la reauditoría GO/NO-GO (P1 del holdout). Los tres daban OK con la v5.1:
+
+1. **request_id duplicado.** Dos llamadas de IA con el mismo `request_id` y un solo evento pasaban: el verificador
+   sólo buscaba que *existiera* un evento para cada id.
+2. **`costeable` desde el entorno.** `LAB_COSTEABLE=0` hacía que un caso costeable pasara con 0 llamadas RC: el E2E
+   escribía `costeable: false` en el resumen y el verificador le creía.
+3. **Assert final.** Ya auditaba todas las llamadas al final de la hoja, pero con `LAB_COSTEAR_FN` se podía cambiar la
+   Edge esperada del E2E, y una llamada tardía (después de la auditoría) no quedaba registrada.
+
+**Corrección** (`a4e23e1`):
+
+- `compararHuellas`:
+  - cada `request_id` es único en la corrida, también entre hojas;
+  - cada id tiene **exactamente un** evento;
+  - no hay eventos de otros requests;
+  - `#eventos = #llamadas`.
+- `costeableDeHoja`: sólo `costeable: false` **con** `motivo_no_costeable` declara no costeable. `LAB_COSTEABLE` ya no existe.
+- El E2E escribe `hoja: { ruta, sha256 }`. El verificador lee la hoja **de git en el SHA que sirvió el navegador**
+  (`git show <shaGit>:<ruta>`), no del disco ni del resumen.
+- Con hoja, la Edge esperada es siempre `costear-servidor-rc`. El E2E espera a que la red quede en reposo, hace un
+  assert explícito de Edge ajena sobre **todas** las llamadas de la página (análisis, costeo, transferencia, reapertura,
+  recosteo) y falla si llega una llamada después de la auditoría.
+
+**Pruebas:** 6 nuevas en `src/datos/holdoutHuellas.test.js` (I, I2, J, K, `costeableDeHoja` y L).
+
+- Con la v5.1 (`git show 3583acc:src/datos/holdoutHuellas.js`, más un stub de `costeableDeHoja` con la semántica v5.1
+  para que el archivo cargue), **6 de 27 fallan**: I, I2, J, K, `costeableDeHoja` y "cada request…", que ahora también
+  exige `#eventos = #llamadas`. Salida: `v52_pruebas_antes_v51.txt`.
+- **L** (producción en la transferencia, la reapertura o el recosteo ⇒ CAMBIO) **ya pasaba** con la v5.1: documenta
+  el assert final, no corrige un falso OK.
+
+### Congelamiento v5.2
+
+- **Edge RC redesplegada** desde `3583acc` (SEG-01c rev5, `filaCosteoServidor`): `costear-servidor-rc` **v23**
+  `3ba6d2b5…`. `analizar-mueble-rc` sigue en v8 `f226b792…`. Producción sin cambios: `costear-servidor` v9
+  `f0722f95…`, `analizar-mueble` v35 `1e1d496e…`.
+- **Base** (`huellas_db_20261014f.json`, 18:10 UTC): idéntica a la anterior.
+- Congelado sobre `7f27dc5`; manifiesto en `f693ba8`. 110 archivos; huella `1609af5ee225881f…`.
+
+### Corrida de humo v5.2
+
+- **Carpeta:** `corrida_humo_20261014c/ATPU2M` (hoja ciega ya vista; prueba la cadena de verificación, no mide precisión).
+- **Cuándo y dónde:** 18:10–18:12 UTC, en `http://localhost:5173/` (Vite con las Edge RC).
+- **`0-binario.json`:** `shaApp` = `shaGit` = `f693ba8`.
+- **Hoja declarada:** `lab/costear/ciego_erp/hojas/ATPU2M.json`, sha256 `ef907b09…`. Es la misma que está en git en `f693ba8`.
+- **IA:** 1 llamada, `request_id` `6351db72-f56e-4265-b04c-5ae3f9e3931c`. Tiene **un** evento: `analizar-mueble-rc`/texto/`claude-opus-5`.
+- **Costeo:** 5 llamadas, todas a `costear-servidor-rc`; 0 a producción.
+- **Paridad:** cliente = servidor = 10.89; con dificultad, 92.35 en ambos lados.
+- **Después de la corrida,** base y Edge idénticas (`*_20261014f_post.json`).
+- La transferencia a Cotizar quedó **deshabilitada** por el propio producto ("No se puede cotizar mientras el motor
+  marque bloqueos de costeo"): la pata ATPU2M sale preliminar con piezas inferidas. No es un fallo de la verificación.
+
+```
+node scripts/congelar_holdout.mjs --verificar --db lab/costear/holdout_intelisis/huellas_db_20261014f_post.json   --edges lab/costear/holdout_intelisis/edges_20261014f_post.json --modelos lab/costear/holdout_intelisis/modelos_20261014f.json   --corrida lab/costear/holdout_intelisis/corrida_humo_20261014c
+→ OK: 110 archivos, base de datos, Edge, modelos, llamadas y binario idénticos al congelamiento (1609af5ee225881f). exit 0
+```
+
+### Falla cerrado (Q4), reproducible: 16 de 16
+
+Comando: `node lab/costear/holdout_intelisis/casos_falla_cerrada.mjs lab/costear/holdout_intelisis/corrida_humo_20261014c lab/costear/holdout_intelisis/huellas_db_20261014f_post.json lab/costear/holdout_intelisis/edges_20261014f_post.json lab/costear/holdout_intelisis/modelos_20261014f.json`
+
+| Caso | exit | Salida |
+|---|---|---|
+| corrida real, sin alterar | 0 | OK: 110 archivos, base de datos, Edge, modelos, llamadas y binario idénticos al congelamiento (1609af5ee225881f). |
+| una llamada de IA sin request_id | 2 | NO VERIFICADO: faltan 1 llamada(s) de IA sin request_id y 1 evento(s) de IA que no son de esta corrida: 6351db72-f56e-4265-b04c-5ae3f9e3931c. |
+| caso costeable sin ninguna llamada a costear-servidor-rc | 2 | NO VERIFICADO: faltan 1 caso(s) costeable(s) sin llamada a costear-servidor-rc. |
+| una llamada a costear-servidor (producción), resumen honesto | 1 | HOLDOUT INVÁLIDO: cambió costeo con Edge ajena: costear-servidor |
+| producción en porFn pero ajenas [] en el resumen | 1 | HOLDOUT INVÁLIDO: cambió costeo con Edge ajena: costear-servidor |
+| producción en las crudas, resumen "limpio" de otra corrida | 1 | HOLDOUT INVÁLIDO: cambió costeo con Edge ajena: costear-servidor |
+| resumen con 2 llamadas de IA y 1 request_id | 2 | NO VERIFICADO: faltan request_id (1) ≠ llamadas de IA (2) y 1 hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json). |
+| hoja sin edges.json (sólo el resumen) | 2 | NO VERIFICADO: faltan 1 hoja(s) sin llamadas crudas (edges.json). |
+| 0-binario.json sin SHA de git | 1 | HOLDOUT INVÁLIDO: cambió binario: el navegador sirvió f693ba8 y git era sin SHA |
+| request_id repetido (la misma llamada de IA dos veces, un solo evento) | 2 | NO VERIFICADO: faltan request_id repetido (1): 6351db72-f56e-4265-b04c-5ae3f9e3931c y eventos de IA (1) ≠ llamadas de IA (2). |
+| dos eventos de IA para el mismo request_id | 2 | NO VERIFICADO: faltan más de un evento de IA para 1 request(s): 6351db72-f56e-4265-b04c-5ae3f9e3931c y eventos de IA (2) ≠ llamadas de IA (1). |
+| un evento de IA que no es de la corrida | 2 | NO VERIFICADO: faltan 1 evento(s) de IA que no son de esta corrida: 00000000-0000-0000-0000-000000000000 y eventos de IA (2) ≠ llamadas de IA (1). |
+| hoja costeable + resumen costeable:false (LAB_COSTEABLE=0) + 0 llamadas RC | 2 | NO VERIFICADO: faltan 1 caso(s) costeable(s) sin llamada a costear-servidor-rc y 1 hoja(s) cuyo llamadas.json declara "costeable" distinto de su hoja congelada. |
+| producción en el recosteo, entre llamadas RC | 1 | HOLDOUT INVÁLIDO: cambió costeo con Edge ajena: costear-servidor |
+| hoja declarada con otro sha256 (no es la que está en git) | 1 | HOLDOUT INVÁLIDO: cambió hoja distinta de la que corrió el E2E: lab/costear/ciego_erp/hojas/ATPU2M.json |
+| hoja sin declarar (E2E v5.1) | 2 | NO VERIFICADO: faltan 1 hoja(s) sin fixture congelada (ruta + sha256 en git al SHA servido). |
+| sin --corrida | 2 | NO VERIFICADO: faltan auditoría de la corrida (--corrida). |
+
+Cada caso alterado falla **por lo que altera** (columna Salida), no por un efecto secundario. El caso "una llamada de IA
+sin request_id" también reporta el evento como ajeno: al borrar el id de la llamada, el evento ya no tiene a quién
+corresponder.
+
 
 ## v5.1 · el verificador ya no confía en el resumen de llamadas
 

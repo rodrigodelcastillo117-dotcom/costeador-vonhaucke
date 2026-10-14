@@ -1,0 +1,23 @@
+{
+  "ia": {
+    "llamadas": 1,
+    "request_ids": [
+      "6351db72-f56e-4265-b04c-5ae3f9e3931c"
+    ],
+    "sin_id": 0
+  },
+  "costeo": {
+    "fnEsperada": "costear-servidor-rc",
+    "porFn": {
+      "costear-servidor-rc": 5
+    },
+    "rc": 5,
+    "ajenas": [],
+    "costeable": true
+  },
+  "hoja": {
+    "ruta": "lab/costear/ciego_erp/hojas/ATPU2M.json",
+    "sha256": "ef907b09fceb107ee08c12f56a87c35c9c084d98a153b620dbb9ce4e8de2b23d"
+  },
+  "motivos": []
+}

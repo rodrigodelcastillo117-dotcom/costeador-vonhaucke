@@ -1,0 +1,494 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "Tramo vertical pata U (poste)",
+          "cantidad": 1.44,
+          "piezas": 1,
+          "material_solicitado": "Perfil metálico estructural (PTR) para pata tipo U modelo App LT; calibre no especificado",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true,
+          "procedencia": "OBSERVADO"
+        },
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "Travesaño horizontal pata U (unión superior/base)",
+          "cantidad": 0.6,
+          "piezas": 1,
+          "material_solicitado": "Perfil metálico estructural (PTR) 600 mm, modelo App LT",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true,
+          "procedencia": "OBSERVADO"
+        },
+        {
+          "insumoId": "lamina-12",
+          "nombre": "Placa de fijación a cubierta (lámina cal.12 troquelada)",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Lámina de acero cal.12 para placa de fijación",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "procedencia": "INFERIDO"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura MIG de ensamble",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Microalambre MIG para unión de marco",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "procedencia": "INFERIDO"
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo negro mate",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Acabado pintura electrostática (color no especificado)",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "areaPintadaM2": 0.47,
+          "tubular": true,
+          "procedencia": "SUPUESTO"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador cónico 3/8\"",
+          "cantidad": 2,
+          "piezas": 1,
+          "material_solicitado": "Nivelador roscado para apoyo de pata",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "procedencia": "INFERIDO"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería de montaje",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillos de fijación pata-cubierta",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "procedencia": "INFERIDO"
+        }
+      ]
+    },
+    "identidad": {
+      "nombre": "LAB humo v5.2 ATPU2M 1014-1810",
+      "w": null,
+      "d": null
+    },
+    "promesa": {
+      "v": "v1",
+      "nombre": "LAB humo v5.2 ATPU2M 1014-1810",
+      "materiales": [
+        "lamina-12",
+        "nivelador",
+        "pintura-polvo-negro-mate-8-vitracoat",
+        "ptr-3-14",
+        "soldadura",
+        "tornilleria"
+      ],
+      "piezas": [
+        "Nivelador cónico 3/8\"",
+        "Pintura en polvo negro mate",
+        "Placa de fijación a cubierta (lámina cal.12 troquelada)",
+        "Soldadura MIG de ensamble",
+        "Tornillería de montaje",
+        "Tramo vertical pata U (poste)",
+        "Travesaño horizontal pata U (unión superior/base)"
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "preliminar",
+    "aprobacionHumana": false,
+    "costeoId": null,
+    "bomHash": "8b9f9140",
+    "piezas": 1,
+    "precioVenta": 1018.15,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 610.89,
+      "materialTotal": 339.38,
+      "manoObra": 67.88,
+      "indirectosFabrica": 203.63,
+      "desperdicio": 15.75,
+      "detalleInsumos": [
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "PTR 3\" x 1 1/2\" cal. 14",
+          "seccion": "metal",
+          "costo": 159.97,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "lamina-12",
+          "nombre": "Lamina de acero cal. 12",
+          "seccion": "metal",
+          "costo": 26.86,
+          "certificable": false,
+          "evidencia": "propuesto"
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "costo": 65,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "costo": 7.09,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "costo": 35.46,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": []
+    },
+    "evidencia": {
+      "usados": 6,
+      "certificados": 2,
+      "noCertificados": 4
+    },
+    "precios": [
+      {
+        "insumo_id": "ptr-3-14",
+        "eleccion": "recalculada",
+        "precio_usado": 73.33,
+        "unidad": "m",
+        "precio_id": 138,
+        "precio": 73.33,
+        "estado": "propuesto_validado",
+        "approved_by": null,
+        "approved_at": null,
+        "source_document": null,
+        "rol_aprobador": null,
+        "humana": false,
+        "motivo": "precio en estado 'propuesto_validado'"
+      },
+      {
+        "insumo_id": "lamina-12",
+        "eleccion": "recalculada",
+        "precio_usado": 1336.56,
+        "unidad": "hoja",
+        "precio_id": 14,
+        "precio": 1336.56,
+        "estado": "propuesto",
+        "approved_by": null,
+        "approved_at": null,
+        "source_document": null,
+        "rol_aprobador": null,
+        "humana": false,
+        "motivo": "precio en estado 'propuesto'"
+      },
+      {
+        "insumo_id": "soldadura",
+        "eleccion": "recalculada",
+        "precio_usado": 65,
+        "unidad": "kg",
+        "precio_id": 18,
+        "precio": 65,
+        "estado": "aprobado",
+        "approved_by": "reconciliacion",
+        "approved_at": "2026-10-01T20:39:45.855566+00:00",
+        "source_document": null,
+        "rol_aprobador": null,
+        "humana": false,
+        "motivo": "aprobado por una cuenta no humana"
+      },
+      {
+        "insumo_id": "pintura-polvo-negro-mate-8-vitracoat",
+        "eleccion": "recalculada",
+        "precio_usado": 120.677966,
+        "unidad": "kg",
+        "precio_id": 461,
+        "precio": 120.677966,
+        "estado": "aprobado",
+        "approved_by": "qa-direccion@vonhaucke.mx",
+        "approved_at": "2026-10-12T02:24:18.428164+00:00",
+        "source_document": "ERP Intelisis · Costos de Materia Prima Ultima Compra al 10082026.xlsx (Drive, Compras)",
+        "rol_aprobador": "direccion",
+        "humana": false,
+        "motivo": "aprobado por una cuenta no humana"
+      },
+      {
+        "insumo_id": "nivelador",
+        "eleccion": "recalculada",
+        "precio_usado": 17.73,
+        "unidad": "pza",
+        "precio_id": 80,
+        "precio": 17.73,
+        "estado": "propuesto_validado",
+        "approved_by": null,
+        "approved_at": null,
+        "source_document": null,
+        "rol_aprobador": null,
+        "humana": false,
+        "motivo": "precio en estado 'propuesto_validado'"
+      },
+      {
+        "insumo_id": "tornilleria",
+        "eleccion": "recalculada",
+        "precio_usado": 45,
+        "unidad": "juego",
+        "precio_id": 40,
+        "precio": 45,
+        "estado": "aprobado",
+        "approved_by": "reconciliacion",
+        "approved_at": "2026-10-01T20:39:45.855566+00:00",
+        "source_document": null,
+        "rol_aprobador": null,
+        "humana": false,
+        "motivo": "aprobado por una cuenta no humana"
+      }
+    ],
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 251.8350966973633,
+      "materialIndirecto": 87.5498305025,
+      "materialTotal": 339.3849271998633,
+      "desperdicio": 15.753793803472641,
+      "manoObra": 67.87698543997266,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 26.952949104445985,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 407.26191263983594,
+      "indirectosFabrica": 203.630956319918,
+      "gastosOperacion": 0,
+      "costoFabricacion": 610.892868959754,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 610.892868959754,
+      "costoLoteConMerma": 610.892868959754,
+      "costoUnitario": 610.892868959754,
+      "detalleInsumos": [
+        {
+          "insumoId": "ptr-3-14",
+          "nombre": "PTR 3\" x 1 1/2\" cal. 14",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "tramo",
+            "corto": "tramo",
+            "medida": 6,
+            "nombre": "tramo de 6 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Tramo vertical pata U (poste)",
+            "Travesaño horizontal pata U (unión superior/base)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": {
+            "disponible": false,
+            "issues": [
+              "SIN_PIEZAS_LINEALES"
+            ],
+            "advisory": true
+          },
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "FORMATO_COMPLETO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2.04,
+          "comprado": 2.1815759999999997,
+          "unidades": 0.363596,
+          "costo": 159.97496807999997,
+          "desperdicio": 10.381768079999977,
+          "pct": 6.489620347858599,
+          "precio": 73.33,
+          "noCabe": false,
+          "reglaTramo": "FRACCION_D2"
+        },
+        {
+          "insumoId": "lamina-12",
+          "nombre": "Lamina de acero cal. 12",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "lamina",
+            "corto": "lamina",
+            "medida": 62.2,
+            "nombre": "lamina 1.22 x 2.44"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Placa de fijación a cubierta (lámina cal.12 troquelada)"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "metal",
+          "metodoConsumo": "APROVECHAMIENTO_GENERICO",
+          "usaAprovechamientoGenerico": true,
+          "neto": 1,
+          "comprado": 1.2499999999999998,
+          "unidades": 0.020096463022508036,
+          "costo": 26.86012861736334,
+          "desperdicio": 5.372025723472664,
+          "pct": 19.999999999999986,
+          "precio": 1336.56,
+          "noCabe": false,
+          "fraccion": true
+        },
+        {
+          "insumoId": "soldadura",
+          "nombre": "Soldadura",
+          "seccion": "metal",
+          "clase": "directa",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Soldadura MIG de ensamble"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 65,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 65,
+          "noCabe": false
+        },
+        {
+          "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+          "nombre": "Pintura en polvo, Negro Mate 8 Vitracoat",
+          "seccion": "acabados",
+          "clase": "indirecta",
+          "unidad": "kg",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Pintura en polvo negro mate"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.05875,
+          "comprado": 0.05875,
+          "unidades": null,
+          "costo": 7.0898305025,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 120.677966,
+          "noCabe": false
+        },
+        {
+          "insumoId": "nivelador",
+          "nombre": "Nivelador conico cromado 3/8",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "pza",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Nivelador cónico 3/8\""
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 2,
+          "comprado": 2,
+          "unidades": null,
+          "costo": 35.46,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 17.73,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de montaje"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Placa de fijación a cubierta (lámina cal.12 troquelada)",
+        "Soldadura MIG de ensamble",
+        "Pintura en polvo negro mate",
+        "Nivelador cónico 3/8\"",
+        "Tornillería de montaje"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "completo",
+      "pendientes": [],
+      "costoOficial": 610.892868959754
+    },
+    "versionMotor": "2026-10-14b",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg10cme3i",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-14T18:12:16.887Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "Material propuesto sin confirmar: Placa de fijación a cubierta (lámina cal.12 troquelada)",
+      "Material propuesto sin confirmar: Soldadura MIG de ensamble",
+      "Material propuesto sin confirmar: Pintura en polvo negro mate",
+      "Material propuesto sin confirmar: Nivelador cónico 3/8\"",
+      "Material propuesto sin confirmar: Tornillería de montaje",
+      "Costo preliminar — 4 de 6 insumo(s) sin precio certificado.",
+      "1 insumo(s) requieren validación de Compras.",
+      "Costeo sin registro autoritativo (SEG-01c no aplicada): no servirá para emitir cuando se aplique."
+    ]
+  }
+}
