@@ -9,15 +9,26 @@ todavía**: los debe entregar Compras.
 
 ## Reglas (se fijan ANTES de ver los datos)
 
-1. **Congelamiento.**
-   - `node scripts/congelar_holdout.mjs` escribe `MANIFIESTO.json` con el sha256 de los 37 archivos que influyen
-     en el costo: motor, estado del costo, reconciliación de material, Edge RC de costeo y de análisis, laboratorio
-     y métricas.
-   - El manifiesto también guarda el md5 de los precios (11,350 filas), del catálogo (11,223) y de la config.
-   - Huella actual: `c3db350fde005186…`.
-2. **Antes de correr**, `node scripts/congelar_holdout.mjs --verificar` debe decir OK. También hay que volver a
-   medir las tres huellas de base de datos con las consultas del manifiesto y deben coincidir. Si algo cambió, la
-   corrida **no cuenta** como holdout: se re-congela, se documenta el motivo y se empieza de nuevo.
+1. **Congelamiento v2** (reauditoría externa 14-oct, P1-02). Congelado el 14-oct con la huella `21538b2b527cc2f1…`.
+   - **Código:** sha256 de 39 archivos (motor, estado, materiales, Edge RC de costeo y de análisis con su prompt,
+     laboratorio, métricas, comparador y la propia consulta de huellas).
+   - **Base de datos** (`huellas_db.sql` → `huellas_db_20261014.json`):
+     - `insumo_precios` con TODAS las columnas que mueven la selección o la certificación: precio, estado,
+       confidence, vigencias, aprobador, fecha, documento, unidad, factor, contrato, hash;
+     - `insumos_catalogo` con nombre, familia, clasificación, sección, atributos, unidad y activo;
+     - `config`;
+     - md5 de `catalogo_vigente`, `catalogo_motor` (pública y privada), `insumo_motor` y `buscar_insumos_motor`.
+   - **Edge desplegadas** (`edges_20261014.json`): `costear-servidor-rc` v17 y `analizar-mueble-rc` v8, con versión
+     y `ezbr_sha256`.
+2. **Antes de correr:** se vuelven a medir las huellas (`huellas_db.sql` con solo lectura, y la lista de Edge) y se
+   ejecuta:
+   `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json>`
+   - **exit 0 (OK):** se puede correr.
+   - **exit 1 (cambió algo):** la corrida **no cuenta**.
+   - **exit 2 (faltan huellas):** **no hay verificación**. Correr `--verificar` sin `--db`/`--edges` ya no puede
+     decir OK.
+   - **Modelo de IA:** el `model_id` que resolvió la Edge queda en `ai_eventos` por llamada. La corrida lo extrae y
+     lo reporta. No se congela el comportamiento del proveedor: cualquier cambio de modelo se ve en el reporte.
 3. **Entrada.**
    - Solo la descripción comercial y, si existe, el plano.
    - El despiece del ERP **no** se da a la app.
