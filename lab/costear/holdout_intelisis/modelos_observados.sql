@@ -5,4 +5,4 @@
 select coalesce(json_agg(json_build_object('fn', fn, 'modo', modo, 'model_id', model_id, 'request_id', request_id)
                          order by request_id), '[]'::json) as modelos
 from public.ai_eventos
-where fn = 'analizar-mueble-rc' and request_id = any(:'requests'::text[]);
+where fn = 'analizar-mueble-rc' and request_id::text = any(:'requests'::text[]);   -- request_id es uuid
