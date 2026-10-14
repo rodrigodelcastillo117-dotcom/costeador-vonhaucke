@@ -4,10 +4,10 @@
 //  render, y abre el expediente para ver/editar/duplicar/re-costear.
 // ============================================================================
 import { useEffect, useState } from 'react';
-import { listarExpedientes, obtenerExpediente } from '../nube.js';
+import { listarExpedientes, obtenerExpediente, CARRIL_RC } from '../nube.js';
 import { pesos } from '../util.js';
 import Cargando from './Cargando.jsx';
-import { filtrarBiblioteca } from '../datos/expedientesPrueba.js';
+import { filtrarBiblioteca, mostrarPruebasPorOmision } from '../datos/expedientesPrueba.js';
 
 export default function Biblioteca({ onAbrir, onNuevo, onInicio }) {
   const [q, setQ] = useState('');
@@ -15,7 +15,7 @@ export default function Biblioteca({ onAbrir, onNuevo, onInicio }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [abriendo, setAbriendo] = useState(false);
-  const [mostrarPruebas, setMostrarPruebas] = useState(false);
+  const [mostrarPruebas, setMostrarPruebas] = useState(mostrarPruebasPorOmision(CARRIL_RC));
 
   async function recargar(term) {
     setCargando(true); setError('');

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { esExpedientePrueba, filtrarBiblioteca } from './expedientesPrueba.js';
+import { esExpedientePrueba, filtrarBiblioteca, mostrarPruebasPorOmision } from './expedientesPrueba.js';
 
 describe('Biblioteca · expedientes de prueba ocultos por omisión (sin borrar)', () => {
   const items = [
@@ -20,5 +20,11 @@ describe('Biblioteca · expedientes de prueba ocultos por omisión (sin borrar)'
   it('mayúsculas en la etiqueta no la burlan; null no truena', () => {
     expect(esExpedientePrueba({ nombre: 'x', etiquetas: ['QA-Archivado'] })).toBe(true);
     expect(esExpedientePrueba(null)).toBe(false);
+  });
+  it('en el carril RC lo recién guardado (PRUEBA RC) se ve por omisión; en producción no (regresión del lab 2649de8)', () => {
+    const recien = [{ id: 160, nombre: 'PRUEBA RC · PRUEBA RC librero 5x8 integrado', etiquetas: ['prueba-rc'] }];
+    expect(filtrarBiblioteca(recien, { mostrarPruebas: mostrarPruebasPorOmision(true) }).visibles).toHaveLength(1);
+    expect(filtrarBiblioteca(recien, { mostrarPruebas: mostrarPruebasPorOmision(false) }).visibles).toHaveLength(0);
+    expect(mostrarPruebasPorOmision(undefined)).toBe(false);
   });
 });
