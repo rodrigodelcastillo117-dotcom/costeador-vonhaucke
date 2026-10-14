@@ -139,7 +139,7 @@ describe('VH-100 · carga de costo oficial por código (P0-01)', () => {
   it('sin la tabla cuentas_no_humanas (SEG-01b sin aplicar) nadie carga: fail-closed', async () => {
     await db.exec('alter table public.cuentas_no_humanas rename to cnh_tmp');
     try {
-      await expect(como(db, DIRECCION, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/aplicar SEG-01b/);
+      await expect(como(db, DIRECCION, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/aplicar SEG-01c/);
     } finally { await db.exec('alter table public.cnh_tmp rename to cuentas_no_humanas'); }
   });
 });

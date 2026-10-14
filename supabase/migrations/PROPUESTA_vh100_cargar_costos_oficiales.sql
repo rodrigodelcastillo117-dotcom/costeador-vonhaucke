@@ -7,7 +7,7 @@
 --   · ROL: antes aceptaba `auth.jwt()->'user_metadata'->>'rol'`, que el propio usuario edita con
 --     supabase.auth.updateUser({data:{rol:'direccion'}}): un vendedor podía cargar costos oficiales. Y
 --     `puede_editar_config()` dejaba entrar a Diseño. Ahora: service_role o `permitidos.rol = 'direccion'`, y nunca
---     una cuenta listada en `cuentas_no_humanas` (SEG-01b) — la cuenta QA tiene rol direccion y no debe cargar costos.
+--     una cuenta listada en `cuentas_no_humanas` (SEG-01c) — la cuenta QA tiene rol direccion y no debe cargar costos.
 --   · HISTORIAL: el `on conflict do update` pisaba el costo anterior sin rastro. Ahora cada sobrescritura deja la fila
 --     previa en public.producto_version_economia_historial (quién, cuándo, documento nuevo).
 --   · PROCEDENCIA: `documento · fecha · sha256:<64 hex> · email` (antes 16 hex).
@@ -64,9 +64,9 @@ begin
     if v_email = '' or coalesce(v_rol, '') <> 'direccion' then
       raise exception 'no autorizado: sólo Dirección carga costos oficiales';
     end if;
-    -- Fail-closed: sin la lista de cuentas no humanas (SEG-01b) no se puede descartar la cuenta QA ⇒ no se carga.
+    -- Fail-closed: sin la lista de cuentas no humanas (SEG-01c) no se puede descartar la cuenta QA ⇒ no se carga.
     if to_regclass('public.cuentas_no_humanas') is null then
-      raise exception 'no autorizado: falta public.cuentas_no_humanas (aplicar SEG-01b antes)';
+      raise exception 'no autorizado: falta public.cuentas_no_humanas (aplicar SEG-01c antes)';
     end if;
     execute 'select exists(select 1 from public.cuentas_no_humanas where lower(email) = $1)' into v_no_humana using v_email;
     if v_no_humana then

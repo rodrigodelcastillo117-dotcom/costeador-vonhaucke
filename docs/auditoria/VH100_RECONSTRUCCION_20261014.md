@@ -31,7 +31,7 @@ por ejemplo, a las cotizaciones 350, 620 y 1172.
      vendedor podía cargar costos oficiales.
    - Además, `puede_editar_config()` dejaba entrar a Diseño.
    - Ahora el rol sale solo de `permitidos` (service_role o `direccion`), y se rechaza cualquier cuenta listada
-     en `cuentas_no_humanas`, que crea SEG-01b. Si esa tabla no existe, nadie carga (fail-closed).
+     en `cuentas_no_humanas`, que crea SEG-01c. Si esa tabla no existe, nadie carga (fail-closed).
 3. **Costo sobrescrito sin rastro.** Ahora cada sobrescritura guarda la fila anterior en
    `producto_version_economia_historial`.
 4. **Procedencia.** Ahora queda como `documento · fecha · sha256:<64 hex> · email`; antes el hash se recortaba a
@@ -63,7 +63,7 @@ VH-100 queda cerrado solo cuando se cumplen las siete condiciones:
 
 - **Decisión y dato (Dirección y Compras):** el reporte de costo de Intelisis por clave. No existe en el Drive
   revisado. Sin él no hay carga posible. **No lo invento.**
-- **Autorización (Dirección):** aplicar `PROPUESTA_seg01b_…` primero (crea `cuentas_no_humanas`) y después
+- **Autorización (Dirección):** aplicar `PROPUESTA_seg01c_…` primero (crea `cuentas_no_humanas`) y después
   `PROPUESTA_vh100_…`.
 - **Datos (Ingeniería y Dirección):** clave ERP para los 116 productos sin código y la elección entre fichas
   duplicadas (ver `docs/auditoria/CLAVES_POR_DESCRIPCION.md`).

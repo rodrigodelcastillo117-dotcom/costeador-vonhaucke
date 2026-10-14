@@ -317,9 +317,9 @@ Deno.serve(async (req) => {
   if (k.respuesta) return k.respuesta;
   const { r, estado, aprobacionHumana, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros } = k;
 
-  // SEG-01b (Operación 9.5): registro AUTORITATIVO del costeo. Sólo service_role escribe aquí; la emisión exige que el
+  // SEG-01c (Operación 9.5): registro AUTORITATIVO del costeo. Sólo service_role escribe aquí; la emisión exige que el
   // renglón especial lleve este `costeoId` y que su costo coincida al centavo. Si la tabla no existe todavía (propuesta
-  // sin aplicar) el costeo sigue, sin costeoId, y lo dice: la emisión de producción no cambia hasta aplicar SEG-01b.
+  // sin aplicar) el costeo sigue, sin costeoId, y lo dice: la emisión de producción no cambia hasta aplicar SEG-01c.
   const huellaBom = bomHash(k.componentes || []);
   let costeoId: string | null = null;
   if (esDireccion || esDiseno) {
@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
       estado, aprobacion_humana: aprobacionHumana, version_motor: meta.versionMotor, version_catalogo: meta.versionCatalogo,
       fuente_costo: meta.fuenteCosto, precios: k.preciosUsados || [], warnings,
     }).select("id").single();
-    if (regErr) warnings.push("Costeo sin registro autoritativo (SEG-01b no aplicada): no servirá para emitir cuando se aplique.");
+    if (regErr) warnings.push("Costeo sin registro autoritativo (SEG-01c no aplicada): no servirá para emitir cuando se aplique.");
     else costeoId = regC?.id ?? null;
   }
 

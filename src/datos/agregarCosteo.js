@@ -77,7 +77,7 @@ export async function partidaAutoritativaDeCosteo({ costeo, resultado, precio, m
     costoUnitario: costoServidor,
     costoPendiente: false,
     costoEstado: autoridad.estado || null,
-    // SEG-01b: la emisión verifica en el servidor que este costo es el que registró costear-servidor.
+    // SEG-01c: la emisión verifica en el servidor que este costo es el que registró costear-servidor.
     costeoId: autoridad.costeoId || null,
     bomHash: autoridad.bomHash || null,
     versionMotor: autoridad.versionMotor || null,

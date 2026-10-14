@@ -27,7 +27,7 @@ Tiene razón a medias:
 ### Trazabilidad por costeo (P1-03)
 
 Ya está en la Edge RC (`costear-servidor-rc`, commit 6d1cd13) y en el registro `costeos_servidor.precios`, que
-existirá al aplicar SEG-01b. Por cada insumo usado registra:
+existirá al aplicar SEG-01c. Por cada insumo usado registra:
 
 - `insumo_id`, `precio_usado` y `unidad`;
 - `precio_id`: la misma fila que elige la vista `catalogo_vigente`;
@@ -67,11 +67,11 @@ debe hacerlo, por instrucción de Rodrigo. El primer VALIDADO de verdad lo produ
 | **D1-b · ¿firma por política o precio por precio?** Firmar la política V1 una vez, o aprobar los ~1,660 precios ERP uno por uno. | Hoy solo existe la aprobación precio por precio, ahora con botón. La aprobación por política requiere SQL nuevo y autorización. |
 | **¿Quién más puede aprobar precios?** (Compras) | Solo `direccion` (`ROLES_APROBADORES_PRECIO`; la RPC de producción usa `puede_certificar_costo()`, que también es solo `direccion`). |
 | **Re-aprobación de precios de la cuenta QA** | `aprobar_precio` sobrescribe `approved_by`, así que se pierde que antes lo aprobó la cuenta QA. Para conservarlo hace falta una tabla de historial de aprobaciones (no incluida, decisión pendiente). |
-| **Aplicar SEG-01b** (crea `cuentas_no_humanas` y `costeos_servidor`) | Sin esa tabla, ninguna aprobación cuenta como humana, ni siquiera la de Rodrigo: el servidor no puede descartar la cuenta QA. |
+| **Aplicar SEG-01c** (crea `cuentas_no_humanas` y `costeos_servidor`) | Sin esa tabla, ninguna aprobación cuenta como humana, ni siquiera la de Rodrigo: el servidor no puede descartar la cuenta QA. |
 
 **Orden mínimo para el primer costo VALIDADO real:**
 
-1. Rodrigo autoriza SEG-01b.
+1. Rodrigo autoriza SEG-01c.
 2. Rodrigo, con su cuenta, aprueba los precios exactos de un mueble.
 3. El servidor devuelve `certificado` con `aprobacionHumana=true`.
 4. La pantalla dice COSTO VALIDADO, siempre que no haya otros supuestos: D2 sin ratificar, tornillería genérica o
