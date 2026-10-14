@@ -93,3 +93,25 @@ Fixture: `supabase/tests/fixtures/vh146c_catalogo_real_20261014.json` (253 filas
   - con el estado que entrega el servidor tras el tope, `evaluar_emision_cotizacion` da `ECONOMICS_INCOMPLETE` (`linea_1_costo_preliminar_no_certificado`);
   - control: el mismo renglón marcado `certificado` pasa. Eso demuestra que el tope tiene que vivir en el servidor.
 - **Fuera de alcance, sigue abierto**: el `costoEstado` del renglón lo escribe el cliente al guardar la cotización. Atar el estado al costeo persistido es SEG-01 (P0 heredado).
+
+---
+
+## vh146c APLICADA EN PRODUCCIÓN (14-oct, autorizada por Dirección)
+
+| Paso | Resultado |
+|---|---|
+| Medición previa (solo lectura) | 231 candidatos, 200 de 4×8 y 31 de 5×8, huella `399f4b969536318069dd28459b79a13b`. Sin respaldo previo. AME28152-b709 sin formato. Precios: 11,350 filas, huella `63cfceba822b560d4b13f89ba248a6b4`. |
+| Aplicación | `apply_migration` con el texto del archivo auditado (`910f2d3`, md5 `bf9e8b57…`). Versión `20261014032317`. Todas las verificaciones internas pasaron. |
+| Verificación externa | Respaldo con 231 filas (200 + 31) y huella del respaldo = manifest. Las 231 tienen formato, `fraccion=true` y la merma original. AME28152-b709 en 1525×2440. Precios idénticos (`63cfceba…`, 11,350). 0 acrílicos con formato. |
+| Smoke en vivo, librero 5×8 (link RC `razpuvm5j`, commit `fd2dae5`) | Hoja de control **6/6 PASS**. Pantalla **$6,614.24** = servidor **$6,614.24**. 0 "sin formato". Al reabrir, el mismo costo. Evidencia: `lab/rescate/preview_link/librero_5x8_post_vh146c_v2/`. |
+
+**El primer smoke falló y se corrigió.**
+- En la primera corrida la paridad sí cuadró ($6,238.64), pero la hoja de control dio 4/6.
+- Causa: al aplicar respuestas y recalcular, las propuestas a piezas hermanas (P2-01, sin confirmar) se perdían y el piso, el techo y los entrepaños volvían a la melamina curada de 4×8.
+- La IA hizo una pregunta distinta en esa corrida ("¿el catálogo es 5×8?" → "Sí"), y eso expuso el defecto.
+- Corregido en `conservarConfirmados.js`: las propuestas con `propagado_desde` sobreviven al recálculo, siguen sin confirmar. Hay una prueba que falla con el código anterior.
+
+**Observación, sin cambio:** el servidor marca `incompleto` cuando quedan materiales propuestos sin confirmar (aquí: tapacanto y tornillería genérica), pero devuelve `warnings: []`. La pantalla, tras validar, mostrará BLOQUEADO sin explicar el motivo del servidor. Conviene que el servidor liste esos materiales.
+
+**No se tocó:** el resto de la rama (cliente de producción `c8dd2b3`, Edge Functions productivas y demás migraciones) ni SEG-01.
+**Efecto en producción:** las 231 hojas ahora sí se costean por fracción de hoja en la app de producción también, porque el catálogo es compartido. Antes bloqueaban por "sin formato".

@@ -1,0 +1,54 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900x350x1800 mm melamina Walnut 28 mm","tipo":"guarda","piezas":[{"nombre":"Lateral","insumoId":"melamina-28-walnut","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)","material_match":"SUBSTITUTE_S
+
+[lab-costear] analizar-mueble 200 en 25 s · piezas 7 · lote 1
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900x1800x350 mm","tipo":"guarda","piezas":[{"nombre":"Lateral","insumoId":"melamina-28-walnut","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)","material_match":"SUBSTITUTE_SUGGESTED","forma":"are
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":5296.88,"materialTotal":3296.06,"manoObra":500.2,"indirectosFabrica":1500.61,"desperdicio":1492.27,"detalleInsumos":[{"insumoId":"melamina-28-walnut","nombre":"Melamina 28 mm,
+
+[lab-costear] BOM inicial {"piezas":7,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp-ame28152-b709","nombre":"AGLOMERADO MELA
+
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Lateral","resultados":1,"elegido":"AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT · hoja · ERP $1,924.20 / hoja · propuesto_validado · 2022-12-17 Usar"},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] recalculo 200
+
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900x350x1800 mm","tipo":"guarda","piezas":[{"nombre":"Lateral","insumoId":"erp-ame28152-b709","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)","material_match":"SUBSTITUTE_SUGGESTED","forma":"area
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp-ame28152-b709","nombre":"AGLOMERADO MELA
+
+[lab-costear] respuestas [{"pregunta":"¿Se compra la melamina 28 mm Walnut en hoja 5x8 (1525x2440) como indica el plano?","elegido":"Sí, 5x8","opciones":["Sí, 5x8","No, 4x8 de catálogo","Por definir"],"evidencia":"plano: HOJA 5 × 8 (1525 × 2440)"},{"pregunta":"¿Cuántas piezas del librero se fabricarán?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Tipo de unión de cuerpo?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp-ame28152-b709","nombre":"AGLOMERADO MELA
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 4 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm Walnut cantos frontales.","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$6,614.24","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería ensamble y respaldo · 2 material(es) propuestos sin confirmar: Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería ensamble y respaldo · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería ensamble y respaldo · 2 material(es) propuestos sin confirmar: Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería ensamble y respaldo · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $4,119.41 · Mano de obra $623.71 · Fábrica $1,871.12","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":6614.24,"costoSrv":6614.24,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":4}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":7362.69,"materialTotal":4119.41,"manoObra":810.82,"indirectosFabrica":2432.46,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp-ame28152-b709","nombre":"AGLOMERADO MELA
+
+[lab-costear] dificultad {"costoNormal":6614.24,"marcado":"true","costoDificil":7362.69,"reqDificultad":"dificil","costoSrvDificil":7362.69,"sube":true,"paridad":true,"costoDeVueltaNormal":6614.24,"regresaIgual":true}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp-ame28152-b709","nombre":"AGLOMERADO MELA
+
+[lab-costear] expedientes POST 201 [{"id":158}]
+
+[lab-costear] guardado {"status":201,"id":158,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp-ame28152-b709","nombre":"AGLOMERADO MELA
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":6,"pass":6,"fail":0,"riesgo":0,"sobrantesNoPermitidos":0,"renglonesBom":7,"veredicto":"PASS"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render PRUEBA RC · LAB post-vh146c v2 librero 1014-0336 BORRADOR guarda librero abierto Tablero melamínico nogal 28 mm","piezas":7,"mismoBom":true,"costoAntes":"$6,614.24","costoDespues":"$6,614.24","mismoCosto":true,"resultado":{"precios":["$6,614.24","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería ensamble y respaldo · 2 material(es) propuestos sin confirmar: Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería ensamble y respaldo · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería ensamble y respaldo · 2 material(es) propuestos sin confirmar: Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería ensamble y respaldo · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $4,119.41 · Mano de obra $623.71 · Fábrica $1,871.12","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (2.6m)
