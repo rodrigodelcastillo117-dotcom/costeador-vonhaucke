@@ -12,7 +12,21 @@ const sinFecha = (o) => { const c = JSON.parse(JSON.stringify(o || {})); delete 
 // borraba y el verificador nunca se enteraba). Toda llamada cuyo nombre empiece con costear-servidor tiene que ser
 // EXACTAMENTE la RC; un caso costeable sin ninguna llamada RC no prueba nada.
 const idValido = (x) => typeof x === 'string' && x.trim().length > 0;
-export function auditarLlamadasCorrida(edges = [], { fnCosteo = 'costear-servidor-rc', costeable = true } = {}) {
+const repetidosDe = (ids) => [...new Set(ids.filter((r, i) => idValido(r) && ids.indexOf(r) !== i))];
+
+// v5.2 (reauditoría GO/NO-GO, P1): ¿el caso es costeable? Lo dice la HOJA congelada (la fixture, leída de git en el SHA
+// que sirvió el navegador), nunca el resumen ni una variable de entorno (antes LAB_COSTEABLE=0 bastaba para que un caso
+// costeable pasara con 0 llamadas RC). Sólo `costeable: false` CON `motivo_no_costeable` lo declara no costeable; campo
+// ausente o true = costeable; cualquier otro valor = indefinido (null) ⇒ NO_VERIFICADO.
+export function costeableDeHoja(hoja) {
+  if (!hoja || typeof hoja !== 'object' || Array.isArray(hoja)) return null;
+  if (hoja.costeable === undefined || hoja.costeable === true) return true;
+  if (hoja.costeable === false && idValido(hoja.motivo_no_costeable)) return false;
+  return null;
+}
+
+// `hoja` = { ruta, sha256 } de la fixture que corrió (la escribe el E2E); el verificador la vuelve a leer de git.
+export function auditarLlamadasCorrida(edges = [], { fnCosteo = 'costear-servidor-rc', costeable = true, hoja = null } = {}) {
   const lista = Array.isArray(edges) ? edges : [];
   const ia = lista.filter((e) => /^analizar-mueble/.test(e?.fn || ''));
   const request_ids = ia.map((e) => (idValido(e?.body?.request_id) ? e.body.request_id : null));
@@ -22,12 +36,15 @@ export function auditarLlamadasCorrida(edges = [], { fnCosteo = 'costear-servido
   const rc = porFn[fnCosteo] || 0;
   const ajenas = Object.keys(porFn).filter((f) => f !== fnCosteo).sort();
   const sin_id = request_ids.filter((x) => x == null).length;
+  const repetidos = repetidosDe(request_ids);
   const motivos = [
     sin_id && `${sin_id} de ${ia.length} llamada(s) de IA sin request_id`,
+    repetidos.length && `request_id repetido en las llamadas de IA: ${repetidos.join(', ')}`,
     ajenas.length && `costeo con Edge distinta de ${fnCosteo}: ${ajenas.join(', ')}`,
-    costeable && rc === 0 && `caso costeable sin ninguna llamada a ${fnCosteo}`,
+    costeable == null && 'la hoja no declara bien si el caso es costeable (false exige motivo_no_costeable)',
+    costeable !== false && rc === 0 && `caso costeable sin ninguna llamada a ${fnCosteo}`,
   ].filter(Boolean);
-  return { ia: { llamadas: ia.length, request_ids, sin_id }, costeo: { fnEsperada: fnCosteo, porFn, rc, ajenas, costeable: !!costeable }, motivos };
+  return { ia: { llamadas: ia.length, request_ids, sin_id }, costeo: { fnEsperada: fnCosteo, porFn, rc, ajenas, costeable: costeable !== false }, hoja, motivos };
 }
 
 // v5.1 (reauditoría final): el verificador NO confía en los campos derivados del resumen (ajenas, rc, fnEsperada). Un
@@ -47,7 +64,8 @@ function llamadasCrudas(crudas) {
 // Une las auditorías de todas las hojas de una corrida (y sus 0-binario.json) en lo que consume compararHuellas.
 export function unirCorrida(hojas = []) {
   const ia = { llamadas: 0, request_ids: [], sin_id: 0 };
-  const costeo = { porFn: {}, ajenas: [], casos: 0, casosSinRc: 0, casosSinCrudas: 0, casosInconsistentes: 0 };
+  const costeo = { porFn: {}, ajenas: [], casos: 0, casosSinRc: 0, casosSinCrudas: 0, casosInconsistentes: 0,
+    casosSinHoja: 0, hojasDistintas: [], casosCosteableInvalido: 0, casosCosteableDistinto: 0 };
   const binarios = [];
   for (const h of hojas) {
     const a = h?.auditoria;
@@ -66,7 +84,16 @@ export function unirCorrida(hojas = []) {
       }
       costeo.casos += 1;
       const rc = Math.min(porFnHoja[FN_COSTEO_HOLDOUT] || 0, crudas ? crudas.porFn[FN_COSTEO_HOLDOUT] || 0 : Infinity);
-      if (a.costeo?.costeable && !(rc > 0)) costeo.casosSinRc += 1;
+      // v5.2: costeable sale de la FIXTURE (h.fixture = { ruta, sha256, datos } leída de git en el SHA servido), no de
+      // a.costeo.costeable. Sin fixture, o si la de git no es la que declaró el E2E, no hay forma de saberlo.
+      const decl = a.hoja; const fx = h.fixture;
+      if (!idValido(decl?.ruta) || !idValido(decl?.sha256) || !fx || !idValido(fx.sha256)) costeo.casosSinHoja += 1;
+      else if (fx.ruta !== decl.ruta || fx.sha256 !== decl.sha256) costeo.hojasDistintas.push(decl.ruta);
+      const costeable = fx ? costeableDeHoja(fx.datos) : null;
+      if (fx && costeable == null) costeo.casosCosteableInvalido += 1;
+      if (costeable != null && (a.costeo?.costeable !== false) !== costeable) costeo.casosCosteableDistinto += 1;
+      // Indefinido cuenta como costeable: el peor caso es pedir una llamada RC de más, nunca dejar pasar un caso sin costeo.
+      if (costeable !== false && !(rc > 0)) costeo.casosSinRc += 1;
     } else costeo.casosSinAuditoria = (costeo.casosSinAuditoria || 0) + 1;
     if (h?.binario) binarios.push(h.binario);
   }
@@ -84,8 +111,17 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
   const esperados = manifiesto.modelosEsperados;
   // v4: un arreglo de modelos VACÍO no demuestra nada. v5: cada request_id de la corrida necesita un evento con función,
   // modo y model_id; y cada llamada de IA necesita su request_id (una llamada sin ID = NO_VERIFICADO, nunca se filtra).
+  // v5.2 (P1): request_id ↔ evento es 1:1. Cada id es único en la corrida; cada id tiene EXACTAMENTE un evento; no hay
+  // eventos de otros requests; y #eventos = #llamadas. Antes un id repetido con un solo evento daba OK.
   const ids = corrida?.ia?.request_ids || [];
-  const sinEvento = ids.filter((r) => idValido(r) && !(modelos || []).some((o) => o?.request_id === r && o?.fn && o?.modo && o?.model_id));
+  const unicos = [...new Set(ids.filter(idValido))];
+  const repetidos = repetidosDe(ids);
+  const eventos = Array.isArray(modelos) ? modelos : [];
+  const eventosDe = (r) => eventos.filter((o) => o?.request_id === r);
+  const sinEvento = unicos.filter((r) => !eventosDe(r).some((o) => o?.fn && o?.modo && o?.model_id));
+  const conVarios = unicos.filter((r) => eventosDe(r).length > 1);
+  const ajenosIa = eventos.filter((o) => !unicos.includes(o?.request_id)).map((o) => o?.request_id ?? 'sin request_id');
+  const eventosDescuadrados = corrida && eventos.length > 0 && eventos.length !== ids.length;
   const sinId = corrida ? Math.max(corrida.ia?.sin_id || 0, ids.filter((r) => !idValido(r)).length) : 0;
   const llamadasDescuadradas = corrida && (corrida.ia?.llamadas || 0) !== ids.length;
   const binarios = corrida?.binarios || [];
@@ -96,11 +132,18 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     !corrida && 'auditoría de la corrida (--corrida)',
     corrida && sinId && `${sinId} llamada(s) de IA sin request_id`,
     corrida && llamadasDescuadradas && `request_id (${ids.length}) ≠ llamadas de IA (${corrida.ia?.llamadas || 0})`,
-    sinEvento.length && `evento de IA (ai_eventos con función, modo y model_id) para ${sinEvento.length} request(s): ${sinEvento.slice(0, 3).join(', ')}`,
+    corrida && repetidos.length && `request_id repetido (${repetidos.length}): ${repetidos.slice(0, 3).join(', ')}`,
+    corrida && sinEvento.length && `evento de IA (ai_eventos con función, modo y model_id) para ${sinEvento.length} request(s): ${sinEvento.slice(0, 3).join(', ')}`,
+    corrida && conVarios.length && `más de un evento de IA para ${conVarios.length} request(s): ${conVarios.slice(0, 3).join(', ')}`,
+    corrida && ajenosIa.length && `${ajenosIa.length} evento(s) de IA que no son de esta corrida: ${ajenosIa.slice(0, 3).join(', ')}`,
+    eventosDescuadrados && `eventos de IA (${eventos.length}) ≠ llamadas de IA (${ids.length})`,
     corrida && corrida.costeo?.casosSinAuditoria && `${corrida.costeo.casosSinAuditoria} hoja(s) sin auditoría de llamadas`,
     corrida && corrida.costeo?.casosSinCrudas && `${corrida.costeo.casosSinCrudas} hoja(s) sin llamadas crudas (edges.json)`,
     corrida && corrida.costeo?.casosInconsistentes && `${corrida.costeo.casosInconsistentes} hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)`,
     corrida && corrida.costeo?.casosSinRc && `${corrida.costeo.casosSinRc} caso(s) costeable(s) sin llamada a costear-servidor-rc`,
+    corrida && corrida.costeo?.casosSinHoja && `${corrida.costeo.casosSinHoja} hoja(s) sin fixture congelada (ruta + sha256 en git al SHA servido)`,
+    corrida && corrida.costeo?.casosCosteableInvalido && `${corrida.costeo.casosCosteableInvalido} hoja(s) con "costeable" inválido (false exige motivo_no_costeable)`,
+    corrida && corrida.costeo?.casosCosteableDistinto && `${corrida.costeo.casosCosteableDistinto} hoja(s) cuyo llamadas.json declara "costeable" distinto de su hoja congelada`,
     corrida && !binarios.length && 'evidencia del binario (0-binario.json)',
     corrida && binarios.length && !Array.isArray(cambiosGit) && 'diferencias git entre el SHA congelado y el servido'].filter(Boolean);
   // Los modelos se comparan aunque falte otra huella: un modelo distinto ya invalida.
@@ -112,6 +155,8 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
   }
   // Una Edge de costeo ajena (p. ej. costear-servidor de PRODUCCIÓN) invalida la corrida.
   for (const f of corrida?.costeo?.ajenas || []) cambios.push(`costeo con Edge ajena: ${f}`);
+  // La hoja que está en git en el SHA servido no es la que corrió el E2E (otro sha256): invalida.
+  for (const f of corrida?.costeo?.hojasDistintas || []) cambios.push(`hoja distinta de la que corrió el E2E: ${f}`);
   // El binario: lo que sirvió el navegador es lo que se congeló (mismo SHA en navegador y git; sin código cambiado entre medio).
   for (const b of binarios) {
     if (!b?.shaApp || !b?.shaGit || !String(b.shaGit).startsWith(String(b.shaApp)) && !String(b.shaApp).startsWith(String(b.shaGit))) cambios.push(`binario: el navegador sirvió ${b?.shaApp ?? 'sin SHA'} y git era ${b?.shaGit ?? 'sin SHA'}`);

@@ -1,0 +1,14 @@
+× Holdout v2 · congelamiento verificable (fail-closed) > cada request de IA de la corrida necesita su evento (función, modo y model_id); sin --corrida no verifica 11ms
+× Holdout v2 · congelamiento verificable (fail-closed) > I · request_id REPETIDO (dos llamadas de IA con el mismo id y un solo evento) ⇒ NO_VERIFICADO 2ms
+× Holdout v2 · congelamiento verificable (fail-closed) > I2 · eventos ≠ llamadas: dos eventos para un request, o un evento que no es de la corrida ⇒ NO_VERIFICADO 2ms
+× Holdout v2 · congelamiento verificable (fail-closed) > J · ATAQUE: fixture costeable + resumen "no costeable" (LAB_COSTEABLE=0) + 0 llamadas RC ⇒ NO_VERIFICADO 1ms
+× Holdout v2 · congelamiento verificable (fail-closed) > K · hoja sin fixture congelada, fixture distinta de la que corrió, o costeable:false SIN motivo ⇒ no OK 2ms
+× Holdout v2 · congelamiento verificable (fail-closed) > costeableDeHoja: ausente o true ⇒ costeable; false con motivo ⇒ no costeable; cualquier otra cosa ⇒ indefinido (null) 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+FAIL  src/datos/_antes_v51/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > cada request de IA de la corrida necesita su evento (función, modo y model_id); sin --corrida no verifica
+FAIL  src/datos/_antes_v51/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > I · request_id REPETIDO (dos llamadas de IA con el mismo id y un solo evento) ⇒ NO_VERIFICADO
+FAIL  src/datos/_antes_v51/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > I2 · eventos ≠ llamadas: dos eventos para un request, o un evento que no es de la corrida ⇒ NO_VERIFICADO
+FAIL  src/datos/_antes_v51/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > J · ATAQUE: fixture costeable + resumen "no costeable" (LAB_COSTEABLE=0) + 0 llamadas RC ⇒ NO_VERIFICADO
+FAIL  src/datos/_antes_v51/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > K · hoja sin fixture congelada, fixture distinta de la que corrió, o costeable:false SIN motivo ⇒ no OK
+FAIL  src/datos/_antes_v51/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > costeableDeHoja: ausente o true ⇒ costeable; false con motivo ⇒ no costeable; cualquier otra cosa ⇒ indefinido (null)
+Tests  6 failed | 21 passed (27)

@@ -1,4 +1,4 @@
-// Holdout v5.1 · Q4 reproducible: copia la corrida de humo real, la altera de 8 formas y corre el verificador sobre cada
+// Holdout v5.1/v5.2 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
 // copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca.
 //   node lab/costear/holdout_intelisis/casos_falla_cerrada.mjs <corrida> <huellas_db_post> <edges_post> <modelos>
 import fs from 'node:fs';
@@ -15,7 +15,11 @@ const crudas = leer('edges.json');
 const binario = leer('0-binario.json');
 // Las crudas guardan body como texto; para recalcular el resumen como lo hace el E2E se usa el request_id guardado aparte.
 const comoE2E = (lista) => lista.map((e) => ({ fn: e.fn, body: { request_id: e.request_id } }));
-const resumen = (lista) => auditarLlamadasCorrida(comoE2E(lista));
+// v5.2: el resumen recalculado conserva la hoja declarada y el `costeable` que escribió el E2E (así cada caso falla por
+// lo que altera, no por falta de hoja).
+const original = leer('llamadas.json');
+const resumen = (lista, extra = {}) => auditarLlamadasCorrida(comoE2E(lista), { hoja: original.hoja, costeable: original.costeo?.costeable, ...extra });
+const eventos = JSON.parse(fs.readFileSync(modelos, 'utf8'));
 const ia = (e) => /^analizar-mueble/.test(e.fn);
 const prod = { fn: 'costear-servidor', status: 200, body: '{}' };
 
@@ -29,6 +33,14 @@ const casos = [
   ['resumen con 2 llamadas de IA y 1 request_id', { editar: (a) => ({ ...a, ia: { ...a.ia, llamadas: 2 } }) }],
   ['hoja sin edges.json (sólo el resumen)', { sinCrudas: true }],
   ['0-binario.json sin SHA de git', { binario: { ...binario, shaGit: null } }],
+  // v5.2 (reauditoría GO/NO-GO)
+  ['request_id repetido (la misma llamada de IA dos veces, un solo evento)', { crudas: [...crudas, ...crudas.filter(ia)] }],
+  ['dos eventos de IA para el mismo request_id', { modelos: [...eventos, ...eventos.slice(0, 1)] }],
+  ['un evento de IA que no es de la corrida', { modelos: [...eventos, { ...eventos[0], request_id: '00000000-0000-0000-0000-000000000000' }] }],
+  ['hoja costeable + resumen costeable:false (LAB_COSTEABLE=0) + 0 llamadas RC', { crudas: crudas.filter((e) => e.fn !== 'costear-servidor-rc'), extra: { costeable: false } }],
+  ['producción en el recosteo, entre llamadas RC', { crudas: (() => { const i = crudas.findIndex((e) => e.fn === 'costear-servidor-rc'); return [...crudas.slice(0, i + 1), prod, ...crudas.slice(i + 1)]; })() }],
+  ['hoja declarada con otro sha256 (no es la que está en git)', { editar: (a) => ({ ...a, hoja: { ...a.hoja, sha256: '0'.repeat(64) } }) }],
+  ['hoja sin declarar (E2E v5.1)', { editar: (a) => ({ ...a, hoja: null }) }],
 ];
 
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'holdout-q4-'));
@@ -36,12 +48,14 @@ const filas = [];
 for (const [i, [nombre, c]] of casos.entries()) {
   const dir = path.join(base, String(i), hoja); fs.mkdirSync(dir, { recursive: true });
   const lista = c.crudas || crudas;
-  let a = c.resumen || (c.crudas ? resumen(lista) : leer('llamadas.json'));
+  let a = c.resumen || (c.crudas ? resumen(lista, c.extra) : leer('llamadas.json'));
   if (c.editar) a = c.editar(a);
   fs.writeFileSync(path.join(dir, 'llamadas.json'), JSON.stringify(a));
   if (!c.sinCrudas) fs.writeFileSync(path.join(dir, 'edges.json'), JSON.stringify(lista));
   fs.writeFileSync(path.join(dir, '0-binario.json'), JSON.stringify(c.binario || binario));
-  const r = spawnSync('node', ['scripts/congelar_holdout.mjs', '--verificar', '--db', db, '--edges', edges, '--modelos', modelos,
+  let fModelos = modelos;
+  if (c.modelos) { fModelos = path.join(base, `modelos_${i}.json`); fs.writeFileSync(fModelos, JSON.stringify(c.modelos)); }
+  const r = spawnSync('node', ['scripts/congelar_holdout.mjs', '--verificar', '--db', db, '--edges', edges, '--modelos', fModelos,
     '--corrida', path.join(base, String(i))], { encoding: 'utf8' });
   filas.push({ caso: nombre, exit: r.status, salida: (r.stdout + r.stderr).trim() });
 }

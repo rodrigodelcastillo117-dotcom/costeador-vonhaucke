@@ -59,10 +59,19 @@ const leerJson = (f) => JSON.parse(fs.readFileSync(path.resolve(f), 'utf8'));
 const git = (...a) => { try { return execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8' }).trim(); } catch { return null; } };
 // v5: una corrida = un directorio con una carpeta por hoja (llamadas.json + 0-binario.json que escribe el E2E).
 // v5.1: también edges.json (llamadas crudas); el resumen tiene que cuadrar con ellas o no verifica.
+// v5.2: la FIXTURE de la hoja (de donde sale si el caso es costeable) se lee de GIT en el SHA que sirvió el navegador, no
+// del directorio de trabajo ni del resumen: una hoja sin commit en ese SHA no existe para el verificador.
+function fixtureEnGit(ruta, sha) {
+  if (typeof ruta !== 'string' || !ruta || path.isAbsolute(ruta) || ruta.split(/[\\/]/).includes('..') || typeof sha !== 'string' || !/^[0-9a-f]{7,40}$/.test(sha)) return null;
+  let buf; try { buf = execFileSync('git', ['show', `${sha}:${ruta}`], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return null; }
+  let datos; try { datos = JSON.parse(buf.toString('utf8')); } catch { return null; }
+  return { ruta, sha256: crypto.createHash('sha256').update(buf).digest('hex'), datos };
+}
 function leerCorrida(dir) {
   const hojas = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => {
     const leer = (f) => { const p = path.join(dir, d.name, f); return fs.existsSync(p) ? leerJson(p) : null; };
-    return { hoja: d.name, auditoria: leer('llamadas.json'), binario: leer('0-binario.json'), crudas: leer('edges.json') };
+    const auditoria = leer('llamadas.json'); const binario = leer('0-binario.json');
+    return { hoja: d.name, auditoria, binario, crudas: leer('edges.json'), fixture: fixtureEnGit(auditoria?.hoja?.ruta, binario?.shaGit) };
   });
   return unirCorrida(hojas);
 }

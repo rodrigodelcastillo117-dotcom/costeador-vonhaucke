@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida } from './holdoutHuellas.js';
+import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida, costeableDeHoja } from './holdoutHuellas.js';
 
 const M = {
   archivos: { 'src/motor/calculo.js': 'a1' },
@@ -14,7 +14,13 @@ const edgesHoja = [
   { fn: 'costear-servidor-rc', body: { ok: true } },
 ];
 const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z' };
-const corridaDe = (edges, extra = {}) => unirCorrida([{ auditoria: auditarLlamadasCorrida(edges, extra), binario, crudas: edges }]);
+// v5.2: cada hoja trae su FIXTURE leída de git en el SHA servido (ruta + sha256 + datos); el E2E declara la misma ruta y sha.
+const HOJA = { texto: 'Pata tipo "u" de 600 x 720 mm', clave_erp: 'ATPU2M' };
+const fixtureDe = (datos = HOJA, ruta = 'lab/costear/ciego_erp/hojas/ATPU2M.json') => ({ ruta, sha256: `sha-${JSON.stringify(datos).length}-${ruta.length}`, datos });
+const FX = fixtureDe();
+const declaradaDe = (fx = FX) => ({ ruta: fx.ruta, sha256: fx.sha256 });
+const corridaDe = (edges, extra = {}, fx = FX) => unirCorrida([{ auditoria: auditarLlamadasCorrida(edges, { hoja: declaradaDe(fx), costeable: costeableDeHoja(fx.datos), ...extra }), binario, crudas: edges, fixture: fx }]);
+const hojaDe = (auditoria, crudas, extra = {}) => ({ auditoria: { ...auditoria, hoja: auditoria?.hoja ?? declaradaDe() }, binario, crudas, fixture: FX, ...extra });
 const hoy = { archivos: { 'src/motor/calculo.js': 'a1' }, db: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-11-01' }, edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
   modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: 'claude-opus-5', request_id: 'r1' }, { fn: 'analizar-mueble-rc', modo: 'imagen', model_id: 'claude-opus-5-5', request_id: 'r2' }],
   corrida: corridaDe(edgesHoja), cambiosGit: [] };
@@ -81,7 +87,8 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
   });
   it('cada request de IA de la corrida necesita su evento (función, modo y model_id); sin --corrida no verifica', () => {
     const tres = corridaDe([...edgesHoja, { fn: 'analizar-mueble-rc', body: { request_id: 'r3' } }]);
-    expect(compararHuellas(M, { ...hoy, corrida: tres }).falta).toEqual(['evento de IA (ai_eventos con función, modo y model_id) para 1 request(s): r3']);
+    expect(compararHuellas(M, { ...hoy, corrida: tres }).falta).toEqual(['evento de IA (ai_eventos con función, modo y model_id) para 1 request(s): r3',
+      'eventos de IA (2) ≠ llamadas de IA (3)']);
     expect(compararHuellas(M, { ...hoy, corrida: undefined }).falta).toEqual(['auditoría de la corrida (--corrida)']);
     // un evento con el request_id pero sin modo NO cuenta como evidencia
     const sinModo = [{ fn: 'analizar-mueble-rc', model_id: 'claude-opus-5', request_id: 'r1' }, hoy.modelos[1]];
@@ -109,16 +116,17 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
     expect(auditarLlamadasCorrida(sinRc).motivos).toEqual(['caso costeable sin ninguna llamada a costear-servidor-rc']);
     const r2 = compararHuellas(M, { ...hoy, corrida: corridaDe(sinRc) });
     expect(r2.estado).toBe('NO_VERIFICADO'); expect(r2.falta).toContain('1 caso(s) costeable(s) sin llamada a costear-servidor-rc');
-    // sólo un caso declarado no costeable puede pasar sin llamada (se registra; no se infiere)
-    expect(compararHuellas(M, { ...hoy, corrida: corridaDe(sinRc, { costeable: false }) }).estado).toBe('OK');
+    // sólo una hoja CONGELADA que se declara no costeable (con motivo) pasa sin llamada RC (v5.2: no el resumen ni el entorno)
+    const noCost = fixtureDe({ ...HOJA, costeable: false, motivo_no_costeable: 'mueble de catálogo sin despiece: se cotiza, no se costea' });
+    expect(compararHuellas(M, { ...hoy, corrida: corridaDe(sinRc, {}, noCost) }).estado).toBe('OK');
     // una hoja sin auditoría (E2E viejo o que tronó antes del final) no verifica
     expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ binario }]) }).falta).toContain('1 hoja(s) sin auditoría de llamadas');
   });
   it('C · binario: SHA del navegador ≠ git, sin 0-binario, o código cambiado entre el SHA congelado y el servido ⇒ no OK', () => {
     const otro = { ...binario, shaApp: 'fff0000' };
-    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario: otro, crudas: edgesHoja }]) }).cambios)
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: otro })]) }).cambios)
       .toEqual(['binario: el navegador sirvió fff0000 y git era abc1234']);
-    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), crudas: edgesHoja }]) }).falta).toContain('evidencia del binario (0-binario.json)');
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: undefined })]) }).falta).toContain('evidencia del binario (0-binario.json)');
     expect(compararHuellas(M, { ...hoy, cambiosGit: ['src/App.jsx'] }).cambios).toEqual(['código cambiado después del congelamiento: src/App.jsx']);
     expect(compararHuellas(M, { ...hoy, cambiosGit: ['RELEASE_9_5_GATE.md', 'lab/costear/holdout_intelisis/MANIFIESTO.json'] }).estado).toBe('OK');
     expect(compararHuellas(M, { ...hoy, cambiosGit: undefined }).falta).toContain('diferencias git entre el SHA congelado y el servido');
@@ -130,40 +138,97 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
   const conProd = [...edgesHoja, { fn: 'costear-servidor', body: {} }];
   it('D · resumen con porFn {costear-servidor: 1} pero ajenas [] ⇒ CAMBIO (la Edge ajena se deriva de porFn)', () => {
     const a = auditarLlamadasCorrida(conProd);
-    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, costeo: { ...a.costeo, ajenas: [] }, motivos: [] }, binario, crudas: conProd }]) });
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe({ ...a, costeo: { ...a.costeo, ajenas: [] }, motivos: [] }, conProd)]) });
     expect(r.estado).toBe('CAMBIO'); expect(r.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
     // y declarar otra fnEsperada en el archivo no la vuelve "propia": la RC esperada está fija en el verificador
-    const r2 = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, costeo: { ...a.costeo, fnEsperada: 'costear-servidor', ajenas: [] } }, binario, crudas: conProd }]) });
+    const r2 = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe({ ...a, costeo: { ...a.costeo, fnEsperada: 'costear-servidor', ajenas: [] } }, conProd)]) });
     expect(r2.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
   });
   it('E · resumen que borra la llamada de producción pero las llamadas crudas la tienen ⇒ CAMBIO y NO cuadra', () => {
     const limpio = auditarLlamadasCorrida(edgesHoja);   // resumen "limpio" de otra corrida
-    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: limpio, binario, crudas: conProd }]) });
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(limpio, conProd)]) });
     expect(r.estado).toBe('CAMBIO');
     expect(r.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
     expect(r.falta).toContain('1 hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)');
   });
   it('F · hoja sin llamadas crudas (edges.json) ⇒ NO_VERIFICADO: el resumen solo no basta', () => {
-    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario }]) });
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), undefined)]) });
     expect(r.estado).toBe('NO_VERIFICADO'); expect(r.falta).toEqual(['1 hoja(s) sin llamadas crudas (edges.json)']);
   });
   it('G · resumen con rc: 5 pero sin ninguna llamada RC (en porFn ni en crudas) ⇒ NO_VERIFICADO', () => {
     const sinRc = edgesHoja.filter((e) => e.fn !== 'costear-servidor-rc');
     const a = auditarLlamadasCorrida(sinRc);
-    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, costeo: { ...a.costeo, rc: 5 }, motivos: [] }, binario, crudas: sinRc }]) });
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe({ ...a, costeo: { ...a.costeo, rc: 5 }, motivos: [] }, sinRc)]) });
     expect(r.estado).toBe('NO_VERIFICADO');
     expect(r.falta).toEqual(expect.arrayContaining(['1 caso(s) costeable(s) sin llamada a costear-servidor-rc', '1 hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)']));
   });
   it('H · request_id del resumen distinto al de la llamada cruda (o una llamada de IA de más en crudas) ⇒ NO_VERIFICADO', () => {
     const a = auditarLlamadasCorrida(edgesHoja);
     const otroId = { ...a, ia: { ...a.ia, request_ids: ['r1', 'r9'] } };
-    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: otroId, binario, crudas: edgesHoja }]) }).falta)
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(otroId, edgesHoja)]) }).falta)
       .toContain('1 hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)');
     const extra = [...edgesHoja, { fn: 'analizar-mueble-rc', request_id: null, body: '{"ok":true' }];
-    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: a, binario, crudas: extra }]) }).estado).toBe('NO_VERIFICADO');
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(a, extra)]) }).estado).toBe('NO_VERIFICADO');
   });
   it('las llamadas crudas como las guarda el E2E (body recortado como texto, request_id aparte) cuadran y dan OK', () => {
     const guardadas = edgesHoja.map((e) => ({ ...e, ...(/^analizar-mueble/.test(e.fn) ? { request_id: e.body.request_id } : {}), body: JSON.stringify(e.body).slice(0, 6000) }));
-    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario, crudas: guardadas }]) }).estado).toBe('OK');
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), guardadas)]) }).estado).toBe('OK');
+  });
+  // ---- v5.2 (reauditoría GO/NO-GO): request_id 1:1, costeable desde la hoja congelada, assert final de Edge ----
+  // I, I2, J y K daban OK (o no compilaban: costeableDeHoja no existía) con la v5.1. L ya pasaba: documenta el assert final.
+  it('I · request_id REPETIDO (dos llamadas de IA con el mismo id y un solo evento) ⇒ NO_VERIFICADO', () => {
+    const dup = [{ fn: 'analizar-mueble-rc', body: { request_id: 'r1' } }, { fn: 'analizar-mueble-rc', body: { request_id: 'r1' } }, { fn: 'costear-servidor-rc', body: {} }];
+    expect(auditarLlamadasCorrida(dup).motivos).toEqual(['request_id repetido en las llamadas de IA: r1']);
+    const r = compararHuellas(M, { ...hoy, modelos: [hoy.modelos[0]], corrida: corridaDe(dup) });
+    expect(r.estado).toBe('NO_VERIFICADO');
+    expect(r.falta).toContain('request_id repetido (1): r1');
+    // repetido ENTRE hojas también: la unicidad es de la corrida completa
+    const otraHoja = [{ fn: 'analizar-mueble-rc', body: { request_id: 'r1' } }, { fn: 'costear-servidor-rc', body: {} }];
+    const dos = unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja), hojaDe(auditarLlamadasCorrida(otraHoja), otraHoja)]);
+    expect(compararHuellas(M, { ...hoy, corrida: dos }).falta).toContain('request_id repetido (1): r1');
+  });
+  it('I2 · eventos ≠ llamadas: dos eventos para un request, o un evento que no es de la corrida ⇒ NO_VERIFICADO', () => {
+    const r = compararHuellas(M, { ...hoy, modelos: [...hoy.modelos, { ...hoy.modelos[0] }] });
+    expect(r.estado).toBe('NO_VERIFICADO');
+    expect(r.falta).toEqual(['más de un evento de IA para 1 request(s): r1', 'eventos de IA (3) ≠ llamadas de IA (2)']);
+    const ajeno = [...hoy.modelos, { fn: 'analizar-mueble-rc', modo: 'texto', model_id: 'claude-opus-5', request_id: 'r9' }];
+    expect(compararHuellas(M, { ...hoy, modelos: ajeno }).falta).toEqual(['1 evento(s) de IA que no son de esta corrida: r9', 'eventos de IA (3) ≠ llamadas de IA (2)']);
+  });
+  it('J · ATAQUE: fixture costeable + resumen "no costeable" (LAB_COSTEABLE=0) + 0 llamadas RC ⇒ NO_VERIFICADO', () => {
+    const sinRc = edgesHoja.filter((e) => e.fn !== 'costear-servidor-rc');
+    // el E2E v5.1 escribía costeable:false con LAB_COSTEABLE=0; la hoja congelada en git no dice eso
+    const r = compararHuellas(M, { ...hoy, corrida: corridaDe(sinRc, { costeable: false }) });
+    expect(r.estado).toBe('NO_VERIFICADO');
+    expect(r.falta).toEqual(expect.arrayContaining(['1 caso(s) costeable(s) sin llamada a costear-servidor-rc',
+      '1 hoja(s) cuyo llamadas.json declara "costeable" distinto de su hoja congelada']));
+  });
+  it('K · hoja sin fixture congelada, fixture distinta de la que corrió, o costeable:false SIN motivo ⇒ no OK', () => {
+    const a = auditarLlamadasCorrida(edgesHoja, { hoja: declaradaDe() });
+    const sinFx = '1 hoja(s) sin fixture congelada (ruta + sha256 en git al SHA servido)';
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: a, binario, crudas: edgesHoja }]) }).falta).toContain(sinFx);
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, hoja: null }, binario, crudas: edgesHoja, fixture: FX }]) }).falta).toContain(sinFx);
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, hoja: { ...a.hoja, sha256: 'otra' } }, binario, crudas: edgesHoja, fixture: FX }]) });
+    expect(r.estado).toBe('CAMBIO'); expect(r.cambios).toEqual(['hoja distinta de la que corrió el E2E: lab/costear/ciego_erp/hojas/ATPU2M.json']);
+    const sinMotivo = fixtureDe({ ...HOJA, costeable: false });
+    const sinRc = edgesHoja.filter((e) => e.fn !== 'costear-servidor-rc');
+    const r2 = compararHuellas(M, { ...hoy, corrida: corridaDe(sinRc, {}, sinMotivo) });
+    expect(r2.estado).toBe('NO_VERIFICADO');
+    expect(r2.falta).toEqual(expect.arrayContaining(['1 hoja(s) con "costeable" inválido (false exige motivo_no_costeable)', '1 caso(s) costeable(s) sin llamada a costear-servidor-rc']));
+  });
+  it('costeableDeHoja: ausente o true ⇒ costeable; false con motivo ⇒ no costeable; cualquier otra cosa ⇒ indefinido (null)', () => {
+    expect(costeableDeHoja({})).toBe(true); expect(costeableDeHoja({ costeable: true })).toBe(true);
+    expect(costeableDeHoja({ costeable: false, motivo_no_costeable: 'sin despiece' })).toBe(false);
+    for (const h of [null, [], { costeable: 'no' }, { costeable: 0 }, { costeable: false }, { costeable: false, motivo_no_costeable: '  ' }]) expect(costeableDeHoja(h)).toBeNull();
+  });
+  it('L · ASSERT FINAL: costear-servidor (producción) en la transferencia, al reabrir o al recostear ⇒ CAMBIO', () => {
+    // El E2E junta TODAS las respuestas de la página desde el primer paso, espera a que la red quede en reposo y audita al
+    // final: no importa en qué paso apareció la llamada.
+    for (const paso of ['transferencia a Cotizar', 'reapertura', 'recosteo con dificultad']) {
+      const tarde = [...edgesHoja, { fn: 'costear-servidor-rc', body: {} }, { fn: 'costear-servidor', body: {}, paso }];
+      expect(auditarLlamadasCorrida(tarde).motivos).toEqual(['costeo con Edge distinta de costear-servidor-rc: costear-servidor']);
+      const r = compararHuellas(M, { ...hoy, corrida: corridaDe(tarde) });
+      expect(r.estado).toBe('CAMBIO'); expect(r.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
+    }
+    expect(compararHuellas(M, { ...hoy, corrida: corridaDe([...edgesHoja, { fn: 'costear-servidor-rc2', body: {} }]) }).cambios).toEqual(['costeo con Edge ajena: costear-servidor-rc2']);
   });
 });

@@ -38,10 +38,27 @@ todavía**: los debe entregar Compras.
    - El E2E falla si:
      - falta un `request_id`;
      - aparece otra Edge de costeo (p. ej. `costear-servidor` de producción);
-     - un caso costeable tuvo 0 llamadas a `costear-servidor-rc` (`LAB_COSTEABLE=0` lo declara no costeable, a mano).
+     - un caso costeable tuvo 0 llamadas a `costear-servidor-rc`. Desde la v5.2, si el caso es costeable lo dice la
+       **hoja congelada**, no una variable de entorno (`LAB_COSTEABLE` ya no existe). Sólo `costeable: false` con
+       `motivo_no_costeable` lo declara no costeable.
    - `0-binario.json` lleva SHA del navegador, SHA git, `baseURL` y fecha.
    - El MANIFIESTO guarda `frontendSha` (HEAD al congelar, con el árbol limpio). Entre ese SHA y el servido no puede
      cambiar código (`git diff`), aunque el archivo no esté en el cierre de imports (p. ej. `App.jsx`).
+1d. **request_id 1:1, `costeable` desde la hoja y assert final (v5.2, reauditoría GO/NO-GO).**
+   - **request_id ↔ evento es 1:1.** Cada `request_id` es único en toda la corrida (entre hojas también); cada uno tiene
+     **exactamente un** evento en `ai_eventos` (función, modo y model_id); no hay eventos de otros requests; y el número
+     de eventos es igual al de llamadas. Un id repetido, dos eventos para un id o un evento ajeno ⇒ NO VERIFICADO.
+   - **`costeable` sale de la hoja congelada.** El E2E escribe en `llamadas.json` qué hoja corrió (`hoja.ruta` y su
+     `sha256`). El verificador lee esa hoja **de git en el SHA que sirvió el navegador** (`git show <shaGit>:<ruta>`),
+     no del directorio de trabajo ni del resumen. Sólo `costeable: false` con `motivo_no_costeable` la declara no
+     costeable; campo ausente o `true` = costeable; otro valor = NO VERIFICADO. Sin hoja en git ⇒ NO VERIFICADO; una
+     hoja de git con otro sha256 que la que corrió ⇒ CAMBIO. Si el resumen declara un `costeable` distinto ⇒ NO
+     VERIFICADO.
+   - **Assert final de Edge.** Con hoja, la Edge de costeo es siempre `costear-servidor-rc` (no `LAB_COSTEAR_FN`). Al
+     final de cada hoja el E2E espera a que la red quede en reposo y audita **todas** las respuestas de la página
+     (análisis, costeo, transferencia a Cotizar, reapertura y recosteo): cualquier `costear-servidor*` que no sea
+     exactamente la RC hace fallar el E2E, y en el verificador es CAMBIO. Si llega una llamada después de la auditoría,
+     el E2E falla.
 2. **Antes y después de correr:** se vuelven a medir las huellas (`huellas_db.sql`, solo lectura, y la lista de Edge).
    Al terminar se extraen los modelos observados en la ventana de la corrida (`modelos_observados.sql`). Luego se ejecuta:
    `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json> --modelos <modelos.json> --corrida <BASE>`

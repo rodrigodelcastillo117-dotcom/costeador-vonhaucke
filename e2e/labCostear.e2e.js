@@ -3,8 +3,8 @@
 // reabrir → comparar. Registra, no afirma: cada paso deja su evidencia en LAB_OUT. Sólo con
 // LAB_COSTEAR_IMG + TEST_EMAIL/TEST_PASSWORD (cuenta QA). Gasta 1–2 llamadas de IA.
 import { test, expect } from '@playwright/test';
-import fs from 'node:fs'; import path from 'node:path';
-import { auditarLlamadasCorrida } from '../src/datos/holdoutHuellas.js';
+import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
+import { auditarLlamadasCorrida, costeableDeHoja } from '../src/datos/holdoutHuellas.js';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
 const HOJA = process.env.LAB_HOJA ? JSON.parse(fs.readFileSync(process.env.LAB_HOJA, 'utf8')) : null;
@@ -200,7 +200,8 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // 4) Sombra: la última respuesta de costear-servidor vs el costo en pantalla.
   await page.waitForTimeout(6000);
   // Holdout v4 (P1-03): la Edge de costeo EXACTA (no `startsWith`: costear-servidor de producción también empieza así).
-  const FN_COSTEO = process.env.LAB_COSTEAR_FN || 'costear-servidor-rc';
+  // v5.2: con hoja (holdout/ciego) la Edge de costeo es SIEMPRE la RC; LAB_COSTEAR_FN sólo aplica al laboratorio sin hoja.
+  const FN_COSTEO = HOJA ? 'costear-servidor-rc' : (process.env.LAB_COSTEAR_FN || 'costear-servidor-rc');
   const costeoAjeno = edges.filter((e) => e.fn.startsWith('costear-servidor') && e.fn !== FN_COSTEO).map((e) => e.fn);
   expect(costeoAjeno, `se costeó con otra Edge que ${FN_COSTEO}`).toEqual([]);
   const srv = edges.filter((e) => e.fn === FN_COSTEO).pop();
@@ -328,9 +329,21 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // Holdout v5 (cierre pre-deploy): auditoría de TODAS las llamadas de la corrida, AL FINAL (no a mitad del test).
   // Cada llamada de IA lleva su request_id (una sin ID se queda como null: nunca se filtra); toda llamada costear-servidor*
   // fue EXACTAMENTE la RC; un caso costeable tuvo ≥ 1 llamada RC. El verificador (--corrida) lee llamadas.json.
+  // v5.2 (reauditoría GO/NO-GO): ASSERT FINAL. `edges` junta toda respuesta de la página desde el primer paso (análisis,
+  // costeo, transferencia a Cotizar, reapertura y recosteo); antes de auditar se espera a que la red quede en reposo para
+  // que ninguna llamada tardía quede fuera. Con hoja (holdout/ciego) la Edge esperada es SIEMPRE costear-servidor-rc (no
+  // LAB_COSTEAR_FN) y `costeable` sale de la HOJA (costeableDeHoja), no de una variable de entorno: LAB_COSTEABLE ya no
+  // existe. El E2E declara qué hoja corrió (ruta + sha256) y el verificador la vuelve a leer de git en el SHA servido.
+  await page.waitForLoadState('networkidle').catch(() => {});
   guardarCrudas();   // otra vez al final, en el mismo instante que la auditoría: crudas y resumen salen del mismo `edges`
-  const auditoria = auditarLlamadasCorrida(edges, { fnCosteo: FN_COSTEO, costeable: process.env.LAB_COSTEABLE !== '0' });
+  const hojaDeclarada = process.env.LAB_HOJA ? { ruta: path.relative(process.cwd(), path.resolve(process.env.LAB_HOJA)).split(path.sep).join('/'),
+    sha256: crypto.createHash('sha256').update(fs.readFileSync(process.env.LAB_HOJA)).digest('hex') } : null;
+  const auditoria = auditarLlamadasCorrida(edges, { fnCosteo: HOJA ? 'costear-servidor-rc' : FN_COSTEO, costeable: HOJA ? costeableDeHoja(HOJA) : true, hoja: hojaDeclarada });
   guarda('llamadas.json', auditoria);
   guarda('ia_requests.json', auditoria.ia);
+  expect(auditoria.costeo.ajenas, 'toda llamada costear-servidor* de la hoja (incluidas transferencia, reapertura y recosteo) fue costear-servidor-rc').toEqual([]);
   expect(auditoria.motivos, 'auditoría de llamadas de la corrida').toEqual([]);
+  // Nada llega después de la auditoría final: si llegó, la evidencia escrita no es la corrida completa.
+  const nAuditadas = edges.length; await page.waitForTimeout(3000);
+  expect(edges.slice(nAuditadas).map((e) => e.fn), 'llamadas a Edge después de la auditoría final').toEqual([]);
 });
