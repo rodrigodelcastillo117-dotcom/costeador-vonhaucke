@@ -26,7 +26,7 @@ export const TORNILLERIA_GENERICA = 'tornilleria';
 // Estados del servidor con los que hay costo calculable. Cualquier otro (incompleto, bloqueado, desconocido) bloquea.
 const ESTADOS_SRV_CALCULABLES = new Set(['certificado', 'preliminar']);
 
-export function clasificarCosto({ emision = {}, servidor = null, componentes = [], insumos = null } = {}) {
+export function clasificarCosto({ emision = {}, servidor = null, componentes = [], insumos = null, d2Ratificada = D2_RATIFICADA_POR_PRODUCCION } = {}) {
   const b = emision.bloqueos || {};
   const pend = Array.isArray(emision.pendientes) ? emision.pendientes : [];
   const duros = [
@@ -54,8 +54,8 @@ export function clasificarCosto({ emision = {}, servidor = null, componentes = [
   const porConfirmar = b.materiales_por_confirmar || [];
   if ((componentes || []).some((c) => c && !c.excluida && c.insumoId === TORNILLERIA_GENERICA))
     supuestos.push('Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3).');
-  // D2 firmada por Dirección, pendiente la ratificación de Producción (merma de corte): calcula, pero no valida.
-  const tubD2 = insumos && !D2_RATIFICADA_POR_PRODUCCION ? piezasConD2(componentes, insumos) : [];
+  // D2: mientras no esté ratificada (ver topeEstadoCosteo.js), calcula pero no valida. Ratificada por Dirección el 14-oct.
+  const tubD2 = insumos && !d2Ratificada ? piezasConD2(componentes, insumos) : [];
   if (tubD2.length) supuestos.push(`Tubular por fracción de tramo (D2): falta que Producción ratifique la merma de corte (${tubD2.slice(0, 3).map((c) => c.nombre).join(', ')}).`);
   // P1-01: confirmar el MATERIAL de una pieza no confirma que la pieza EXISTA. Una pieza que la IA infirió o supuso
   // (no la vio) necesita `pieza_confirmada` de una persona; mientras tanto el costo no puede quedar validado.

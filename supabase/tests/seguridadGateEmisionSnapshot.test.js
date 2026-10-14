@@ -437,15 +437,21 @@ describe('D2 sin ratificar ⇒ la emisión (SQL de producción) nunca lo trata c
     return id;
   }
 
-  it('el servidor topa en preliminar: con D2 un costo "certificado" sale "preliminar"; sin D2 no cambia; ratificada, tampoco', () => {
-    expect(topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos }).estado).toBe('preliminar');
-    expect(topeEstadoPorPoliticas('certificado', { componentes: [{ nombre: 'Cubierta', insumoId: 'mel' }], insumos }).estado).toBe('certificado');
-    expect(topeEstadoPorPoliticas('incompleto', { componentes: conPatas, insumos }).estado).toBe('incompleto');
+  // El mecanismo se prueba con d2Ratificada:false EXPLÍCITO: desde el 14-oct la bandera está ratificada (Dirección) y el
+  // tope ya no aplica por omisión; si alguien la revierte, estas pruebas garantizan que el tope vuelve a funcionar.
+  it('el servidor topa en preliminar: con D2 sin ratificar un costo "certificado" sale "preliminar"; sin D2 no cambia; ratificada, tampoco', () => {
+    expect(topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos, d2Ratificada: false }).estado).toBe('preliminar');
+    expect(topeEstadoPorPoliticas('certificado', { componentes: [{ nombre: 'Cubierta', insumoId: 'mel' }], insumos, d2Ratificada: false }).estado).toBe('certificado');
+    expect(topeEstadoPorPoliticas('incompleto', { componentes: conPatas, insumos, d2Ratificada: false }).estado).toBe('incompleto');
     expect(topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos, d2Ratificada: true }).estado).toBe('certificado');
   });
 
+  it('14-oct: por omisión D2 está RATIFICADA (Dirección sustituye la ratificación de Producción): no topa', () => {
+    expect(topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos }).estado).toBe('certificado');
+  });
+
   it('renglón con el estado que entrega el servidor tras el tope D2 ⇒ ECONOMICS_INCOMPLETE (costo_preliminar_no_certificado)', async () => {
-    const estadoSrv = topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos }).estado;
+    const estadoSrv = topeEstadoPorPoliticas('certificado', { componentes: conPatas, insumos, d2Ratificada: false }).estado;
     const g = await evaluar(db, VENDEDOR, await sembrar(estadoSrv), snapFiel());
     expect(g.state).toBe('ECONOMICS_INCOMPLETE');
     expect(g.reasons).toContain('linea_1_costo_preliminar_no_certificado');

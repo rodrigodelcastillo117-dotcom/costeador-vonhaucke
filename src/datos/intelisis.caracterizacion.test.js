@@ -42,7 +42,8 @@ describe('App LT (modelo Intelisis) — mismos números después del refactor', 
     // contra el T.D.C. de Alba ($1,122.3). Corregido el default (applt.js), ahora
     // coincide con el golden (applt.test.js) y con generarAppLT directo: todo IVORY.
     // 2026-10-13 (D2): el PTR se costea por fracción de tramo, como Intelisis → 17491.39/8097.86 bajan a 17475.30/8090.42.
-    expect(r.precioUnitario).toBeCloseTo(17475.30, 1);
-    expect(r.costoUnitario).toBeCloseTo(8090.42, 1);
+    // 2026-10-14 (merma D2 6.94 % autorizada por Dirección; la ficha del PTR decía 5 %): 17475.30/8090.42 → 17510.67/8106.79 (+0.2 %).
+    expect(r.precioUnitario).toBeCloseTo(17510.67, 1);
+    expect(r.costoUnitario).toBeCloseTo(8106.79, 1);
   });
 });

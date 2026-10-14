@@ -1,5 +1,5 @@
 // ============================================================================
-//  Tramo vendido por pieza en el catálogo ERP (PROPUESTA_tramo_por_pieza_catalogo.sql). Base aislada con
+//  Tramo vendido por pieza en el catálogo ERP (20261014160000_tramo_por_pieza_catalogo.sql, APLICADA 14-oct). Base aislada con
 //  insumos_catalogo, catalogo_vigente e insumo_motor/catalogo_motor REALES: la fila que sale de catalogo_motor entra al
 //  motor tal cual y da la paridad con Intelisis (ATPU2M). Sin la migración, el mismo tubular queda fuera (unidad pza
 //  sin formato → amarre crítico) — eso es lo que hoy bloquea los muebles de tubular.
@@ -9,7 +9,7 @@ import { baseCatalogoAislada, leer, como, fila, filas, DIRECCION } from './fixtu
 import { calcular, conTramoPorPieza, precioPorTramo } from '../../src/motor/calculo.js';
 import { tramoPorPiezaDe } from '../../src/datos/erpCarga.js';
 
-const MIG = 'supabase/migrations/PROPUESTA_tramo_por_pieza_catalogo.sql';
+const MIG = 'supabase/migrations/20261014160000_tramo_por_pieza_catalogo.sql';
 const NOMBRES = {
   'erp-tre181123': 'TUBULAR INDUSTRIAL RECTANGULAR 1 1/2" X 3" CALIBRE 18 PIEZA DE 6000 mm - "TRE181123"',
   'erp-an13166': 'ANGULO LADOS IGUALES DE 1" ESPESOR 3/16" PIEZA DE 6000 mm - "AN13166"',

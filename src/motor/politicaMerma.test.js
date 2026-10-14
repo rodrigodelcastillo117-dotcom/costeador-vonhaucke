@@ -58,7 +58,7 @@ describe('regla de tablero de Producción (literal de Rogelio)', () => {
   it('la regla NO aplica a formatos que no son tablero (PTR por tramo de 6 m sigue igual)', () => {
     const r = calcular({ componentes: [{ nombre: 'Pata', insumoId: 'ptr', cantidad: 7 }] }, 1, INS, par);
     const d = r.detalleInsumos[0];
-    expect(d.unidades).toBeCloseTo(7.35 / 6, 9);   // D2: 7 m × 1.05 merma = 7.35 m → 1.225 tramos (antes 2 enteros)
+    expect(d.unidades).toBeCloseTo(7 * 1.0694 / 6, 9);   // D2: 7 m × 1.0694 (merma autorizada 14-oct; la ficha dice 5 %) → 1.2476 tramos (antes 2 enteros)
     expect(d.reglaTramo).toBe('FRACCION_D2');
     expect(d.reglaProduccion).toBeUndefined();
   });
@@ -115,7 +115,7 @@ describe('contrato DTO (cliente → costear-servidor)', () => {
 
 describe('versión del motor', () => {
   it('la fórmula cambió → MOTOR_VERSION avanzó (las cotizaciones viejas conservan su huella)', () => {
-    expect(MOTOR_VERSION).toBe('2026-10-14a'); // 14a: tramo vendido por pieza ($/m = $/pieza ÷ medida); 13c: tubular por fracción de tramo (D2); 13b: regla de tablero de Producción inclusiva en 1.50 m (VH-183); 13: rejilla con el formato del insumo
+    expect(MOTOR_VERSION).toBe('2026-10-14b'); // 14b: merma D2 6.94 % de política en tubular de acero; 14a: tramo vendido por pieza ($/m = $/pieza ÷ medida); 13c: tubular por fracción de tramo (D2); 13b: regla de tablero de Producción inclusiva en 1.50 m (VH-183); 13: rejilla con el formato del insumo
   });
 });
 

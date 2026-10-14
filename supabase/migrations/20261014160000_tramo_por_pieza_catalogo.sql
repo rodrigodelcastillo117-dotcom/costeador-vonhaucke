@@ -9,6 +9,7 @@
 --  producción (anterior a 2026-10-14a) con `formato` tramo cobraría metros × $/pieza (6 veces). Con la llave nueva lo ignora
 --  y se comporta EXACTAMENTE igual que hoy; el motor 2026-10-14a (RC) la adopta como formato y cobra $/pieza ÷ medida.
 --  No toca precios (insumo_precios), unidades, nombres ni `formato`. Idempotente.
+--  APLICADA en producción el 14-oct-2026 con autorización expresa de Rodrigo ("si aplicalo").
 -- ============================================================================
 begin;
 

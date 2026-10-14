@@ -52,12 +52,16 @@ describe('P1-01 · material confirmado ≠ pieza confirmada', () => {
   });
 });
 
-describe('D2 · firmada por Dirección, pendiente Producción', () => {
-  it('un tubular cobrado por fracción de tramo calcula pero no valida', () => {
-    const insumos = { ptr: { id: 'ptr', nombre: 'PTR 1x1 cal 18', formato: { tipo: 'tramo', medida: 6 } } };
-    const r = clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'Patas', insumoId: 'ptr' }], insumos });
+describe('D2 · tope mientras no esté ratificada; ratificada por Dirección el 14-oct', () => {
+  const insumos = { ptr: { id: 'ptr', nombre: 'PTR 1x1 cal 18', formato: { tipo: 'tramo', medida: 6 } } };
+  it('sin ratificar (mecanismo): un tubular cobrado por fracción de tramo calcula pero no valida', () => {
+    const r = clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'Patas', insumoId: 'ptr' }], insumos, d2Ratificada: false });
     expect(r.estado).toBe(ESTADO_COSTO.PRELIMINAR);
     expect(r.motivos.join(' ')).toMatch(/D2/);
+  });
+  it('ratificada (por omisión desde el 14-oct): el tubular ya no agrega el supuesto D2', () => {
+    const r = clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'Patas', insumoId: 'ptr' }], insumos });
+    expect(r.motivos.join(' ')).not.toMatch(/D2/);
   });
 });
 

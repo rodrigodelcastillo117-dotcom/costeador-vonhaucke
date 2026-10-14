@@ -11,7 +11,7 @@ El documento original decía "pendiente" y no se actualizó cuando Dirección fi
 | Decisión | Dirección | Producción / Compras | Implementado (sólo RC) |
 |---|---|---|---|
 | D1 · vigencia ERP 24 m | **Pendiente** | Compras: pendiente | No (`vh147` sin aplicar) |
-| D2 · tubular por fracción + merma de corte | **Firmada** 2026-10-13 por Rodrigo del Castillo (Dirección), en la sesión de trabajo: *"firmo D2 fracción y D3 tornillería por BOM"* | Producción: **pendiente** ratificar la merma de corte (hoy 6 % por paridad con tableros, sin documento) | Sí, motor `2026-10-13c` (`esTubularD2`) |
+| D2 · tubular por fracción + merma de corte | **Firmada** 2026-10-13 por Rodrigo del Castillo (Dirección): *"firmo D2 fracción y D3 tornillería por BOM"*. **Merma y ratificación** 2026-10-14, también por Rodrigo: *"SI AUTORIZO, TRATA TU DE CALCULAR LO MAS EXACTO QUE PUEDAS"* y *"mi autorizacion de la merma sustituye la ratificacion de produccion"* | **Cerrada por Dirección** (sustituye a Producción): merma 6.94 % (ver abajo) | Sí, motor `2026-10-14b` (`MERMA_TUBULAR_D2`, `D2_RATIFICADA_POR_PRODUCCION = true`) |
 | D3 · tornillería por BOM; juego genérico nunca valida | **Firmada** 2026-10-13 (misma frase) | Producción: **pendiente** la tabla de tornillería por unión | Sí (`TORNILLERIA_GENERICA` → PRELIMINAR) |
 
 Consecuencia: con sólo la firma de Dirección, D2 y D3 pueden usarse para calcular, pero mientras Producción no ratifique
@@ -57,6 +57,20 @@ Hoy el motor cobra el **tramo entero de 6 m** por mueble. El cotizador Intelisis
 **Práctica de fábrica con evidencia:** el cotizador oficial cobra la fracción. **Propuesta:** fracción + merma de corte
 documentada para costo unitario; tramo entero sólo cuando el lote es la compra completa (pedido especial). Mientras no se
 firme, los muebles con tubular quedan PRELIMINAR con la nota "regla de tramo pendiente".
+
+### D2 · Merma de corte del tubular: 6.94 % (14-oct-2026)
+
+| Pata (Intelisis) | Fracción de la pieza de 6 m | Consumo | Neto (2×720 + ancho) | Merma |
+|---|---|---|---|---|
+| ATPU2M | 0.361 | 2,166 mm | 2,040 mm | 6.2 % |
+| ATPU75M | 0.393 | 2,358 mm | 2,190 mm | 7.7 % |
+| ATPU3M | 0.417 | 2,502 mm | 2,340 mm | 6.9 % |
+| **Ponderada** | | 7,026 mm | 6,570 mm | **6.94 %** |
+
+- **Supuesto:** pata U = dos patas de 720 mm + travesaño del ancho. Si el despiece real de Producción es otro, la merma cambia.
+- **Regla del motor:** se aplica a todo tubular de **acero** por fracción, incluidos los curados, cuya ficha decía 5 % o 6 % sin documento. Impacto en la matriz golden: de +0.03 % a +0.98 % del costo.
+- **No aplica** a conduit, cobre, poliflex, PVC ni aluminio.
+- **Tope D2 desactivado:** los costos con tubular ya pueden salir certificados. El mecanismo sigue probado con `d2Ratificada: false`.
 
 ## D3 · Tornillería por BOM o por juego fijo (firma: Producción)
 

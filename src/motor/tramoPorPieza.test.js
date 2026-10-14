@@ -88,3 +88,19 @@ describe('como lo declara el catálogo: atributos.tramoPorPieza + mermaTramo (el
     expect(incompatibilidadUnidad({ cantidad: 2.04 }, CAT)).toBeNull();
   });
 });
+
+describe('merma D2 de política: 6.94 % en todo tubular de acero por fracción (Dirección, 14-oct)', () => {
+  const PTR = { id: 'ptr', nombre: 'Tubo / PTR 1"x2" cal. 16', seccion: 'metal', precio: 38.19, unidad: 'm', formato: { tipo: 'tramo', medida: 6 }, mermaCorte: 5 };
+  it('el PTR curado (ficha 5 %) se costea con 6.94 %', () => {
+    const r = calcular({ componentes: [{ nombre: 'Bastidor', insumoId: 'ptr', cantidad: 6, forma: 'lineal' }] }, 1, { ptr: PTR });
+    expect(r.detalleInsumos[0].costo).toBeCloseTo(6 * 1.0694 * 38.19, 6);
+  });
+  it('conduit, cobre, poliflex y aluminio conservan su merma (no son tubular de acero)', () => {
+    for (const nombre of ['TUBO CONDUIT FLEXIBLE Ø 3/8" METALICO GALVANIZADO', 'TUBO DE COBRE Ø 1" TIPO M', 'TUBO POLIFLEX Ø 3/8"', 'Tubo de aluminio 1"']) {
+      const ins = { ...PTR, id: 'x', nombre, precio: 10 };
+      const r = calcular({ componentes: [{ nombre: 'Tramo', insumoId: 'x', cantidad: 6, forma: 'lineal' }] }, 1, { x: ins });
+      // aluminio no es D2: tramo entero (6 m × 1.05 = 6.3 m → 2 tramos = 12 m × $10); los demás: fracción con su 5 %.
+      expect(r.detalleInsumos[0].costo).toBeCloseTo(/alumin/i.test(nombre) ? 120 : 6 * 1.05 * 10, 6);
+    }
+  });
+});

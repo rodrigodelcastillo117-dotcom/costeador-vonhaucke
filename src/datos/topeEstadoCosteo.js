@@ -7,8 +7,12 @@
 // ============================================================================
 import { esTubularD2 } from '../motor/calculo.js';
 
-/** Cambia a true SÓLO con la ratificación escrita de Producción (y su registro en DECISIONES_DIRECCION_COSTEAR). */
-export const D2_RATIFICADA_POR_PRODUCCION = false;
+/**
+ * RATIFICADA el 14-oct-2026 por Rodrigo del Castillo (Dirección), por escrito en la sesión de trabajo: "mi autorización de
+ * la merma sustituye la ratificación de producción". Merma D2 = 6.94 % (calculo.js · MERMA_TUBULAR_D2). Registro en
+ * docs/auditoria/DECISIONES_DIRECCION_COSTEAR_20261013.md. Volver a false reactiva el tope (el mecanismo sigue probado).
+ */
+export const D2_RATIFICADA_POR_PRODUCCION = true;
 
 export function piezasConD2(componentes = [], insumos = {}) {
   return (Array.isArray(componentes) ? componentes : [])

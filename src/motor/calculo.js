@@ -20,7 +20,7 @@ import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA
 // 2026-10-13 (RC, sin desplegar; requiere autorización de Dirección): la rejilla de corte usa las medidas del
 // FORMATO DEL INSUMO cuando las trae (5×8 = 2440×1525, lámina 3×10 = 3048×914) en vez de las globales 2440×1220.
 // Para todo insumo 4×8 el resultado es idéntico. Ver docs/auditoria/MOTOR_FORMATO_REJILLA.md.
-export const MOTOR_VERSION = '2026-10-14a';   // tramo vendido por pieza: $/m = $/pieza ÷ medida
+export const MOTOR_VERSION = '2026-10-14b';   // 14b: merma D2 6.94 % de política en tubular de acero; 14a: tramo vendido por pieza
 
 // Parámetros de corte con las medidas del formato del insumo (si las declara). Sin medidas → globales (4×8).
 export function parametrosDeFormato(par, insumo) {
@@ -169,7 +169,24 @@ export function esTubularD2(insumo) {
   return insumo?.formato?.tipo === 'tramo' && /\b(ptr|tubo|tubular)\b|^ptr/i.test(`${insumo.id || ''} ${insumo.nombre || ''}`) && !/alumin/i.test(`${insumo.id || ''} ${insumo.nombre || ''}`);
 }
 
+// MERMA D2 (14-oct-2026, Rodrigo del Castillo, Dirección: "mi autorización de la merma sustituye la ratificación de
+// Producción"). 6.94 % = merma de corte del tubular calculada de los reportes Intelisis de las patas U ATPU2M/75M/3M
+// (rango 6.2–7.7 %). Es REGLA del motor para todo tubular de ACERO por fracción (D2): sustituye la merma de la ficha
+// (los curados traían 5 % o 6 % sin documento). No aplica a conduit/cobre/poliflex/PVC/flexible (se compran por metro y
+// no son tubular estructural): ésos conservan la suya.
+export const MERMA_TUBULAR_D2 = 6.94;
+export function esTubularAceroD2(insumo) {
+  return esTubularD2(insumo) && !/conduit|cobre|poliflex|pvc|flexible/i.test(`${insumo?.id || ''} ${insumo?.nombre || ''}`);
+}
+/** El insumo como lo usa el motor: tramo vendido por pieza adoptado y merma D2 de política en el tubular de acero. */
+export function insumoParaMotor(insumo) {
+  const i = conTramoPorPieza(insumo);
+  if (!i || !esTubularAceroD2(i) || Number(i.mermaCorte) === MERMA_TUBULAR_D2) return i;
+  return { ...i, mermaCorte: MERMA_TUBULAR_D2, mermaCatalogo: i.mermaCorte ?? null };
+}
+
 export function comprar(insumo, cantidadNetaUnitaria, piezas) {
+  insumo = insumoParaMotor(insumo);
   const neto = cantidadNetaUnitaria * piezas;
   const conCorte = neto * (1 + (insumo.mermaCorte || 0) / 100);
 
@@ -385,7 +402,7 @@ export function incompatibilidadUnidad(comp, insumo) {
 // `comp.hojas`, el estimador ya dio la fraccion de hoja que rinde (como el
 // T.D.C. real) — el costo es fraccion x precio_hoja, sin merma inventada.
 export function costoNetoComponente(comp, insumo, n = 1, par = PARAMETROS_DEFAULT) {
-  insumo = conTramoPorPieza(insumo);
+  insumo = insumoParaMotor(insumo);
   // ⚠️ P0-03 (bug hojas:0): la PRESENCIA de `hojas` NO decide el modo de consumo.
   // Antes esto era `comp.hojas != null`, y `hojas:0` (que el esquema de la IA permite
   // como "no aplica") daba `0 != null → true` → costo `0 × precio = $0`, ignorando
@@ -664,7 +681,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     if (comp.excluida) { componentesExcluidos.push(comp.nombre || 'Partida excluida'); continue; }
     const porConfirmar = requiereConfirmacion(comp);
     if (porConfirmar) materialesPorConfirmar.push(comp.nombre || 'Pieza por confirmar');
-    const insumo = conTramoPorPieza(insumos[comp.insumoId] || comp.insumo);
+    const insumo = insumoParaMotor(insumos[comp.insumoId] || comp.insumo);
     // Sin insumo (crítico/ambiguo/candidato sin id): ya quedó en materialesPorConfirmar; no se
     // duplica como "sin material" (su pendiente es "confirmar", no "hueco de datos").
     if (!insumo) { if (!porConfirmar) componentesIgnorados.push(comp.nombre || 'Pieza sin material'); continue; }

@@ -101,7 +101,9 @@ describe('1. Compra por formato completo', () => {
   it('PTR: D2 (Dirección 2026-10-13) — se costea la FRACCIÓN de tramo con su merma de corte, no tramos enteros', () => {
     const r = comprar(ptr, 6.02, 1);
     expect(r.reglaTramo).toBe('FRACCION_D2');
-    expect(r.unidades).toBeCloseTo((6.02 * (1 + (ptr.mermaCorte || 0) / 100)) / 6, 9);   // antes: 2 tramos enteros
+    // 14-oct: la merma D2 es la autorizada por Dirección (6.94 %), no la de la ficha (ptr trae 5 %). Antes: 2 tramos enteros.
+    expect(r.unidades).toBeCloseTo((6.02 * 1.0694) / 6, 9);
+    expect(ptr.mermaCorte).toBe(5);   // la ficha no se toca; la regla está en el motor
   });
 });
 

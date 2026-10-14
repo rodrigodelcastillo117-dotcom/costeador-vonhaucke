@@ -5,6 +5,7 @@
 //  pantalla "Cargar compras del ERP" (Dirección). Puro: no toca red.
 // ============================================================================
 import { familiaDeMaterial } from './materialMatch.js';
+import { MERMA_TUBULAR_D2 } from '../motor/calculo.js';
 
 export const DOC_ERP_PREFIJO = 'ERP Intelisis · ';
 const TABLERO = { tipo: 'tablero', nombre: 'tablero 1.22 x 2.44', corto: 'tablero', medida: 2.9768, largoMM: 2440, anchoMM: 1220 };
@@ -19,7 +20,6 @@ const TRAMO6 = { tipo: 'tramo', nombre: 'tramo de 6 m', corto: 'tramo', medida: 
 // 2026-10-14a lo adopta (calculo.js · conTramoPorPieza). Sólo barras comerciales (≥ 2,400 mm): "CORTE CON LASER ... X 1230 mm"
 // es una pieza ya cortada y se consume por pieza. Merma: tubular D2 6.94 % (calculada de los reportes Intelisis de las
 // patas U ATPU2M/75M/3M, autorizada por Dirección el 14-oct); otros perfiles 5 % (la misma regla que los tramos en metros).
-export const MERMA_TUBULAR_D2 = 6.94;
 const RE_PERFIL = /(ptr|tubular|tubo|perfil|[aá]ngulo|solera|redondo|cuadrado|barra|canal|monten|zeta)/i;
 const RE_LARGO_BARRA = /(?:pieza de|x|ø[^x]*x)\s*([0-9]{4,5})\s?mm|([0-9]{4,5})\s?mm de largo/i;
 export function tramoPorPiezaDe(nombre, { unidad, seccion } = {}) {

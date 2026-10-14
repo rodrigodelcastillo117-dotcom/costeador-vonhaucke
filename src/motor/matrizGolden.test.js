@@ -13,32 +13,34 @@
 //  escritorios con piezas de exactamente 1500 mm (comentario en cada fila).
 //  2026-10-13 (D2, firmado por Dirección): el tubular de acero se costea por fracción de tramo + merma de corte, como
 //  Intelisis; bajan las 10 familias con PTR. El perfil de aluminio sigue por tramo entero (no está en la firma).
+//  2026-10-14 (merma D2 autorizada por Dirección, motor 2026-10-14b): el tubular de acero usa 6.94 % de merma de corte (la
+//  ficha del PTR curado decía 5 % sin documento). Suben las 10 familias con PTR entre +0.03 % y +0.98 % de costo.
 // ============================================================================
 import { describe, it, expect, beforeAll } from 'vitest';
 
 // [ruta, producto, costoUnitario, precioUnitario]
 const MATRIZ = [
-  ['applt', 'escritorio', 2962.06, 6398.05],   // D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja (antes 1 hoja por la rejilla)
-  ['app', 'escritorio', 3258.27, 7037.86],   // D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja
+  ['applt', 'escritorio', 2967.34, 6409.45],   // 14-oct merma D2 6.94 % (antes 2962.06) · D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja (antes 1 hoja por la rejilla)
+  ['app', 'escritorio', 3264.07, 7050.40],   // 14-oct merma D2 6.94 % (antes 3258.27) · D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja
   ['via', 'escritorio', 2949.51, 5899.01],
-  ['rio', 'bench_recto_sencillo', 2579.91, 5159.82],   // D2: PTR por fracción de tramo
-  ['feather', 'escritorio', 2615.35, 5230.70],   // D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja
-  ['cirque', 'escritorio', 5303.47, 10606.94],   // D2: PTR por fracción de tramo
+  ['rio', 'bench_recto_sencillo', 2580.67, 5161.35],   // 14-oct merma D2 6.94 % (antes 2579.91) · D2: PTR por fracción de tramo
+  ['feather', 'escritorio', 2641.06, 5282.12],   // 14-oct merma D2 6.94 % (antes 2615.35) · D2: PTR por fracción de tramo · VH-183: cubierta 1500×600 = ½ hoja
+  ['cirque', 'escritorio', 5326.25, 10652.51],   // 14-oct merma D2 6.94 % (antes 5303.47) · D2: PTR por fracción de tramo
   ['spine', 'ducto', 1356.79, 2713.57],
-  ['ergo4', 'banca_sencilla', 5170.95, 10341.90],   // D2: PTR por fracción de tramo
+  ['ergo4', 'banca_sencilla', 5176.87, 10353.75],   // 14-oct merma D2 6.94 % (antes 5170.95) · D2: PTR por fracción de tramo
   ['alba', 'escritorio', 4297.82, 8595.64],
   ['eclipse', 'escritorio', 12580.56, 27220.00],
-  ['drift', 'escritorio', 2916.21, 5832.41],   // D2: PTR por fracción de tramo
+  ['drift', 'escritorio', 2926.38, 5852.76],   // 14-oct merma D2 6.94 % (antes 2916.21) · D2: PTR por fracción de tramo
   ['luna', 'escritorio', 8809.16, 17618.33],   // VH-183: faldón 1500×320 = ½ hoja por regla (antes ⅓ por rejilla)
-  ['flex', 'escritorio', 2678.55, 5357.09],   // D2: PTR por fracción de tramo
-  ['anteo', 'escritorio', 30748.75, 61497.51],   // D2: PTR por fracción de tramo
+  ['flex', 'escritorio', 2695.40, 5390.81],   // 14-oct merma D2 6.94 % (antes 2678.55) · D2: PTR por fracción de tramo
+  ['anteo', 'escritorio', 30777.62, 61555.25],   // 14-oct merma D2 6.94 % (antes 30748.75) · D2: PTR por fracción de tramo
   ['mox', 'rodante', 1486.11, 3210.00],
   ['modulor', 'gaveta', 1365.38, 2730.75],
   ['tetris', 'sofa', 3305.56, 5250.00],
   ['arlequin', 'pouf', 652.63, 1305.26],
   ['pac', 'sillon', 2253.44, 4506.89],
   ['worklounge', 'tank', 1999.17, 3998.34],
-  ['pebble', 'mesa', 738.96, 1477.91],   // D2: PTR por fracción de tramo
+  ['pebble', 'mesa', 740.94, 1481.88],   // 14-oct merma D2 6.94 % (antes 738.96) · D2: PTR por fracción de tramo
   ['accents', 'acrilico', 309.36, 618.72],
   ['teamspace2', 'soporte', 1553.70, 3107.40],
   ['privacy4', 'muro', 3627.41, 7254.83],
