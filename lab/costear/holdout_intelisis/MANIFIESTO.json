@@ -1,17 +1,17 @@
 {
- "congeladoEn": "2026-10-14T07:52:26.811Z",
- "huellaTotal": "7bf697ca4b13bebda4141e1d7b71b95f93ed85246686f077e4325651b3856145",
+ "congeladoEn": "2026-10-14T11:34:48.676Z",
+ "huellaTotal": "f6166483815f4b80b316235dc75e0dbbe69e373c5f9365da683a4d0d0462c293",
  "nArchivos": 107,
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
-  "e2e/labCostear.e2e.js": "cf8f76f646937bd84b79032f35f7620a7d9f14383936649d299d1d4dc2a4ca14",
+  "e2e/labCostear.e2e.js": "64b9058a059e2a0aadc70c9a0fbeb5dc81aa5463e880b3cc21effc46e597b5f3",
   "lab/costear/ciego_erp/comparar.mjs": "3210d8ed7934ff5d025dee948d7159a68b9e91fb390a170173b2c9b17ec9ee00",
-  "lab/costear/ciego_erp/correr.sh": "732ebd4fdf4988be5f64926c085f53e67bf39ec92766963c70095f630ebb1c42",
+  "lab/costear/ciego_erp/correr.sh": "780d4f6f41de13c083970f56189819b5bdcf085706083fc790a23d8686a78d73",
   "lab/costear/ciego_erp/gen_hojas.py": "90b999e46d821e0a9de50ea34279d4f2ec5197bc2cd8ac1bc661d7a8293c7591",
   "lab/costear/holdout_intelisis/huellas_db.sql": "51b15d0c49be718c3d7df76903d099364309e76af534c65cd4438e1598951e15",
-  "lab/costear/holdout_intelisis/modelos_observados.sql": "c650f5a2fedde3cb90f13aa2a220f21fa53e7c5ac7b661d000ec4f820783238d",
+  "lab/costear/holdout_intelisis/modelos_observados.sql": "77f209fc9e8c95b880f64947eb99db8a6ea7df1b532f23fb2571b53bf2287e53",
   "package-lock.json": "538a510235a23e6b74aef63b12aba3529781b40c5d9577cc1e2733c3dd8c0d7b",
-  "scripts/congelar_holdout.mjs": "e58a0fcb3061e14f36bfef2ce642ef2103077e3390d02dbaf3914042a5ca24a8",
+  "scripts/congelar_holdout.mjs": "b8bd6982db64e625e76a4fb756bbd4aba715cefa6941eaaf4b8066f5ced6b676",
   "src/datos/acabados.js": "bcd40a5a0ccfa43ab3f847eaab2a9b25a7a0b38bd7e9955ddf90f652f2e16508",
   "src/datos/accents.js": "2cd745232d4c9c8278e6e57912e1eb54ace34a95ac27e8f7e7ae6204c277f0ad",
   "src/datos/alba.js": "b8d92956308166762da26196002999a04dfe5f43c29fe5e4255d4bedf22baf31",
@@ -51,7 +51,7 @@
   "src/datos/feather.js": "ae1f196ae6895d87726b1469a7a07951a4d48695974d1864bba43c0ad2eae03d",
   "src/datos/flex.js": "6d8dc882f9e5152790358a4569eff11f34fd6c92e5f8c2f0e45699530377e37b",
   "src/datos/fuentes/producto_maestro.json": "18d5334c2d745323aa66dfdd66fcebef12380f1d59ecb2635eaf8d36bcb270b4",
-  "src/datos/holdoutHuellas.js": "5a6987a30de3017a82ab87f81fcfbe3000b898c0f7ebbb297816ebde35d2b6f8",
+  "src/datos/holdoutHuellas.js": "cf4f25ca09cd0a233424d8646b48051380c8fd0c448969eb8724fbe107487e12",
   "src/datos/imagenStorage.js": "4414fdeb8c907a137c42af1a7d7e08120d44764c665f41611d69eeb30398a809",
   "src/datos/insumos.js": "32be168611dc9ff7a5be7a2142cd418c4ebb7838ab90c44164560963c8d3981b",
   "src/datos/lineas.js": "db5e4dc9eb230dad5467f5b875f1eb37cd314b5d4a757b32217f27122b3612de",
@@ -81,7 +81,7 @@
   "src/datos/teamspace2.js": "793e1fcb05a6084621c8cbb87ad7ffd4d7c1ce4b726910038257a30eac1d1075",
   "src/datos/tetris.js": "4c4a1b485e2d76297b244c255fb82490b498989ca27a67f52d2d2074ca40a2b8",
   "src/datos/topeEstadoCosteo.js": "b0d61ed76d68615479fc5baa6a835e95b83b4e77f292492b2b35b68a91e215f7",
-  "src/datos/validarIntentCosteo.js": "9bc29c7036ad11cd34acec586f4b0d9158bd90f1147c659ed360dc2cc5f76f11",
+  "src/datos/validarIntentCosteo.js": "d1f01347d28bb4090b04d49ecd5f60292224575e1f8b574551117411bae72a39",
   "src/datos/via.js": "393791fd00ef2e427bacc0ece8bc06f5f1ab8c56754a9d8357cac3fc29f9c461",
   "src/datos/visualRevision.js": "5cab36524071e1d367ca61ab1d5c71de7ce2fe2bb9655605324ea69b9d892154",
   "src/datos/worklounge.js": "51acd9520171383e4809bb9c97c0582860ae33aa6d9a141463c157b594e7003d",
@@ -109,7 +109,7 @@
   "supabase/functions/analizar-mueble-rc/modelConfig.js": "a9f6d10b0a3cd27dbdd9b86dcc16f09cb4150cc85eb32cc62c4921103439ba6f",
   "supabase/functions/analizar-mueble-rc/requestPlan.js": "e50e5a407feb8d7aa8c4a97db05da9f9e7f08a55dab62da64f77959e0f180545",
   "supabase/functions/analizar-mueble-rc/telemetria.js": "1bfa7209e17d41c49b9f6faa544688af3267a1d04f7cdce821de9b7868e40d10",
-  "supabase/functions/costear-servidor-rc/index.ts": "85b625dc26161c415e9799133355c14d83e745a0202c8611627ba92e4c20d759"
+  "supabase/functions/costear-servidor-rc/index.ts": "32e634646eb772bacbc5df5ed99ab47e2fa8abca22deca1e17ca1b817e83998e"
  },
  "baseDatos": {
   "sql": {
@@ -132,8 +132,8 @@
  },
  "edges": {
   "costear-servidor-rc": {
-   "version": 18,
-   "ezbr_sha256": "5b168508398f3b7e1bf82d9a57d4eacddf26f9a51bdfd11c45f9bd126325acff"
+   "version": 19,
+   "ezbr_sha256": "2d4956b64111054e28b7069fca3fa0b6160cff68e2fcd5e300831750953742e9"
   },
   "analizar-mueble-rc": {
    "version": 8,
