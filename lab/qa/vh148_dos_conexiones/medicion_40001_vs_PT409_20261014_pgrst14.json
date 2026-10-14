@@ -1,0 +1,22 @@
+{
+ "40001": {
+  "http": "sin respuesta en 5 s (AbortError)",
+  "cuerpo": null,
+  "ms": 5004,
+  "ejecuciones_de_la_rpc_en_8s": 19435,
+  "ejecuciones_en_los_2s_siguientes_con_el_cliente_ya_desconectado": 4189
+ },
+ "postgrest": "PostgREST 14.5",
+ "PT409": {
+  "http": 409,
+  "cuerpo": {
+   "code": "PT409",
+   "details": "actualizado=2026-10-14T00:00:00Z",
+   "hint": null,
+   "message": "CONFLICTO_VERSION: prueba QA (PT409)"
+  },
+  "ms": 68,
+  "ejecuciones_de_la_rpc_en_8s": 1,
+  "ejecuciones_en_los_2s_siguientes_con_el_cliente_ya_desconectado": 0
+ }
+}

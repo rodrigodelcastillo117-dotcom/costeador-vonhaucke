@@ -1,4 +1,4 @@
-// Mide qué hace PostgREST v12.2.3 real ante SQLSTATE 40001 vs PT409 levantados por una RPC.
+// Mide qué hace PostgREST real (la versión de ./postgrest; se registra en la salida) ante SQLSTATE 40001 vs PT409 levantados por una RPC.
 import pg from './node_modules/pg/lib/index.js';
 import { execSync } from 'node:child_process';
 const tok = execSync('node token.mjs qa148-ventas@vonhaucke.test').toString().trim();
@@ -12,7 +12,7 @@ await db.query(`create sequence if not exists public.qa148_intentos; grant usage
   grant execute on function public.qa148_conflicto(text) to authenticated; notify pgrst, 'reload schema';`);
 await new Promise((r) => setTimeout(r, 2000));
 const rb = async () => Number((await db.query("select last_value + (case when is_called then 0 else -1 end) as n from public.qa148_intentos")).rows[0].n);
-const out = {};
+const out = { postgrest: execSync('./postgrest --version').toString().trim() };
 for (const codigo of ['PT409', '40001']) {
   await db.query('select pg_stat_clear_snapshot()');
   const r0 = await rb(); const t0 = Date.now(); let http = null, cuerpo = null;

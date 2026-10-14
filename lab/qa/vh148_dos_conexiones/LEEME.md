@@ -8,7 +8,7 @@ El núcleo de Supabase, en local y con binarios oficiales:
 
 - **Postgres 16** real (no PGlite).
 - **GoTrue** v2.178.0 (`supabase/auth`), con sus 55 migraciones. Aporta `auth.uid()` y `auth.jwt()` reales.
-- **PostgREST** v12.2.3.
+- **PostgREST** v14.5 por omisión, la que corre la nube (`pg_stat_activity.application_name`). Se cambia con `PGRST_VERSION=12.2.3 ./preparar.sh`.
 - **Gateway** con las rutas de la nube: `/auth/v1` y `/rest/v1`.
 
 Las pruebas usan dos clientes `supabase-js` 2.112.3. Cada uno tiene su propia sesión de GoTrue, hecha con `signInWithPassword`, y su propio JWT.

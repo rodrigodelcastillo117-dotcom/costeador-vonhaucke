@@ -2,6 +2,7 @@
 // PostgREST y Postgres 16, con el SQL de la rama (VH-148 + VH-148b + SEG-01 + SEG-01c rev4). Datos QA, nada comercial.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import { execSync } from 'node:child_process';
 import pg from './node_modules/pg/lib/index.js';
 import { createClient } from '../../../node_modules/@supabase/supabase-js/dist/index.mjs';
 import { promesaComercialDeCosteo } from '../../../src/datos/promesaComercial.js';
@@ -37,7 +38,7 @@ const C = await sesion('qa148-diseno@vonhaucke.test');      // Diseño
 ev.entorno = {
   postgres: (await db.query('select version() v')).rows[0].v.split(',')[0],
   gotrue: (await (await fetch(URL + '/auth/v1/health')).json()).version,
-  postgrest: 'v12.2.3', supabase_js: '2.112.3',
+  postgrest: execSync('./postgrest --version').toString().trim(), supabase_js: '2.112.3',
   sesiones: [A, B, C].map((s) => ({ email: s.email, uid: s.uid, rol: null })),
   sql: ['baseVh148b (producción 14-oct)', 'PROPUESTA_p103b', 'PROPUESTA_vh148', 'PROPUESTA_vh148b', 'PROPUESTA_seg01', 'PROPUESTA_seg01c (rev4)'],
 };

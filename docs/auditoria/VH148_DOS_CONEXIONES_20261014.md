@@ -10,13 +10,31 @@
 
 ## Entorno
 
-La creación de una rama de Supabase falló porque el conector pide un ID de confirmación de costo que no expone. Por eso la prueba corre sobre el núcleo de Supabase en local, con binarios oficiales. **No es la nube de Supabase.** No sé qué versión de PostgREST corre en la nube: la raíz `/rest/v1/` no acepta la llave anon.
+La creación de una rama de Supabase falló porque el conector pide un ID de confirmación de costo que no expone. Por eso la prueba corre sobre el núcleo de Supabase en local, con binarios oficiales. **No es la nube de Supabase.**
+
+**Versión de PostgREST de la nube: 14.5.** Se leyó en producción, sólo lectura: `pg_stat_activity.application_name = 'PostgREST 14.5'` (7 conexiones de `authenticator`, 14-oct 14:55 UTC). La primera corrida usó la v12.2.3. Por eso se repitió todo con la **v14.5**, el mismo binario oficial que corre la nube (sha256 `39ce04b0…822295a`).
+
+## Repetición con PostgREST 14.5 (la versión de la nube)
+
+| | v12.2.3 (primera corrida) | **v14.5 (= nube)** |
+|---|---|---|
+| Evidencia | `evidencia_20261014.json` | `evidencia_20261014_pgrst14.json` (14:57:13 UTC) |
+| Casos 1, 1b, 2 y 3 | pasan los 4 | **pasan los 4** (`ok: true`, exit 0) |
+| 1b · carreras de 10 rondas | 1 ganador y 1 PT409 en cada ronda | 1 ganador y 1 PT409 en cada ronda (A 9, B 1) |
+| 3 · adjuntar con versión vieja | 409 PT409, 0 vínculos | 409 PT409, 0 vínculos; huella de la promesa `94c48e66…` (la misma) |
+| Medición | `medicion_40001_vs_PT409_20261014.json` | `medicion_40001_vs_PT409_20261014_pgrst14.json` |
+| `40001` | sin respuesta en 5 s; 26,461 ejecuciones en 8 s; 6,919 con el cliente ya desconectado | **sin respuesta en 5 s; 19,435 ejecuciones en 8 s; 4,189 con el cliente ya desconectado** |
+| `PT409` | 409 en 97 ms, 1 ejecución | **409 en 68 ms, 1 ejecución** |
+
+Conclusión: la 14.5 se comporta igual que la 12.2.3. Reintenta `40001` sin fin y responde `PT409` como HTTP 409 sin reintentar. El cambio a `PT409` es necesario y suficiente en la versión de la nube.
+
+Las tablas de abajo son de la primera corrida (v12.2.3). Las de la v14.5 tienen los mismos pasos y resultados, con otras horas; están en el JSON.
 
 | Componente | Versión |
 |---|---|
 | Postgres | PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1) on x86_64-pc-linux-gnu |
 | GoTrue (supabase/auth) | v2.178.0 |
-| PostgREST | v12.2.3 |
+| PostgREST | v12.2.3 (primera corrida) y **v14.5** (repetición; = nube) |
 | supabase-js | 2.112.3 |
 
 SQL cargado: baseVh148b (producción 14-oct), PROPUESTA_p103b, PROPUESTA_vh148, PROPUESTA_vh148b, PROPUESTA_seg01, PROPUESTA_seg01c (rev4).

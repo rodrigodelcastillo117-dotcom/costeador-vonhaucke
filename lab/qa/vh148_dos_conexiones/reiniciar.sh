@@ -1,5 +1,5 @@
 #!/bin/bash
-# Entorno QA VH-148 desde cero: Postgres 16 + GoTrue v2.178.0 + PostgREST v12.2.3 + gateway /auth/v1 /rest/v1.
+# Entorno QA VH-148 desde cero: Postgres 16 + GoTrue v2.178.0 + PostgREST (la versión de ./postgrest) + gateway /auth/v1 /rest/v1.
 set -e
 Q=$(cd "$(dirname "$0")" && pwd)
 # Detiene GoTrue, PostgREST y el gateway de CUALQUIER corrida anterior (por línea de comandos, sin pkill -f).
