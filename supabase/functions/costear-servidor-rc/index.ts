@@ -323,10 +323,18 @@ Deno.serve(async (req) => {
   const huellaBom = bomHash(k.componentes || []);
   let costeoId: string | null = null;
   if (esDireccion || esDiseno) {
+    // Reauditoría v2 · P1-01: huella de la BASE de costo (config.parametros + catalogo_motor de los insumos usados),
+    // calculada por la MISMA función SQL con la que la emisión la recalcula. Sin huella el costeo no emite (fail-closed).
+    let baseHuella: string | null = null;
+    try {
+      const { data: hb, error: hbErr } = await svc.rpc("huella_base_costo", { p_ids: usados });
+      if (!hbErr && typeof hb === "string") baseHuella = hb;
+    } catch (_e) { /* SEG-01c sin aplicar: queda null */ }
     const { data: regC, error: regErr } = await svc.from("costeos_servidor").insert({
       creado_por: email, rol, bom_hash: huellaBom, cantidad: n, costo_unitario: dinero(r.costoUnitario),
       estado, aprobacion_humana: aprobacionHumana, version_motor: meta.versionMotor, version_catalogo: meta.versionCatalogo,
       fuente_costo: meta.fuenteCosto, precios: k.preciosUsados || [], warnings,
+      insumos_usados: usados, base_costo_huella: baseHuella,
     }).select("id").single();
     if (regErr) warnings.push("Costeo sin registro autoritativo (SEG-01c no aplicada): no servirá para emitir cuando se aplique.");
     else costeoId = regC?.id ?? null;

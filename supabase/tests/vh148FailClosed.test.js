@@ -375,7 +375,7 @@ describe('VH-148b · COMPOSICIÓN con VH-035c, SEG-01 y SEG-01c', () => {
   it('SEG-01c en modo ESTRICTO evaluado por una sesión real (rol authenticated): sin errores de permisos, y bloquea el renglón sin costeo', async () => {
     const db = await baseProduccion();
     try {
-      for (const f of [SEG01, SEG01C, VH148, VH148B]) await db.exec(leer(f));
+      for (const f of [VH148, VH148B, SEG01, SEG01C]) await db.exec(leer(f));   // SEG-01c exige VH-148b antes
       await db.exec(`update private_api.politica_emision_autoridad set modo = 'estricto'`);
       const id = await sembrarCot(db);
       const vv = await vista(db, VENDEDOR, id);
@@ -387,11 +387,20 @@ describe('VH-148b · COMPOSICIÓN con VH-035c, SEG-01 y SEG-01c', () => {
   }, 120_000);
   beforeAll(async () => {
     const a = await baseProduccion(); for (const f of [VH148, VH148B]) await a.exec(leer(f)); solaVh = await md5s(a, OBJ_VH148B); await a.close();
-    const b = await baseProduccion(); for (const f of [SEG01, SEG01C]) await b.exec(leer(f)); solaSeg = await md5s(b, OBJ_OTRAS); await b.close();
+    // SEG-01c exige VH-148b: la referencia de SEG-01/SEG-01c se toma con VH-148/VH-148b debajo.
+    const b = await baseProduccion(); for (const f of [VH148, VH148B, SEG01, SEG01C]) await b.exec(leer(f)); solaSeg = await md5s(b, OBJ_OTRAS); await b.close();
   }, 240_000);
 
+  it('SEG-01c ANTES de VH-148b se rechaza al aplicar (sin el trigger de versión el CAS del vínculo no detecta nada)', async () => {
+    const db = await baseProduccion();
+    try {
+      await db.exec(leer(SEG01));
+      expect((await fallo(db.exec(leer(SEG01C))))?.message).toMatch(/requiere VH-148b/);
+    } finally { await db.close(); }
+  }, 120_000);
+
   for (const [nombre, orden, conVh035c] of [
-    ['SEG-01 → SEG-01c → VH-148 → VH-148b', [SEG01, SEG01C, VH148, VH148B], true],
+    ['SEG-01 → VH-148 → VH-148b → SEG-01c', [SEG01, VH148, VH148B, SEG01C], true],
     ['VH-148 → VH-148b → SEG-01 → SEG-01c', [VH148, VH148B, SEG01, SEG01C], true],
     ['(base sin VH-035c) VH-148 → VH-148b → VH-035c → SEG-01 → SEG-01c', [VH148, VH148B, VH035C, SEG01, SEG01C], false],
   ]) {

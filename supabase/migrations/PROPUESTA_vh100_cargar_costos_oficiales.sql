@@ -119,7 +119,9 @@ begin
 end;
 $$;
 revoke all on function public.cargar_costos_oficiales(text, jsonb) from public, anon;
-grant execute on function public.cargar_costos_oficiales(text, jsonb) to authenticated;
+-- Reauditoría v2 · P2-01: la rama service_role (carga por proceso) se concede EXPLÍCITA. En producción ya la daba el
+-- privilegio por omisión de `postgres` en public (pg_default_acl, verificado 14-oct: service_role=X); explícito no depende de él.
+grant execute on function public.cargar_costos_oficiales(text, jsonb) to authenticated, service_role;
 
 -- Escritura directa cerrada: sólo las funciones SECURITY DEFINER (esta carga, registrar_producto_desde_expediente)
 -- escriben la economía oficial. La lectura de Dirección (política pm_eco_all) no cambia.

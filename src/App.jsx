@@ -63,6 +63,7 @@ const Reglas = lazy(() => import('./componentes/Reglas.jsx'));
 import { cargarReglas } from './datos/reglas.js';
 import { cargarAprendizajes } from './datos/aprendizaje.js';
 import { guardarCotizacion, cargarCotizacionCompleta, paraGuardar, firmaGuardado, claveCreacionNueva } from './datos/cotizaciones.js';
+import { avisoVinculosFallidos } from './datos/vinculoCosteo.js';
 import {
   controlOptimistaActivo, esperadoParaGuardar, conflictoDesdeResultado, respaldoConflicto, aplicarFilaServidor,
   camposMezcla, mezclarRespaldo, resumenDiferencias, confirmacionRecuperar, confirmacionDescartar,
@@ -609,6 +610,9 @@ export default function App() {
       if (avisoNubeCaida.current) mostrarAviso('Conexión recuperada: la cotización ya está guardada en la nube.', 5000);
       avisoNubeCaida.current = false;
       setNubeEstado('conectado');
+      // SEG-01c · P1-03: un costo especial sin vínculo del servidor no se podrá emitir; se dice ahora, no al emitir.
+      const avisoVinculo = avisoVinculosFallidos(r.vinculosFallidos);
+      if (avisoVinculo) mostrarAviso(avisoVinculo, 12000);
     }
     if (r.guardado && r.id) {
       ultimaFirmaNube.current = firma;

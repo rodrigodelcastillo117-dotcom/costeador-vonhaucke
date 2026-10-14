@@ -136,7 +136,14 @@ describe('VH-100 · carga de costo oficial por código (P0-01)', () => {
     expect((await fila(db, `select has_table_privilege('authenticated', 'public.producto_version_economia', 'SELECT') as ok`)).ok).toBe(true);
   });
 
-  it('sin la tabla cuentas_no_humanas (SEG-01b sin aplicar) nadie carga: fail-closed', async () => {
+  // Reauditoría v2 · P2-01: el SQL tiene una rama para service_role; su EXECUTE se concede explícito (en PGlite no hay
+  // privilegios por omisión de Supabase: con el archivo anterior esto daba false).
+  it('service_role puede ejecutar la carga (grant explícito); anon no', async () => {
+    expect((await fila(db, `select has_function_privilege('service_role', 'public.cargar_costos_oficiales(text, jsonb)', 'execute') as ok`)).ok).toBe(true);
+    expect((await fila(db, `select has_function_privilege('anon', 'public.cargar_costos_oficiales(text, jsonb)', 'execute') as ok`)).ok).toBe(false);
+  });
+
+  it('sin la tabla cuentas_no_humanas (SEG-01c sin aplicar) nadie carga: fail-closed', async () => {
     await db.exec('alter table public.cuentas_no_humanas rename to cnh_tmp');
     try {
       await expect(como(db, DIRECCION, () => cargar([{ codigo: 'ATACM', costo: 1 }]))).rejects.toThrow(/aplicar SEG-01c/);

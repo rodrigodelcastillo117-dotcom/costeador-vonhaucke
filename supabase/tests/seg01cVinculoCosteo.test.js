@@ -1,0 +1,504 @@
+// ============================================================================
+//  SEG-01c (revisión 2) · el costo de un renglón especial es el que el SERVIDOR registró, VINCULÓ a esa partida
+//  y sigue correspondiendo a ESA definición de la partida y a ESA base de costo.
+//
+//  BASE: la de producción de supabase/tests/helpers/baseVh148b.js (SQL exacto, RLS y privilegios de producción;
+//  las sesiones corren con SET ROLE authenticated como PostgREST) + catálogo REAL (tablas del baseline, vista de
+//  producción, insumo_motor/catalogo_motor de VH-088) + P1-03b + VH-148 + VH-148b + SEG-01 + SEG-01c.
+//  Sustituye al bloque SEG-01c de seguridadGateEmisionSnapshot.test.js, que corría como superusuario.
+//
+//  Ataques de la reauditoría externa v2 (14-oct): P0-01 cambiar la definición de la partida conservando id,
+//  cantidad, costo y costeoId; P0-02 carrera guardado → vínculo; P1-01 frescura de la base de costo; P2-02 acceso.
+//  Hueco propio: un especial con `productoId` de TEXTO (clave de línea) se saltaba la autoridad.
+//  El bloque "ANTES" carga la revisión 1 (fixtures/seg01c_rev1_4ed8ac6.sql = 4ed8ac6) y demuestra que esos ataques
+//  pasaban: las pruebas nuevas fallan contra el código anterior.
+// ============================================================================
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import {
+  DIRECCION, VENDEDOR, DISENO, VH148, VH148B, SEG01, SEG01C, leer, baseProduccion, uno, q, fallo, vista, guardar3, md5Def, clientePglite,
+} from './helpers/baseVh148b.js';
+// src/nube.js crea su cliente al importarse: aquí no se usa (vincularCosteos recibe el cliente PGlite explícito).
+vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({}) }));
+import { tablaDeBaseline, vistaCatalogoVigenteProduccion, funcionDeMigracion, privateApiDeBaseline } from './fixtures/erpBaseAislada.js';
+
+const P103B = 'supabase/migrations/PROPUESTA_p103b_precio_id_en_catalogo.sql';
+const VH088 = 'supabase/migrations/20261012043000_vh088_catalogo_motor.sql';
+const SEG01C_REV1 = 'supabase/tests/fixtures/seg01c_rev1_4ed8ac6.sql';
+const VENDEDOR2 = 'ventas2@vh.mx';
+const MD5_WRAPPER_PROD = 'cf6ef6a30bbb68eb2b867f2bcdb7c846';
+
+// Lo que Dirección costeó (renglón especial, sin Producto Maestro).
+const COSTEADO = {
+  id: 'p1', nombre: 'Escritorio operativo melamina blanca', medidas: '120x60x75', material: 'Melamina 16 mm',
+  cantidad: 1, precioUnitario: 10000, costoUnitario: 6000,
+  pieza: { componentes: [{ id: 'c1', nombre: 'Cubierta', largo: 1200, ancho: 600, insumoId: 'm16' }] },
+};
+// Precio aprobado por una persona de Dirección: id 900, melamina 16, $612.40.
+const TRAZA = [{ insumo_id: 'm16', precio_id: 900, precio_usado: 612.4, approved_by: DIRECCION, humana: true }];
+const PRECIO = (id, precio, desde) => `insert into public.insumo_precios (id, insumo_id, precio, estado, confidence, vigente_desde, approved_by, approved_at,
+  unidad_compra, precio_compra, factor_conversion, evidence_status, requiere_validacion_compras) overriding system value
+  values (${id}, 'm16', ${precio}, 'aprobado', 'alta', '${desde}', '${DIRECCION}', now(), 'hoja', ${precio}, 1, 'documentada', false)`;
+
+async function base({ seg01c = SEG01C, conP103b = true, conVh148b = true } = {}) {
+  const db = await baseProduccion();
+  await db.exec(`insert into public.permitidos(email, rol) values ('${VENDEDOR2}', 'vendedor')`);
+  await db.exec(tablaDeBaseline('insumos_catalogo'));
+  await db.exec(tablaDeBaseline('insumo_precios'));
+  await db.exec(vistaCatalogoVigenteProduccion());
+  await db.exec(funcionDeMigracion(VH088, 'private_api.insumo_motor'));
+  await db.exec(funcionDeMigracion(VH088, 'private_api.catalogo_motor'));
+  await db.exec(privateApiDeBaseline('resolver_costo_insumo'));
+  await db.exec(`create table public.config (id text primary key, datos jsonb, actualizado timestamptz default now());
+    insert into public.config(id, datos) values ('vonhaucke', '{"parametros": {"tarifaMO": 95, "gif": 0.35}}'::jsonb);
+    insert into public.insumos_catalogo (id, nombre, seccion, unidad_costeo, activo, clasificacion, familia, atributos)
+      values ('m16', 'Melamina 16 mm', 'tableros', 'hoja', true, 'curado', 'melamina', '{"largo_mm": 2440, "ancho_mm": 1220}'::jsonb);
+    ${PRECIO(900, 612.4, '2026-10-01')};`);
+  if (conP103b) await db.exec(leer(P103B));
+  if (conVh148b) { await db.exec(leer(VH148)); await db.exec(leer(VH148B)); }
+  await db.exec(leer(SEG01));
+  await db.exec(leer(seg01c));
+  await db.exec(`update private_api.politica_emision_autoridad set modo = 'estricto'`);
+  return db;
+}
+
+// --- ayudas (servidor = rol null; sesiones = authenticated) -------------------------------------------------------
+function ayudas(db) {
+  const h = {};
+  // Como la Edge (service_role): registra el costeo con la huella de su base de costo.
+  h.reg = async (o = {}) => (await db.query(
+    `insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, aprobacion_humana, precios,
+       insumos_usados, base_costo_huella, version_motor)
+     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[], case when $10 then private_api.huella_base_costo($9::text[]) end, $11) returning id`,
+    [o.por ?? DIRECCION, o.rol ?? 'direccion', o.bom ?? 'bom-escritorio', o.cantidad ?? 1, o.costo ?? 6000, o.estado ?? 'certificado',
+      o.humana ?? true, JSON.stringify(o.precios ?? TRAZA), o.insumos ?? ['m16'], o.base !== false, o.motor ?? 'motor-1'])).rows[0].id;
+  // Dirección guarda la cotización (a nombre del vendedor) con las partidas dadas.
+  h.sembrar = async (partidas = [{ ...COSTEADO }]) => (await uno(db, DIRECCION,
+    `insert into public.cotizaciones(usuario, cliente, folio, partidas, total, piezas) values ($1, 'Cliente demo', 'COT-DEMO', $2::jsonb, 11600, 1) returning id`,
+    [VENDEDOR, JSON.stringify(partidas)], null)).id;
+  h.version = async (id) => (await db.query(`select to_json(actualizado)#>>'{}' as v from public.cotizaciones where id=$1`, [id])).rows[0].v;
+  // El vínculo con la versión que el cliente obtuvo de SU guardado (por omisión, la actual).
+  h.adjuntar = async (email, cot, partida, costeo, esperado) => (await uno(db, email,
+    'select public.adjuntar_costeo_a_partida($1, $2, $3::uuid, $4::timestamptz) as r',
+    [cot, partida, costeo, esperado === undefined ? await h.version(cot) : esperado])).r;
+  h.fila = async (id, i = 0) => (await db.query('select partidas from public.cotizaciones where id=$1', [id])).rows[0].partidas[i];
+  h.legitima = async (o = {}) => {
+    const k = await h.reg(o); const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);
+    await h.adjuntar(o.por ?? DIRECCION, id, 'p1', k); return { id, k };
+  };
+  // Dirección guarda (con versión) la partida p1 cambiada.
+  h.guardarP1 = async (id, cambios, email = DIRECCION) => {
+    const v = await vista(db, email, id);
+    return guardar3(db, email, id, { partidas: v.partidas.map((p) => (p.id === 'p1' ? { ...p, ...cambios } : p)) }, v.actualizado);
+  };
+  // Snapshot LEGÍTIMO: lo que el vendedor ve (vista sin economía), precio dentro del margen.
+  h.snap = async (id, cambios = { precioUnitario: 9500 }) => {
+    const v = await vista(db, VENDEDOR, id);
+    const partidas = v.partidas.map((p) => ({ ...p, ...cambios }));
+    const precioLista = partidas.reduce((s, p) => s + Math.round(p.precioUnitario * p.cantidad * 100) / 100, 0);
+    return { cliente: v.cliente, folio: 'COT-DEMO', partidas, totales: { precioLista, descuento: 0, contingencia: 0, maniobras: 0, flete: 0, iva: 0 }, total: precioLista };
+  };
+  h.evaluar = async (id, snap) => (await uno(db, VENDEDOR, 'select public.evaluar_emision_cotizacion($1, $2::jsonb) as g', [id, JSON.stringify(snap ?? await h.snap(id))])).g;
+  h.emitir = async (id, snap) => (await uno(db, VENDEDOR, 'select public.emitir_revision_v2($1, $2::jsonb) as r', [id, JSON.stringify(snap ?? await h.snap(id))])).r;
+  h.motivos = async (id, email = DIRECCION) => (await uno(db, email, 'select private_api.motivos_autoridad_costeo($1) as m', [id])).m;
+  h.revisiones = async (id) => Number((await db.query('select count(*)::int as n from public.cotizaciones_revisiones where cotizacion_id=$1', [id])).rows[0].n);
+  h.politica = (sql) => db.exec(`update private_api.politica_emision_autoridad set ${sql}`);
+  return h;
+}
+
+describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → partida (sesiones authenticated, base de producción)', () => {
+  let db, h;
+  beforeAll(async () => {
+    db = await base(); h = ayudas(db);
+    expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).not.toBe(MD5_WRAPPER_PROD); // SEG-01c lo reemplazó
+  }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  // ---------------- controles y lo que ya cubría la revisión 1 (portado) ----------------
+  it('control: costeo certificado, vinculado por el servidor, partida intacta, base vigente ⇒ ALLOWED y se emite', async () => {
+    const { id } = await h.legitima();
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+    expect(await h.emitir(id)).toMatchObject({ nueva: true, revision: 1 });
+  });
+
+  it('adjuntar escribe la economía DESDE el registro del servidor, no desde lo que trae el navegador', async () => {
+    const k = await h.reg({ costo: 6123.45 });
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: k, costoUnitario: 1, costoEstado: 'certificado', bomHash: 'inventado' }]);
+    await h.adjuntar(DIRECCION, id, 'p1', k);
+    expect(await h.fila(id)).toMatchObject({ costoUnitario: 6123.45, costoEstado: 'certificado', costeoId: k, bomHash: 'bom-escritorio' });
+  });
+
+  it('REPLAY: el mismo costeoId copiado a OTRA cotización con su bomHash, cantidad y costo ⇒ no se emite ni se vincula', async () => {
+    const { k } = await h.legitima();
+    const otra = await h.sembrar([{ ...COSTEADO, costeoId: k, bomHash: 'bom-escritorio', costoEstado: 'certificado' }]);
+    const g = await h.evaluar(otra);
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(g.reasons).toContain('linea_1_costeo_no_vinculado_a_esta_partida');
+    expect((await fallo(h.adjuntar(DIRECCION, otra, 'p1', k)))?.message).toMatch(/ya vinculado a otra partida/);
+  });
+
+  it('REPLAY dentro de la misma cotización: otra partida no puede tomar el costeo de la primera', async () => {
+    const k = await h.reg();
+    const id = await h.sembrar([{ ...COSTEADO, id: 'a', costeoId: k }, { ...COSTEADO, id: 'b', costeoId: k }]);
+    await h.adjuntar(DIRECCION, id, 'a', k);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'b', k)))?.message).toMatch(/ya vinculado/);
+    expect(await h.motivos(id)).toContain('linea_2_costeo_no_vinculado_a_esta_partida');
+  });
+
+  it('costeo sin vincular (el navegador sólo puso el costeoId) ⇒ no se emite', async () => {
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: await h.reg() }]);
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_no_vinculado_a_esta_partida');
+  });
+
+  it('el navegador declara certificado sin costeo del servidor ⇒ no se emite (0 revisiones)', async () => {
+    const id = await h.sembrar([{ ...COSTEADO, costoEstado: 'certificado', validado_servidor: true }]);
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_sin_costeo_servidor');
+    expect(await fallo(h.emitir(id))).not.toBeNull();
+    expect(await h.revisiones(id)).toBe(0);
+  });
+
+  it('FRESCURA de precio: si el precio aprobado se cierra (vigente_hasta) después de costear, el costeo deja de servir', async () => {
+    const { id } = await h.legitima();
+    await db.exec(`${PRECIO(901, 650, '2026-10-14')}; update public.insumo_precios set vigente_hasta = '2026-10-14' where id = 900;`);
+    try { expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_con_precio_ya_no_vigente'); }
+    finally { await db.exec('delete from public.insumo_precios where id = 901; update public.insumo_precios set vigente_hasta = null where id = 900;'); }
+  });
+
+  it('FRESCURA de precio: llegó otro precio mejor rankeado ⇒ no sirve', async () => {
+    const { id } = await h.legitima();
+    await db.exec(PRECIO(902, 700, '2026-10-15'));
+    try { expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_con_precio_ya_no_vigente'); }
+    finally { await db.exec('delete from public.insumo_precios where id = 902'); }
+  });
+
+  it('FRESCURA de precio (punto 10 de la reauditoría): OTRA fila con el MISMO importe pasa a ser la vigente ⇒ no sirve', async () => {
+    const { id } = await h.legitima();
+    await db.exec(PRECIO(903, 612.4, '2026-10-16'));   // mismo $612.40, otra fila (más reciente) ⇒ catalogo_vigente elige 903
+    try {
+      expect((await db.query(`select precio_id from public.catalogo_vigente where insumo_id = 'm16'`)).rows[0].precio_id).toBe(903);
+      expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_con_precio_ya_no_vigente');
+    } finally { await db.exec('delete from public.insumo_precios where id = 903'); }
+  });
+
+  it('costeo certificado sin traza de precios ⇒ no se emite', async () => {
+    const { id } = await h.legitima({ precios: [] });
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_sin_traza_de_precios');
+  });
+
+  it('CERTIFICADO con costo $0 no puede existir (CHECK); preliminar $0 sí se registra pero no emite', async () => {
+    expect((await fallo(h.reg({ costo: 0 })))?.message).toMatch(/costeo_certificado_positivo/);
+    const { id } = await h.legitima({ costo: 0, estado: 'preliminar' });
+    expect((await h.evaluar(id)).state).toBe('ECONOMICS_INCOMPLETE');
+  });
+
+  it.each([
+    ['preliminar', { estado: 'preliminar' }],
+    ['sin aprobación humana', { humana: false }],
+  ])('registro %s ⇒ no se emite aunque esté vinculado', async (_n, o) => {
+    const { id } = await h.legitima(o);
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_servidor_no_certificado');
+  });
+
+  it('Dirección cambia luego el costo del renglón al guardar ⇒ ya no coincide con el servidor', async () => {
+    const { id } = await h.legitima();
+    await h.guardarP1(id, { costoUnitario: 4000 });
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costo_no_coincide_con_servidor');
+  });
+
+  it('adjuntar: el vendedor no puede; otra persona no puede usar un costeo ajeno; cantidad distinta exige recostear', async () => {
+    const k = await h.reg();
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);
+    expect((await fallo(h.adjuntar(VENDEDOR, id, 'p1', k)))?.message).toMatch(/sólo Dirección o Diseño/);
+    expect((await fallo(h.adjuntar(DISENO, id, 'p1', k)))?.message).toMatch(/otra persona/);
+    const k2 = await h.reg({ cantidad: 20 });
+    const id2 = await h.sembrar([{ ...COSTEADO, costeoId: k2 }]);
+    expect((await fallo(h.adjuntar(DIRECCION, id2, 'p1', k2)))?.message).toMatch(/otra cantidad/);
+  });
+
+  it('adjuntar es idempotente para la MISMA partida SIN cambios (cada guardado puede re-vincular)', async () => {
+    const { id, k } = await h.legitima();
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('el VENDEDOR intenta cambiar costeoId y costo al guardar ⇒ se le despoja; lo vinculado sigue y sigue emitiendo', async () => {
+    const { id, k } = await h.legitima();
+    const barato = await h.reg({ costo: 100 });
+    const v = await vista(db, VENDEDOR, id);
+    await guardar3(db, VENDEDOR, id, { partidas: v.partidas.map((p) => ({ ...p, costeoId: barato, costoUnitario: 100 })) }, v.actualizado);
+    expect(await h.fila(id)).toMatchObject({ costeoId: k, costoUnitario: 6000 });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('MODO PREPARADO (por omisión al aplicar): no bloquea nada; el diagnóstico dice qué bloquearía', async () => {
+    const id = await h.sembrar([{ ...COSTEADO, costoEstado: 'certificado' }]);
+    await h.politica(`modo = 'preparado'`);
+    try {
+      expect((await h.evaluar(id)).state).toBe('ALLOWED');
+      expect((await uno(db, DIRECCION, 'select public.diagnostico_autoridad_costeo($1) as d', [id])).d)
+        .toEqual({ modo: 'preparado', motivos: ['linea_1_sin_costeo_servidor'] });
+      expect((await fallo(uno(db, VENDEDOR, 'select public.diagnostico_autoridad_costeo($1) as d', [id])))?.message).toMatch(/no autorizado/);
+    } finally { await h.politica(`modo = 'estricto'`); }
+  });
+
+  it('anon/authenticated no leen ni escriben costeos_servidor ni cuentas_no_humanas; huella_base_costo es sólo de service_role', async () => {
+    for (const t of ['public.costeos_servidor', 'public.cuentas_no_humanas']) for (const r of ['anon', 'authenticated']) for (const p of ['select', 'insert', 'update', 'delete']) {
+      expect((await db.query('select has_table_privilege($1, $2, $3) as ok', [r, t, p])).rows[0].ok, `${r} ${p} ${t}`).toBe(false);
+    }
+    for (const r of ['anon', 'authenticated']) {
+      expect((await db.query(`select has_function_privilege($1, 'public.huella_base_costo(text[])', 'execute') as ok`, [r])).rows[0].ok).toBe(false);
+    }
+    expect((await db.query(`select has_function_privilege('service_role', 'public.huella_base_costo(text[])', 'execute') as ok`)).rows[0].ok).toBe(true);
+  });
+
+  // ---------------- P0-01 · el costo pertenece a ESTA definición de la partida ----------------
+  it.each([
+    ['nombre', { nombre: 'Escritorio ejecutivo NOGAL MACIZO' }],
+    ['medidas', { medidas: '300x120x75' }],
+    ['material', { material: 'Nogal macizo 38 mm' }],
+    ['despiece (pieza)', { pieza: { componentes: [{ id: 'c1', nombre: 'Cubierta', largo: 3000, ancho: 1200, insumoId: 'm16' }] } }],
+    ['ancho w', { w: 300 }],
+  ])('P0-01: Dirección cambia %s conservando id, cantidad, costo y costeoId ⇒ partida_cambio_desde_el_costeo; re-vincular NO lo lava', async (_n, cambio) => {
+    const { id, k } = await h.legitima();
+    await h.guardarP1(id, cambio);
+    expect(await h.fila(id)).toMatchObject({ id: 'p1', cantidad: 1, costoUnitario: 6000, costeoId: k });
+    const g = await h.evaluar(id);
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(g.reasons).toContain('linea_1_partida_cambio_desde_el_costeo');
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k)))?.message).toMatch(/la partida cambió/);
+    expect(await fallo(h.emitir(id))).not.toBeNull();
+  });
+
+  it('P0-01: borrar la partida y crear OTRO mueble con el mismo id (y el mismo costeoId/costo) ⇒ no se emite', async () => {
+    const { id, k } = await h.legitima();
+    const v = await vista(db, DIRECCION, id);
+    const otro = { id: 'p1', nombre: 'Mesa de juntas 12 personas', medidas: '480x140x75', material: 'Chapa nogal', cantidad: 1,
+      precioUnitario: 10000, costoUnitario: 6000, costoEstado: 'certificado', costeoId: k, bomHash: 'bom-escritorio' };
+    await guardar3(db, DIRECCION, id, { partidas: [otro] }, v.actualizado);
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_partida_cambio_desde_el_costeo');
+  });
+
+  it('P0-01 sin falsos positivos: el vendedor guarda su vista tal cual con otro precio ⇒ sigue ALLOWED', async () => {
+    const { id } = await h.legitima();
+    const v = await vista(db, VENDEDOR, id);
+    await guardar3(db, VENDEDOR, id, { partidas: v.partidas.map((p) => ({ ...p, precioUnitario: 9800 })) }, v.actualizado);
+    expect((await h.evaluar(id, await h.snap(id, {}))).state).toBe('ALLOWED');
+  });
+
+  it('P0-01 sin falsos positivos: un render nuevo y otro enlace de acomodo (no cambian el mueble) ⇒ sigue ALLOWED', async () => {
+    const { id } = await h.legitima();
+    await h.guardarP1(id, { render: 'https://x/r.png', zone_id: 'z2', instance_id: 'i9', anchor_role: 'centro' });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  // Observación (NO es de SEG-01c): VH-035c, en producción, trata un render/enlace de acomodo guardado por el VENDEDOR
+  // como "definición cambiada" y deja el renglón en recosteo. Se documenta tal cual; corregirlo es otra migración.
+  it('VH-035c (producción, observación): el vendedor guarda un render ⇒ recosteo pendiente por definición cambiada', async () => {
+    const { id } = await h.legitima();
+    const v = await vista(db, VENDEDOR, id);
+    await guardar3(db, VENDEDOR, id, { partidas: v.partidas.map((p) => ({ ...p, render: 'https://x/r.png' })) }, v.actualizado);
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_recosteo_pendiente_definicion_cambiada');
+  });
+
+  // ---------------- P0-02 · CAS en el vínculo ----------------
+  it('P0-02: otra pestaña cambia la partida ENTRE el guardado y el vínculo ⇒ 40001; sin versión ⇒ 22004; nada se vincula', async () => {
+    const k = await h.reg();
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);
+    const deMiGuardado = await h.version(id);             // A: guardó y va a vincular con esta versión
+    await h.guardarP1(id, { nombre: 'Mesa de juntas 12 personas', medidas: '480x140x75' });   // B: cambia la partida
+    const e = await fallo(h.adjuntar(DIRECCION, id, 'p1', k, deMiGuardado));
+    expect(e?.code).toBe('40001');
+    expect(e?.message).toMatch(/CONFLICTO_VERSION/);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k, null)))?.code).toBe('22004');
+    expect((await db.query('select cotizacion_id from public.costeos_servidor where id = $1', [k])).rows[0].cotizacion_id).toBeNull();
+  });
+
+  it('P0-02: dos vínculos encadenados — el segundo usa el `actualizado` que devolvió el primero; con el viejo ⇒ 40001', async () => {
+    const ka = await h.reg(); const kb = await h.reg();
+    const id = await h.sembrar([{ ...COSTEADO, id: 'a', costeoId: ka }, { ...COSTEADO, id: 'b', costeoId: kb }]);
+    const v0 = await h.version(id);
+    const ra = await h.adjuntar(DIRECCION, id, 'a', ka, v0);
+    expect(ra.actualizado).not.toBe(v0);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'b', kb, v0)))?.code).toBe('40001');
+    expect(await h.adjuntar(DIRECCION, id, 'b', kb, ra.actualizado)).toMatchObject({ ok: true });
+    expect(await h.motivos(id)).toEqual([]);
+  });
+
+  // ---------------- hueco propio · clave de línea de texto ----------------
+  it('HUECO productoId de TEXTO: un especial con clave de línea y sin costeo ya NO se salta la autoridad', async () => {
+    const id = await h.sembrar([{ ...COSTEADO, productoId: 'LIBRERO', claveLinea: 'LIBRERO', costoUnitario: 50, costoEstado: 'certificado' }]);
+    const g = await h.evaluar(id);
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(g.reasons).toContain('linea_1_sin_costeo_servidor');
+    // …y se puede vincular un costeo del servidor a ese renglón (no es canónico).
+    const k = await h.reg();
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+  });
+
+  it('canónico = producto_id Y producto_version_id numéricos: no pide costeo del servidor y no se le puede vincular uno', async () => {
+    const id = await h.sembrar([{ id: 'c1', nombre: 'Silla', producto_id: 7, producto_version_id: 70, cantidad: 1, precioUnitario: 3000 }]);
+    expect(await h.motivos(id)).toEqual([]);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'c1', await h.reg())))?.message).toMatch(/partida canónica/);
+  });
+
+  // ---------------- P1-01 · frescura de la base de costo ----------------
+  it('P1-01: cambia un parámetro del motor (config) ⇒ base_de_costo_cambio', async () => {
+    const { id } = await h.legitima();
+    await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,tarifaMO}', '110') where id = 'vonhaucke'`);
+    try { expect((await h.evaluar(id)).reasons).toContain('linea_1_base_de_costo_cambio'); }
+    finally { await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,tarifaMO}', '95') where id = 'vonhaucke'`); }
+  });
+
+  it('P1-01: cambia el formato de la hoja / la unidad del insumo usado (mismo precio_id e importe) ⇒ base_de_costo_cambio', async () => {
+    for (const [cambio, regreso] of [
+      [`atributos = '{"largo_mm": 2440, "ancho_mm": 1830}'::jsonb`, `atributos = '{"largo_mm": 2440, "ancho_mm": 1220}'::jsonb`],
+      [`unidad_costeo = 'm2'`, `unidad_costeo = 'hoja'`],
+    ]) {
+      const { id } = await h.legitima();
+      await db.exec(`update public.insumos_catalogo set ${cambio} where id = 'm16'`);
+      try { expect((await h.evaluar(id)).reasons, cambio).toContain('linea_1_base_de_costo_cambio'); }
+      finally { await db.exec(`update public.insumos_catalogo set ${regreso} where id = 'm16'`); }
+    }
+  });
+
+  it('P1-01: un cambio en un insumo que el costeo NO usó no lo invalida', async () => {
+    const { id } = await h.legitima();
+    await db.exec(`insert into public.insumos_catalogo (id, nombre, seccion, unidad_costeo, activo, clasificacion, familia)
+                   values ('otro', 'Otro', 'herrajes', 'pza', true, 'curado', 'x') on conflict (id) do update set nombre = 'Otro cambiado'`);
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('P1-01: costeo sin huella de base ⇒ no emite; versión de motor distinta a la vigente ⇒ no emite', async () => {
+    const { id } = await h.legitima({ base: false });
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_sin_huella_de_base');
+    const { id: id2 } = await h.legitima({ motor: 'motor-1' });
+    await h.politica(`version_motor_vigente = 'motor-2'`);
+    try { expect((await h.evaluar(id2)).reasons).toContain('linea_1_costeo_de_otra_version_de_motor'); }
+    finally { await h.politica('version_motor_vigente = null'); }
+  });
+
+  it("P1-01: política 'congelar_al_costear' (decisión de Dirección) acepta el costo del día aunque la base cambie; por omisión NO", async () => {
+    expect((await db.query('select frescura from private_api.politica_emision_autoridad')).rows[0].frescura).toBe('exigir_vigente');
+    const { id } = await h.legitima();
+    await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,gif}', '0.5') where id = 'vonhaucke'`);
+    await h.politica(`frescura = 'congelar_al_costear'`);
+    try { expect((await h.evaluar(id)).state).toBe('ALLOWED'); }
+    finally {
+      await h.politica(`frescura = 'exigir_vigente'`);
+      await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,gif}', '0.35') where id = 'vonhaucke'`);
+    }
+  });
+
+  // ---------------- P2-02 · acceso ----------------
+  it('P2-02: otro vendedor no consulta los motivos de una cotización ajena; el dueño y Dirección sí', async () => {
+    const { id } = await h.legitima();
+    expect((await fallo(h.motivos(id, VENDEDOR2)))?.message).toMatch(/sin acceso/);
+    expect(await h.motivos(id, VENDEDOR)).toEqual([]);
+    expect(await h.motivos(id, DIRECCION)).toEqual([]);
+  });
+
+  it('rollback (líneas -- RB): el wrapper vuelve BYTE A BYTE al de producción y las funciones nuevas desaparecen', async () => {
+    const rb = leer(SEG01C).split('\n').filter((l) => l.startsWith('-- RB ')).map((l) => l.slice(6)).join('\n');
+    await db.exec(rb);
+    try {
+      expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).toBe(MD5_WRAPPER_PROD);
+      for (const f of ['public.adjuntar_costeo_a_partida(bigint, text, uuid, timestamptz)', 'private_api.huella_partida(jsonb)', 'public.huella_base_costo(text[])']) {
+        expect((await db.query('select to_regprocedure($1) is null as no', [f])).rows[0].no, f).toBe(true);
+      }
+    } finally { await db.exec(leer(SEG01C)); await h.politica(`modo = 'estricto'`); }
+  });
+});
+
+describe('SEG-01c rev 2 · dependencias', () => {
+  it('sin VH-148b (actualizado no sube) SEG-01c NO se aplica: el CAS del vínculo no detectaría nada', async () => {
+    const e = await fallo(base({ conVh148b: false }));
+    expect(e?.message).toMatch(/requiere VH-148b/);
+  }, 180_000);
+
+  it('sin P1-03b (la vista no expone precio_id) el modo estricto falla cerrado: catalogo_sin_precio_id', async () => {
+    const db = await base({ conP103b: false }); const h = ayudas(db);
+    try {
+      const { id } = await h.legitima();
+      expect((await h.evaluar(id)).reasons).toContain('linea_1_catalogo_sin_precio_id');
+    } finally { await db.close(); }
+  }, 180_000);
+});
+
+
+// ============================================================================
+//  CLIENTE REAL (src/datos/cotizaciones.js · vincularCosteos) contra el SQL real, como sesión authenticated.
+// ============================================================================
+describe('SEG-01c rev 2 · el cliente encadena la versión en los vínculos (P0-02) y reporta lo que no vinculó (P1-03)', () => {
+  let db, h, vincularCosteos, marcar;
+  beforeAll(async () => {
+    db = await base(); h = ayudas(db);
+    ({ vincularCosteos } = await import('../../src/datos/cotizaciones.js'));
+    marcar = await import('../../src/datos/vinculoCosteo.js');
+  }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  it('dos renglones: el segundo vínculo usa la versión que devolvió el primero; la versión final es la de la fila', async () => {
+    const ka = await h.reg(); const kb = await h.reg();
+    const partidas = [{ ...COSTEADO, id: 'a', costeoId: ka }, { ...COSTEADO, id: 'b', costeoId: kb }];
+    const id = await h.sembrar(partidas);
+    const r = await vincularCosteos(id, partidas, await h.version(id), clientePglite(db, { email: DIRECCION }));
+    expect(r.fallidos).toEqual([]);
+    expect(r.actualizado).toBe(await h.version(id));
+    expect(await h.motivos(id)).toEqual([]);
+  });
+
+  it('otra pestaña escribió después del guardado ⇒ 40001, la cadena se detiene, NADA queda vinculado y el aviso lo dice', async () => {
+    const ka = await h.reg(); const kb = await h.reg();
+    const partidas = [{ ...COSTEADO, id: 'a', costeoId: ka }, { ...COSTEADO, id: 'b', costeoId: kb }];
+    const id = await h.sembrar(partidas);
+    const deMiGuardado = await h.version(id);
+    await h.guardarP1(id, { nombre: 'otra pestaña' });   // cambia otra cosa (p1 no existe aquí): sube la versión
+    const r = await vincularCosteos(id, partidas, deMiGuardado, clientePglite(db, { email: DIRECCION }));
+    expect(r.fallidos.map((f) => [f.partidaId, !!f.conflicto])).toEqual([['a', true], ['b', true]]);
+    expect(marcar.avisoVinculosFallidos(r.fallidos)).toMatch(/alguien más cambió/);
+    expect((await db.query('select count(*)::int n from public.costeos_servidor where id = any($1::uuid[]) and cotizacion_id is not null', [[ka, kb]])).rows[0].n).toBe(0);
+    // El siguiente guardado (con la versión fresca) los vincula: no se marcaron como hechos.
+    const r2 = await vincularCosteos(id, partidas, await h.version(id), clientePglite(db, { email: DIRECCION }));
+    expect(r2.fallidos).toEqual([]);
+  });
+});
+
+// ============================================================================
+//  ANTES: la revisión 1 (4ed8ac6) contra los mismos ataques. Documenta el defecto: cada caso PASABA (se emitía).
+// ============================================================================
+describe('ANTES · SEG-01c revisión 1 (4ed8ac6): los ataques de la reauditoría v2 pasaban', () => {
+  let db, h;
+  beforeAll(async () => {
+    db = await base({ seg01c: SEG01C_REV1 }); h = ayudas(db);
+    // La revisión 1 tenía la firma de 3 argumentos (sin CAS) y no guardaba huellas.
+    h.adjuntar = async (email, cot, partida, costeo) => (await uno(db, email,
+      'select public.adjuntar_costeo_a_partida($1, $2, $3::uuid) as r', [cot, partida, costeo])).r;
+    h.reg = async (o = {}) => (await db.query(
+      `insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, aprobacion_humana, precios)
+       values ($1,'direccion','bom-escritorio',1,6000,'certificado',true,$2::jsonb) returning id`, [DIRECCION, JSON.stringify(TRAZA)])).rows[0].id;
+  }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  it('P0-01 (defecto): renombrar/redimensionar la partida tras vincular ⇒ ALLOWED (el costo del escritorio se emitía para la mesa)', async () => {
+    const { id } = await h.legitima();
+    await h.guardarP1(id, { nombre: 'Mesa de juntas 12 personas', medidas: '480x140x75' });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('P0-02 (defecto): el vínculo no pedía versión: se vinculaba sobre la partida que otra pestaña cambió', async () => {
+    const k = await h.reg();
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);
+    await h.guardarP1(id, { nombre: 'Mesa de juntas 12 personas' });
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+  });
+
+  it('HUECO (defecto): especial con productoId de texto y costo inventado, sin costeo ⇒ sin motivos de autoridad', async () => {
+    const id = await h.sembrar([{ ...COSTEADO, productoId: 'LIBRERO', costoUnitario: 50, costoEstado: 'certificado' }]);
+    expect(await h.motivos(id)).toEqual([]);
+  });
+
+  it('P1-01 (defecto): cambiar parámetros del motor no invalidaba el costeo', async () => {
+    const { id } = await h.legitima();
+    await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,tarifaMO}', '110') where id = 'vonhaucke'`);
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+});

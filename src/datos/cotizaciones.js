@@ -264,14 +264,25 @@ function olvidarCreacionPendiente(storage) {
 
 // SEG-01c: tras guardar, el SERVIDOR vincula cada costeo (costeos_servidor) a su partida. El navegador sólo pide el
 // vínculo; la economía del renglón la escribe la RPC desde el registro. Sin la RPC (SEG-01c sin aplicar) no pasa nada.
-async function vincularCosteos(cotizacionId, partidas) {
+// Reauditoría v2 · P0-02: cada vínculo lleva la versión (`actualizado`) que devolvió el guardado, y cada vínculo devuelve
+// la siguiente: se ENCADENAN. Si otra pestaña escribió entre medias, el servidor responde 40001 y se detiene la cadena
+// (los demás chocarían igual); los pendientes quedan para el siguiente guardado y el aviso lo dice (P1-03).
+export async function vincularCosteos(cotizacionId, partidas, actualizadoInicial, cliente = nube) {
   const pendientes = costeosPorVincular(cotizacionId, partidas);
-  let actualizado = null; const fallidos = [];
-  for (const p of pendientes) {
-    const { data, error } = await nube.rpc('adjuntar_costeo_a_partida', { p_cotizacion_id: cotizacionId, p_partida_id: p.partidaId, p_costeo_id: p.costeoId });
+  let actualizado = typeof actualizadoInicial === 'string' ? actualizadoInicial : null; const fallidos = [];
+  for (let i = 0; i < pendientes.length; i++) {
+    const p = pendientes[i];
+    const { data, error } = await cliente.rpc('adjuntar_costeo_a_partida', {
+      p_cotizacion_id: cotizacionId, p_partida_id: p.partidaId, p_costeo_id: p.costeoId, p_actualizado_esperado: actualizado,
+    });
     if (error) {
       if (/PGRST202|42883|Could not find the function|does not exist/i.test(`${error.code || ''} ${error.message || ''}`)) return { actualizado, fallidos, sinRpc: true };
-      fallidos.push({ partidaId: p.partidaId, error: String(error.message || error).slice(0, 160) });
+      const conflicto = error.code === '40001';
+      fallidos.push({ partidaId: p.partidaId, error: String(error.message || error).slice(0, 160), ...(conflicto ? { conflicto: true } : {}) });
+      if (conflicto) {
+        for (const r of pendientes.slice(i + 1)) fallidos.push({ partidaId: r.partidaId, error: 'no intentado: la cotización cambió', conflicto: true });
+        break;
+      }
       continue;
     }
     marcarVinculado(cotizacionId, p);
@@ -281,7 +292,7 @@ async function vincularCosteos(cotizacionId, partidas) {
 }
 async function conVinculos(res, partidas) {
   if (!res?.guardado || !res.id) return res;
-  const v = await vincularCosteos(res.id, partidas);
+  const v = await vincularCosteos(res.id, partidas, res.actualizado);
   return { ...res, ...(v.actualizado ? { actualizado: v.actualizado } : {}), ...(v.fallidos.length ? { vinculosFallidos: v.fallidos } : {}) };
 }
 
