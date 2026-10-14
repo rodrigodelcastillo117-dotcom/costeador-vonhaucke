@@ -134,7 +134,9 @@ describe('DB emission · exactitud monetaria a centavos (SQL desplegado en PGlit
   // Hoy la UI aplica el descuento GLOBAL (totales), no por renglón, así que las líneas canónicas viajan con d=0 y
   // no lo disparan; aparece en cuanto una línea traiga `descuento` propio. it.fails: exige la paridad (correcto) y
   // hoy falla — queda VISIBLE. Al alinear ambos lados (decisión de Dirección/Ingeniería), vitest avisa: quitar `.fails`.
-  it.fails('paridad JS↔SQL en medio centavo: el precio que calcula comercialDinero debe poder emitirse', async () => {
+  // CORREGIDO 14-oct (P1-06): precioConDescuento redondea el precio final como el SQL; deja de ser it.fails.
+  it('paridad JS↔SQL en medio centavo: el precio que calcula comercialDinero debe poder emitirse', async () => {
+    expect(precioConDescuento(1000.10, 5)).toBe(950.10);
     const pu = precioConDescuento(1000.10, 5);
     const p = [{ id: 'c3', nombre: 'Escritorio APP', producto_id: 10, producto_version_id: 20, lista_precio_item_id: 5, descuento: 5, cantidad: 1, precioUnitario: pu }];
     const r = await emitir(db, DIRECCION, await sembrar(p), snap(p, { precioLista: pu }));

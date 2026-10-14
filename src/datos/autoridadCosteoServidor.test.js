@@ -175,3 +175,24 @@ describe('P1-03 · qué precios ofrece aprobar Costear a Dirección', () => {
     expect(preciosNoAprobables(casos).map((p) => p.insumo_id)).toEqual(['dif', 'emp', 'nada']);
   });
 });
+
+describe('P1-03b · con precio_id del catálogo no se re-elige en JS', () => {
+  const permitidos = [{ email: 'rodrigo.delcastillo@vonhaucke.mx', rol: 'direccion' }];
+  const filas = [
+    { id: 10, insumo_id: 'm16', precio: 600, estado: 'aprobado', confidence: 'alta', vigente_desde: '2026-10-01', vigente_hasta: null, approved_by: 'rodrigo.delcastillo@vonhaucke.mx' },
+    { id: 11, insumo_id: 'm16', precio: 610, estado: 'aprobado', confidence: 'alta', vigente_desde: '2026-10-05', vigente_hasta: null, approved_by: 'rodrigo.delcastillo@vonhaucke.mx' },
+  ];
+  it('usa EXACTAMENTE la fila que dijo el catálogo aunque la regla JS eligiera otra', () => {
+    // Regla JS elegiría 11 (más reciente); el catálogo dice 10 (p. ej. la vista cambió de regla). Manda el catálogo.
+    const r = aprobacionPrecioExacto({ usados: ['m16'], insumos: { m16: { precio: 600, precioId: 10 } }, filasPrecio: filas, permitidos, noHumanas: [] });
+    expect(r.precios[0]).toMatchObject({ precio_id: 10, eleccion: 'catalogo', humana: true });
+  });
+  it('precio_id del catálogo que ya no está vigente ⇒ sin precio vigente, no cuenta', () => {
+    const r = aprobacionPrecioExacto({ usados: ['m16'], insumos: { m16: { precio: 600, precioId: 99 } }, filasPrecio: filas, permitidos, noHumanas: [] });
+    expect(r.precios[0]).toMatchObject({ precio_id: null, motivo: 'sin precio vigente', humana: false });
+  });
+  it('sin precio_id (catálogo viejo) se recalcula y la traza lo dice', () => {
+    const r = aprobacionPrecioExacto({ usados: ['m16'], insumos: { m16: { precio: 610 } }, filasPrecio: filas, permitidos, noHumanas: [] });
+    expect(r.precios[0]).toMatchObject({ precio_id: 11, eleccion: 'recalculada' });
+  });
+});

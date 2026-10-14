@@ -94,9 +94,15 @@ export function aprobacionPrecioExacto({ usados = [], insumos = {}, filasPrecio 
 
   const precios = [];
   for (const id of usados) {
-    const { fila, empate } = precioVigenteElegido(porInsumo.get(id) || []);
+    // P1-03b: si el catálogo entregó el precio_id que eligió (PROPUESTA_p103b), se usa ESE; la re-elección en JS
+    // (misma regla que la vista) queda sólo como respaldo y se marca en la traza.
+    const pid = insumos?.[id]?.precioId;
+    const filas = porInsumo.get(id) || [];
+    const { fila, empate } = pid != null
+      ? { fila: filas.find((f) => Number(f.id) === Number(pid) && f.vigente_hasta == null) || null, empate: false }
+      : precioVigenteElegido(filas);
     const usado = insumos?.[id]?.precio;
-    const t = { insumo_id: id, precio_usado: usado ?? null, unidad: insumos?.[id]?.unidad ?? null, precio_id: fila?.id ?? null, precio: fila?.precio ?? null, estado: fila?.estado ?? null, approved_by: fila?.approved_by ?? null, approved_at: fila?.approved_at ?? null, source_document: fila?.source_document ?? null, rol_aprobador: null, humana: false, motivo: null };
+    const t = { insumo_id: id, eleccion: pid != null ? 'catalogo' : 'recalculada', precio_usado: usado ?? null, unidad: insumos?.[id]?.unidad ?? null, precio_id: fila?.id ?? null, precio: fila?.precio ?? null, estado: fila?.estado ?? null, approved_by: fila?.approved_by ?? null, approved_at: fila?.approved_at ?? null, source_document: fila?.source_document ?? null, rol_aprobador: null, humana: false, motivo: null };
     const email = String(fila?.approved_by || '').toLowerCase();
     t.rol_aprobador = rolDe.get(email) || null;
     if (!fila) t.motivo = 'sin precio vigente';
