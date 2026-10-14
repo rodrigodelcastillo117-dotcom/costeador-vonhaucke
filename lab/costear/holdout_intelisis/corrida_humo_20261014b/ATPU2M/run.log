@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:46:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:46:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Pata tipo \"U\" metálica 600 × 720 mm, modelo App LT","tipo":"otro","piezas":[{"nombre":"Marco tipo U (tramo continuo doblado/soldado) 600 ancho × 720 alto","insumoId":"ptr-14","material_solicitado":"PTR metálico (calibre no especificado; se asume 1\"x2\" cal.14) 
+
+[lab-costear] analizar-mueble 200 en 38 s · piezas 6 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"f9697c57","piezas":1,"precioVenta":952.65,"margen":40,"costo":{"costoUnitario":571.59,"materialTotal":317.55,"manoObra":63.51,"indirectosFabrica":190.53,"desperdicio":20.18,"detalleInsumos":[{"insumoId":"ptr-14","no
+
+[lab-costear] BOM inicial {"piezas":6,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Cuántas patas se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Calibre y sección del tubo de la pata?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Color de pintura en polvo?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Apoyo inferior con niveladores o con rodajas?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La pata lleva placa superior soldada para fijar a cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La medida 600 mm es el ancho del travesaño (profundidad de la U) y 720 la altura total?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"4a649be7","piezas":1,"precioVenta":952.65,"margen":40,"costo":{"costoUnitario":571.59,"materialTotal":317.55,"manoObra":63.51,"indirectosFabrica":190.53,"desperdicio":20.18,"detalleInsumos":[{"insumoId":"ptr-14","no
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"1 difieren de lo pedido y se confirman uno por uno: Pintura electrostática en polvo (color por definir). ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":["⛔ El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno."],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$571.59","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $317.55 · Mano de obra $63.51 · Fábrica $190.53","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":571.59,"costoSrv":571.59,"estadoSrv":"preliminar","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"4a649be7","piezas":1,"precioVenta":1079.67,"margen":40,"costo":{"costoUnitario":647.8,"materialTotal":317.55,"manoObra":82.56,"indirectosFabrica":247.69,"desperdicio":20.18,"detalleInsumos":[{"insumoId":"ptr-14","no
+
+[lab-costear] dificultad {"costoNormal":571.59,"marcado":"true","costoDificil":647.8,"reqDificultad":"dificil","costoSrvDificil":647.8,"sube":true,"paridad":true,"costoDeVueltaNormal":571.59,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":164}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"4a649be7","piezas":1,"precioVenta":952.65,"margen":40,"costo":{"costoUnitario":571.59,"materialTotal":317.55,"manoObra":63.51,"indirectosFabrica":190.53,"desperdicio":20.18,"detalleInsumos":[{"insumoId":"ptr-14","no
+
+[lab-costear] guardado {"status":201,"id":164,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"4a649be7","piezas":1,"precioVenta":952.65,"margen":40,"costo":{"costoUnitario":571.59,"materialTotal":317.55,"manoObra":63.51,"indirectosFabrica":190.53,"desperdicio":20.18,"detalleInsumos":[{"insumoId":"ptr-14","no
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":4,"renglonesBom":6,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render HOLDOUT humo v5.1 ATPU2M 1014-1523 BORRADOR otro pata estructural en 'U' metálica para mesa/escritorio (línea App LT) Tubo de acero","piezas":6,"mismoBom":true,"costoAntes":"$571.59","costoDespues":"$571.59","mismoCosto":true,"resultado":{"precios":["$571.59","Por confirmar"],"margen":null,"estado":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","estado3":"COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.","validadores":[],"linea":"Material $317.55 · Mano de obra $63.51 · Fábrica $190.53","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.5m)

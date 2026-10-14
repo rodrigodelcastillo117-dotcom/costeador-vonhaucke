@@ -1,0 +1,66 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render HOLDOUT humo v5.1 ATPU2M 1014-1523 BORRADOR otro pata estructural en 'U' metálica para mesa/escritorio (línea App LT) Tubo de acero",
+    "piezas": 6,
+    "mismoBom": true,
+    "costoAntes": "$571.59",
+    "costoDespues": "$571.59",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$571.59",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "estado3": "COSTO BLOQUEADO — Estructura: El despiece tiene la cubierta pero ningún soporte (patas, base, estructura o laterales). Una cubierta no se sostiene sola: falta la base del mueble. Agrégala o vuelve a analizar antes de dar el costo por bueno.",
+      "validadores": [],
+      "linea": "Material $317.55 · Mano de obra $63.51 · Fábrica $190.53",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Marco tipo U (tramo continuo doblado/soldado) 600 ancho × 720 alto",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapas / placas de remate y placa de fijación a cubierta",
+      "material": "Lamina de acero cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Soldadura de uniones de la U",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura electrostática en polvo (color por definir)",
+      "material": "Pintura en polvo, Negro Mate 8 Vitracoat",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («color especificado propone») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Niveladores",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ]
+}

@@ -7,8 +7,8 @@ es el runbook para la reauditoría final y para la ventana.
 | | |
 |---|---|
 | Rama | `claude/costing-app-architecture-psf02g` ([PR #37](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37)) |
-| Último cambio de código de la app | `9890cd6` (PT409). Después sólo hay congelamiento del holdout, evidencia y documentos. |
-| Holdout congelado sobre | `2bd5092`, manifiesto en `33c2837`, huella `1496aefd3f8d5c47…` |
+| Último cambio de código | `fcfedc2`: verificador del holdout v5.1 y el E2E del laboratorio, que no viajan al binario de la app. El último cambio que sí viaja al binario es `9890cd6` (PT409). Después sólo hay congelamiento, evidencia y documentos. |
+| Holdout congelado sobre | `fcfedc2`, manifiesto en `1f7608c`, huella `1dfa826a60726887…` (v5.1) |
 | SHA final, preview y CI | En §9. Un archivo no puede llevar el SHA de su propio commit: §9 se escribe en el commit siguiente y sólo trae evidencia. |
 | Producción (cliente) | `c3.4-seller-safe` @ `c8dd2b3`, `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3`. **Sin cambios.** |
 | SQL de esquema aplicado en producción en este cierre | **ninguno** |
@@ -19,13 +19,13 @@ es el runbook para la reauditoría final y para la ventana.
 
 | Criterio | Estado | Evidencia |
 |---|---|---|
-| 0 P0 técnico conocido | **Cumple.** El único P0 nuevo (PostgREST reintenta `40001` sin fin) se corrigió con `PT409` y se verificó en PostgREST 12.2.3 y en la **14.5**, que es la versión de la nube. | `docs/auditoria/VH148_DOS_CONEXIONES_20261014.md` |
+| 0 P0 técnico conocido | **Cumple.** Hubo dos hallazgos propios en este cierre y los dos están corregidos y probados. (1) PostgREST reintentaba `40001` sin fin: se cambió a `PT409` y se verificó en PostgREST 12.2.3 y en la **14.5**, que es la versión de la nube. (2) El verificador del holdout daba un falso OK con un resumen que ocultaba `costear-servidor` de producción: corregido en la v5.1. | `docs/auditoria/VH148_DOS_CONEXIONES_20261014.md`, `lab/costear/holdout_intelisis/VERIFICACION_20261014.md` |
 | Promesa comercial ligada al costeo | **Cumple.** `promesa_comercial_v1`, con JS = SQL demostrado por 11 fixtures doradas compartidas. La Edge RC guarda `promesa_origen`; el trigger sella `promesa_version = 'v1'` y `promesa_huella`, y nadie las puede cambiar después. `adjuntar` compara huellas. | `docs/auditoria/SEG01C_REV4_PROMESA_COMERCIAL.md`; 77 + 17 + 12 pruebas |
 | K1→K2 probado | **Cumple.** K2 se vincula con **su** promesa. K1 queda `reemplazado_por` y no revive. K2 no lava un cambio posterior a su nacimiento. | `seg01cVinculoCosteo.test.js`, bloque rev4 |
 | CAS real probado | **Cumple, con un límite.** Dos sesiones GoTrue reales contra Postgres 16 y PostgREST 14.5 reales: cotización, expediente y `adjuntar` con versión vieja dan 409 `PT409`, sin last-write-wins. **No** corrió en la nube de Supabase (§7). | `lab/qa/vh148_dos_conexiones/evidencia_20261014_pgrst14.json` |
-| Holdout fail-closed | **Cumple.** Falta `request_id`, falta llamada a la RC o aparece la Edge de producción → exit 2 / 2 / 1. Sin `--corrida` → exit 2. | `lab/costear/holdout_intelisis/VERIFICACION_20261014.md` |
+| Holdout fail-closed | **Cumple (v5.1).** La corrida real da OK y los 9 casos alterados fallan: falta `request_id`, falta llamada a la RC, aparece producción (honesto, oculto en `ajenas` u oculto en todo el resumen), ids descuadrados, sin `edges.json`, sin SHA de git, y sin `--corrida`. Es reproducible con `casos_falla_cerrada.mjs`. | `lab/costear/holdout_intelisis/VERIFICACION_20261014.md` |
 | Request IDs completos | **Cumple.** N llamadas de IA = N `request_id`, cada uno con evento (función, modo y `model_id`). | ídem |
-| Sólo Edge RC durante el holdout | **Cumple.** Toda llamada `costear-servidor*` debe ser exactamente `costear-servidor-rc`, y cada caso costeable necesita al menos una. | ídem |
+| Sólo Edge RC durante el holdout | **Cumple.** Toda llamada `costear-servidor*` debe ser exactamente `costear-servidor-rc`, y cada caso costeable necesita al menos una. Desde la v5.1 esto se deriva de `porFn` y de las llamadas crudas, no del campo `ajenas`. | ídem |
 | CI 100 % verde, build verde, E2E 0 fallos | En §9, sobre el SHA final. | GitHub Actions |
 | Preview del SHA exacto READY | En §9. | Vercel |
 | Runbook actualizado | Este documento. | — |
@@ -37,8 +37,10 @@ es el runbook para la reauditoría final y para la ventana.
 | `88904e4` | Holdout v5: `request_id` por llamada, costeo sólo RC y ≥ 1, `0-binario.json` con SHA del navegador, SHA de git, baseURL y fecha. Acta de la carga de compras. |
 | `6ff2c79` | SEG-01c **rev4**: `promesa_comercial_v1` (JS ≡ SQL), Edge RC v22, `adjuntar` compara la huella, motivos de emisión, 4 ataques que pasaban con la rev3. |
 | `9890cd6` | VH-148: `40001` → `PT409` en las 3 propuestas y en el cliente. Arnés y acta de la prueba de dos conexiones. |
-| `18088fd`, `2bd5092`, `33c2837`, `af36714` | Holdout recongelado, cast de `request_id` en `modelos_observados.sql`, corrida de humo y `--verificar` OK. |
-| este commit | Repetición de la prueba de dos conexiones con **PostgREST 14.5** (la de la nube) y este runbook. |
+| `18088fd`, `2bd5092`, `33c2837`, `af36714` | Holdout v5 recongelado, cast de `request_id` en `modelos_observados.sql`, corrida de humo y `--verificar` OK. La v5.1 reemplaza ese congelamiento. |
+| `5057d61` | Repetición de la prueba de dos conexiones con **PostgREST 14.5** (la de la nube) y este runbook. |
+| `fcfedc2` | Holdout **v5.1**: el verificador deriva las Edges ajenas y las llamadas RC de `porFn` y de las llamadas crudas; exige `edges.json`; el E2E guarda el `request_id` aparte. 5 pruebas que fallan con la v5. |
+| `1f7608c`, este commit | Recongelamiento v5.1, corrida de humo nueva (`corrida_humo_20261014b`), `--verificar` OK y los 9 casos de falla cerrada. |
 
 ## 3. Producción hoy (lectura del 14-oct, 14:50–14:55 UTC)
 
@@ -163,12 +165,13 @@ No se activa estricto sin la decisión de Dirección.
 
 | Qué | Cómo | Resultado |
 |---|---|---|
-| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**' --exclude 'lab/qa/**'` | 349 archivos, 3,300 pruebas, 0 fallas (local, en esta ronda). Lo que vale es CI (§9). |
-| Focales | promesa (17), golden SQL (12), SEG-01c (77), VH-148 (13), VH-148b (48), composición (21), conflicto (18 + 18), intent (4), holdout (15 + 3) | 11 archivos, **246/246** |
+| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**' --exclude 'lab/qa/**'` | 349 archivos, **3,306** pruebas, 0 fallas (local, `fcfedc2`). Lo que vale es CI (§9). |
+| Focales | promesa (17), golden SQL (12), SEG-01c (77), VH-148 (13), VH-148b (48), composición (21), conflicto (18 + 18), intent (4), holdout (21 + 3) | 11 archivos, **252/252** |
 | SEG-01c ANTES | bloque "ANTES · rev3 (96bab98)" en `seg01cVinculoCosteo.test.js` | los 4 ataques de Q2 **pasaban** con la rev3 |
 | Dos conexiones | `lab/qa/vh148_dos_conexiones/` (`LEEME.md`) | 4/4 casos con PostgREST 12.2.3 y con **14.5** |
 | 40001 vs PT409 | `node medir_40001.mjs` | 14.5: `40001` sin respuesta, 19,435 ejecuciones en 8 s; `PT409` → 409 en 68 ms, 1 ejecución |
-| Holdout | `node scripts/congelar_holdout.mjs --verificar … --corrida …` | OK (exit 0); los 4 casos alterados fallan cerrado |
+| Holdout v5.1 | `node scripts/congelar_holdout.mjs --verificar … --corrida lab/costear/holdout_intelisis/corrida_humo_20261014b` y `casos_falla_cerrada.mjs` | OK (exit 0); 9/9 casos alterados fallan cerrado |
+| Holdout ANTES | las pruebas D–H con el `holdoutHuellas.js` de `5057d61` | 5 fallan (el falso OK existía) |
 | E2E local afectados por `PT409` | los E2E que usan `e2e/nubeFalsa.js` con conflicto, incluido `persistenciaVh035c` | 12/12 |
 
 ## 7. Riesgos residuales (no bloquean la reauditoría; sí hay que verlos en la ventana)
@@ -191,9 +194,9 @@ No se activa estricto sin la decisión de Dirección.
 
 ## 8. Holdout Intelisis
 
-- **Congelado** sobre `2bd5092` (108 archivos, `package-lock.json`, base, definiciones SQL, Edges RC v22/v8, modelos y SHA de frontend). `--verificar` dio OK sobre la corrida de humo.
+- **Congelado (v5.1)** sobre `fcfedc2`, con 108 archivos, `package-lock.json`, base, definiciones SQL, Edges RC v22/v8, modelos y SHA de frontend. `--verificar` dio OK sobre la corrida de humo `corrida_humo_20261014b`, servida en `1f7608c`.
 - **Se invalida** cuando Rodrigo firme los precios del ERP y ante cualquier cambio de motor, prompts, catálogo, config, precios, matching, estados, Edge o modelo. **La ventana lo invalida** (Edge y SQL). Hay que recongelarlo antes de ver resultados del lote nuevo.
-- Los cambios de este commit tocan sólo `lab/qa/`, documentos y este archivo, nada del manifiesto. `--verificar` se vuelve a correr sobre el SHA final (§9).
+- Después de `1f7608c` sólo cambian evidencia, documentos y `lab/costear/holdout_intelisis/`, nada del manifiesto. `--verificar` se vuelve a correr sobre el SHA final (§9).
 
 ## 9. Evidencia del SHA final
 

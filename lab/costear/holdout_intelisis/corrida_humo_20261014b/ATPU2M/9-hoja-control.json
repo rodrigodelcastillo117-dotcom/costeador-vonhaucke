@@ -1,0 +1,72 @@
+{
+  "producto": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 4,
+    "renglonesBom": 6,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Marco tipo U (tramo continuo doblado/soldado) 600 ancho × 720 alto",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapas / placas de remate y placa de fijación a cubierta",
+      "insumoId": "lamina-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura de uniones de la U",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura electrostática en polvo (color por definir)",
+      "insumoId": "pintura-polvo-negro-mate-8-vitracoat",
+      "permitido": false
+    },
+    {
+      "nombre": "Niveladores",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "preliminar",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas patas se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Calibre y sección del tubo de la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Apoyo inferior con niveladores o con rodajas?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La pata lleva placa superior soldada para fijar a cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿La medida 600 mm es el ancho del travesaño (profundidad de la U) y 720 la altura total?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}
