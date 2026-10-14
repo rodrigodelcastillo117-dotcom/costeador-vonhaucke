@@ -1,0 +1,65 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render PRUEBA RC · PRUEBA RC librero 5x8 integrado v2 BORRADOR guarda librero abierto Tablero melamínico color nogal",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$6,614.24",
+    "costoDespues": "$6,614.24",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$6,614.24",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería ensamble y respaldo · 2 material(es) propuestos sin confirmar: Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería ensamble y respaldo · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería ensamble y respaldo · 2 material(es) propuestos sin confirmar: Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería ensamble y respaldo · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $4,119.41 · Mano de obra $623.71 · Fábrica $1,871.12",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño fijo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería ensamble y respaldo",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ]
+}

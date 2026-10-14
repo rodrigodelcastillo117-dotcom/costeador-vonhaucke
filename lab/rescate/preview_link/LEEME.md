@@ -39,3 +39,10 @@ Carpeta `librero_5x8_post_seg01b/`. Misma hoja de control (librero 5×8), cuenta
 
 Observación abierta (no regresión, igual que antes): la pantalla dice "El servidor aún no validó este despiece." aunque el
 servidor respondió en el flujo de precio. Pendiente de revisar en qué momento se llena `validacionSrv`.
+
+## Smoke vivo con todo integrado (14-oct-2026)
+
+| Corrida | Commit / link | Resultado |
+|---|---|---|
+| `librero_5x8_integrado_2649de8/` | 2649de8 · `dpl_8DNx4Y1HUYEc3AViZaKdTzuWeegZ` | **FAIL**. Paridad $6,614.24 al centavo y guardado (exp. 160) correctos, pero la biblioteca **ocultaba** el expediente recién guardado: regresión propia del filtro de pruebas (1ca3b3f). |
+| `librero_5x8_integrado_bf096aa/` | bf096aa · `dpl_HPsG8T32RJd9kzswNm6sD7odpvY1` | **PASS**. Hoja de control 6/6; paridad $6,614.24; exp. 161 guardado y reabierto con el mismo BOM y el mismo costo. Corrección: en el carril RC las pruebas se ven por omisión. |

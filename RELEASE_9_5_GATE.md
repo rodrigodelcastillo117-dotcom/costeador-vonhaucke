@@ -7,7 +7,7 @@ prueba **falla con el código anterior**. "No verificable" no cuenta como PASS.
 |---|---|
 | Rama | `claude/costing-app-architecture-psf02g` (PR #37) |
 | Producción (cliente) | `c3.4-seller-safe` @ `c8dd2b3`. **Sin cambios.** |
-| Link RC | `dpl_EwkGsCs61qwaLv7pLxKGVYivDuUr` (commit f56632a) |
+| Link RC | `dpl_HPsG8T32RJd9kzswNm6sD7odpvY1` (commit bf096aa, todo integrado) |
 | Edge RC | `costear-servidor-rc` @ 6d1cd13 |
 | SQL aplicado en producción en esta operación | **ninguno** (vh146c ya estaba aplicada) |
 
@@ -53,11 +53,11 @@ holdout) dependen de datos o de decisiones que no son de código.
 
 | Gate | Cómo se reproduce | Resultado |
 |---|---|---|
-| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | 339 archivos, 3,138 pruebas (2649de8), ambos entornos; `vite build` OK |
+| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | 339 archivos, 3,139 pruebas (bf096aa), ambos entornos; `vite build` OK |
 | SEG-01b adversarial | `npx vitest run supabase/tests/seguridadGateEmisionSnapshot.test.js -t "SEG-01b"` | 15/15; 14 fallan sin la propuesta |
 | VH-100 | `npx vitest run supabase/tests/cargarCostosOficiales.test.js`; con `VH100_MIG=<archivo viejo>` fallan 7 | 12/12 |
 | Estado y precio exacto | `npx vitest run src/datos/autoridadCosteoServidor.test.js` | 20/20 |
-| Smoke vivo | `lab/rescate/preview_link/librero_5x8_post_seg01b/` (`run.log`, `8-dto-servidor.json`) | 6/6, paridad al centavo |
+| Smoke vivo | `lab/rescate/preview_link/librero_5x8_post_seg01b/` y `librero_5x8_integrado_bf096aa/` | 6/6, paridad al centavo, guardar y reabrir. Hubo una corrida FAIL intermedia (2649de8) por una regresión propia en la biblioteca, ya corregida. |
 | Edge RC | `scripts/edge_boot_check.sh costear-servidor-rc` y el workflow `deploy-edge.yml` run 38509149245 | arranca; despliegue OK |
 | Holdout | `node scripts/congelar_holdout.mjs --verificar` | OK (37 archivos) |
 

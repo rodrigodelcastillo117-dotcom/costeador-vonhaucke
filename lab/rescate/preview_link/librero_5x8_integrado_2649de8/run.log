@@ -1,0 +1,60 @@
+(node:23868) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23881) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:23892) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900 x 350 x 1800 mm, melamina Walnut 28 mm","tipo":"guarda","piezas":[{"nombre":"Lateral","insumoId":"melamina-28-walnut","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)","material_match":"SUBSTIT
+[lab-costear] analizar-mueble 200 en 25 s · piezas 7 · lote 1
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Librero abierto 900x350x1800 mm, melamina Walnut 28 mm","tipo":"guarda","piezas":[{"nombre":"Lateral","insumoId":"melamina-28-walnut","material_solicitado":"Aglomerado melamina dos caras 28 mm acabado Walnut, HOJA 5 × 8 (1525 × 2440)","material_match":"SUBSTITUTE_
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"503f80df","piezas":1,"precioVenta":8828.13,"margen":40,"costo":{"costoUnitario":5296.88,"materialTotal":3296.06,"manoObra":500.2,"indirectosFabrica":1500.61,"desperdicio":1492.27,"detalleInsumos":[{"insumoId":"melam
+[lab-costear] BOM inicial {"piezas":7,"pendientes":[],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+[lab-costear] tras ERP {"erp":{"intentado":true,"pieza":"Lateral","resultados":1,"elegido":"AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT · hoja · ERP $1,924.20 / hoja · propuesto_validado · 2022-12-17 Usar"},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+[lab-costear] respuestas [{"pregunta":"¿Se compra la melamina 28 mm Walnut en hoja 5×8 (1525×2440) como indica el plano?","elegido":"(sin responder: ninguna opción coincide con el plano)","opciones":["Sí, 5×8","4×8 (1220×2440)","Por definir"],"evidencia":"plano: HOJA 5 × 8 (1525 × 2440)"},{"pregunta":"¿Cuántos libreros se fabricarán?","elegido":"(sin responder: el plano no lo dice)"}]
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"a838bed3","piezas":1,"precioVenta":11023.73,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 4 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Tapacanto frontal, Tornilleria ensamble.","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"6df9a96b","piezas":1,"precioVenta":11023.73,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp
+[lab-costear] precio {"precios":["$6,614.24","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornilleria ensamble · 2 material(es) propuestos sin confirmar: Tapacanto frontal, Tornilleria ensamble · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornilleria ensamble · 2 material(es) propuestos sin confirmar: Tapacanto frontal, Tornilleria ensamble · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $4,119.41 · Mano de obra $623.71 · Fábrica $1,871.12","pendiente":false,"porConfirmar":true}
+[lab-costear] paridad {"costoCliente":6614.24,"costoSrv":6614.24,"estadoSrv":"preliminar","iguales":true,"llamadasSrv":3}
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"6df9a96b","piezas":1,"precioVenta":12271.15,"margen":40,"costo":{"costoUnitario":7362.69,"materialTotal":4119.41,"manoObra":810.82,"indirectosFabrica":2432.46,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp
+[lab-costear] dificultad {"costoNormal":6614.24,"marcado":"true","costoDificil":7362.69,"reqDificultad":"dificil","costoSrvDificil":7362.69,"sube":true,"paridad":true,"costoDeVueltaNormal":6614.24,"regresaIgual":true}
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"preliminar","aprobacionHumana":false,"costeoId":null,"bomHash":"6df9a96b","piezas":1,"precioVenta":11023.73,"margen":40,"costo":{"costoUnitario":6614.24,"materialTotal":4119.41,"manoObra":623.71,"indirectosFabrica":1871.12,"desperdicio":2112.67,"detalleInsumos":[{"insumoId":"erp
+[lab-costear] expedientes POST 201 [{"id":160}]
+[lab-costear] guardado {"status":201,"id":160,"mensaje":"Guardado en la biblioteca"}
+  ✘  1 [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir (2.1m)
+
+
+  1) [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('button', { name: /PRUEBA RC librero 5x8 integrado/ }).first()
+    Expected: visible
+    Timeout: 20000ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" getByRole('button', { name: /PRUEBA RC librero 5x8 integrado/ }).first() with timeout 20000ms
+      - waiting for getByRole('button', { name: /PRUEBA RC librero 5x8 integrado/ }).first()
+
+
+      252 |   await expect(page.getByText('Biblioteca de productos')).toBeVisible({ timeout: 15000 });
+      253 |   const item = page.getByRole('button', { name: new RegExp(NOMBRE.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }).first();
+    > 254 |   await expect(item).toBeVisible({ timeout: 20000 });
+          |                      ^
+      255 |   const tarjetaTxt = await item.innerText();
+      256 |   await item.click();
+      257 |   await expect(page.locator('.pieza').first()).toBeVisible({ timeout: 30000 });
+        at /home/user/costeador-vonhaucke/e2e/labCostear.e2e.js:254:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results-prod/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results-prod/labCostear.e2e.js-COSTEAR--dd0a4--sombra-→-guardar-→-reabrir-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir 
