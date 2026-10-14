@@ -23,3 +23,19 @@ Lo corrige `supabase/migrations/PROPUESTA_vh146_formato_hojas_erp.sql` (solo `at
 | `ATCUBS45ABS_v2` | Paridad al centavo ($1,307.29). La pantalla decía PRELIMINAR con una pieza sin material → defecto. |
 | `librero_5x8_v2` | 6/6 PASS; sigue BLOQUEADO por formato ERP (vh146b sin aplicar). |
 | `ATCUBS45ABS_v3` | Paridad al centavo y **BLOQUEADO — Sin material: Tapa registrable…**, igual que el servidor (`incompleto`). Guardado como "PRUEBA RC · …". |
+
+## Smoke vivo post SEG-01b / OP9.5-04 (14-oct-2026, link `dpl_EwkGsCs61qwaLv7pLxKGVYivDuUr`, commit f56632a, Edge `costear-servidor-rc` de 6d1cd13)
+
+Carpeta `librero_5x8_post_seg01b/`. Misma hoja de control (librero 5×8), cuenta QA, expediente 159 ("PRUEBA RC · …").
+
+| Punto | Antes (`librero_5x8_post_vh146c_v2`) | Ahora |
+|---|---|---|
+| Hoja de control | 6/6 PASS | 6/6 PASS |
+| Paridad cliente/servidor | $6,614.24 = $6,614.24 | $6,614.24 = $6,614.24 (y dificultad $7,362.69 = $7,362.69) |
+| Estado del servidor | `incompleto`, **0 motivos** | `preliminar`, 5 motivos: 2 materiales propuestos sin confirmar (nombrados), 4 de 5 insumos sin precio certificado, 1 requiere Compras, costeo sin registro autoritativo (SEG-01b sin aplicar) |
+| `costeoId` | — | `null` (tabla `costeos_servidor` no existe en producción: correcto, avisa) |
+| Guardar / reabrir | mismo BOM y costo | mismo BOM y costo |
+| Pasar a Cotizar | deshabilitado ("bloqueos de costeo") | igual (materiales sin confirmar: correcto) |
+
+Observación abierta (no regresión, igual que antes): la pantalla dice "El servidor aún no validó este despiece." aunque el
+servidor respondió en el flujo de precio. Pendiente de revisar en qué momento se llena `validacionSrv`.

@@ -1,0 +1,59 @@
+{
+  "confirmacion": {
+    "ofrecida": true,
+    "texto": "Confirmar los 4 propuestos",
+    "diferencias": "1 difieren de lo pedido y se confirman uno por uno: Tapacanto PVC 2 mm Walnut cantos frontales. ",
+    "diferenciasAceptadas": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Entrepaño fijo",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería ensamble y respaldo",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "estado3": null,
+    "validadores": [],
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  }
+}
