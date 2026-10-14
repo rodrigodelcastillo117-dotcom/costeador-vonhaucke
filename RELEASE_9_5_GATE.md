@@ -95,3 +95,32 @@ holdout) dependen de datos o de decisiones que no son de código.
 6. Council: autorizar el cambio de presupuesto o modelo de Anthropic en la Edge de producción.
 7. D2: ratificación de Producción (merma de corte del tubular).
 8. Etiquetar los 154 expedientes QA (PROPUESTA lista).
+
+## 14-oct-2026 · Firma de precios ERP y tramo vendido por pieza (`07ff56d`)
+
+**APLICADO en producción (autorizado por Rodrigo: "SI AUTORIZO")**, en 6 migraciones `firma_precios_erp_*`:
+- `cuentas_no_humanas` (QA y reconciliación);
+- `aprobaciones_precio_historial` (append-only);
+- `firmar_precios_erp_vigentes(int)` y `firmar_precios_erp_lote(int, bigint, int)`.
+
+Verificado:
+- anon no ejecuta ni lee;
+- 1,783 candidatos ≤ 24 meses, de los cuales 3 requieren validación de Compras;
+- **0 firmas hechas**: la firma la da Rodrigo con su sesión. La cuenta QA es rechazada por la base.
+
+Nota técnica: el MCP de Supabase se cuelga 60 s ante cualquier `drop`, porque pide una confirmación que no llega. Las tres primeras llamadas no aplicaron nada (verificado).
+
+**Motor 2026-10-14a (RC; `costear-servidor-rc` desplegada, run 41):** tramo vendido por pieza, con $/m = $/pieza ÷ medida.
+- Paridad con Intelisis en ATPU2M/75M/3M dentro de ±1.5 %, con merma de corte del tubular de 6.94 %.
+- La merma se calculó de esos tres reportes (rango 6.2–7.7 %, supuesto pata U = 2×720 + ancho) y la autorizó Dirección.
+- Las pruebas fallan con el motor anterior.
+
+**SIN APLICAR (requiere autorización expresa):** `PROPUESTA_tramo_por_pieza_catalogo.sql` marca 155 barras ERP:
+- 128 tubulares al 6.94 % y 27 perfiles al 5 %;
+- la marca va en `atributos.tramoPorPieza`. El motor de producción la ignora (sin cambio de costo); el RC la usa.
+
+Sin esa migración, todo mueble con tubular ERP sigue sin costear (unidad pza sin formato → conflicto crítico en el amarre).
+
+**Bandera `D2_RATIFICADA_POR_PRODUCCION = false` (sin cambio):** todo costo con tubular por fracción queda tope `preliminar` y no se emite. Cambiarla es decisión de Rodrigo / Producción.
+
+**Holdout:** INVÁLIDO desde `07ff56d` (cambió `calculo.js` y `nube.js`). No se ha corrido; hay que re-congelarlo (v5) antes de correrlo.
