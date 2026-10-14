@@ -1,37 +1,43 @@
-# RELEASE 9.5 GATE · Cierre de los hallazgos de la reauditoría final (14-oct-2026)
+# RELEASE 9.5 GATE · Cierre absoluto pre-release (14-oct-2026)
 
 **Regla de este gate:** un punto cuenta como cerrado sólo si el comportamiento es correcto, la evidencia es reproducible y la
 prueba **falla con el código anterior**. "No verificable" no cuenta como PASS. Este documento **no** autoriza producción:
-es el runbook para la reauditoría GO/NO-GO y para la ventana.
+es el runbook para la decisión GO/NO-GO de la ventana y para la ventana misma.
 
 | | |
 |---|---|
 | Rama | `claude/costing-app-architecture-psf02g` ([PR #37](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37)) |
-| Último cambio que viaja al binario de la app o a la Edge | `3583acc`: SEG-01c rev5; `agregarCosteo` manda `especificacion_tecnica`; la Edge RC arma la fila con `filaCosteoServidor` |
-| Cambios posteriores | Ninguno viaja al binario. `a4e23e1` es el verificador del holdout y el E2E del laboratorio. Después vienen el congelamiento, la evidencia, los textos de rollback de dos PROPUESTAS (§5.4), pruebas y documentos. |
-| Holdout congelado sobre | `7f27dc5`, manifiesto en `f693ba8`, huella `1609af5ee225881f…` (v5.2) |
-| Edge RC | `costear-servidor-rc` **v23** `3ba6d2b5…` (deploy 44 desde `3583acc`); `analizar-mueble-rc` v8 `f226b792…` |
-| SHA final, preview y CI | En §9. |
+| **FINAL_SHA** | **El commit que agrega esta versión del gate** (hijo directo de `214786b`). Es el último commit del release: después de él no se agrega nada a la rama. |
+| Por qué el SHA no está escrito aquí | Un commit no puede contener su propio SHA. Todo lo que nombra a FINAL_SHA vive **fuera del repo**, en el paquete del auditor (`00_LEEME_AUDITOR.md`): CI ×3, preview de Vercel, Edge RC desplegada desde FINAL_SHA, manifiesto del holdout congelado sobre FINAL_SHA, `--verificar` y la relectura final de producción. Escribirlo aquí movería el SHA. |
+| Último cambio de código | `214786b` (§2). FINAL_SHA sólo agrega documentación: `git diff 214786b FINAL_SHA -- src supabase e2e scripts lab package.json package-lock.json vite.config.js playwright.config.js` es **vacío**. |
+| Edge RC | `costear-servidor-rc` se despliega desde FINAL_SHA con el workflow "Deploy edge functions". Desde `214786b` (mismo código): **v24** `52e4228e454c172ad488cfbbec240d6996af02f49412bd66f427688bc98d9786`. `analizar-mueble-rc` v8 `f226b792…` (sin cambios). |
+| Holdout | Se recongela sobre FINAL_SHA (§8). El manifiesto de ese congelamiento va en el paquete, por la misma razón. El `MANIFIESTO.json` versionado en el repo es el v5.2 de `7f27dc5`: **histórico**, ya no verifica (cambió código del cierre transitivo). |
 | Producción (cliente) | `c3.4-seller-safe` @ `c8dd2b3`, `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3`. **Sin cambios.** |
-| SQL aplicado en producción en esta ronda | **ninguno** (sólo lecturas: huellas, ACL, dependencias) |
-| Edges de producción | **sin cambios** (`costear-servidor` v9, `analizar-mueble` v35) |
+| SQL aplicado en producción en esta ronda | **ninguno** (sólo lecturas: `docs/auditoria/baseline_prod.sql`, huellas del holdout) |
+| Edges de producción | **sin cambios** (`costear-servidor` v9 `f0722f95…`, `analizar-mueble` v35 `1e1d496e…`) |
 | Cuenta `qa-direccion` | **RIESGO ACEPTADO POR DIRECCIÓN.** No bloquea (decisión expresa de Rodrigo). Nunca cuenta como aprobación humana. |
 
 ## 1. Criterios de salida
 
+Para escribir **LISTO PARA GO DE VENTANA** tienen que cumplirse todos. Lo que depende de FINAL_SHA se marca en el paquete
+como VERIFICADO / NO VERIFICABLE / FALLÓ; aquí está el criterio y dónde se mide.
+
 | Criterio | Estado | Evidencia |
 |---|---|---|
-| 0 P0 abiertos | **Cumple.** El P0 de la reauditoría (un K se reutilizaba en un despiece técnicamente distinto con la misma promesa) se cerró con `spec_tecnica_v1`. | `docs/auditoria/SEG01C_REV5_SPEC_TECNICA.md` |
-| Spec y promesa atadas del lado del servidor | **Cumple.** Son dos autoridades separadas. El trigger sella `spec_tecnica_huella`, calculada en SQL sobre la pieza saneada que costeó el motor. `adjuntar` re-proyecta en SQL la especificación de la partida; nunca compara un hash copiado del navegador. | ídem; bloque rev5 de `seg01cVinculoCosteo.test.js` |
-| Pruebas por el flujo real | **Cumple.** Bloque Q3: Costear → `intentDesdePieza` → `validarIntentCosteo` (cliente y Edge) → motor → `filaCosteoServidor` → `partidaAutoritativaDeCosteo` → guardar → `vincularCosteos` real. Cubre configuración, acabado, `nombresExcluidos`, multiplicidad y dimensión interna. | 7/7 |
-| Antes/después | **Cumple.** Contra la rev4, **13 pruebas de rev5 y Q3 fallan**; con la rev5 pasan. | `SEG01C_MIG=…rev4… npx vitest …` |
-| Request IDs 1:1 | **Cumple (v5.2).** Cada id es único en la corrida, tiene exactamente un evento, no hay eventos ajenos y #eventos = #llamadas. | `VERIFICACION_20261014.md` §v5.2 |
-| Sin bypass por entorno en el holdout | **Cumple (v5.2).** `costeable` sale de la hoja leída de git en el SHA servido; `LAB_COSTEABLE` ya no existe. | ídem |
-| Sólo Edge RC en la corrida | **Cumple.** Assert final en el E2E sobre todas las llamadas de la página. En el verificador, cualquier `costear-servidor*` ≠ RC es CAMBIO. | ídem; 16/16 casos alterados fallan cerrado |
-| Runbook reversible | **Cumple.** La cadena completa se aplica y se revierte en PGlite y vuelve a producción salvo las tablas de auditoría declaradas. Antes de esta ronda **no** volvía: dos rollbacks incompletos, corregidos. | `cadenaVentanaRollback.test.js` 7/7; §5.4 |
+| 0 P0/P1/P2 conocidos de esta operación | **Cumple** con lo que se conoce hoy. Los dos P2 de la reauditoría anterior (`horas.toString`/`constructor` y la colisión con U+001F) se cerraron en `214786b`. | §2; `cierre_go_p2_antes.txt` (21 fallan antes) |
+| La spec es la pieza EFECTIVA del motor | **Cumple.** `spec_tecnica_origen = spec(piezaEfectiva)`, y `piezaEfectiva` es **el mismo objeto** que recibe `calcular()` (ya reconciliada). Antes salía de `intent.pieza`. La respuesta devuelve `especificacionTecnica`; la partida la transporta y `adjuntar` la re-proyecta en SQL y la compara con la huella sellada en K. | `src/datos/costeoServidor.js`; `cierre_go_traza_antes.txt` (3 fallan antes) |
+| JS = SQL | **Cumple.** 34 fixtures doradas; las 14 nuevas, escritas a mano (`toString`, `constructor`, `__proto__`, `hasOwnProperty`, `valueOf`, U+001F, `\|`, `§`, `\n`, `\t`, emoji, acentos, pares sustitutos, nulos, números como texto, renglones reordenados). Además: cambiar cualquier campo técnico cambia la huella; rotar o invertir renglones no; sin colisiones entre las 34. | `specTecnicaGolden.test.js` 39/39 |
+| Pruebas por el pipeline real | **Cumple.** Q3/Q4 llaman a `atenderCosteo`, **la misma función** que ejecuta la Edge RC después de autenticar, con un cliente de servicio sobre PGlite. Nadie arma a mano `estado`, `aprobacionHumana` ni la fila de K. **No cubren:** la verificación del JWT y el transporte HTTP (la Edge sólo autentica y responde). | `seg01cVinculoCosteo.test.js`, bloque "Q3/Q4" |
+| Holdout fail-closed | **Cumple** con la v5.2: 16/16 casos alterados fallan cerrado. Sobre FINAL_SHA: recongelamiento, corrida de humo, `--verificar` y los 16 casos otra vez. | §8; paquete |
+| Rollback completo | **Cumple.** La cadena se aplica y se revierte en PGlite y vuelve al catálogo de producción salvo las tablas de auditoría declaradas. | `cadenaVentanaRollback.test.js` 7/7; §5.4 |
+| 0 flaky | **Causa raíz corregida** en `214786b` (riesgo 14). CI 791 sobre `214786b`: 94 passed, 12 skipped, **0 flaky**. Sobre FINAL_SHA: 3 corridas consecutivas. | §7.14; paquete |
+| CI y build verdes | CI 791 sobre `214786b`: `verify` y E2E **success**. Sobre FINAL_SHA: paquete. | GitHub Actions |
+| Preview exacta READY | Sobre FINAL_SHA: `deployment_id`, url, `githubCommitSha`, `READY`, en el paquete. **No es el artefacto que va a producción** (§5.3). | Vercel |
+| FINAL_SHA congelado | Sin commits después de FINAL_SHA. | `git log` |
+| Sin drift en la línea base de producción | Lectura de §3 (20:14 UTC) y relectura con la **misma consulta** al cerrar el paquete. Si algo cambió: **STOP**. | `docs/auditoria/baseline_prod.sql` |
+| Producción no modificada | Sin SQL, sin Edge de producción, sin promoción del cliente, sin merge, sin estricto. | §3 |
 | Smoke de producción antes de estricto | **En el runbook** (§5, pasos 5 a 8). | §5.5 |
-| Goldens emitibles para el E2E de Rodrigo | **No se cumple hoy, y no se puede cumplir sin Rodrigo y Compras.** Hay 0 firmas humanas y 0 costos de Compras. Queda como precondición del paso 9, no de esta reauditoría. | §5.6 |
-| CI verde, build, E2E, preview del SHA exacto READY | En §9. | GitHub Actions, Vercel |
+| Goldens emitibles para el E2E de Rodrigo | **No se cumple hoy, y no se puede cumplir sin Rodrigo y Compras** (0 firmas humanas, 0 costos de Compras). Es precondición del **paso 9**, no del GO de la ventana. | §5.6 |
 
 ## 2. Qué se cerró en esta ronda
 
@@ -41,12 +47,16 @@ es el runbook para la reauditoría GO/NO-GO y para la ventana.
 | `a4e23e1` | **P1 · holdout v5.2:** request_id 1:1, `costeable` desde la hoja congelada y assert final de Edge. 6 pruebas que fallan con la v5.1. |
 | `7f27dc5`, `f693ba8`, `3c052e1` | Huellas frescas, recongelamiento con la Edge RC v23, corrida de humo, `--verificar` OK y 16/16 casos de falla cerrada. |
 | `075dadd` y siguiente | **Runbook:** prueba de la cadena completa de la ventana. Rollback completo de P1-03b (antes dejaba `precio_id`). Rollback de SEG-01c quita su comentario. §4–§5 reescritos: VH-100 en el rollback, orden inverso con dependencias, smoke de producción antes de estricto, postchecks por migración y goldens. |
+| `214786b` | **Cierre absoluto (último cambio de código).** <br>1. **P2 `horas`:** sólo propiedades propias en JS (como en SQL); `toString`, `constructor`, `__proto__`, `hasOwnProperty` y `valueOf` son centros válidos. El validador del DTO arma `horas` sin prototipo, así que ya no pierde `__proto__`. <br>2. **P2 U+001F:** la clave de orden de renglones es inyectiva: por campo, `-` si falta o `<longitud en code points>:<valor>`; se compara por code point (JS) y `COLLATE "C"` (SQL). <br>3. **Spec = pieza efectiva:** núcleo `src/datos/costeoServidor.js` (`costearConMotor` + `atenderCosteo`); la Edge RC sólo autentica, atiende `cocrear` y llama `atenderCosteo`. <br>4. **Q3/Q4** por ese núcleo con PGlite. <br>5. **`golden757Edicion`:** proyecto de Playwright que depende de `golden757` y abre exactamente su presupuesto (por id). <br>Antes: 21 (P2) y 3 (trazabilidad) pruebas fallan con el código de `2d02527`. |
 
-## 3. Producción hoy (lectura del 14-oct, 14:50–14:55 UTC)
+## 3. Producción hoy (lectura del 14-oct, 20:14 UTC, con `docs/auditoria/baseline_prod.sql`)
 
-**Cliente:** `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3` (`c8dd2b3`, READY). Es el objetivo de rollback del cliente. El anterior es `dpl_9ehp8cSU7bvH3hptvETpU1tHPPHv` (`ccf76f8`).
+La consulta es de solo lectura y devuelve una fila JSON. Se corre igual al cerrar el paquete y antes de abrir la ventana:
+**cualquier diferencia es drift y detiene todo**.
 
-**PostgREST de la nube:** **14.5** (`pg_stat_activity.application_name = 'PostgREST 14.5'`, 7 conexiones de `authenticator`).
+**Cliente:** `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3` (`c8dd2b3`, READY). Es el objetivo de rollback del cliente. El anterior es `dpl_9ehp8cSU7bvH3hptvETpU1tHPPHv` (`ccf76f8`). Dominio de producción: `costeador-vonhaucke.vercel.app`; rama de producción: `c3.4-seller-safe`.
+
+**PostgreSQL de la nube:** **17.6** (`server_version`). **PostgREST:** **14.5** (`pg_stat_activity.application_name`).
 
 **Últimas migraciones aplicadas** (`supabase_migrations.schema_migrations`, de la más nueva a la más vieja):
 
@@ -68,10 +78,18 @@ es el runbook para la reauditoría GO/NO-GO y para la ventana.
 **Estado de los objetos de esta ventana en producción** (confirma que no se aplicó nada):
 
 - `actualizar_cotizacion_segura` existe sólo con dos argumentos (sin versión);
-- no existen `adjuntar_costeo_a_partida`, `promesa_partida`, `spec_tecnica` ni `cargar_costos_oficiales`;
-- `costeos_servidor` no tiene columnas `promesa_*` ni `spec_tecnica_*`;
+- no existen `adjuntar_costeo_a_partida`, `promesa_partida`, `spec_tecnica`/`huella_spec_tecnica`, `activar_autoridad_costeo` ni `cargar_costos_oficiales`;
+- no existen las tablas `costeos_servidor` ni `partida_costeo_vigente`, ni `private_api.politica_emision_autoridad`: las crea SEG-01c (`create table if not exists`);
 - `public.cuentas_no_humanas` **sí** existe (firma de precios del 14-oct), sin comentario, con 2 cuentas;
 - 0 funciones de `public`/`private_api` mencionan `40001`.
+
+**Catálogo (lo que toca P1-03b):**
+
+- `catalogo_vigente`: sin columna `precio_id`; definición md5 `02e1bd0f1203ff77586efb44ceebc6b6`; ACL `{postgres=arwdDxtm, authenticated=awdDxtm, service_role=arwdDxtm}`.
+- Dependientes en `pg_depend` (incluye el tipo fila): **sólo** `private_api.insumo_motor(insumos_catalogo, catalogo_vigente)`. Además la nombran en su cuerpo (sin dependencia registrada) `buscar_insumos_motor`, `private_api.catalogo_motor` y `private_api.resolver_costo_insumo`: siguen funcionando después de recrear la vista con el mismo nombre.
+- md5 de `private_api.insumo_motor` `8e4d28b2…` y de `private_api.catalogo_motor` `fe81d391…`: los mismos que reproduce la cadena de §5.4.
+
+**VH-100:** `producto_version_economia` **12 filas, md5 `363e27c07645bb1373f248d368e7050a`** (fórmula de P9).
 
 **Precios:**
 
@@ -88,7 +106,7 @@ es el runbook para la reauditoría GO/NO-GO y para la ventana.
 |---|---|---|
 | `costear-servidor` | v9 | `f0722f95467ccb50d149b891e51f9c325d3cce2f18640b41e9967f56d005c4f8` |
 | `analizar-mueble` | v35 | `1e1d496e68063fd25eebde5edb4a67dda3c12eb4b23a0fc0ba252d44a8a82b59` |
-| `costear-servidor-rc` | **v23** | `3ba6d2b5556cd442d493876c69850aeab73dad9f812814d74e22d5db1ce089c1` (despliegue 44 desde `3583acc`, contiene la rev5) |
+| `costear-servidor-rc` | **v24** | `52e4228e454c172ad488cfbbec240d6996af02f49412bd66f427688bc98d9786` (despliegue 45 desde `214786b`). Se vuelve a desplegar desde FINAL_SHA: versión y sha en el paquete. |
 | `analizar-mueble-rc` | v8 | `f226b7927d345f885145eee1a7606c5bd34fcbe8e3b3f0b88e3bad33e0fb323f` |
 
 Mientras SEG-01c no esté aplicada, `costear-servidor-rc` costea igual pero no registra el costeo: no hay `costeoId`, la respuesta lo avisa y la emisión de producción no cambia.
@@ -115,18 +133,18 @@ El orden se prueba de punta a punta en `supabase/tests/cadenaVentanaRollback.tes
 | 2 | `PROPUESTA_vh148_control_optimista_cotizacion.sql` | `1c94c8ed8f699164e928d515f4b7ab5d` | existe el núcleo de dos argumentos (VH-035c) |
 | 3 | `PROPUESTA_vh148b_fail_closed_versiones.sql` (incluye VH-148d: `vincular_cotizacion` con versión) | `12045ef0d39d9ca1340affd497bf6fd6` | VH-148 aplicada |
 | 4 | `PROPUESTA_seg01_emision_snapshot_fiel.sql` | `83d386bcf946494c47dd7e887d7b7f9b` | el gate de emisión no cambió (drift) |
-| 5 | `PROPUESTA_seg01c_vinculo_costeo_partida.sql` (**rev5**, modo `preparado`) | `48353aa542cf97b89eda97fff903203a` | VH-035c (`partida_definicion`) y VH-148b (trigger `trg_vh148_version`) |
+| 5 | `PROPUESTA_seg01c_vinculo_costeo_partida.sql` (**rev5**, modo `preparado`) | `969999f45e54b58f749be1be6012f581` | VH-035c (`partida_definicion`) y VH-148b (trigger `trg_vh148_version`) |
 | 6 | `PROPUESTA_vh100_cargar_costos_oficiales.sql` | `1f1a7eef812ffb824b13ff152e51ea48` | ninguna de esquema. En ejecución exige `cuentas_no_humanas`, que ya existe en producción (firma de precios del 14-oct). Sin el reporte de Compras no cambia ningún costo. |
 | — | `PROPUESTA_vh148c_retira_escrituras_sin_version.sql` | `17a4742af14e1f2620ca2f93d15436b9` | **No va en esta ventana.** Sólo cuando ningún cliente `c8dd2b3` siga abierto: con él aplicado, el cliente viejo deja de guardar (42501). |
 
 Cada archivo es una sola transacción (`begin … commit`). Si falla una precondición, no se aplica nada de ese archivo.
 
-**Cambios de md5 en esta ronda:**
+**Cambios de md5:**
 
-- **P1-03b:** antes `0d3c2b46…`. Sólo cambia el texto de rollback: ahora quita la columna `precio_id` (§5.4).
-- **SEG-01c:** antes `5bc8855b…`.
-  - Agrega la rev5 (`spec_tecnica_v1`, ver `docs/auditoria/SEG01C_REV5_SPEC_TECNICA.md`).
-  - Su rollback ahora también quita el comentario que deja en `cuentas_no_humanas`.
+- **Cierre absoluto (`214786b`):** sólo **SEG-01c**, de `48353aa5…` a `969999f4…`. Cambia la clave de orden de los renglones en `private_api.spec_tecnica` (bloque `spec_v1`): de `campo=valor` unidos con U+001F a la clave inyectiva `-` / `<longitud>:<valor>` por campo, igual que en JS. Nada más del archivo cambió. Los otros cinco md5 son los de la ronda anterior.
+- **Ronda anterior:**
+  - **P1-03b:** antes `0d3c2b46…`. Sólo cambia el texto de rollback: ahora quita la columna `precio_id` (§5.4).
+  - **SEG-01c:** antes `5bc8855b…`. Agrega la rev5 (`spec_tecnica_v1`, ver `docs/auditoria/SEG01C_REV5_SPEC_TECNICA.md`); su rollback también quita el comentario que deja en `cuentas_no_humanas`.
 
 ## 5. Runbook de la ventana
 
@@ -135,7 +153,7 @@ Cada archivo es una sola transacción (`begin … commit`). Si falla una precond
 1. Respaldo (paso 0) y prechecks (§5.1).
 2. **SQL** 1 → 6, cada uno con su postcheck (§5.2) antes del siguiente.
 3. **Edge de producción:** se promueve `costear-servidor-rc` a `costear-servidor` (§5.3).
-4. **Frontend de producción:** merge y deploy de Vercel (§5.3).
+4. **Frontend de producción:** `VITE_CONTROL_OPTIMISTA=1` en Vercel (production), fast-forward de `c3.4-seller-safe` a FINAL_SHA y verificación del build de producción **antes** del paso 5 (§5.3).
 5. **Se queda en `PREPARADO`.** `preparado` no bloquea nada: sólo diagnostica.
 6. **Smoke real en producción** (§5.5).
 7. **Revisar diagnósticos** de las cotizaciones abiertas (§5.5).
@@ -148,11 +166,12 @@ Entre los pasos 3 y 4, el cliente viejo (`c8dd2b3`) costea con la Edge nueva. `i
 
 | # | Comprobación | Esperado |
 |---|---|---|
-| P1 | CI del SHA que se va a desplegar | `verify` y E2E en `success` |
-| P2 | Preview de Vercel de ese SHA | `READY` |
+| P0 | `git rev-parse HEAD` de la rama = FINAL_SHA, y `git log FINAL_SHA..origin/claude/costing-app-architecture-psf02g` vacío | sí: nada después de FINAL_SHA |
+| P1 | CI de FINAL_SHA | `verify` y E2E en `success`, 0 flaky (paquete: 3 corridas) |
+| P2 | Preview de Vercel de FINAL_SHA | `READY`, `githubCommitSha = FINAL_SHA`. Certifica el código; **no** es el artefacto de producción (§5.3). |
 | P3 | `md5sum` de los 6 archivos de §4 | igual a la tabla |
-| P4 | Última migración aplicada | `20261014130610 tramo_por_pieza_catalogo`, sin nada nuevo desde este documento |
-| P5 | `select application_name from pg_stat_activity where usename = 'authenticator'` | `PostgREST 14.5`. Si cambió, repetir `medir_40001.mjs` con esa versión. |
+| P4 | `docs/auditoria/baseline_prod.sql` | **idéntico** a la salida del paquete (sin drift). Incluye la última migración `20261014130610 tramo_por_pieza_catalogo`. |
+| P5 | `select application_name from pg_stat_activity where usename = 'authenticator'` (también en la consulta de P4) | `PostgREST 14.5`. Si cambió, repetir `medir_40001.mjs` con esa versión. |
 | P6 | Objetos nuevos: sobrecarga de 3 argumentos, `adjuntar_costeo_a_partida`, columnas `promesa_*` y `spec_tecnica_*`, `cargar_costos_oficiales` | no existen |
 | P7 | Código de `costear-servidor` v9 y `analizar-mueble` v35 (`get_edge_function`), y `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3` del cliente | guardados para el rollback |
 | P8 | Paso 0 aplicado: `_conteos` del respaldo = conteos del origen | sí |
@@ -184,16 +203,45 @@ Entre los pasos 3 y 4, el cliente viejo (`c8dd2b3`) costea con la Edge nueva. `i
 | 6 · VH-100 | `cargar_costos_oficiales` llamada con la cuenta QA | `no autorizado: … cuenta no humana` |
 | todos | `select count(*) from pg_proc … where prosrc ~ '40001'` en `public` y `private_api` | **0**; `PT409` > 0 |
 
-### 5.3 Edge y frontend de producción
+### 5.3 Edge y frontend de producción: qué artefacto se promueve
 
-- **Edge (paso 3):**
-  - Se despliega `costear-servidor` con el código de `costear-servidor-rc` del SHA aprobado, con el workflow "Deploy edge functions".
-  - Va **después** del SQL porque registra en las columnas de SEG-01c.
-  - Hay que verificar la versión y el `ezbr_sha256` nuevos, y que la RC del mismo SHA dé el mismo resultado sobre el mismo intent.
-- **Frontend (paso 4):**
-  - Merge del PR y deploy de producción de Vercel con `VITE_CONTROL_OPTIMISTA=1`. `CARRIL_RC` **no** se define en producción.
-  - Hay que verificar que el SHA servido es el aprobado.
-  - Va **después** de la Edge y del SQL porque el cliente nuevo llama a las sobrecargas de VH-148/VH-148b y a `adjuntar_costeo_a_partida`.
+**Edge (paso 3).**
+
+- Se despliega `costear-servidor` con el código de `costear-servidor-rc` **de FINAL_SHA**, con el workflow "Deploy edge functions".
+- Va **después** del SQL porque registra en las tablas y columnas de SEG-01c.
+- Se verifica:
+  - versión y `ezbr_sha256` nuevos (`list_edge_functions`);
+  - que el run del workflow tenga `head_sha = FINAL_SHA`;
+  - que la RC de FINAL_SHA dé el mismo resultado sobre el mismo intent.
+
+**Frontend (paso 4). La preview certificada NO se promueve tal cual. El build de producción es obligatorio.**
+
+La preview de FINAL_SHA (paquete) certifica el **código**. No es el artefacto de producción, por dos banderas que Vite fija **al compilar**:
+
+| Bandera | Preview de esta rama | Producción |
+|---|---|---|
+| `__CARRIL_RC__` (`vite.config.js`: `VERCEL_ENV === 'preview' && CARRIL_RC === 'si'`) | **`true`**: `CARRIL_RC=si` está definida en Vercel sólo para preview de esta rama. Costear llama a `costear-servidor-rc` y `analizar-mueble-rc`. En tiempo de ejecución sólo se activa en hosts `*-rodrigos-eurotrip.vercel.app` (`carrilRcActivo`), pero la URL única de cada deployment y el alias de la rama de producción **sí** cumplen ese patrón. | `false` (`VERCEL_ENV=production`) |
+| `VITE_CONTROL_OPTIMISTA` (`conflictoGuardado.js`) | **no definida** ⇒ VH-148 apagado en el cliente | **`1`**. Se define en Vercel (target production) en la ventana, **después** del SQL: con la bandera encendida el cliente llama a la sobrecarga de 3 argumentos, que antes del paso 2 no existe. |
+
+Promover la preview sin recompilar dejaría producción sin control optimista y, en esos hosts, con el carril RC. Por eso:
+
+1. **Cómo se construye.** Fast-forward de `c3.4-seller-safe` a FINAL_SHA: `git push origin <FINAL_SHA>:c3.4-seller-safe`. `c8dd2b3` es ancestro de la rama, así que el push no reescribe nada y el PR #37 queda como merged. Vercel compila producción **de FINAL_SHA exacto**.
+   - **No** usar el botón de merge de GitHub: crea otro SHA (merge commit, o commits reescritos con rebase).
+   - Si por error se usó, el artefacto no es FINAL_SHA: **STOP**. Para seguir, se verifica que el árbol sea idéntico (`git diff --quiet FINAL_SHA <sha>`) y se registra como artefacto nuevo.
+2. **Qué se verifica antes de seguir al paso 5** (y siempre antes de estricto):
+   - `get_deployment`: `target = production`, `readyState = READY`, `githubCommitSha = FINAL_SHA`.
+   - El log del build corrió la suite con 0 fallas.
+   - En el bundle publicado (`assets/index-*.js`):
+     - `VITE_CONTROL_OPTIMISTA:"1"` presente;
+     - `analizar-mueble-rc`: **0** apariciones;
+     - `costear-servidor-rc`: **1**, sólo dentro del mensaje de error de cocrear ("falta desplegar costear-servidor-rc…").
+
+     Método validado con dos builds locales de `214786b`: con `VERCEL_ENV=production VITE_CONTROL_OPTIMISTA=1` da exactamente eso. Con `VERCEL_ENV=preview CARRIL_RC=si` no aparece la bandera y da 1 y 2. "Cero `-rc` en el bundle" **no** sirve como prueba: ese texto de error existe en cualquier build.
+   - En el dominio de producción, la red del navegador muestra que Costear llama `functions/v1/costear-servidor` y `functions/v1/analizar-mueble`, sin `-rc` (smoke de §5.5, paso 7).
+   - El smoke de §5.5, sobre todo el paso 5 (409 entre dos sesiones), prueba la bandera en funcionamiento.
+3. **Rollback del cliente:** R2 (`dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3`). La rama de producción queda en FINAL_SHA; el rollback de Vercel no la mueve.
+
+- Va **después** de la Edge y del SQL porque el cliente nuevo llama a las sobrecargas de VH-148/VH-148b y a `adjuntar_costeo_a_partida`.
 
 ### 5.4 Rollback (orden inverso, verificado por dependencias)
 
@@ -236,7 +284,7 @@ Cada paso es una transacción propia. El orden **no** es una convención: cada p
 4. Cambiar la cantidad de un renglón del despiece en la partida y volver a adjuntar → rechazo "la partida describe otro despiece…".
 5. Guardar con la versión vieja desde dos sesiones → 409 `PT409`.
 6. `evaluar_emision_cotizacion` de una cotización QA ya evaluada antes de la ventana → mismo estado que antes.
-7. La Edge de producción reporta la versión y el sha esperados (§5.3), y el cliente sirve el SHA aprobado.
+7. La Edge de producción reporta la versión y el sha esperados (§5.3). El cliente sirve FINAL_SHA (`githubCommitSha`) y, en `costeador-vonhaucke.vercel.app`, Costear llama a `costear-servidor` y `analizar-mueble` (sin `-rc`).
 
 **Diagnósticos** (sesión SQL de servicio, solo lectura):
 
@@ -288,8 +336,10 @@ El E2E final necesita dos casos reales que se puedan emitir. **Hoy no existen, y
 
 | Qué | Cómo | Resultado |
 |---|---|---|
-| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**' --exclude 'lab/qa/**'` | **352 archivos, 3,390 pruebas, 0 fallas** (local). Lo que vale es CI (§9). |
-| Focales de esta ronda | `specTecnica` (26), `specTecnicaGolden` (21), `seg01cVinculoCosteo` (101), `cadenaVentanaRollback` (7), `holdoutHuellas` (27), `composicionVh035cVh148`, `precioIdCatalogo`, `promesaComercial` | 8 archivos, **222/222** |
+| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**' --exclude 'lab/qa/**'` | **352 archivos, 3,432 pruebas, 0 fallas** (local, `214786b`). Lo que vale es CI sobre FINAL_SHA (paquete). |
+| Focales | `specTecnica` (41), `specTecnicaGolden` (39), `seg01cVinculoCosteo` (110), `cadenaVentanaRollback` (7), `holdoutHuellas` (27), `cocrearServidor` (9), `composicionVh035cVh148` (21), `precioIdCatalogo` (2), `promesaComercial` (17), `promesaComercialGolden` (12) | 10 archivos, **285/285** |
+| P2 ANTES (cierre absoluto) | `specTecnicaGolden` + `specTecnica` con las fixtures y pruebas nuevas contra `specTecnica.js`, `validarIntentCosteo.js` y el SQL de `2d02527` | **21 fallan** (`docs/auditoria/cierre_go_p2_antes.txt`): colisión por U+001F, `toString`/`constructor`/`__proto__`, orden, Unicode |
+| Trazabilidad ANTES | `seg01cVinculoCosteo -t 'Q3/Q4'` con `registroCosteo.js` y `agregarCosteo.js` de `2d02527` (spec desde `intent.pieza`) | **3 fallan** (`docs/auditoria/cierre_go_traza_antes.txt`): control (spec efectiva), reconciliación y respuesta sin spec. Las alteraciones de la partida ya fallaban cerrado antes, porque el intent era el mismo a los dos lados: no es mérito de esta ronda. |
 | P0 ANTES (rev4) | `SEG01C_MIG=supabase/tests/fixtures/seg01c_rev4_8cc0adb.sql npx vitest run supabase/tests/seg01cVinculoCosteo.test.js -t "rev 5 · spec\|Q3"` | **13 fallan** con la rev4 (multiplicidad, dimensión, horas, pintura, dificultad, duplicados, sellado, K2 no lava, defensa en la emisión, control del pipeline); con la rev5 pasan |
 | Holdout ANTES (v5.1) | `holdoutHuellas.test.js` contra `git show 3583acc:src/datos/holdoutHuellas.js` (+ stub de `costeableDeHoja` con semántica v5.1) | **6 de 27 fallan**: I, I2, J, K, `costeableDeHoja` y "cada request…" (`lab/costear/holdout_intelisis/v52_pruebas_antes_v51.txt`). L ya pasaba. |
 | Runbook ANTES | `cadenaVentanaRollback.test.js` con las PROPUESTAS p103b y seg01c de `3583acc` | **falla**: `precio_id` en la vista y comentario en `cuentas_no_humanas` (`docs/auditoria/cadena_ventana_rollback_antes.txt`) |
@@ -300,7 +350,7 @@ El E2E final necesita dos casos reales que se puedan emitir. **Hoy no existen, y
 ## 7. Riesgos residuales (no bloquean la reauditoría; sí hay que verlos en la ventana)
 
 1. **La prueba de dos conexiones no corrió en la nube.** Usó los binarios oficiales de Postgres 16, GoTrue v2.178.0 y PostgREST **14.5** (la misma versión de la nube), con el mismo SQL. Crear una rama de Supabase falló: el conector pide un ID de confirmación de costo que no expone. Lo cubre el postcheck "409 en < 1 s" con la API real.
-2. **Postgres de la nube:** no medí su versión menor. El comportamiento probado (`raise … using errcode`, triggers y `for update`) es estándar.
+2. **Postgres de la nube: 17.6** (medido, §3). La prueba de dos conexiones usó binarios de Postgres 16 y las cadenas de PGlite corren PostgreSQL 18. El comportamiento probado (`raise … using errcode`, triggers y `for update`) es estándar en las tres versiones, pero no se ejecutó sobre 17.6: lo cubren los postchecks de §5.2.
 3. **VH-035c en producción:** cuando un vendedor guarda un render, marca "recosteo pendiente". Es fail-closed y obliga a recostear sin necesidad. Corregirlo requiere otra migración, fuera de este cierre.
 4. **Exclusiones por nombre:** dos piezas con el mismo nombre, y sólo una excluida, salen ambas de `piezas`. El resultado es igual en los dos lados, así que no abre un hueco; sólo describe peor la pieza.
 5. **La promesa la declara quien costea.** El servidor garantiza que es la misma que se costeó, no que el despiece "sea" el mueble.
@@ -321,24 +371,41 @@ El E2E final necesita dos casos reales que se puedan emitir. **Hoy no existen, y
 12. **Fuera de alcance, probado:** Costear no puede agregar a una cotización un especial con una pieza marcada `excluida`.
     El validador descarta `excluida`, el servidor costea esa pieza y el cliente no, así que la paridad falla cerrada
     ("cliente y servidor difieren"). No abre un hueco económico, pero excluir piezas no sirve hoy desde Costear.
-13. **PGlite corre PostgreSQL 18; la nube, otra versión.** No medí la versión exacta de la nube. La cadena de rollback
-    reproduce **byte a byte** los md5 de producción de la vista y de las funciones del motor (§5.4), lo que indica que el
-    texto de las definiciones coincide. No prueba el comportamiento de la versión exacta de la nube.
-14. **E2E inestable: `golden757Edicion`.**
-    - En CI 786 (`66dd3a0`) falló en el primer intento ("ningún presupuesto golden reciente tiene acomodo") y pasó en el reintento.
-    - En CI 785 (`5057d61`, mismo código de app) pasó sin reintento.
-    - Depende de datos QA compartidos en la nube: busca entre los 6 presupuestos "Torre Sur (golden)" más recientes uno que ya tenga acomodo, y otras corridas, en paralelo o canceladas, los dejan a medias.
-    - No se tocó en este cierre: cambiar `e2e/` invalida el congelamiento del holdout. Va a la lista de después del lote Intelisis.
+13. **PGlite corre PostgreSQL 18; la nube, 17.6.** La cadena de rollback reproduce **byte a byte** los md5 de producción
+    de la vista y de las funciones del motor (§5.4), lo que indica que el texto de las definiciones coincide. No prueba el
+    comportamiento de 17.6.
+14. **`golden757Edicion`: CERRADO en `214786b` (causa raíz, no reintento).**
+    - **Síntoma:** en CI 786 y 789 falló en el primer intento y pasó en el reintento. Logs de 789: "tarjeta 0..5 sin acomodo (corrida a medias)" y luego "ningún presupuesto golden reciente tiene acomodo".
+    - **Causa:** carrera con estado compartido en la nube. Corría en paralelo con `golden757` y elegía "el presupuesto golden más reciente con acomodo" entre los 6 últimos; `golden757` creaba en ese momento uno nuevo, todavía sin acomodo.
+    - **Corrección:**
+      - `golden757-edicion` es un proyecto de Playwright con `dependencies: ['golden757']`, así que corre **después**;
+      - `golden757` escribe el id que guardó en `test-results/golden757-ultimo.json`;
+      - la edición abre **exactamente** ese id (recorre hasta 30 tarjetas) y falla si no lo encuentra.
+    - **Antes/después:** no hay prueba unitaria que falle antes; la evidencia es la de CI. Antes: 1 flaky en 786 y en 789. Después: CI 791 sobre `214786b`, 94 passed, **0 flaky**; la edición abrió el id 2544, el mismo que guardó `golden757`. Sobre FINAL_SHA: 3 corridas consecutivas (paquete).
+    - **Costo:** el E2E de esa pareja ya no corre en paralelo; CI tarda casi lo mismo (6.7 min contra 7.7).
+15. **`deno check` de la Edge RC: NO VERIFICABLE.** Falla por los tipos de `npm:openai` en `edge-runtime.d.ts`, ajenos a este cambio. Lo que sí corre:
+    - `scripts/edge_boot_check.sh costear-servidor-rc` (arranca: `OPTIONS=200`, `POST=500` sin auth);
+    - el despliegue real (v24);
+    - el núcleo, por las pruebas de Q3/Q4.
+16. **El artefacto de producción no es la preview** (§5.3). La preview certifica el código de FINAL_SHA. El build de producción se genera en la ventana con otras banderas de compilación y se verifica antes del paso 5 (SHA, bundle, red y 409). Si falla una verificación: R2 y no se pasa a estricto.
+17. **Cocrear en la Edge:** la rama `accion: "cocrear"` ahora usa `costearConMotor` del núcleo compartido.
+    - Lee sólo campos que el núcleo devuelve: `error`, `r`, `estado`, `emision`, `meta`, `warnings`, `insumos` y `parametros` (revisado en el código).
+    - Ningún E2E la recorre: `cocrearExpediente` no llama a `costear-servidor`. Su lógica propia (`cocrearServidor.js`) no cambió y tiene sus pruebas.
 
 ## 8. Holdout Intelisis
 
-- **Congelado (v5.2)** sobre `7f27dc5` (manifiesto en `f693ba8`):
-  - 110 archivos y `package-lock.json`;
-  - base y definiciones SQL;
-  - Edge RC v23/v8;
-  - modelos y SHA de frontend.
-
-  `--verificar` dio OK sobre la corrida de humo `corrida_humo_20261014c`, servida en `f693ba8`. 16/16 casos alterados fallan cerrado.
+- **Verificador v5.2** (`holdoutHuellas.js`, `congelar_holdout.mjs`): no cambió en el cierre absoluto.
+- **Último congelamiento (sobre FINAL_SHA), fuera del repo.**
+  - **Qué congela:** el cierre transitivo de imports (ahora incluye `src/datos/costeoServidor.js`), `package-lock.json`, la base y las definiciones SQL (huellas frescas), la Edge RC desplegada desde FINAL_SHA, `analizar-mueble-rc` v8, los modelos y `frontendSha = FINAL_SHA`.
+  - **Cómo se corre:**
+    1. `node scripts/congelar_holdout.mjs --db <huellas frescas> --edges <edges frescas>` sobre el árbol limpio de FINAL_SHA.
+    2. El manifiesto resultante se guarda en el paquete y se restaura el versionado, así que el árbol vuelve a quedar limpio.
+    3. Corrida de humo con la hoja `ATPU2M` (servida en FINAL_SHA, Edge RC exacta).
+    4. Para `--verificar`, el manifiesto del paquete se pone en `lab/costear/holdout_intelisis/MANIFIESTO.json`.
+    5. Los 16 casos de `casos_falla_cerrada.mjs`.
+  - **Resultados:** en el paquete.
+- **Congelamiento anterior (v5.2, histórico):** sobre `7f27dc5`, manifiesto en `f693ba8`, Edge RC v23. `--verificar` dio OK sobre `corrida_humo_20261014c`. Ya no verifica: `214786b` cambió código del cierre.
+- **Lote nuevo de Intelisis:** **no se abrió.** Primero se congela.
 - **Se invalida** cuando Rodrigo firme los precios del ERP y ante cualquier cambio de motor, prompts, catálogo, config, precios, matching, estados, Edge o modelo. **La ventana lo invalida** (Edge y SQL). Hay que recongelarlo antes de ver resultados del lote nuevo.
 - Las hojas del lote nuevo se commitean **antes de recongelar**: el verificador las lee de git en el SHA servido.
   - Una hoja que no esté en ese commit da NO VERIFICADO.
@@ -347,18 +414,42 @@ El E2E final necesita dos casos reales que se puedan emitir. **Hoy no existen, y
   - Hay una tensión con la regla de separación (§7 del protocolo: quien elige los muebles no pasa los reportes antes):
     la hoja lleva `erp_referencia`. Dónde y quién commitea las hojas se decide al abrir el lote; no se resolvió en esta ronda.
 
-## 9. Evidencia del SHA final
+## 9. Evidencia
 
-**SHA evaluado: `2d0252739ea3083e1b607ac5e836453d2a8be99d`.** Es el último con código, pruebas y evidencia. El commit que agrega esta sección sólo cambia este archivo.
+**De FINAL_SHA:** en el paquete del auditor, no aquí (ver el encabezado). Cada línea va marcada VERIFICADO / NO VERIFICABLE /
+FALLÓ:
+
+- FINAL_SHA y `git diff 214786b FINAL_SHA` (sólo documentos);
+- CI ×3 consecutivas (`verify` y E2E, 0 flaky);
+- preview: `deployment_id`, url, `githubCommitSha`, `READY`;
+- Edge RC desplegada desde FINAL_SHA (versión, `ezbr_sha256`, run del workflow);
+- manifiesto del holdout, `--verificar` y los 16 casos;
+- línea base de producción releída sin drift.
+
+**De `214786b` (último cambio de código, mismo código que FINAL_SHA):**
 
 | Evidencia | Resultado |
 |---|---|
-| CI | [run 789](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38615080108): `verify` **success** (audit, vitest y `vite build`) y E2E **success**: 93 passed, 12 skipped, **1 flaky** (`golden757Edicion`, el mismo de la ronda anterior; riesgo residual 14) |
-| Preview Vercel | `dpl_FH58juTmmPsdygy5wwGquvFedNCY` (`costeador-vonhaucke-i40389ikx-rodrigos-eurotrip.vercel.app`), **READY**, `githubCommitSha` = `2d02527…`, target preview. Su build corrió la suite: 352/3,390, 0 fallas. |
-| Suite local | 352 archivos, 3,390 pruebas, 0 fallas |
-| Focales | 8 archivos, 222/222 |
-| Antes/después | P0: 13 fallan con la rev4. Holdout: 6 fallan con la v5.1. Runbook: la cadena falla con los rollbacks anteriores. |
-| Holdout v5.2 | `--verificar` → **OK** (exit 0) sobre `corrida_humo_20261014c`, también re-corrido en el HEAD; 16/16 casos alterados fallan cerrado |
-| Edge RC | `costear-servidor-rc` v23 `3ba6d2b5…`, `analizar-mueble-rc` v8 `f226b792…` (releídas a las 18:12 UTC) |
+| CI | [run 791](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38628955786): `verify` **success** (audit, vitest y `vite build`); E2E **success**: 94 passed, 12 skipped, **0 flaky** |
+| Suite local | 352 archivos, 3,432 pruebas, 0 fallas |
+| Focales | 10 archivos, 285/285 |
+| Antes/después | P2: 21 fallan con `2d02527`. Trazabilidad: 3 fallan con `2d02527`. Anteriores: P0, 13 con la rev4; holdout, 6 con la v5.1; runbook, la cadena falla con los rollbacks anteriores. |
+| Arranque de la Edge RC | `edge_boot_check.sh costear-servidor-rc` → `OPTIONS=200 POST=500`, ARRANCA |
+| Edge RC | `costear-servidor-rc` **v24** `52e4228e…` (deploy 45, `head_sha = 214786b`); `analizar-mueble-rc` v8 `f226b792…` |
 | Edge de producción | `costear-servidor` v9 `f0722f95…`, `analizar-mueble` v35 `1e1d496e…`: **sin cambios** |
-| Producción | sin SQL de esquema, sin promoción del cliente, sin merge; SEG-01c no aplicada, así que tampoco hay estricto |
+| Producción | sin SQL de esquema, sin Edge de producción, sin promoción del cliente, sin merge; SEG-01c no aplicada, así que tampoco hay estricto |
+
+**Skips del E2E (12 en CI; todos por variable de entorno, ninguno por fallo):**
+
+| Prueba | Requiere | Qué cubre | Impacto en el release |
+|---|---|---|---|
+| `labCostear` | `LAB_COSTEAR_IMG` o `LAB_HOJA` | Costear completo → transferencia → guardar → reabrir | **Crítico.** Se corre con la hoja `ATPU2M` y la cuenta QA (credenciales de entorno) como corrida de humo del holdout sobre FINAL_SHA (paquete). |
+| `labConcurrencia` | `LAB_CLIENTE` | dos sesiones, VH-148 | **Crítico, pero no se puede antes de la ventana:** el control optimista está apagado en builds que no son de producción y la sobrecarga de 3 argumentos no existe todavía en la base. Lo cubren `lab/qa/vh148_dos_conexiones` (PostgREST 14.5) y el postcheck "409 en < 1 s". |
+| `labPdfReabrir` | `LAB_CLIENTE` | PDF y reabrir | La compuerta de emisión nueva (SEG-01) no está aplicada: contra producción mediría la vieja. Lo cubre el smoke de §5.5 (paso 6). |
+| `cocrearExpediente` | `COCREAR_QA=1` | Cocrear: reabrir, guardar | No llama a `costear-servidor` (filtro de red del propio E2E). Fuera de alcance del release; ver riesgo 17. |
+| `labCocrear` | `LAB_COC_BRIEF` | concepto de Cocrear con IA | Fuera de alcance; cuesta IA. |
+| `labCotizarFlujo` | `LAB_MODO` | Cotizar por texto o manual con IA | Cotizar lo cubren `cotizarProyectos`, `golden757` y `golden757Edicion`, que **sí** corren en CI. |
+| `labRender`, `renderEscenas` | `LAB_CLIENTE`, `RENDER_PROD=1` | renders | Fuera de alcance; cuestan IA. |
+| `labTorreNorte` | `LAB_PLANO` | lectura de planos | Fuera de alcance. |
+| `live-ai-smoke` | `LIVE_AI=1` | llamada real de IA | `analizar-mueble-rc` lo ejerce `labCostear`. |
+| `vivo`, `vivoSombra` | `VIVO=1` | pasada en vivo con servidor real: los cinco caminos, y la comparación sombra cliente↔servidor del costeo (VH-036/073) | No se corren: gastan IA. La paridad cliente↔servidor del costeo, que es lo que toca este release, la verifica `labCostear` contra la Edge RC (corrida de humo). Los otros caminos de `vivo` no cambian en esta ronda. |
