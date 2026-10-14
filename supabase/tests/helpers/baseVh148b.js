@@ -15,7 +15,7 @@ export const VH148 = M + 'PROPUESTA_vh148_control_optimista_cotizacion.sql';
 export const VH148B = M + 'PROPUESTA_vh148b_fail_closed_versiones.sql';
 export const VH148C = M + 'PROPUESTA_vh148c_retira_escrituras_sin_version.sql';
 export const SEG01 = M + 'PROPUESTA_seg01_emision_snapshot_fiel.sql';
-export const SEG01B = M + 'PROPUESTA_seg01b_autoridad_costeo_servidor.sql';
+export const SEG01C = M + 'PROPUESTA_seg01c_vinculo_costeo_partida.sql';
 
 // --- extracción de SQL de producción (baseline) -------------------------------------------------
 export function defDeBaseline(nombre) {

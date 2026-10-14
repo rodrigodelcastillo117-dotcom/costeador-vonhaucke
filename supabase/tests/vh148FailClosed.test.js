@@ -25,7 +25,7 @@
 // ============================================================================
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import {
-  DIRECCION, VENDEDOR, DISENO, MD5_PROD, VH035C, VH148, VH148B, VH148C, SEG01, SEG01B, leer, rollbackDe, baseProduccion,
+  DIRECCION, VENDEDOR, DISENO, MD5_PROD, VH035C, VH148, VH148B, VH148C, SEG01, SEG01C, leer, rollbackDe, baseProduccion,
   q, uno, fallo, vista, guardar2, guardar3, filaCot, filaExp, filaVer, mismaVersion, revisionesDe, md5Def, existe,
   sembrarCot, sembrarExp, sembrarVersion, updateDirectoExp, rpcExp, cocrear2, cocrear3,
 } from './helpers/baseVh148b.js';
@@ -65,6 +65,21 @@ const DEFECTOS = [
     const e = await fallo(guardar3(db, VENDEDOR, id, { cliente: 'pestaña vieja', proyecto_id: null }, v.actualizado));
     expect(e?.code, e?.message).toBe('40001');
     expect(String((await db.query('select proyecto_id from public.cotizaciones where id=$1', [id])).rows[0].proyecto_id)).toBe('9');
+  }],
+  ['H2b · VH-148d: vincular_cotizacion SIN versión ya no la puede llamar una sesión (42501); con versión vieja 40001, sin versión 22004', async (db) => {
+    const id = await sembrarCot(db);
+    const v = await vista(db, VENDEDOR, id);
+    expect((await fallo(uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 7, null, 9)', [id])))?.code).toBe('42501');
+    expect((await fallo(uno(db, VENDEDOR, 'select private_api.vincular_cotizacion($1, 7, null, 9)', [id])))?.code).toBe('42501');
+    expect((await fallo(uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 7, null, 9, null)', [id])))?.code).toBe('22004');
+    // Pestaña A vincula con su versión; pestaña B (misma versión vieja) choca y NO pisa el proyecto de A.
+    const a = (await uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 7, null, 9, $2::timestamptz) as r', [id, v.actualizado])).r;
+    expect(a.ok).toBe(true);
+    const e = await fallo(uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 8, null, 10, $2::timestamptz) as r', [id, v.actualizado]));
+    expect(e?.code, e?.message).toBe('40001');
+    expect(String((await db.query('select proyecto_id from public.cotizaciones where id=$1', [id])).rows[0].proyecto_id)).toBe('9');
+    // Con la versión que devolvió A, sí.
+    expect((await uno(db, VENDEDOR, 'select public.vincular_cotizacion($1, 8, null, 10, $2::timestamptz) as r', [id, a.actualizado])).r.ok).toBe(true);
   }],
   ['H3 · cotización: UPDATE directo de partidas/cliente por PostgREST (sin versión) se rechaza (42501) y la fila queda intacta', async (db) => {
     const id = await sembrarCot(db);
@@ -355,17 +370,30 @@ const OBJ_OTRAS = ['private_api.actualizar_cotizacion_segura(bigint, jsonb)', 'p
   'private_api.evaluar_emision_cotizacion(bigint, jsonb)', 'public.evaluar_emision_cotizacion(bigint, jsonb)', 'private_api.motivos_autoridad_costeo(bigint)'];
 async function md5s(db, firmas) { const o = {}; for (const f of firmas) o[f] = (await existe(db, f)) ? await md5Def(db, f) : null; return o; }
 
-describe('VH-148b · COMPOSICIÓN con VH-035c, SEG-01 y SEG-01b', () => {
+describe('VH-148b · COMPOSICIÓN con VH-035c, SEG-01 y SEG-01c', () => {
   let solaVh, solaSeg;
+  it('SEG-01c en modo ESTRICTO evaluado por una sesión real (rol authenticated): sin errores de permisos, y bloquea el renglón sin costeo', async () => {
+    const db = await baseProduccion();
+    try {
+      for (const f of [SEG01, SEG01C, VH148, VH148B]) await db.exec(leer(f));
+      await db.exec(`update private_api.politica_emision_autoridad set modo = 'estricto'`);
+      const id = await sembrarCot(db);
+      const vv = await vista(db, VENDEDOR, id);
+      const precioLista = vv.partidas.reduce((s, p) => s + p.precioUnitario * p.cantidad, 0);
+      const snap = { cliente: vv.cliente, partidas: vv.partidas, totales: { precioLista, descuento: 0, contingencia: 0, maniobras: 0, flete: 0, iva: 0 }, total: precioLista };
+      const g = (await uno(db, VENDEDOR, 'select public.evaluar_emision_cotizacion($1, $2::jsonb) as g', [id, JSON.stringify(snap)])).g;
+      expect(JSON.stringify(g)).toMatch(/sin_costeo_servidor/);
+    } finally { await db.close(); }
+  }, 120_000);
   beforeAll(async () => {
     const a = await baseProduccion(); for (const f of [VH148, VH148B]) await a.exec(leer(f)); solaVh = await md5s(a, OBJ_VH148B); await a.close();
-    const b = await baseProduccion(); for (const f of [SEG01, SEG01B]) await b.exec(leer(f)); solaSeg = await md5s(b, OBJ_OTRAS); await b.close();
+    const b = await baseProduccion(); for (const f of [SEG01, SEG01C]) await b.exec(leer(f)); solaSeg = await md5s(b, OBJ_OTRAS); await b.close();
   }, 240_000);
 
   for (const [nombre, orden, conVh035c] of [
-    ['SEG-01 → SEG-01b → VH-148 → VH-148b', [SEG01, SEG01B, VH148, VH148B], true],
-    ['VH-148 → VH-148b → SEG-01 → SEG-01b', [VH148, VH148B, SEG01, SEG01B], true],
-    ['(base sin VH-035c) VH-148 → VH-148b → VH-035c → SEG-01 → SEG-01b', [VH148, VH148B, VH035C, SEG01, SEG01B], false],
+    ['SEG-01 → SEG-01c → VH-148 → VH-148b', [SEG01, SEG01C, VH148, VH148B], true],
+    ['VH-148 → VH-148b → SEG-01 → SEG-01c', [VH148, VH148B, SEG01, SEG01C], true],
+    ['(base sin VH-035c) VH-148 → VH-148b → VH-035c → SEG-01 → SEG-01c', [VH148, VH148B, VH035C, SEG01, SEG01C], false],
   ]) {
     it(`orden ${nombre}: objetos intactos y control de versión + economía + gate funcionando`, async () => {
       const db = await baseProduccion({ conVh035c });

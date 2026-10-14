@@ -28,13 +28,15 @@ export const ROLES_APROBADORES_PRECIO = Object.freeze(['direccion']);
 
 const lista = (x) => (Array.isArray(x) ? x : []);
 
-export function estadoBaseServidor({ emision = {}, bloqueosIng = [], noCertificados = [], usados = [], requierenValidacion = [] } = {}) {
+export function estadoBaseServidor({ emision = {}, bloqueosIng = [], noCertificados = [], usados = [], requierenValidacion = [], costoUnitario = undefined } = {}) {
   const b = emision.bloqueos || {};
   const faltantes = [
     ...lista(b.datos_faltantes).map((x) => `Sin material o precio: ${x}`),
     ...lista(b.tarifas_faltantes).map((x) => `Tarifa faltante: ${x}`),
     ...(b.costo_invalido ? ['Costo calculado inválido o no finito.'] : []),
   ];
+  // Reauditoría 14-oct (P1-04): un costo de $0 sin dato faltante explícito no es "gratis": falta algo. Nunca certificado.
+  if (!faltantes.length && costoUnitario !== undefined && !(Number(costoUnitario) > 0)) faltantes.push('Costo calculado en $0: falta material, precio o mano de obra.');
   if (faltantes.length) return { estado: 'incompleto', warnings: faltantes };
 
   const invalidos = [

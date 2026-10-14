@@ -409,6 +409,55 @@ end $$;
 
 NOTIFY pgrst, 'reload schema';
 
+-- ----------------------------------------------------------------------------
+-- VH-148d (reauditoría externa 14-oct, P1-01): vincular_cotizacion escribía cliente/contacto/proyecto SIN versión
+-- esperada (el trigger sube la versión, pero la pestaña vieja gana en silencio). Verificado 14-oct: ningún cliente
+-- (producción c8dd2b3 ni esta rama) ni Edge la llama ⇒ la firma sin versión se RETIRA aquí mismo (no rompe a nadie)
+-- y queda sólo la sobrecarga con compare-and-swap.
+-- ----------------------------------------------------------------------------
+create or replace function private_api.vincular_cotizacion(p_cotizacion_id bigint, p_cliente_id bigint, p_contacto_id bigint, p_proyecto_id bigint, p_actualizado_esperado timestamptz)
+returns jsonb language plpgsql security definer set search_path to 'public' as $function$
+declare v_email text := auth.jwt()->>'email'; v_c record; v_iso text;
+begin
+  if p_actualizado_esperado is null then
+    raise exception 'VERSION_REQUIRED: vincular una cotización exige la versión desde la que se edita' using errcode = '22004';
+  end if;
+  select id, usuario, actualizado into v_c from public.cotizaciones where id = p_cotizacion_id for update;
+  if not found then return jsonb_build_object('ok', false, 'motivo', 'cotizacion_inexistente'); end if;
+  if not (v_c.usuario = v_email or public.puede_editar_config()) then raise exception 'no autorizado'; end if;
+  if v_c.actualizado is distinct from p_actualizado_esperado then
+    v_iso := to_json(v_c.actualizado)#>>'{}';
+    raise exception 'CONFLICTO_VERSION: la cotización cambió en el servidor (%). Recarga antes de vincular.', v_iso
+      using errcode = '40001', detail = 'actualizado=' || v_iso;
+  end if;
+  update public.cotizaciones set cliente_id = p_cliente_id, contacto_id = p_contacto_id, proyecto_id = p_proyecto_id
+   where id = p_cotizacion_id returning actualizado into v_c.actualizado;
+  return jsonb_build_object('ok', true, 'cotizacion_id', p_cotizacion_id, 'cliente_id', p_cliente_id, 'contacto_id', p_contacto_id,
+    'proyecto_id', p_proyecto_id, 'actualizado', to_json(v_c.actualizado)#>>'{}');
+end $function$;
+revoke all on function private_api.vincular_cotizacion(bigint, bigint, bigint, bigint, timestamptz) from public, anon;
+grant execute on function private_api.vincular_cotizacion(bigint, bigint, bigint, bigint, timestamptz) to authenticated, service_role;
+
+create or replace function public.vincular_cotizacion(p_cotizacion_id bigint, p_cliente_id bigint, p_contacto_id bigint, p_proyecto_id bigint, p_actualizado_esperado timestamptz)
+returns jsonb language plpgsql set search_path to 'pg_catalog', 'public', 'private_api' as $function$
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  return private_api.vincular_cotizacion(p_cotizacion_id, p_cliente_id, p_contacto_id, p_proyecto_id, p_actualizado_esperado);
+end $function$;
+revoke all on function public.vincular_cotizacion(bigint, bigint, bigint, bigint, timestamptz) from public, anon;
+grant execute on function public.vincular_cotizacion(bigint, bigint, bigint, bigint, timestamptz) to authenticated, service_role;
+
+-- La firma sin versión deja de ser invocable por sesiones (service_role conserva acceso para procesos).
+do $$
+begin
+  if to_regprocedure('public.vincular_cotizacion(bigint, bigint, bigint, bigint)') is not null then
+    revoke execute on function public.vincular_cotizacion(bigint, bigint, bigint, bigint) from public, anon, authenticated;
+  end if;
+  if to_regprocedure('private_api.vincular_cotizacion(bigint, bigint, bigint, bigint)') is not null then
+    revoke execute on function private_api.vincular_cotizacion(bigint, bigint, bigint, bigint) from public, anon, authenticated;
+  end if;
+end $$;
+
 commit;
 
 -- ============================================================================
@@ -421,6 +470,10 @@ commit;
 --  El cliente debe volver a la bandera APAGADA antes (con la bandera apagada nunca llama las firmas nuevas).
 -- ============================================================================
 -- RB begin;
+-- RB drop function if exists public.vincular_cotizacion(bigint, bigint, bigint, bigint, timestamptz);
+-- RB drop function if exists private_api.vincular_cotizacion(bigint, bigint, bigint, bigint, timestamptz);
+-- RB grant execute on function public.vincular_cotizacion(bigint, bigint, bigint, bigint) to authenticated;
+-- RB grant execute on function private_api.vincular_cotizacion(bigint, bigint, bigint, bigint) to authenticated;
 -- RB drop trigger if exists trg_vh148_version on public.cotizaciones;
 -- RB drop trigger if exists trg_vh148_version on public.expedientes;
 -- RB drop trigger if exists trg_vh148_revision_cas on public.expedientes;

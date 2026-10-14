@@ -164,7 +164,7 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
 
   // ESTADO con motivos (OP9.5-04). 'incompleto' sólo si FALTA un dato; 'bloqueado' si el cálculo no es físicamente válido
   // o Ingeniería está en rojo; un material "por confirmar" con precio real es 'preliminar' con su motivo, no 'incompleto'.
-  const base = estadoBaseServidor({ emision, bloqueosIng, noCertificados, usados, requierenValidacion });
+  const base = estadoBaseServidor({ emision, bloqueosIng, noCertificados, usados, requierenValidacion, costoUnitario: r.costoUnitario });
   let estado = base.estado as "certificado" | "preliminar" | "incompleto" | "bloqueado";
   for (const w of base.warnings) if (!warnings.includes(w)) warnings.push(w);
   // P0.11: si hay algún material LEGACY_SELECTED, el estado se topa en 'preliminar' aunque TODOS

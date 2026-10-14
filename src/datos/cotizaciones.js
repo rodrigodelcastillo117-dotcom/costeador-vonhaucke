@@ -25,6 +25,7 @@ import { MOTOR_VERSION } from '../motor/calculo.js';
 import { dinero } from '../motor/dinero.js';
 import { claveCreacionNueva, CLAVE_CREACION_RE } from '../util.js';
 import { esConflictoGuardado, actualizadoDeError, resultadoConflictoVersion } from './conflictoGuardado.js';
+import { costeosPorVincular, marcarVinculado } from './vinculoCosteo.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -261,6 +262,29 @@ function olvidarCreacionPendiente(storage) {
   try { storage?.removeItem(CLAVE_CREACION_PENDIENTE); } catch { /* nada */ }
 }
 
+// SEG-01c: tras guardar, el SERVIDOR vincula cada costeo (costeos_servidor) a su partida. El navegador sólo pide el
+// vínculo; la economía del renglón la escribe la RPC desde el registro. Sin la RPC (SEG-01c sin aplicar) no pasa nada.
+async function vincularCosteos(cotizacionId, partidas) {
+  const pendientes = costeosPorVincular(cotizacionId, partidas);
+  let actualizado = null; const fallidos = [];
+  for (const p of pendientes) {
+    const { data, error } = await nube.rpc('adjuntar_costeo_a_partida', { p_cotizacion_id: cotizacionId, p_partida_id: p.partidaId, p_costeo_id: p.costeoId });
+    if (error) {
+      if (/PGRST202|42883|Could not find the function|does not exist/i.test(`${error.code || ''} ${error.message || ''}`)) return { actualizado, fallidos, sinRpc: true };
+      fallidos.push({ partidaId: p.partidaId, error: String(error.message || error).slice(0, 160) });
+      continue;
+    }
+    marcarVinculado(cotizacionId, p);
+    if (typeof data?.actualizado === 'string') actualizado = data.actualizado;
+  }
+  return { actualizado, fallidos };
+}
+async function conVinculos(res, partidas) {
+  if (!res?.guardado || !res.id) return res;
+  const v = await vincularCosteos(res.id, partidas);
+  return { ...res, ...(v.actualizado ? { actualizado: v.actualizado } : {}), ...(v.fallidos.length ? { vinculosFallidos: v.fallidos } : {}) };
+}
+
 export async function guardarCotizacion(estado, usuario, id = null, { claveCreacion = null, actualizadoEsperado = undefined, storage = almacenPorOmision() } = {}) {
   const fila = paraGuardar(estado, usuario);
   // Sin nada dentro no se guarda: no queremos el archivo lleno de borradores
@@ -296,7 +320,7 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
       }
       // `actualizado` = la versión que el servidor acaba de escribir (sólo con la migración VH-148;
       // la RPC de producción no la devuelve → null → el siguiente guardado va sin control).
-      return { id: data?.id ?? id, guardado: true, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null };
+      return conVinculos({ id: data?.id ?? id, guardado: true, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null }, fila.partidas);
     }
     const conClave = !!(claveCreacion && CLAVE_CREACION_RE.test(claveCreacion));
     const payload = conClave ? { ...patch, _idempotency_key: claveCreacion } : patch;
@@ -331,7 +355,7 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
         return { id: null, guardado: false, motivo: tipoUpd };
       }
       olvidarCreacionPendiente(storage);
-      return { id: upd.data?.id ?? idPrevio, guardado: true, actualizado: typeof upd.data?.actualizado === 'string' ? upd.data.actualizado : null, recuperoCreacion: true };
+      return conVinculos({ id: upd.data?.id ?? idPrevio, guardado: true, actualizado: typeof upd.data?.actualizado === 'string' ? upd.data.actualizado : null, recuperoCreacion: true }, fila.partidas);
     }
     if (conClave && !pendiente) recordarCreacionPendiente(storage, payload);
     const { data, error } = await nube.rpc('crear_cotizacion_segura', { p_payload: payload });
@@ -343,7 +367,7 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
       return { id: null, guardado: false, motivo: tipo, rotarClave: tipo === 'clave-reusada', ...(tipo === 'rechazado' ? { detalle: String(error?.message || '').slice(0, 200) } : {}) };
     }
     if (data?.id) olvidarCreacionPendiente(storage);
-    return { id: data?.id ?? null, guardado: !!data?.id, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null };
+    return conVinculos({ id: data?.id ?? null, guardado: !!data?.id, actualizado: typeof data?.actualizado === 'string' ? data.actualizado : null }, fila.partidas);
   } catch (e) {
     return { id, guardado: false, motivo: 'red' };
   }
