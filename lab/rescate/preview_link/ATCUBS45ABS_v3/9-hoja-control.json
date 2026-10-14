@@ -1,0 +1,62 @@
+{
+  "producto": "CUBIERTA RECTANGULAR DE 1500 X 600 X 28 MM MODELO APPS LT CON PUERTA METALICA; EN MELAMINA CON CANTOS ABS -- ATCUBS45ABS",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 3,
+    "renglonesBom": 4,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Cubierta App LT 1500×600×28 mm",
+      "insumoId": "melamina-28",
+      "permitido": false
+    },
+    {
+      "nombre": "Canto ABS perimetral 32 mm",
+      "insumoId": "canto-abs-32",
+      "permitido": false
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (puerta metálica App LT)",
+      "insumoId": "",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación de tapa/cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "incompleto",
+  "respuestas": [
+    {
+      "pregunta": "¿Qué color/decorativo de melamina 28 mm?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas tapas/puertas metálicas registrables lleva la cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se cotiza sólo la cubierta o incluye estructura/patas?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Espesor/perfil de canto ABS requerido?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Requiere módulo eléctrico o pasacables además de la tapa registrable?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Cuántas cubiertas iguales se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

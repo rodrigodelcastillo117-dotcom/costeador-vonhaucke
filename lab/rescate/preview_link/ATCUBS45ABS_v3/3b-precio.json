@@ -1,0 +1,16 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,307.29",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "COSTO BLOQUEADO — Sin material: Tapa registrable metálica + herraje (puerta metálica App LT)",
+    "estado3": "COSTO BLOQUEADO — Sin material: Tapa registrable metálica + herraje (puerta metálica App LT)",
+    "validadores": [],
+    "linea": "Material $811.43 · Mano de obra $123.96 · Fábrica $371.89",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}

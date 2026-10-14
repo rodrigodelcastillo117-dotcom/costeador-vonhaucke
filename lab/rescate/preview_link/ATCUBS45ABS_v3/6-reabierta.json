@@ -1,0 +1,52 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render PRUEBA RC · LAB v3 ATCUBS45ABS 1014-0205 BORRADOR mesa cubierta de trabajo rectangular App LT con tapa registrable Melamina de 28 mm",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$1,307.29",
+    "costoDespues": "$1,307.29",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,307.29",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO BLOQUEADO — Sin material: Tapa registrable metálica + herraje (puerta metálica App LT)",
+      "estado3": "COSTO BLOQUEADO — Sin material: Tapa registrable metálica + herraje (puerta metálica App LT)",
+      "validadores": [],
+      "linea": "Material $811.43 · Mano de obra $123.96 · Fábrica $371.89",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta App LT 1500×600×28 mm",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral 32 mm",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («espesor color melamina») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (puerta metálica App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación de tapa/cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («estandar ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}
