@@ -30,19 +30,43 @@ export function auditarLlamadasCorrida(edges = [], { fnCosteo = 'costear-servido
   return { ia: { llamadas: ia.length, request_ids, sin_id }, costeo: { fnEsperada: fnCosteo, porFn, rc, ajenas, costeable: !!costeable }, motivos };
 }
 
+// v5.1 (reauditoría final): el verificador NO confía en los campos derivados del resumen (ajenas, rc, fnEsperada). Un
+// llamadas.json con porFn {costear-servidor: 1} y ajenas [] daba OK. Ahora las Edge ajenas y las llamadas RC salen de
+// porFn y de las llamadas CRUDAS de la hoja (edges.json), y el resumen tiene que cuadrar con ellas.
+const FN_COSTEO_HOLDOUT = 'costear-servidor-rc';
+function llamadasCrudas(crudas) {
+  const ia = crudas.filter((e) => /^analizar-mueble/.test(e?.fn || ''));
+  const porFn = {};
+  for (const e of crudas) if (String(e?.fn || '').startsWith('costear-servidor')) porFn[e.fn] = (porFn[e.fn] || 0) + 1;
+  // request_id guardado aparte por el E2E (o dentro de body si body es un objeto). Si no se puede leer, no se compara.
+  const idDe = (e) => (e && 'request_id' in e ? e.request_id : e?.body && typeof e.body === 'object' ? e.body.request_id : undefined);
+  const ids = ia.map(idDe);
+  return { iaLlamadas: ia.length, porFn, ids: ids.includes(undefined) ? null : ids.map((x) => (idValido(x) ? x : null)) };
+}
+
 // Une las auditorías de todas las hojas de una corrida (y sus 0-binario.json) en lo que consume compararHuellas.
 export function unirCorrida(hojas = []) {
   const ia = { llamadas: 0, request_ids: [], sin_id: 0 };
-  const costeo = { porFn: {}, ajenas: [], casos: 0, casosSinRc: 0 };
+  const costeo = { porFn: {}, ajenas: [], casos: 0, casosSinRc: 0, casosSinCrudas: 0, casosInconsistentes: 0 };
   const binarios = [];
   for (const h of hojas) {
     const a = h?.auditoria;
     if (a) {
       ia.llamadas += a.ia?.llamadas || 0; ia.request_ids.push(...(a.ia?.request_ids || [])); ia.sin_id += a.ia?.sin_id || 0;
-      for (const [f, n] of Object.entries(a.costeo?.porFn || {})) costeo.porFn[f] = (costeo.porFn[f] || 0) + n;
-      for (const f of a.costeo?.ajenas || []) if (!costeo.ajenas.includes(f)) costeo.ajenas.push(f);
+      const porFnHoja = a.costeo?.porFn || {};
+      for (const [f, n] of Object.entries(porFnHoja)) costeo.porFn[f] = (costeo.porFn[f] || 0) + n;
+      const crudas = Array.isArray(h.crudas) ? llamadasCrudas(h.crudas) : null;
+      if (!crudas) costeo.casosSinCrudas += 1;
+      else if (crudas.iaLlamadas !== (a.ia?.llamadas || 0) || canon(crudas.porFn) !== canon(porFnHoja)
+        || (crudas.ids && canon(crudas.ids) !== canon(a.ia?.request_ids || []))) costeo.casosInconsistentes += 1;
+      else if ((a.costeo?.rc || 0) !== (porFnHoja[FN_COSTEO_HOLDOUT] || 0)) costeo.casosInconsistentes += 1;
+      // Ajena = cualquier costear-servidor* que no sea la RC, venga de donde venga (resumen, porFn o crudas).
+      for (const f of [...(a.costeo?.ajenas || []), ...Object.keys(porFnHoja), ...Object.keys(crudas?.porFn || {})]) {
+        if (f !== FN_COSTEO_HOLDOUT && !costeo.ajenas.includes(f)) costeo.ajenas.push(f);
+      }
       costeo.casos += 1;
-      if (a.costeo?.costeable && !(a.costeo?.rc > 0)) costeo.casosSinRc += 1;
+      const rc = Math.min(porFnHoja[FN_COSTEO_HOLDOUT] || 0, crudas ? crudas.porFn[FN_COSTEO_HOLDOUT] || 0 : Infinity);
+      if (a.costeo?.costeable && !(rc > 0)) costeo.casosSinRc += 1;
     } else costeo.casosSinAuditoria = (costeo.casosSinAuditoria || 0) + 1;
     if (h?.binario) binarios.push(h.binario);
   }
@@ -74,6 +98,8 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     corrida && llamadasDescuadradas && `request_id (${ids.length}) ≠ llamadas de IA (${corrida.ia?.llamadas || 0})`,
     sinEvento.length && `evento de IA (ai_eventos con función, modo y model_id) para ${sinEvento.length} request(s): ${sinEvento.slice(0, 3).join(', ')}`,
     corrida && corrida.costeo?.casosSinAuditoria && `${corrida.costeo.casosSinAuditoria} hoja(s) sin auditoría de llamadas`,
+    corrida && corrida.costeo?.casosSinCrudas && `${corrida.costeo.casosSinCrudas} hoja(s) sin llamadas crudas (edges.json)`,
+    corrida && corrida.costeo?.casosInconsistentes && `${corrida.costeo.casosInconsistentes} hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)`,
     corrida && corrida.costeo?.casosSinRc && `${corrida.costeo.casosSinRc} caso(s) costeable(s) sin llamada a costear-servidor-rc`,
     corrida && !binarios.length && 'evidencia del binario (0-binario.json)',
     corrida && binarios.length && !Array.isArray(cambiosGit) && 'diferencias git entre el SHA congelado y el servido'].filter(Boolean);

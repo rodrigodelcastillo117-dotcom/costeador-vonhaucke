@@ -58,10 +58,11 @@ const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.a
 const leerJson = (f) => JSON.parse(fs.readFileSync(path.resolve(f), 'utf8'));
 const git = (...a) => { try { return execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8' }).trim(); } catch { return null; } };
 // v5: una corrida = un directorio con una carpeta por hoja (llamadas.json + 0-binario.json que escribe el E2E).
+// v5.1: también edges.json (llamadas crudas); el resumen tiene que cuadrar con ellas o no verifica.
 function leerCorrida(dir) {
   const hojas = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => {
     const leer = (f) => { const p = path.join(dir, d.name, f); return fs.existsSync(p) ? leerJson(p) : null; };
-    return { hoja: d.name, auditoria: leer('llamadas.json'), binario: leer('0-binario.json') };
+    return { hoja: d.name, auditoria: leer('llamadas.json'), binario: leer('0-binario.json'), crudas: leer('edges.json') };
   });
   return unirCorrida(hojas);
 }

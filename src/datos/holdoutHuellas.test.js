@@ -14,7 +14,7 @@ const edgesHoja = [
   { fn: 'costear-servidor-rc', body: { ok: true } },
 ];
 const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z' };
-const corridaDe = (edges, extra = {}) => unirCorrida([{ auditoria: auditarLlamadasCorrida(edges, extra), binario }]);
+const corridaDe = (edges, extra = {}) => unirCorrida([{ auditoria: auditarLlamadasCorrida(edges, extra), binario, crudas: edges }]);
 const hoy = { archivos: { 'src/motor/calculo.js': 'a1' }, db: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-11-01' }, edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
   modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: 'claude-opus-5', request_id: 'r1' }, { fn: 'analizar-mueble-rc', modo: 'imagen', model_id: 'claude-opus-5-5', request_id: 'r2' }],
   corrida: corridaDe(edgesHoja), cambiosGit: [] };
@@ -116,13 +116,54 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
   });
   it('C · binario: SHA del navegador ≠ git, sin 0-binario, o código cambiado entre el SHA congelado y el servido ⇒ no OK', () => {
     const otro = { ...binario, shaApp: 'fff0000' };
-    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario: otro }]) }).cambios)
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario: otro, crudas: edgesHoja }]) }).cambios)
       .toEqual(['binario: el navegador sirvió fff0000 y git era abc1234']);
-    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja) }]) }).falta).toContain('evidencia del binario (0-binario.json)');
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), crudas: edgesHoja }]) }).falta).toContain('evidencia del binario (0-binario.json)');
     expect(compararHuellas(M, { ...hoy, cambiosGit: ['src/App.jsx'] }).cambios).toEqual(['código cambiado después del congelamiento: src/App.jsx']);
     expect(compararHuellas(M, { ...hoy, cambiosGit: ['RELEASE_9_5_GATE.md', 'lab/costear/holdout_intelisis/MANIFIESTO.json'] }).estado).toBe('OK');
     expect(compararHuellas(M, { ...hoy, cambiosGit: undefined }).falta).toContain('diferencias git entre el SHA congelado y el servido');
     const { frontendSha, ...sinSha } = M;
     expect(compararHuellas(sinSha, hoy).falta).toContain('SHA del frontend en el MANIFIESTO');
+  });
+  // ---- v5.1 (reauditoría final): el verificador no confía en el resumen de llamadas ----
+  // Cada uno de estos casos daba OK con la v5: el verificador leía `ajenas` y `rc` de llamadas.json tal cual.
+  const conProd = [...edgesHoja, { fn: 'costear-servidor', body: {} }];
+  it('D · resumen con porFn {costear-servidor: 1} pero ajenas [] ⇒ CAMBIO (la Edge ajena se deriva de porFn)', () => {
+    const a = auditarLlamadasCorrida(conProd);
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, costeo: { ...a.costeo, ajenas: [] }, motivos: [] }, binario, crudas: conProd }]) });
+    expect(r.estado).toBe('CAMBIO'); expect(r.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
+    // y declarar otra fnEsperada en el archivo no la vuelve "propia": la RC esperada está fija en el verificador
+    const r2 = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, costeo: { ...a.costeo, fnEsperada: 'costear-servidor', ajenas: [] } }, binario, crudas: conProd }]) });
+    expect(r2.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
+  });
+  it('E · resumen que borra la llamada de producción pero las llamadas crudas la tienen ⇒ CAMBIO y NO cuadra', () => {
+    const limpio = auditarLlamadasCorrida(edgesHoja);   // resumen "limpio" de otra corrida
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: limpio, binario, crudas: conProd }]) });
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
+    expect(r.falta).toContain('1 hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)');
+  });
+  it('F · hoja sin llamadas crudas (edges.json) ⇒ NO_VERIFICADO: el resumen solo no basta', () => {
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario }]) });
+    expect(r.estado).toBe('NO_VERIFICADO'); expect(r.falta).toEqual(['1 hoja(s) sin llamadas crudas (edges.json)']);
+  });
+  it('G · resumen con rc: 5 pero sin ninguna llamada RC (en porFn ni en crudas) ⇒ NO_VERIFICADO', () => {
+    const sinRc = edgesHoja.filter((e) => e.fn !== 'costear-servidor-rc');
+    const a = auditarLlamadasCorrida(sinRc);
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: { ...a, costeo: { ...a.costeo, rc: 5 }, motivos: [] }, binario, crudas: sinRc }]) });
+    expect(r.estado).toBe('NO_VERIFICADO');
+    expect(r.falta).toEqual(expect.arrayContaining(['1 caso(s) costeable(s) sin llamada a costear-servidor-rc', '1 hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)']));
+  });
+  it('H · request_id del resumen distinto al de la llamada cruda (o una llamada de IA de más en crudas) ⇒ NO_VERIFICADO', () => {
+    const a = auditarLlamadasCorrida(edgesHoja);
+    const otroId = { ...a, ia: { ...a.ia, request_ids: ['r1', 'r9'] } };
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: otroId, binario, crudas: edgesHoja }]) }).falta)
+      .toContain('1 hoja(s) cuyo llamadas.json no cuadra con sus llamadas crudas (edges.json)');
+    const extra = [...edgesHoja, { fn: 'analizar-mueble-rc', request_id: null, body: '{"ok":true' }];
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: a, binario, crudas: extra }]) }).estado).toBe('NO_VERIFICADO');
+  });
+  it('las llamadas crudas como las guarda el E2E (body recortado como texto, request_id aparte) cuadran y dan OK', () => {
+    const guardadas = edgesHoja.map((e) => ({ ...e, ...(/^analizar-mueble/.test(e.fn) ? { request_id: e.body.request_id } : {}), body: JSON.stringify(e.body).slice(0, 6000) }));
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([{ auditoria: auditarLlamadasCorrida(edgesHoja), binario, crudas: guardadas }]) }).estado).toBe('OK');
   });
 });

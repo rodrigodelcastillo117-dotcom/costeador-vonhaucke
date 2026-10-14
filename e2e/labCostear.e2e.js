@@ -310,7 +310,11 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   }
   guarda('7-transferencia.json', transfer);
   console.log('[lab-costear] transferencia', JSON.stringify({ ...transfer, main: undefined }));
-  guarda('edges.json', edges.map((e) => ({ ...e, body: JSON.stringify(e.body || {}).slice(0, 6000), req: e.req ? JSON.stringify(e.req).slice(0, 6000) : null })));
+  // Holdout v5.1: el request_id de cada llamada de IA va aparte (el body se recorta a 6000 caracteres y lo perdía): el
+  // verificador compara estas llamadas crudas con el resumen llamadas.json.
+  const guardarCrudas = () => guarda('edges.json', edges.map((e) => ({ ...e, ...(/^analizar-mueble/.test(e.fn) ? { request_id: e.body?.request_id ?? null } : {}),
+    body: JSON.stringify(e.body || {}).slice(0, 6000), req: e.req ? JSON.stringify(e.req).slice(0, 6000) : null })));
+  guardarCrudas();
   const ultimoSrv = edges.filter((e) => e.fn.startsWith('costear-servidor')).pop();
   guarda('8-dto-servidor.json', { req: ultimoSrv?.req ?? null, res: ultimoSrv?.body ?? null });
   if (HOJA) {
@@ -324,6 +328,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // Holdout v5 (cierre pre-deploy): auditoría de TODAS las llamadas de la corrida, AL FINAL (no a mitad del test).
   // Cada llamada de IA lleva su request_id (una sin ID se queda como null: nunca se filtra); toda llamada costear-servidor*
   // fue EXACTAMENTE la RC; un caso costeable tuvo ≥ 1 llamada RC. El verificador (--corrida) lee llamadas.json.
+  guardarCrudas();   // otra vez al final, en el mismo instante que la auditoría: crudas y resumen salen del mismo `edges`
   const auditoria = auditarLlamadasCorrida(edges, { fnCosteo: FN_COSTEO, costeable: process.env.LAB_COSTEABLE !== '0' });
   guarda('llamadas.json', auditoria);
   guarda('ia_requests.json', auditoria.ia);
