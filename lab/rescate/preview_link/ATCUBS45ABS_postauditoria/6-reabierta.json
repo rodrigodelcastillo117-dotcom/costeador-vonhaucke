@@ -1,0 +1,45 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render PRUEBA RC · LAB postauditoria ATCUBS45ABS 1014-0139 BORRADOR mesa cubierta de trabajo rectangular (sobre de mesa/bench modelo App LT) Melamina de 28 mm",
+    "piezas": 3,
+    "mismoBom": true,
+    "costoAntes": "$1,068.48",
+    "costoDespues": "$1,068.48",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,068.48",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica + herraje (App LT) · 2 material(es) propuestos sin confirmar: Canto ABS perimetral 32×2 mm, Tapa registrable metálica + herraje (App LT) · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica + herraje (App LT) · 2 material(es) propuestos sin confirmar: Canto ABS perimetral 32×2 mm, Tapa registrable metálica + herraje (App LT) · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $667.80 · Mano de obra $100.17 · Fábrica $300.51",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1500×600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perimetral 32×2 mm",
+      "material": "Cubre canto blanco 32 x 2 mm",
+      "alertas": [
+        "⚠ Costo pendiente — confirma material (crítico: Solicitado 28 mm → candidato 2 mm). Usar Cubre canto blanco 32 x 2 mm (confirmar)"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica + herraje (App LT)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    }
+  ]
+}

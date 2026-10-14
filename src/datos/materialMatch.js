@@ -143,6 +143,14 @@ export function reconciliarMaterialServidor(comp = {}, resolver, catalogo = null
   let claseEf = pol.material_match;
   let idEf = pol.insumoId;
   let matchEf = pol._match;
+  // Auditoría 14-oct (paridad, lab ATCUBS45ABS): si el navegador mandó la pieza SIN material (pendiente), el servidor no
+  // le elige uno por su cuenta (p. ej. el genérico "Tapacanto PVC") y lo cobra: el costo del servidor dejaba de cuadrar
+  // con el de la pantalla. Se queda pendiente —con el candidato a la vista— y el costo queda incompleto en los dos lados.
+  if (!idTxt && idEf && !confirmar) {
+    return { ...comp, insumoId: '', material_match: MATCH.CANDIDATE_REQUIRES_CONFIRMATION,
+      _match: { ...(matchEf || {}), clase: MATCH.CANDIDATE_REQUIRES_CONFIRMATION, autocosteable: false, candidate_insumo_id: idEf,
+        motivo: 'La pieza llegó sin material elegido: el servidor no asigna uno por su cuenta. Elige o confirma el material.' } };
+  }
   // P0.12: EXACT desde una spec SIN provenance server-side (y sin confirmación) NO es autoridad
   // de emisión. Se degrada a provisional "por confirmar" (sigue costeando, pero no emite).
   if (claseEf === MATCH.EXACT && !origenSpecConfiable && !confirmar) {
@@ -427,8 +435,12 @@ function conflictoFormato(solicitado = '', insumoNombre = '', insumoFormato = nu
 // rebajarse al ras. Regla técnica con evidencia (REPORTE DEL COTIZADOR Intelisis 12/08/2026, lab/applt/componentes):
 // las 6 cubiertas de 28 mm llevan PEABS32 y los faldones de 16 mm, PEABS22. Sólo esos pares; lo demás sigue igual.
 const CANTO_POR_TABLERO_MM = Object.freeze({ 28: [32], 16: [22] });
+// Auditoría 14-oct (lab ATCUBS45ABS en el link de prueba): "Cubre canto blanco 32 x 2 mm" sólo daba [2] mm (el grosor), no
+// el ANCHO 32 que es el que cubre el tablero. Para el canto se toman también las medidas "A x B mm" del nombre.
+const anchosCantoMM = (t = '') => [...String(t).toLowerCase().matchAll(/\b(\d+(?:[.,]\d+)?)\s*(?:mm\s*)?[x×]\s*(\d+(?:[.,]\d+)?)\s*mm\b/g)]
+  .flatMap((m) => [m[1], m[2]].map((v) => Number(String(v).replace(',', '.')))).filter((n) => Number.isFinite(n) && n > 0);
 function cantoCubreTablero(solicitado = '', insumoNombre = '') {
-  const A = espesoresMM(solicitado), B = espesoresMM(insumoNombre);
+  const A = espesoresMM(solicitado), B = [...espesoresMM(insumoNombre), ...anchosCantoMM(insumoNombre)];
   return A.length > 0 && B.length > 0 && A.every((a) => (CANTO_POR_TABLERO_MM[a] || []).some((x) => B.includes(x)));
 }
 

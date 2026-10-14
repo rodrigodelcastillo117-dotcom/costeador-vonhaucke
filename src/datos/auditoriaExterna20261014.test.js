@@ -121,3 +121,23 @@ describe('P1-05/P1-06 · link de prueba', () => {
     expect(marcarExpedienteRc({ nombre: 'Librero' }, false)).toEqual({ nombre: 'Librero' });
   });
 });
+
+// Encontrados al repetir ATCUBS45ABS en el link de prueba tras la auditoría (no estaban en el informe).
+import { aplicarPoliticaMaterial, reconciliarMaterialServidor } from './materialMatch.js';
+import { INSUMOS_SEMILLA } from './insumos.js';
+describe('Paridad cliente/servidor del canto (lab en el link, 14-oct)', () => {
+  const cat = Object.fromEntries(INSUMOS_SEMILLA.map((x) => [x.id, x]));
+  const res = (id) => cat[id]; const vals = Object.values(cat);
+  const canto = { nombre: 'Canto ABS perimetral 32×2 mm', insumoId: 'cubrecanto-32', material_solicitado: 'Canto ABS para tablero de 28 mm (color a juego)', cantidad: 4.2 };
+  it('VH-182 completo: "Cubre canto blanco 32 x 2 mm" cubre un tablero de 28 mm (el 32 es el ancho; antes sólo leía el 2)', () => {
+    expect(aplicarPoliticaMaterial(canto, res, vals).material_match).not.toBe('SAME_FAMILY_CRITICAL_CONFLICT');
+  });
+  it('el servidor no asigna material a una pieza que llegó SIN material: queda pendiente, como en la pantalla', () => {
+    const r = reconciliarMaterialServidor({ ...canto, insumoId: '' }, res, vals, { puedeConfirmar: true });
+    expect(r.insumoId).toBe('');
+    expect(r.material_match).toBe('CANDIDATE_REQUIRES_CONFIRMATION');
+  });
+  it('con material elegido, cliente y servidor clasifican igual', () => {
+    expect(reconciliarMaterialServidor(canto, res, vals, { puedeConfirmar: true }).insumoId).toBe('cubrecanto-32');
+  });
+});
