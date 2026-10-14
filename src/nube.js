@@ -629,7 +629,9 @@ export async function actualizarExpediente(id, patch) {
 export async function listarExpedientes(q) {
   const { data, error } = await nube.from('expedientes')
     .select('id,creado,actualizado,nombre,etiquetas,estado,producto_tipo,render_aislado_url,costo')
-    .order('creado', { ascending: false }).limit(80);
+    // 14-oct: 154 de 157 expedientes son de QA; con 80 los reales no llegaban a la pantalla. La biblioteca oculta las
+    // pruebas en el cliente (filtrarBiblioteca) hasta etiquetarlas en el servidor (PROPUESTA_qa_archivar_expedientes).
+    .order('creado', { ascending: false }).limit(400);
   if (error) return { ok: false, error: error.message, items: [] };
   const term = (q || '').trim().toLowerCase();
   const items = term

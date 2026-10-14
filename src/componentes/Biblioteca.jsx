@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { listarExpedientes, obtenerExpediente } from '../nube.js';
 import { pesos } from '../util.js';
 import Cargando from './Cargando.jsx';
+import { filtrarBiblioteca } from '../datos/expedientesPrueba.js';
 
 export default function Biblioteca({ onAbrir, onNuevo, onInicio }) {
   const [q, setQ] = useState('');
@@ -14,6 +15,7 @@ export default function Biblioteca({ onAbrir, onNuevo, onInicio }) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [abriendo, setAbriendo] = useState(false);
+  const [mostrarPruebas, setMostrarPruebas] = useState(false);
 
   async function recargar(term) {
     setCargando(true); setError('');
@@ -48,13 +50,18 @@ export default function Biblioteca({ onAbrir, onNuevo, onInicio }) {
       </div>
 
       {error && <div className="alerta roja"><span className="texto">{error}</span></div>}
+      {(() => { const { ocultas } = filtrarBiblioteca(items, { mostrarPruebas }); return (ocultas > 0 || mostrarPruebas) && (
+        <label className="ayuda" style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '0 0 8px' }} data-testid="mostrar-pruebas">
+          <input type="checkbox" checked={mostrarPruebas} onChange={(e) => setMostrarPruebas(e.target.checked)} />
+          Mostrar pruebas (QA/RC){!mostrarPruebas && ocultas ? ` · ${ocultas} oculta(s)` : ''}
+        </label>); })()}
       {cargando ? (
         <Cargando titulo="Cargando biblioteca…" />
-      ) : items.length === 0 ? (
+      ) : filtrarBiblioteca(items, { mostrarPruebas }).visibles.length === 0 ? (
         <p className="ayuda">{q ? 'Nada coincide con tu búsqueda.' : 'Aún no hay productos guardados. Costea uno y toca "Guardar en biblioteca".'}</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-          {items.map((e) => (
+          {filtrarBiblioteca(items, { mostrarPruebas }).visibles.map((e) => (
             <button key={e.id} onClick={() => abrir(e.id)}
               style={{ textAlign: 'left', border: '1px solid var(--borde)', borderRadius: 10, overflow: 'hidden', background: 'var(--panel)', cursor: 'pointer', padding: 0 }}>
               <div style={{ aspectRatio: '4/3', background: '#eee', display: 'grid', placeItems: 'center' }}>
