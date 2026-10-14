@@ -1,8 +1,8 @@
 {
- "congeladoEn": "2026-10-14T14:46:44.861Z",
- "huellaTotal": "3b16fcc89762a598f26868be4b9f481af107ee79abab5e8489bde87ba5feb410",
+ "congeladoEn": "2026-10-14T14:49:43.671Z",
+ "huellaTotal": "1496aefd3f8d5c47ae933e8001bd8cc8918d80bd8e6c108ab2e3cb35e5856532",
  "nArchivos": 108,
- "frontendSha": "9890cd6addefda91ecf0dfb5f208dcc9ed21e710",
+ "frontendSha": "2bd5092fc510989bf1519c42205aacf33b896d2d",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
   "e2e/labCostear.e2e.js": "69ece1b79adaddbcb03aca9a72fedf81abfe83c145ad3b7864fce80c11aba1f8",
@@ -10,7 +10,7 @@
   "lab/costear/ciego_erp/correr.sh": "780d4f6f41de13c083970f56189819b5bdcf085706083fc790a23d8686a78d73",
   "lab/costear/ciego_erp/gen_hojas.py": "90b999e46d821e0a9de50ea34279d4f2ec5197bc2cd8ac1bc661d7a8293c7591",
   "lab/costear/holdout_intelisis/huellas_db.sql": "51b15d0c49be718c3d7df76903d099364309e76af534c65cd4438e1598951e15",
-  "lab/costear/holdout_intelisis/modelos_observados.sql": "77f209fc9e8c95b880f64947eb99db8a6ea7df1b532f23fb2571b53bf2287e53",
+  "lab/costear/holdout_intelisis/modelos_observados.sql": "28346b5355dbd8cd6e1cc1c936b0958ced9b85687ab23fa33433e070d844023a",
   "package-lock.json": "538a510235a23e6b74aef63b12aba3529781b40c5d9577cc1e2733c3dd8c0d7b",
   "scripts/congelar_holdout.mjs": "47873bfe658a99527ec26a346b4e9e121758c8a01ea152c6b430b2c27e4d7cb8",
   "src/datos/acabados.js": "bcd40a5a0ccfa43ab3f847eaab2a9b25a7a0b38bd7e9955ddf90f652f2e16508",
