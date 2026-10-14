@@ -9,26 +9,28 @@ todavía**: los debe entregar Compras.
 
 ## Reglas (se fijan ANTES de ver los datos)
 
-1. **Congelamiento v2** (reauditoría externa 14-oct, P1-02). Congelado el 14-oct con la huella `21538b2b527cc2f1…`.
-   - **Código:** sha256 de 39 archivos (motor, estado, materiales, Edge RC de costeo y de análisis con su prompt,
-     laboratorio, métricas, comparador y la propia consulta de huellas).
+1. **Congelamiento v3** (reauditoría externa v2, 14-oct, P1-02). Congelado el 14-oct con la huella `7bf697ca4b13bebd…`.
+   - **Código:** sha256 de **107 archivos**: el CIERRE TRANSITIVO de imports de las entradas (motor, estado, materiales,
+     Edge RC de costeo y de análisis, laboratorio, métricas, comparador), más el propio `congelar_holdout.mjs` y
+     `package-lock.json`. La v2 usaba una lista a mano de 39 archivos y dejaba fuera, entre otros, `reglasTaller.js` y
+     `acabados.js`. Un import que no resuelve aborta el congelamiento.
    - **Base de datos** (`huellas_db.sql` → `huellas_db_20261014.json`):
-     - `insumo_precios` con TODAS las columnas que mueven la selección o la certificación: precio, estado,
-       confidence, vigencias, aprobador, fecha, documento, unidad, factor, contrato, hash;
-     - `insumos_catalogo` con nombre, familia, clasificación, sección, atributos, unidad y activo;
-     - `config`;
-     - md5 de `catalogo_vigente`, `catalogo_motor` (pública y privada), `insumo_motor` y `buscar_insumos_motor`.
-   - **Edge desplegadas** (`edges_20261014.json`): `costear-servidor-rc` v17 y `analizar-mueble-rc` v8, con versión
-     y `ezbr_sha256`.
-2. **Antes de correr:** se vuelven a medir las huellas (`huellas_db.sql` con solo lectura, y la lista de Edge) y se
-   ejecuta:
-   `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json>`
-   - **exit 0 (OK):** se puede correr.
-   - **exit 1 (cambió algo):** la corrida **no cuenta**.
-   - **exit 2 (faltan huellas):** **no hay verificación**. Correr `--verificar` sin `--db`/`--edges` ya no puede
-     decir OK.
-   - **Modelo de IA:** el `model_id` que resolvió la Edge queda en `ai_eventos` por llamada. La corrida lo extrae y
-     lo reporta. No se congela el comportamiento del proveedor: cualquier cambio de modelo se ve en el reporte.
+     - `insumo_precios` con TODAS las columnas que mueven la selección o la certificación;
+     - `insumos_catalogo`, `config` y el md5 de `catalogo_vigente`, `catalogo_motor` (pública y privada), `insumo_motor`
+       y `buscar_insumos_motor`.
+     - Volví a medir a las 07:52: idéntica a la medición de las 06:24.
+   - **Edge desplegadas** (`edges_20261014b.json`): `costear-servidor-rc` v18 (`5b168508…`) y `analizar-mueble-rc` v8
+     (`f226b792…`).
+   - **Modelos de IA** (`modelosEsperados` en el manifiesto), por (fn, modo): texto → `claude-opus-5`; imagen y
+     revisión → `claude-opus-5-5`. El modelo sale de variables de entorno, que **no** cambian el SHA de la Edge: en
+     7 días la Edge RC resolvió tres modelos distintos.
+2. **Antes y después de correr:** se vuelven a medir las huellas (`huellas_db.sql`, solo lectura, y la lista de Edge).
+   Al terminar se extraen los modelos observados en la ventana de la corrida (`modelos_observados.sql`). Luego se ejecuta:
+   `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json> --modelos <modelos.json>`
+   - **exit 0 (OK):** la corrida cuenta.
+   - **exit 1 (cambió algo, incluido un modelo distinto al esperado):** la corrida **no cuenta**.
+   - **exit 2 (falta alguna de las tres huellas):** **no hay verificación**.
+   - Lo que no se puede congelar: el comportamiento interno del proveedor para un mismo `model_id`.
 3. **Entrada.**
    - Solo la descripción comercial y, si existe, el plano.
    - El despiece del ERP **no** se da a la app.
