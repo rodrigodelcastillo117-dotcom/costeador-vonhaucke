@@ -1,0 +1,81 @@
+{
+  "producto": "PATA TIPO \"U\" DE 600 X 720 mm MODELO APPS LT; METALICA -- ATPU2M",
+  "resumen": {
+    "esperados": 0,
+    "pass": 0,
+    "fail": 0,
+    "riesgo": 0,
+    "sobrantesNoPermitidos": 5,
+    "renglonesBom": 7,
+    "veredicto": "FAIL"
+  },
+  "filas": [],
+  "sobran": [
+    {
+      "nombre": "Tramo horizontal inferior (base de la U) PTR",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Montantes verticales de la U PTR",
+      "insumoId": "ptr-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Placa superior de fijación a cubierta (lámina)",
+      "insumoId": "lamina-14",
+      "permitido": false
+    },
+    {
+      "nombre": "Soldadura (uniones de la U)",
+      "insumoId": "soldadura",
+      "permitido": true
+    },
+    {
+      "nombre": "Pintura en polvo negro mate",
+      "insumoId": "pintura-polvo-negro",
+      "permitido": false
+    },
+    {
+      "nombre": "Nivelador cónico 3/8",
+      "insumoId": "nivelador",
+      "permitido": false
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "insumoId": "tornilleria",
+      "permitido": true
+    }
+  ],
+  "estadoServidor": "preliminar",
+  "respuestas": [
+    {
+      "pregunta": "¿Cuántas patas tipo U se requieren?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Qué sección y calibre de PTR lleva la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Color de pintura en polvo?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Los 720 mm son altura final con cubierta o sólo de la pata?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva niveladores roscados en los apoyos?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Lleva placa superior barrenada para fijar a cubierta?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    },
+    {
+      "pregunta": "¿Se requiere travesaño/viga de unión entre patas?",
+      "elegido": "(sin responder: el plano no lo dice)"
+    }
+  ]
+}

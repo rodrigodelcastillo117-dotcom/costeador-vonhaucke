@@ -1,0 +1,71 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render LAB ciego ATPU2M 1014-1447 BORRADOR otro pata estructural tipo \"U\" metálica (componente línea App LT)",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$527.50",
+    "costoDespues": "$527.50",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$527.50",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · 5 material(es) propuestos sin confirmar: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · 5 material(es) propuestos sin confirmar: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $293.06 · Mano de obra $58.61 · Fábrica $175.83",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Tramo horizontal inferior (base de la U) PTR",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Montantes verticales de la U PTR",
+      "material": "Tubo / PTR cal. 14",
+      "alertas": []
+    },
+    {
+      "nombre": "Placa superior de fijación a cubierta (lámina)",
+      "material": "Lamina de acero cal. 14",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Soldadura (uniones de la U)",
+      "material": "Soldadura",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Pintura en polvo negro mate",
+      "material": "Pintura en polvo negro mate 8 (Vitracoat)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («color especificado asume») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador cónico 3/8",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («roscado apoyo piso») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tornillería de fijación a cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («placa superior») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

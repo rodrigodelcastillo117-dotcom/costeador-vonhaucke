@@ -1,0 +1,19 @@
+{
+  "ia": {
+    "llamadas": 1,
+    "request_ids": [
+      "bebc8cfa-1194-4c43-904e-4b0ba230ecce"
+    ],
+    "sin_id": 0
+  },
+  "costeo": {
+    "fnEsperada": "costear-servidor-rc",
+    "porFn": {
+      "costear-servidor-rc": 5
+    },
+    "rc": 5,
+    "ajenas": [],
+    "costeable": true
+  },
+  "motivos": []
+}

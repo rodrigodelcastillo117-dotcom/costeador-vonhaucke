@@ -1,0 +1,16 @@
+{
+  "resultado": {
+    "precios": [
+      "$527.50",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · 5 material(es) propuestos sin confirmar: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · El servidor aún no validó este despiece.",
+    "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 5 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · 5 material(es) propuestos sin confirmar: Placa superior de fijación a cubierta (lámina), Soldadura (uniones de la U), Pintura en polvo negro mate, Nivelador cónico 3/8… · El servidor aún no validó este despiece.",
+    "validadores": [],
+    "linea": "Material $293.06 · Mano de obra $58.61 · Fábrica $175.83",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}
