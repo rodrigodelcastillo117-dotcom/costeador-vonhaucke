@@ -17,7 +17,7 @@
 // ============================================================================
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { calcular, modeloParaPieza, precioDe, costeoEmitible, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
+import { calcular, modeloParaPieza, precioDe, costeoEmitible, bomHash, PARAMETROS_DEFAULT, MOTOR_VERSION } from "../../../src/motor/calculo.js";
 import { dinero } from "../../../src/motor/dinero.js";
 import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
 // DTO ESTRICTO — la MISMA frontera que usa el cliente (sin duplicar lógica). Rechaza
@@ -35,6 +35,8 @@ import { esSolicitudCocrear, validarSolicitudCocrear, accesoACocreacion, piezaDe
 // Validador estructural determinista (el mismo que ve Costear): un bloqueo impide validar ingeniería.
 import { revisarEstructura } from "../../../src/datos/revisionEstructural.js";
 import { topeEstadoPorPoliticas } from "../../../src/datos/topeEstadoCosteo.js";
+// OP9.5-04 / P1-03: estado con motivos y aprobación humana sobre el PRECIO EXACTO usado (lógica pura compartida y probada).
+import { estadoBaseServidor, conMotivos, aprobacionPrecioExacto } from "../../../src/datos/autoridadCosteoServidor.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -123,9 +125,6 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
   const faltan: string[] = Array.isArray(r.componentesIgnorados) ? r.componentesIgnorados : [];
   const warnings: string[] = [];
   if (catalogoFuente === 'config-fallback') warnings.push('Catálogo central no disponible: costo con la configuración de respaldo. No cotices en firme.');
-  if (faltan.length) warnings.push(`${faltan.length} pieza(s) sin material/precio usable: ${faltan.join(", ")}`);
-  for (const b of emision.bloqueos?.formato_incompatible || []) warnings.push(b);
-  if (emision.bloqueos?.costo_invalido) warnings.push("Costo calculado inválido/no finito.");
 
   // --- EVIDENCIA desde catalogo_vigente (el costo sigue saliendo de config-legado;
   //     catalogo_vigente aporta SOLO el estado de evidencia por insumo usado). Aditivo. ---
@@ -146,33 +145,28 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
 
   // D3 (Dirección 2026-10-13): el juego genérico de tornillería es un supuesto, nunca precio certificable.
   const noCertificados = usados.filter((id) => !evMap[id] || !evMap[id].certificable || id === "tornilleria");
-  // Entrega A (Dirección 2026-10-13): "validado" exige que cada precio certificable tenga aprobación HUMANA. Las
-  // aprobaciones hechas por la cuenta de prueba (qa-*) o por procesos (reconciliacion) no cuentan. Sólo lectura.
-  let aprobacionHumana = false;
-  try {
-    if (usados.length && noCertificados.length === 0) {
-      const { data: ap } = await svc.from("insumo_precios").select("insumo_id, approved_by")
-        .in("insumo_id", usados).eq("estado", "aprobado").is("vigente_hasta", null);
-      const humano = (e: string | null) => !!e && /@/.test(e) && !/^qa-|^test|^prueba/i.test(e);
-      const conHumano = new Set((ap || []).filter((x: any) => humano(x.approved_by)).map((x: any) => x.insumo_id));
-      aprobacionHumana = usados.every((id) => conHumano.has(id));
-    }
-  } catch (_e) { aprobacionHumana = false; }
   const requierenValidacion = usados.filter((id) => evMap[id]?.requiere_validacion_compras);
+  // P1-03 (Operación 9.5): "aprobación humana" sobre el PRECIO EXACTO que usó el motor, con el rol de `permitidos` y la
+  // lista explícita `cuentas_no_humanas` (sin la tabla ⇒ nada cuenta como humano). Sustituye la regex por e-mail.
+  let aprob = { aprobacionHumana: false, precios: [] as any[], motivos: [] as string[] };
+  try {
+    if (usados.length) {
+      const { data: filasPrecio } = await svc.from("insumo_precios")
+        .select("id, insumo_id, precio, estado, confidence, vigente_desde, vigente_hasta, approved_by, approved_at, source_document")
+        .in("insumo_id", usados).is("vigente_hasta", null);
+      const emails = [...new Set((filasPrecio || []).map((f: any) => f.approved_by).filter(Boolean))];
+      const { data: perms } = emails.length ? await svc.from("permitidos").select("email, rol").in("email", emails) : { data: [] };
+      const nh = await svc.from("cuentas_no_humanas").select("email");
+      aprob = aprobacionPrecioExacto({ usados, insumos: insumos as any, filasPrecio: filasPrecio || [], permitidos: perms || [], noHumanas: nh.error ? null : (nh.data || []).map((x: any) => x.email) });
+    }
+  } catch (_e) { aprob = { aprobacionHumana: false, precios: [], motivos: ["No se pudo verificar la aprobación de los precios."] }; }
+  const aprobacionHumana = aprob.aprobacionHumana;
 
-  // ESTADO (4 valores). El costo es legado (tiene precio), por eso 'bloqueado' solo
-  // aplicaría en modo costo-desde-catálogo (futuro); hoy: incompleto | preliminar | certificado.
-  let estado: "certificado" | "preliminar" | "incompleto" | "bloqueado";
-  if (!emision.emitible || bloqueosIng.length) {
-    estado = "incompleto";
-    for (const o of bloqueosIng) warnings.push(`Ingeniería: ${o.mensaje}`);
-  } else if (noCertificados.length === 0) {
-    estado = "certificado";
-  } else {
-    estado = "preliminar";
-    warnings.push(`Costo preliminar — ${noCertificados.length} de ${usados.length} insumo(s) sin precio certificado.`);
-    if (requierenValidacion.length) warnings.push(`${requierenValidacion.length} insumo(s) requieren validación de Compras.`);
-  }
+  // ESTADO con motivos (OP9.5-04). 'incompleto' sólo si FALTA un dato; 'bloqueado' si el cálculo no es físicamente válido
+  // o Ingeniería está en rojo; un material "por confirmar" con precio real es 'preliminar' con su motivo, no 'incompleto'.
+  const base = estadoBaseServidor({ emision, bloqueosIng, noCertificados, usados, requierenValidacion });
+  let estado = base.estado as "certificado" | "preliminar" | "incompleto" | "bloqueado";
+  for (const w of base.warnings) if (!warnings.includes(w)) warnings.push(w);
   // P0.11: si hay algún material LEGACY_SELECTED, el estado se topa en 'preliminar' aunque TODOS
   // los precios estén certificados. Precio certificado del insumo ≠ selección certificada del
   // material para esa pieza; sólo migración/confirmación válida (USER_CONFIRMED) lo libera.
@@ -199,6 +193,14 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
     warnings.push("Costo con configuración de respaldo (no catálogo central): estado tope 'preliminar'. No es certificable.");
   }
 
+  // P1-03: 'certificado' exige aprobación HUMANA verificada de cada precio exacto usado. Sin ella, tope 'preliminar'.
+  if (estado === "certificado" && !aprobacionHumana) {
+    estado = "preliminar";
+    warnings.push(...(aprob.motivos.length ? aprob.motivos : ["Precios sin aprobación humana verificada."]));
+  }
+  const motivos = conMotivos(estado, warnings);
+  warnings.length = 0; warnings.push(...motivos);
+
   // --- SNAPSHOT reproducible ---
   const meta = {
     versionMotor: MOTOR_VERSION,
@@ -210,7 +212,7 @@ async function costearConMotor(svc: any, pieza: any, n: number, puedeConfirmar: 
     fuenteCosto: catalogoFuente,
     calculadoEn: new Date().toISOString(),
   };
-  return { r, emision, estado, aprobacionHumana, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos };
+  return { r, emision, estado, aprobacionHumana, preciosUsados: aprob.precios, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos, componentes: piezaReconciliada.componentes };
 }
 
 Deno.serve(async (req) => {
@@ -315,6 +317,21 @@ Deno.serve(async (req) => {
   if (k.respuesta) return k.respuesta;
   const { r, estado, aprobacionHumana, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros } = k;
 
+  // SEG-01b (Operación 9.5): registro AUTORITATIVO del costeo. Sólo service_role escribe aquí; la emisión exige que el
+  // renglón especial lleve este `costeoId` y que su costo coincida al centavo. Si la tabla no existe todavía (propuesta
+  // sin aplicar) el costeo sigue, sin costeoId, y lo dice: la emisión de producción no cambia hasta aplicar SEG-01b.
+  const huellaBom = bomHash(k.componentes || []);
+  let costeoId: string | null = null;
+  if (esDireccion || esDiseno) {
+    const { data: regC, error: regErr } = await svc.from("costeos_servidor").insert({
+      creado_por: email, rol, bom_hash: huellaBom, cantidad: n, costo_unitario: dinero(r.costoUnitario),
+      estado, aprobacion_humana: aprobacionHumana, version_motor: meta.versionMotor, version_catalogo: meta.versionCatalogo,
+      fuente_costo: meta.fuenteCosto, precios: k.preciosUsados || [], warnings,
+    }).select("id").single();
+    if (regErr) warnings.push("Costeo sin registro autoritativo (SEG-01b no aplicada): no servirá para emitir cuando se aplique.");
+    else costeoId = regC?.id ?? null;
+  }
+
   // Precio: SIEMPRE con el margen OBJETIVO del servidor (config/params), NUNCA del
   // body — el DTO ya rechazó cualquier `margen` del cliente. Modelo 'clásico' (Alba)
   // para producto nuevo, que es el caso de costear-servidor; 'intelisis' (líneas App
@@ -337,7 +354,7 @@ Deno.serve(async (req) => {
   if (!esDireccion && !esDiseno) {
     const warnComercial = estado === "certificado" ? []
       : estado === "preliminar" ? ["Precio preliminar: sujeto a confirmación de costos."]
-      : ["El costeo está incompleto; pídele a Diseño que lo complete antes de cotizar."];
+      : [estado === "bloqueado" ? "El costeo tiene un error técnico que Diseño debe corregir antes de cotizar." : "Al costeo le falta un material o precio; pídele a Diseño que lo complete antes de cotizar."];
     return json({
       ok: true, estado, piezas: n,
       precioVenta: hayPrecio ? precioVenta : null,
@@ -360,10 +377,10 @@ Deno.serve(async (req) => {
     componentesIgnorados: faltan,
   };
   const evidencia = { usados: usados.length, certificados: usados.length - noCertificados.length, noCertificados: noCertificados.length };
-  if (esDiseno) return json({ ok: true, estado, aprobacionHumana, piezas: n, costo: tecnico, evidencia, ...meta, catalogoFuente, warnings });
+  if (esDiseno) return json({ ok: true, estado, aprobacionHumana, costeoId, bomHash: huellaBom, piezas: n, costo: tecnico, evidencia, precios: k.preciosUsados || [], ...meta, catalogoFuente, warnings });
 
   // Dirección: todo (incluye precio, margen, desglose completo y evidencia).
-  return json({ ok: true, estado, aprobacionHumana, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, desglose: r, ...meta, catalogoFuente, warnings });
+  return json({ ok: true, estado, aprobacionHumana, costeoId, bomHash: huellaBom, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, precios: k.preciosUsados || [], desglose: r, ...meta, catalogoFuente, warnings });
 });
 
 function json(obj: unknown, status = 200) {

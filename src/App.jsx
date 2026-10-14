@@ -1188,7 +1188,8 @@ export default function App() {
       return { ok: false, error };
     }
     if (autoridad.estado === 'incompleto' || autoridad.estado === 'bloqueado') {
-      const error = `No se agregó: el costo autoritativo está ${autoridad.estado}.`;
+      const motivos = (Array.isArray(autoridad.warnings) ? autoridad.warnings : []).slice(0, 3).join(' · ');
+      const error = `No se agregó: el servidor marca el costo como ${autoridad.estado}${motivos ? ` — ${motivos}` : ''}.`;
       mostrarAviso(error, 8000);
       return { ok: false, error };
     }
@@ -1228,6 +1229,9 @@ export default function App() {
       costoUnitario: costoServidor,
       costoPendiente: false,
       costoEstado: autoridad.estado || null,
+      // SEG-01b: la emisión verifica en el servidor que este costo es el que registró costear-servidor.
+      costeoId: autoridad.costeoId || null,
+      bomHash: autoridad.bomHash || null,
       versionMotor: autoridad.versionMotor || null,
       versionCatalogo: autoridad.versionCatalogo || null,
       precioUnitario: precio,

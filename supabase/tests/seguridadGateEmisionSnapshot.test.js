@@ -564,3 +564,130 @@ describe('D2 sin ratificar ⇒ la emisión (SQL de producción) nunca lo trata c
     expect(g.reasons || []).not.toContain('linea_1_costo_preliminar_no_certificado');
   });
 });
+
+// ============================================================================
+//  SEG-01b (P0, Operación 9.5) · la emisión deja de confiar en la economía que escribió un navegador.
+//  Base: SQL EXACTO de producción + VH-035c (aplicado en producción: el wrapper resultante debe tener el md5 de
+//  producción cf6ef6a3…) + SEG-01 v1 + SEG-01b. Pruebas ADVERSARIALES: cliente que declara certificado, altera
+//  costo/precio/margen/total/validado_servidor/ProductRevision, o cambia el costeoId.
+// ============================================================================
+const SEG01B = 'supabase/migrations/PROPUESTA_seg01b_autoridad_costeo_servidor.sql';
+const MD5_WRAPPER_PROD = 'cf6ef6a30bbb68eb2b867f2bcdb7c846';
+
+describe('SEG-01b · autoridad del costeo en el servidor (adversarial)', () => {
+  let db;
+  const reg = async (o = {}) => (await db.query(
+    `insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, aprobacion_humana)
+     values ($1,$2,$3,$4,$5,$6,$7) returning id`,
+    [o.por ?? DIRECCION, o.rol ?? 'direccion', o.bom ?? 'bom-escritorio', o.cantidad ?? 1, o.costo ?? 6000, o.estado ?? 'certificado', o.humana ?? true])).rows[0].id;
+  const sembrar = async (extra = {}) => (await uno(db, DIRECCION,
+    `insert into public.cotizaciones(usuario, cliente, folio, partidas, total, piezas) values ($1, 'Cliente demo', 'COT-DEMO', $2::jsonb, 11600, 1) returning id`,
+    [VENDEDOR, JSON.stringify([{ ...COSTEADO, bomHash: 'bom-escritorio', ...extra }])])).id;
+
+  beforeAll(async () => {
+    db = await baseConPropuestas([VH035C]);
+    expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).toBe(MD5_WRAPPER_PROD); // base = producción
+    await db.exec(leer(PROPUESTA_SEG01));
+    await db.exec(leer(SEG01B));
+  }, 120_000);
+  afterAll(async () => { await db?.close(); });
+
+  it('control: costeo del servidor certificado, mismo despiece, cantidad y costo ⇒ ALLOWED y se emite', async () => {
+    const id = await sembrar({ costeoId: await reg() });
+    const snap = await snapshotFiel(db, id, { precioUnitario: 9500 });
+    expect((await evaluar(db, VENDEDOR, id, snap)).state).toBe('ALLOWED');
+    expect(await emitir(db, VENDEDOR, id, snap)).toMatchObject({ nueva: true, revision: 1 });
+  });
+
+  it('el navegador declara costoEstado "certificado" sin costeo del servidor ⇒ no se emite', async () => {
+    const id = await sembrar({ costoEstado: 'certificado', validado_servidor: true });
+    const snap = await snapshotFiel(db, id, { precioUnitario: 9500 });
+    const g = await evaluar(db, VENDEDOR, id, snap);
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(g.reasons).toContain('linea_1_sin_costeo_servidor');
+    await expect(emitir(db, VENDEDOR, id, snap)).rejects.toThrow();
+    expect(await revisiones(db, id)).toBe(0);
+  });
+
+  it('costo de la fila alterado (para inflar el margen) aunque el costeoId sea válido ⇒ no se emite', async () => {
+    const id = await sembrar({ costeoId: await reg({ costo: 9000 }), costoUnitario: 6000 });
+    const g = await evaluar(db, VENDEDOR, id, await snapshotFiel(db, id, { precioUnitario: 9500 }));
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(g.reasons).toContain('linea_1_costo_no_coincide_con_servidor');
+  });
+
+  it.each([
+    ['preliminar', { estado: 'preliminar' }, 'linea_1_costeo_servidor_no_certificado'],
+    ['sin aprobación humana (cuenta de prueba)', { humana: false }, 'linea_1_costeo_servidor_no_certificado'],
+    ['costeado por un vendedor', { rol: 'vendedor', por: VENDEDOR }, 'linea_1_costeo_sin_autoridad'],
+    ['de otro despiece', { bom: 'otro-bom' }, 'linea_1_costeo_de_otro_despiece'],
+    ['de otra cantidad', { cantidad: 20 }, 'linea_1_costeo_de_otra_cantidad'],
+  ])('registro %s ⇒ no se emite aunque la fila diga certificado', async (_n, o, motivo) => {
+    const id = await sembrar({ costeoId: await reg(o), costoEstado: 'certificado' });
+    const g = await evaluar(db, VENDEDOR, id, await snapshotFiel(db, id, { precioUnitario: 9500 }));
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(g.reasons).toContain(motivo);
+  });
+
+  it('costeoId inventado o con formato inválido ⇒ inexistente', async () => {
+    for (const cid of ['00000000-0000-0000-0000-000000000000', "x'; drop table cotizaciones;--"]) {
+      const id = await sembrar({ costeoId: cid });
+      const g = await evaluar(db, VENDEDOR, id, await snapshotFiel(db, id, { precioUnitario: 9500 }));
+      expect(g.reasons).toContain('linea_1_costeo_servidor_inexistente');
+    }
+  });
+
+  it('el VENDEDOR intenta cambiar costeoId y costo al guardar ⇒ se le despoja; se conserva lo de Dirección', async () => {
+    const bueno = await reg();
+    const barato = await reg({ costo: 100 });
+    const id = await sembrar({ costeoId: bueno });
+    const vista = await vistaDe(db, VENDEDOR, id);
+    await guardar(db, VENDEDOR, id, { partidas: vista.partidas.map((p) => ({ ...p, costeoId: barato, costoUnitario: 100 })), total: 11600, piezas: 1 });
+    const fila = (await db.query('select partidas from public.cotizaciones where id=$1', [id])).rows[0].partidas[0];
+    expect(fila.costeoId).toBe(bueno);
+    expect(Number(fila.costoUnitario)).toBe(6000);
+    // Con el costo real (6000), un precio de 7000 queda bajo el margen mínimo (30%) ⇒ requiere aprobación.
+    expect((await evaluar(db, VENDEDOR, id, await snapshotFiel(db, id, { precioUnitario: 7000 }))).state).toBe('APPROVAL_REQUIRED');
+  });
+
+  it('snapshot con economía falsa (certificado, validado_servidor, margen 99, total, costo 1) no mejora nada', async () => {
+    const id = await sembrar({ costeoId: await reg() });
+    const snap = await snapshotFiel(db, id, { precioUnitario: 7000, costoUnitario: 1, margen: 99, costoEstado: 'certificado', validado_servidor: true });
+    snap.total = 1; snap.totales = { ...snap.totales, margen: 99 };
+    const g = await evaluar(db, VENDEDOR, id, snap);
+    expect(['APPROVAL_REQUIRED', 'BLOCKED']).toContain(g.state);
+    expect(g.state).not.toBe('ALLOWED');
+  });
+
+  it('ProductRevision alterada en el snapshot ⇒ BLOCKED (no corresponde a lo costeado)', async () => {
+    const id = await sembrar({ costeoId: await reg() });
+    const g = await evaluar(db, VENDEDOR, id, await snapshotFiel(db, id, { precioUnitario: 9500, producto_version_id: 999 }));
+    expect(g.state).toBe('BLOCKED');
+  });
+
+  it('ni anon ni authenticated pueden leer ni escribir costeos_servidor ni cuentas_no_humanas', async () => {
+    for (const t of ['public.costeos_servidor', 'public.cuentas_no_humanas']) {
+      for (const r of ['anon', 'authenticated']) {
+        for (const p of ['select', 'insert', 'update', 'delete']) {
+          expect((await db.query(`select has_table_privilege($1, $2, $3) as ok`, [r, t, p])).rows[0].ok, `${r} ${p} ${t}`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it('transición: sólo si Dirección fija la fecha, las cotizaciones creadas antes conservan el trato histórico', async () => {
+    const id = await sembrar({ costoEstado: 'certificado' });
+    const snap = await snapshotFiel(db, id, { precioUnitario: 9500 });
+    expect((await evaluar(db, VENDEDOR, id, snap)).reasons).toContain('linea_1_sin_costeo_servidor'); // estricto por omisión
+    await db.exec(`update private_api.politica_emision_autoridad set legacy_sin_costeo_hasta = now() + interval '1 minute'`);
+    expect((await evaluar(db, VENDEDOR, id, snap)).state).toBe('ALLOWED');
+    await db.exec(`update private_api.politica_emision_autoridad set legacy_sin_costeo_hasta = null`);
+  });
+
+  it('rollback: el wrapper vuelve BYTE A BYTE al de producción', async () => {
+    const rb = leer(SEG01B).split('\n').filter((l) => l.startsWith('-- RB ')).map((l) => l.slice(6)).join('\n');
+    await db.exec(rb);
+    expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).toBe(MD5_WRAPPER_PROD);
+    await db.exec(leer(SEG01B)); // se reaplica para no afectar otros casos
+  });
+});
