@@ -151,3 +151,23 @@ describe('Pieza sin material (lab en el link, 14-oct)', () => {
     expect(clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'Tapa', insumoId: '', excluida: true }] }).estado).toBe(ESTADO_COSTO.VALIDADO);
   });
 });
+
+import { conservarMaterialesConfirmados } from './conservarConfirmados.js';
+describe('Smoke post-vh146c: las propuestas a hermanas sobreviven al recálculo (sin volverse confirmación)', () => {
+  it('librero: piso/techo/entrepaños propuestos con AME28152 no regresan a la melamina curada al aplicar respuestas', () => {
+    const previos = [
+      { nombre: 'Lateral', insumoId: 'erp-ame28152-b709', ...patchConfirmacionUI('erp-ame28152-b709') },
+      { nombre: 'Piso y techo', insumoId: 'erp-ame28152-b709', ...patchPropuestaHermana('erp-ame28152-b709', 'Lateral') },
+      { nombre: 'Respaldo', insumoId: 'melamina-16-walnut' },
+    ];
+    const nuevos = [
+      { nombre: 'Lateral', insumoId: 'melamina-28-walnut' },
+      { nombre: 'Piso y techo', insumoId: 'melamina-28-walnut' },
+      { nombre: 'Respaldo', insumoId: 'melamina-16-walnut' },
+    ];
+    const out = conservarMaterialesConfirmados(previos, nuevos);
+    expect(out[0]).toMatchObject({ insumoId: 'erp-ame28152-b709', material_confirmado: true });
+    expect(out[1]).toMatchObject({ insumoId: 'erp-ame28152-b709', material_confirmado: false, propagado_desde: 'Lateral' });
+    expect(out[2].insumoId).toBe('melamina-16-walnut');
+  });
+});

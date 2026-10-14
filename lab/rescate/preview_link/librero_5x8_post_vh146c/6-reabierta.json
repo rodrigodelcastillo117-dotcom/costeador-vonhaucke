@@ -1,0 +1,69 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render PRUEBA RC · LAB post-vh146c librero 1014-0323 BORRADOR guarda librero abierto Tablero melamina acabado nogal 28 mm",
+    "piezas": 7,
+    "mismoBom": true,
+    "costoAntes": "$6,238.64",
+    "costoDespues": "$6,238.64",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$6,238.64",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería/ensamble · 4 material(es) propuestos sin confirmar: Piso y techo, Entrepaño fijo, Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería/ensamble · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 1 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tornillería/ensamble · 4 material(es) propuestos sin confirmar: Piso y techo, Entrepaño fijo, Tapacanto PVC 2 mm Walnut cantos frontales, Tornillería/ensamble · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $3,884.66 · Mano de obra $588.49 · Fábrica $1,765.48",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Lateral",
+      "material": "AGLOMERADO MELAMINA DOS CARAS HOJA 5 X 8 ESPESOR 28 mm -- AME28152 · ACABADO MADERA WALNUT",
+      "alertas": []
+    },
+    {
+      "nombre": "Piso y techo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Entrepaño fijo",
+      "material": "Melamina 28 mm, Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Solicitado hoja 5×8 → candidato hoja 4×8 Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Respaldo",
+      "material": "Melamina 16 mm, Walnut",
+      "alertas": []
+    },
+    {
+      "nombre": "Tapacanto PVC 2 mm Walnut cantos frontales",
+      "material": "Tapacanto PVC",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Acabado/color distinto al solicitado Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Nivelador",
+      "material": "Nivelador conico cromado 3/8",
+      "alertas": []
+    },
+    {
+      "nombre": "Tornillería/ensamble",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («generica ensamble fijacion respaldo») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}
