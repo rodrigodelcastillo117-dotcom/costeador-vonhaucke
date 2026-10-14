@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Holdout Intelisis v3 (reauditoría externa v2, 14-oct, P1-02): los archivos son el CIERRE TRANSITIVO de imports de las
 // ENTRADAS (más este script, el comparador y package-lock.json) y los modelos de IA quedan congelados por (fn, modo).
-//   … --verificar --db <huellas.json> --edges <edges.json> --modelos <modelos_observados.json>
+//   … --verificar --db <huellas.json> --edges <edges.json> --modelos <modelos_observados.json> --requests <ia_requests.json>
+// v4 (reauditoría v3): [] de modelos no verifica; cada request de IA de la corrida exige su evento; correr.sh exige la Edge
+// de costeo RC exacta y que el navegador sirva el SHA y el árbol limpio que se congelaron.
 // Holdout Intelisis v2 (Operación 9.5 · reauditoría externa 14-oct, P1-02). Congela TODO lo que influye en el costo
 // antes de ver los muebles nuevos: código (archivos), base de datos (huellas_db.sql: precios con TODAS las columnas que
 // mueven selección/certificación, catálogo con nombre/familia/clasificación/sección, config, definiciones SQL de la vista
@@ -53,7 +55,8 @@ const leerJson = (f) => JSON.parse(fs.readFileSync(path.resolve(f), 'utf8'));
 if (process.argv.includes('--verificar')) {
   const m = JSON.parse(fs.readFileSync(path.join(RAIZ, SALIDA), 'utf8'));
   const r = compararHuellas(m, { archivos: huellas, db: arg('--db') ? leerJson(arg('--db')) : null, edges: arg('--edges') ? leerJson(arg('--edges')) : null,
-    modelos: arg('--modelos') ? leerJson(arg('--modelos')) : undefined });
+    modelos: arg('--modelos') ? leerJson(arg('--modelos')) : undefined,
+    requests: arg('--requests') ? leerJson(arg('--requests')) : undefined });
   if (r.cambios.length) { console.error(`HOLDOUT INVÁLIDO: cambió ${r.cambios.join(', ')}`); process.exit(1); }
   if (r.estado === 'NO_VERIFICADO') { console.error(`NO VERIFICADO: archivos idénticos, pero faltan ${r.falta.join(' y ')}.`); process.exit(2); }
   console.log(`OK: ${lista.length} archivos, base de datos, Edge y modelos idénticos al congelamiento (${m.huellaTotal.slice(0, 16)}).`);

@@ -8,7 +8,8 @@ const M = {
   modelosEsperados: { 'analizar-mueble-rc': { texto: 'claude-opus-5', imagen: 'claude-opus-5-5' } },
 };
 const hoy = { archivos: { 'src/motor/calculo.js': 'a1' }, db: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-11-01' }, edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
-  modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: 'claude-opus-5' }, { fn: 'analizar-mueble-rc', modo: 'imagen', model_id: 'claude-opus-5-5' }] };
+  modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: 'claude-opus-5', request_id: 'r1' }, { fn: 'analizar-mueble-rc', modo: 'imagen', model_id: 'claude-opus-5-5', request_id: 'r2' }],
+  requests: ['r1', 'r2'] };
 
 describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
   it('archivos, base y Edge idénticos ⇒ OK (la fecha de medición no cuenta)', () => {
@@ -43,7 +44,7 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
     expect(compararHuellas(M, { ...hoy, modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: null }] }).estado).toBe('CAMBIO');
   });
   it('sin modelos observados, o un manifiesto sin modelos esperados ⇒ NO_VERIFICADO (registrar no es congelar)', () => {
-    expect(compararHuellas(M, { ...hoy, modelos: undefined }).falta).toEqual(['modelos observados (--modelos)']);
+    expect(compararHuellas(M, { ...hoy, modelos: undefined }).falta).toEqual(['modelos observados (--modelos, no vacío)', 'evento de IA (ai_eventos) para 2 request(s): r1, r2']);
     const { modelosEsperados, ...sinModelos } = M;
     expect(compararHuellas(sinModelos, hoy).estado).toBe('NO_VERIFICADO');
   });
@@ -63,5 +64,16 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
       'src/datos/revisionEstructural.js', 'src/motor/dinamico.js', 'src/motor/medidas.js',
     ]);
     expect(cierreDeImports(['a.js'], (f) => (f === 'a.js' ? "import x from './no-existe.js'" : null))).toEqual(['FALTA:no-existe.js', 'a.js']);
+  });
+  // ---- v4 (reauditoría v3, P1-02) ----
+  it('modelos = [] (ventana vacía o telemetría caída) ⇒ NO_VERIFICADO, nunca OK', () => {
+    const r = compararHuellas(M, { ...hoy, modelos: [] });
+    expect(r.estado).toBe('NO_VERIFICADO');
+    expect(r.falta).toContain('modelos observados (--modelos, no vacío)');
+  });
+  it('cada request de IA de la corrida necesita su evento con model_id; sin --requests no verifica', () => {
+    expect(compararHuellas(M, { ...hoy, requests: ['r1', 'r2', 'r3'] }).falta).toEqual(['evento de IA (ai_eventos) para 1 request(s): r3']);
+    expect(compararHuellas(M, { ...hoy, requests: undefined }).falta).toEqual(['requests de IA de la corrida (--requests)']);
+    expect(compararHuellas(M, hoy).estado).toBe('OK');
   });
 });

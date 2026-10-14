@@ -12,6 +12,7 @@
 import { calcular as calcularMotor, modeloParaPieza as modeloMotor, pendientesDeCosteo as pendientesMotor } from '../motor/calculo.js';
 import { aCentavosEnteros, dinero } from '../motor/dinero.js';
 import { crearPartida } from './partida.js';
+import { identidadDeCosteo } from './validarIntentCosteo.js';
 
 /**
  * GATE AUTORITATIVO de "Costear especial → Agregar a cotización".
@@ -66,13 +67,15 @@ export async function partidaAutoritativaDeCosteo({ costeo, resultado, precio, m
     ? resultado.componentesExcluidos
     : (costeo.componentes || []).filter((c) => c && c.excluida).map((c) => c.nombre || 'Partida excluida');
 
+  // SEG-01c rev3: nombre y medidas son EXACTAMENTE la identidad que viajó al servidor con el despiece.
+  const idt = identidadDeCosteo(costeo);
   const partida = {
     id: nuevoId(),
     piezaId: costeo.piezaId || null,
-    nombre: costeo.nombre || 'Mueble a la medida',
+    nombre: idt.nombre,
     ruta: costeo.ruta || null,
     productoId: costeo.productoId || null,
-    w: costeo.w || null, d: costeo.d || null,
+    w: idt.w, d: idt.d,
     cantidad: n,
     costoUnitario: costoServidor,
     costoPendiente: false,

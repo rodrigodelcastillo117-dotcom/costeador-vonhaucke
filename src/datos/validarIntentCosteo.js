@@ -175,6 +175,19 @@ export function validarIntentCosteo(body) {
     }
   }
 
+  // SEG-01c rev3 (reauditoría v3, P0-01): IDENTIDAD del mueble que se costea, en la MISMA solicitud que el despiece.
+  // El servidor la guarda con el costeo y el primer vínculo a una partida exige esa misma identidad.
+  let identidadOk = null;
+  if (body.identidad != null) {
+    const idt = body.identidad;
+    if (typeof idt !== 'object' || Array.isArray(idt)) issues.push({ field: 'identidad', msg: 'identidad debe ser un objeto { nombre, w, d }.' });
+    else {
+      if (typeof idt.nombre !== 'string' || !idt.nombre.trim()) issues.push({ field: 'identidad.nombre', msg: 'identidad.nombre (texto) es obligatorio.' });
+      for (const k of ['w', 'd']) if (idt[k] != null && !(finito(idt[k]) && idt[k] >= 0 && idt[k] <= 100000)) issues.push({ field: `identidad.${k}`, msg: `identidad.${k} debe ser un número entre 0 y 100000 o null.` });
+      identidadOk = { nombre: typeof idt.nombre === 'string' ? idt.nombre.trim().slice(0, 200) : '', w: finito(idt.w) ? idt.w : null, d: finito(idt.d) ? idt.d : null };
+    }
+  }
+
   if (issues.length) return { ok: false, code: 'INVALID_INPUT', issues };
 
   const intent = {
@@ -183,6 +196,7 @@ export function validarIntentCosteo(body) {
     ...(body.contexto != null ? { contexto: body.contexto } : {}),
     cantidad,
     pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}), ...(dificultadOk != null ? { dificultad: dificultadOk } : {}) },
+    ...(identidadOk ? { identidad: identidadOk } : {}),
   };
   return { ok: true, intent };
 }
@@ -193,6 +207,15 @@ export function validarIntentCosteo(body) {
  * técnico. VH-036 (2026-10-11): el cliente mandaba `{...b}` completo, el servidor
  * respondía FORBIDDEN_FINANCIAL_FIELD y la comparación "sombra" nunca recibió nada.
  */
+/**
+ * Identidad comercial de un costeo: la que llevará la partida al agregarse a una cotización (agregarCosteo.js usa
+ * esta MISMA función) y la que viaja al servidor con el despiece. SEG-01c rev3 exige que coincidan en el primer vínculo.
+ */
+export function identidadDeCosteo(c = {}) {
+  const num = (x) => (x == null || x === '' ? null : (Number.isFinite(Number(x)) && Number(x) > 0 ? Number(x) : null));
+  return { nombre: (typeof c?.nombre === 'string' && c.nombre.trim()) || 'Mueble a la medida', w: num(c?.w), d: num(c?.d) };
+}
+
 export function intentDesdePieza(pieza, cantidad = 1) {
   const comps = Array.isArray(pieza?.componentes) ? pieza.componentes : [];
   const limpios = comps.map((c) => {
@@ -204,5 +227,6 @@ export function intentDesdePieza(pieza, cantidad = 1) {
     ? Object.fromEntries(Object.entries(pieza.horas).filter(([, h]) => Number.isFinite(h) && h >= 0))
     : undefined;
   const n = Math.max(1, Math.round(Number(cantidad) || 1));
-  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}) } };
+  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}) },
+    identidad: identidadDeCosteo(pieza) };
 }

@@ -13,7 +13,9 @@ describe('costearServidor · intención técnica saneada', () => {
   beforeEach(() => invoke.mockReset());
   it('intentDesdePieza quita margen/factores/modelo/precio/insumo y conserva lo técnico', () => {
     const i = intentDesdePieza(b, 2);
-    expect(i).toEqual({ cantidad: 2, pieza: { componentes: [{ nombre: 'Cubierta', insumoId: 'mdf-16', largoMM: 1200, anchoMM: 600, piezas: 1 }], horas: { pm: 1, carpinteria: 2 } } });
+    // SEG-01c rev3: además viaja la identidad del mueble (nombre/medidas), que no es económica.
+    expect(i).toEqual({ cantidad: 2, pieza: { componentes: [{ nombre: 'Cubierta', insumoId: 'mdf-16', largoMM: 1200, anchoMM: 600, piezas: 1 }], horas: { pm: 1, carpinteria: 2 } },
+      identidad: { nombre: 'Especial', w: null, d: null } });
     expect(validarIntentCosteo(i).ok).toBe(true);   // antes: FORBIDDEN_FINANCIAL_FIELD
   });
   it('la llamada al servidor lleva SÓLO la intención validada', async () => {
@@ -29,5 +31,17 @@ describe('costearServidor · intención técnica saneada', () => {
     expect(r.ok).toBe(false);
     expect(r.code).toBe('INVALID_INPUT');
     expect(invoke).not.toHaveBeenCalled();
+  });
+  it('SEG-01c rev3: la identidad viaja validada; una identidad mal formada no sale; la partida usa la MISMA identidad', async () => {
+    const v = validarIntentCosteo(intentDesdePieza({ ...b, nombre: '  Credenza  ', w: 1800, d: '450' }, 1));
+    expect(v.ok).toBe(true);
+    expect(v.intent.identidad).toEqual({ nombre: 'Credenza', w: 1800, d: 450 });
+    expect(validarIntentCosteo({ cantidad: 1, pieza: { componentes: b.componentes.map(({ precio, insumo, ...c }) => c) }, identidad: { nombre: '', w: -1 } }).code).toBe('INVALID_INPUT');
+    const { identidadDeCosteo } = await import('./validarIntentCosteo.js');
+    const { partidaAutoritativaDeCosteo } = await import('./agregarCosteo.js');
+    const costeo = { nombre: '  Credenza  ', w: 1800, d: '450', piezas: 1, componentes: [] };
+    const r = await partidaAutoritativaDeCosteo({ costeo, resultado: { costoUnitario: 100 }, precio: 200, margen: 50, pendientes: () => [], nuevoId: () => 'p1',
+      costearServidor: async () => ({ ok: true, estado: 'certificado', costo: { costoUnitario: 100 }, costeoId: null }) });
+    expect({ nombre: r.partida.nombre, w: r.partida.w, d: r.partida.d }).toEqual(identidadDeCosteo(costeo));
   });
 });

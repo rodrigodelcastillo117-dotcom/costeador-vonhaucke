@@ -24,6 +24,8 @@ import { tablaDeBaseline, vistaCatalogoVigenteProduccion, funcionDeMigracion, pr
 const P103B = 'supabase/migrations/PROPUESTA_p103b_precio_id_en_catalogo.sql';
 const VH088 = 'supabase/migrations/20261012043000_vh088_catalogo_motor.sql';
 const SEG01C_REV1 = 'supabase/tests/fixtures/seg01c_rev1_4ed8ac6.sql';
+const SEG01C_REV2 = 'supabase/tests/fixtures/seg01c_rev2_d5b45d6.sql';
+const ESTRICTO = `modo = 'estricto', version_motor_vigente = 'motor-1'`;   // rev3: estricto exige versión de motor
 const VENDEDOR2 = 'ventas2@vh.mx';
 const MD5_WRAPPER_PROD = 'cf6ef6a30bbb68eb2b867f2bcdb7c846';
 
@@ -33,6 +35,8 @@ const COSTEADO = {
   cantidad: 1, precioUnitario: 10000, costoUnitario: 6000,
   pieza: { componentes: [{ id: 'c1', nombre: 'Cubierta', largo: 1200, ancho: 600, insumoId: 'm16' }] },
 };
+// Identidad que Costear manda JUNTO con el despiece (rev3) = la de la partida que se agrega.
+const IDENTIDAD = { nombre: COSTEADO.nombre, medidas: COSTEADO.medidas, material: COSTEADO.material };
 // Precio aprobado por una persona de Dirección: id 900, melamina 16, $612.40.
 const TRAZA = [{ insumo_id: 'm16', precio_id: 900, precio_usado: 612.4, approved_by: DIRECCION, humana: true }];
 const PRECIO = (id, precio, desde) => `insert into public.insumo_precios (id, insumo_id, precio, estado, confidence, vigente_desde, approved_by, approved_at,
@@ -57,7 +61,7 @@ async function base({ seg01c = SEG01C, conP103b = true, conVh148b = true } = {})
   if (conVh148b) { await db.exec(leer(VH148)); await db.exec(leer(VH148B)); }
   await db.exec(leer(SEG01));
   await db.exec(leer(seg01c));
-  await db.exec(`update private_api.politica_emision_autoridad set modo = 'estricto'`);
+  await db.exec(`update private_api.politica_emision_autoridad set ${seg01c === SEG01C_REV1 ? "modo = 'estricto'" : ESTRICTO}`);
   return db;
 }
 
@@ -67,10 +71,11 @@ function ayudas(db) {
   // Como la Edge (service_role): registra el costeo con la huella de su base de costo.
   h.reg = async (o = {}) => (await db.query(
     `insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, aprobacion_humana, precios,
-       insumos_usados, base_costo_huella, version_motor)
-     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[], case when $10 then private_api.huella_base_costo($9::text[]) end, $11) returning id`,
+       insumos_usados, base_costo_huella, version_motor, identidad_origen, componentes_costeados)
+     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[], case when $10 then private_api.huella_base_costo($9::text[]) end, $11, $12::jsonb, $13::jsonb) returning id`,
     [o.por ?? DIRECCION, o.rol ?? 'direccion', o.bom ?? 'bom-escritorio', o.cantidad ?? 1, o.costo ?? 6000, o.estado ?? 'certificado',
-      o.humana ?? true, JSON.stringify(o.precios ?? TRAZA), o.insumos ?? ['m16'], o.base !== false, o.motor ?? 'motor-1'])).rows[0].id;
+      o.humana ?? true, JSON.stringify(o.precios ?? TRAZA), o.insumos ?? ['m16'], o.base !== false, o.motor ?? 'motor-1',
+      o.identidad === null ? null : JSON.stringify(o.identidad ?? IDENTIDAD), JSON.stringify(COSTEADO.pieza.componentes)])).rows[0].id;
   // Dirección guarda la cotización (a nombre del vendedor) con las partidas dadas.
   h.sembrar = async (partidas = [{ ...COSTEADO }]) => (await uno(db, DIRECCION,
     `insert into public.cotizaciones(usuario, cliente, folio, partidas, total, piezas) values ($1, 'Cliente demo', 'COT-DEMO', $2::jsonb, 11600, 1) returning id`,
@@ -240,8 +245,8 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
     } finally { await h.politica(`modo = 'estricto'`); }
   });
 
-  it('anon/authenticated no leen ni escriben costeos_servidor ni cuentas_no_humanas; huella_base_costo es sólo de service_role', async () => {
-    for (const t of ['public.costeos_servidor', 'public.cuentas_no_humanas']) for (const r of ['anon', 'authenticated']) for (const p of ['select', 'insert', 'update', 'delete']) {
+  it('anon/authenticated no leen ni escriben costeos_servidor, partida_costeo_vigente ni cuentas_no_humanas; huella_base_costo es sólo de service_role', async () => {
+    for (const t of ['public.costeos_servidor', 'public.cuentas_no_humanas', 'public.partida_costeo_vigente']) for (const r of ['anon', 'authenticated']) for (const p of ['select', 'insert', 'update', 'delete']) {
       expect((await db.query('select has_table_privilege($1, $2, $3) as ok', [r, t, p])).rows[0].ok, `${r} ${p} ${t}`).toBe(false);
     }
     for (const r of ['anon', 'authenticated']) {
@@ -373,7 +378,7 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
     const { id: id2 } = await h.legitima({ motor: 'motor-1' });
     await h.politica(`version_motor_vigente = 'motor-2'`);
     try { expect((await h.evaluar(id2)).reasons).toContain('linea_1_costeo_de_otra_version_de_motor'); }
-    finally { await h.politica('version_motor_vigente = null'); }
+    finally { await h.politica("version_motor_vigente = 'motor-1'"); }
   });
 
   it("P1-01: política 'congelar_al_costear' (decisión de Dirección) acepta el costo del día aunque la base cambie; por omisión NO", async () => {
@@ -396,15 +401,95 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
     expect(await h.motivos(id, DIRECCION)).toEqual([]);
   });
 
+  // ---------------- rev3 · P0-01 (v3) · identidad de origen ANTES del primer vínculo ----------------
+  it('P0-01 v3: el costeo de un ESCRITORIO no puede vincularse por primera vez a una MESA (misma cantidad, sin vínculo previo)', async () => {
+    const k = await h.reg();   // costeado como "Escritorio operativo melamina blanca"
+    const mesa = { ...COSTEADO, nombre: 'Mesa de juntas 12 personas', medidas: '480x140x75', costeoId: k };
+    const id = await h.sembrar([mesa]);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k)))?.message).toMatch(/otro mueble/);
+    expect((await db.query('select count(*)::int n from public.partida_costeo_vigente where costeo_id = $1', [k])).rows[0].n).toBe(0);
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_no_vinculado_a_esta_partida');
+  });
+
+  it('P0-01 v3: una partida que AÑADE material o medidas que no se declararon al costear tampoco se vincula; sin identidad, nada', async () => {
+    const k = await h.reg({ identidad: { nombre: COSTEADO.nombre } });
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);   // la partida dice medidas y material; el costeo no
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k)))?.message).toMatch(/otro mueble/);
+    const k2 = await h.reg({ identidad: null });
+    const id2 = await h.sembrar([{ ...COSTEADO, costeoId: k2 }]);
+    expect((await fallo(h.adjuntar(DIRECCION, id2, 'p1', k2)))?.message).toMatch(/no trae la identidad/);
+  });
+
+  it('P0-01 v3 sin falsos positivos: 120 = 120.0, espacios y null = ausente cuentan como la misma identidad', async () => {
+    const k = await h.reg({ identidad: { nombre: '  Credenza  ', w: 120, d: 45 } });
+    const id = await h.sembrar([{ id: 'p1', nombre: 'Credenza', w: 120.0, d: '45', h: null, medidas: '', cantidad: 1, precioUnitario: 10000, costeoId: k }]);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+  });
+
+  // ---------------- rev3 · P0-02 (v3) · recostear la misma partida ----------------
+  it('P0-02 v3: K1 queda viejo (cambia la base) → K2 nuevo SÍ se vincula a la misma partida; K1 queda reemplazado y no revive', async () => {
+    const { id, k: k1 } = await h.legitima();
+    await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,tarifaMO}', '120') where id = 'vonhaucke'`);
+    try {
+      expect((await h.evaluar(id)).reasons).toContain('linea_1_base_de_costo_cambio');
+      const k2 = await h.reg({ costo: 6400 });   // recosteo con la base nueva
+      expect(await h.adjuntar(DIRECCION, id, 'p1', k2)).toMatchObject({ ok: true });
+      expect(await h.fila(id)).toMatchObject({ costeoId: k2, costoUnitario: 6400 });
+      expect((await h.evaluar(id)).state).toBe('ALLOWED');
+      expect((await db.query('select reemplazado_por from public.costeos_servidor where id = $1', [k1])).rows[0].reemplazado_por).toBe(k2);
+      expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k1)))?.message).toMatch(/reemplazado/);
+      const otra = await h.sembrar([{ ...COSTEADO, costeoId: k1 }]);
+      expect((await fallo(h.adjuntar(DIRECCION, otra, 'p1', k1)))?.message).toMatch(/ya vinculado a otra partida/);
+    } finally { await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,tarifaMO}', '95') where id = 'vonhaucke'`); }
+  });
+
+  it('P0-02 v3: cambió el mueble → se recostea con la identidad nueva y el costeo nuevo se vincula a la misma partida', async () => {
+    const { id } = await h.legitima();
+    await h.guardarP1(id, { nombre: 'Escritorio ejecutivo 180', medidas: '180x80x75' });
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_partida_cambio_desde_el_costeo');
+    const k2 = await h.reg({ costo: 8100, identidad: { ...IDENTIDAD, nombre: 'Escritorio ejecutivo 180', medidas: '180x80x75' } });
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k2)).toMatchObject({ ok: true });
+    expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 13000 }))).state).toBe('ALLOWED');
+  });
+
+  // ---------------- rev3 · P1-01 (v3) · traspaso Diseño → Dirección ----------------
+  it('P1-01 v3: Diseño costea y vincula; Dirección guarda después y el re-vínculo es idempotente (no "otra persona")', async () => {
+    const k = await h.reg({ por: DISENO, rol: 'diseno' });
+    const id = await h.sembrar([{ ...COSTEADO, costeoId: k }]);
+    await h.adjuntar(DISENO, id, 'p1', k);
+    const v = await h.version(id);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true, idempotente: true, actualizado: v });
+    expect(await h.version(id)).toBe(v);   // idempotente: no escribe ni sube la versión
+    // …pero un costeo NUEVO de Diseño no lo puede vincular Dirección (robo de costeoId).
+    const k2 = await h.reg({ por: DISENO, rol: 'diseno' });
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k2)))?.message).toMatch(/otra persona/);
+  });
+
+  // ---------------- rev3 · P1-05 (v3) · activación estricta ----------------
+  it('P1-05 v3: no existe modo estricto sin versión de motor (CHECK); la RPC sólo la usa Dirección humana y exige versión', async () => {
+    expect((await fallo(db.exec(`update private_api.politica_emision_autoridad set version_motor_vigente = null`)))?.message).toMatch(/estricto_exige_version_motor/);
+    await db.exec(`insert into public.permitidos(email, rol) values ('qa-direccion@vonhaucke.mx', 'direccion') on conflict (email) do nothing`);
+    const activar = (email, m, f, v) => uno(db, email, 'select public.activar_autoridad_costeo($1, $2, $3) as r', [m, f, v]);
+    expect((await fallo(activar('qa-direccion@vonhaucke.mx', 'estricto', 'exigir_vigente', 'motor-1')))?.message).toMatch(/no autorizado/);
+    expect((await fallo(activar(VENDEDOR, 'estricto', 'exigir_vigente', 'motor-1')))?.message).toMatch(/no autorizado/);
+    expect((await fallo(activar(DISENO, 'estricto', 'exigir_vigente', 'motor-1')))?.message).toMatch(/no autorizado/);
+    expect((await fallo(activar(DIRECCION, 'estricto', 'exigir_vigente', '  ')))?.message).toMatch(/exige la versión de motor/);
+    expect((await activar(DIRECCION, 'estricto', 'exigir_vigente', 'motor-1')).r)
+      .toEqual({ modo: 'estricto', frescura: 'exigir_vigente', version_motor_vigente: 'motor-1', decidido_por: DIRECCION });
+    for (const r of ['anon', 'authenticated']) for (const pr of ['select', 'update']) {
+      expect((await db.query(`select has_table_privilege($1, 'private_api.politica_emision_autoridad', $2) as ok`, [r, pr])).rows[0].ok).toBe(false);
+    }
+  });
+
   it('rollback (líneas -- RB): el wrapper vuelve BYTE A BYTE al de producción y las funciones nuevas desaparecen', async () => {
     const rb = leer(SEG01C).split('\n').filter((l) => l.startsWith('-- RB ')).map((l) => l.slice(6)).join('\n');
     await db.exec(rb);
     try {
       expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).toBe(MD5_WRAPPER_PROD);
-      for (const f of ['public.adjuntar_costeo_a_partida(bigint, text, uuid, timestamptz)', 'private_api.huella_partida(jsonb)', 'public.huella_base_costo(text[])']) {
+      for (const f of ['public.adjuntar_costeo_a_partida(bigint, text, uuid, timestamptz)', 'private_api.huella_partida(jsonb)', 'public.huella_base_costo(text[])', 'public.activar_autoridad_costeo(text, text, text)', 'private_api.identidad_partida(jsonb)']) {
         expect((await db.query('select to_regprocedure($1) is null as no', [f])).rows[0].no, f).toBe(true);
       }
-    } finally { await db.exec(leer(SEG01C)); await h.politica(`modo = 'estricto'`); }
+    } finally { await db.exec(leer(SEG01C)); await h.politica(ESTRICTO); }
   });
 });
 
@@ -500,5 +585,33 @@ describe('ANTES · SEG-01c revisión 1 (4ed8ac6): los ataques de la reauditoría
     const { id } = await h.legitima();
     await db.exec(`update public.config set datos = jsonb_set(datos, '{parametros,tarifaMO}', '110') where id = 'vonhaucke'`);
     expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+});
+
+// ============================================================================
+//  ANTES: la revisión 2 (d5b45d6, la que auditó la reauditoría v3) contra sus dos P0. Cada caso documenta el defecto.
+// ============================================================================
+describe('ANTES · SEG-01c revisión 2 (d5b45d6): los dos P0 de la reauditoría v3 estaban presentes', () => {
+  let db, h;
+  beforeAll(async () => {
+    db = await base({ seg01c: SEG01C_REV2 }); h = ayudas(db);
+    h.reg = async (o = {}) => (await db.query(
+      `insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, aprobacion_humana, precios, insumos_usados, base_costo_huella, version_motor)
+       values ($1,'direccion','bom-escritorio',1,$2,'certificado',true,$3::jsonb,'{m16}', private_api.huella_base_costo('{m16}'), 'motor-1') returning id`,
+      [DIRECCION, o.costo ?? 6000, JSON.stringify(TRAZA)])).rows[0].id;
+  }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  it('P0-01 v3 (defecto): el costeo de un escritorio se vinculaba por primera vez a una mesa y quedaba ALLOWED', async () => {
+    const k = await h.reg();
+    const id = await h.sembrar([{ ...COSTEADO, nombre: 'Mesa de juntas 12 personas', medidas: '480x140x75', costeoId: k }]);
+    await h.adjuntar(DIRECCION, id, 'p1', k);
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('P0-02 v3 (defecto): recostear la misma partida era imposible (índice único por partida)', async () => {
+    const { id } = await h.legitima();
+    const k2 = await h.reg({ costo: 6400 });
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k2)))?.message).toMatch(/costeos_servidor_una_partida|duplicate|único|unique/i);
   });
 });

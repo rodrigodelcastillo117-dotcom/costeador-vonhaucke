@@ -7,8 +7,8 @@ prueba **falla con el código anterior**. "No verificable" no cuenta como PASS.
 |---|---|
 | Rama | `claude/costing-app-architecture-psf02g` (PR #37) |
 | Producción (cliente) | `c3.4-seller-safe` @ `c8dd2b3`. **Sin cambios.** |
-| Link RC | `dpl_HPsG8T32RJd9kzswNm6sD7odpvY1` (commit bf096aa, todo integrado) |
-| Edge RC | `costear-servidor-rc` @ 6d1cd13 |
+| Link RC | Preview de Vercel generado para el SHA del head de esta revisión (el id va en el paquete de auditoría y en el PR: un documento no puede llevar el deployment de su propio commit). El anterior `dpl_HPsG8T32RJd9kzswNm6sD7odpvY1` es de `bf096aa` y **ya no representa el código**. |
+| Edge RC | `costear-servidor-rc`: se redespliega con cada cambio de su código; versión y `ezbr_sha256` vigentes en `lab/costear/holdout_intelisis/edges_*.json` y en el paquete. |
 | SQL aplicado en producción en esta operación | **ninguno** (vh146c ya estaba aplicada) |
 
 ## 1. Veredicto
@@ -34,7 +34,7 @@ Después, el negocio **no puede emitir en firme** sin estas condiciones:
 
 | Área | Antes | Después | Evidencia | ¿≥ 9.5? | Por qué no más |
 |---|---|---|---|---|---|
-| SEG-01: emisión sin confiar en el cliente | 4 (gap abierto) | **8.0** (reauditoría v2: 6.0) | **SEG-01c rev 2**: huella de la definición de la partida fijada al vincular y exigida al emitir; CAS en el vínculo (exige VH-148b); canónica = ids numéricos (cierra el hueco de `productoId` de texto); frescura de precio por `precio_id` y de la base de costo (parámetros + catálogo + motor). 47 pruebas como sesión `authenticated` sobre la base de producción, más un bloque ANTES que demuestra que los 4 ataques pasaban con la revisión 1. | No | Sin aplicar. Política `frescura` es decisión de Dirección (por omisión fail-closed). VH-035c (producción) invalida el costo cuando el vendedor guarda un render (observación nueva). Sin concurrencia real ni E2E con base real. |
+| SEG-01: emisión sin confiar en el cliente | 4 (gap abierto) | **8.5** (reauditoría v3: 6.5 sobre la rev 2) | **SEG-01c rev 3**: identidad del mueble declarada con el despiece y exigida en el primer vínculo; vínculo vigente aparte (recostear K1→K2); traspaso Diseño→Dirección idempotente; estricto exige versión de motor. Rev 2: huella de la definición de la partida fijada al vincular y exigida al emitir; CAS en el vínculo (exige VH-148b); canónica = ids numéricos (cierra el hueco de `productoId` de texto); frescura de precio por `precio_id` y de la base de costo (parámetros + catálogo + motor). 47 pruebas como sesión `authenticated` sobre la base de producción, más un bloque ANTES que demuestra que los 4 ataques pasaban con la revisión 1. | No | Sin aplicar. Política `frescura` es decisión de Dirección (por omisión fail-closed). VH-035c (producción) invalida el costo cuando el vendedor guarda un render (observación nueva). Sin concurrencia real ni E2E con base real. |
 | Estado del costo (incompleto/preliminar) | 6 | **9** | Antes, el servidor devolvía `incompleto` con 0 motivos en el librero 5×8; ahora `preliminar` con 5 motivos (smoke vivo, exp. 159). 7 pruebas del estado, invariante "no certificado ⇒ con motivo". | No | Falta verlo en más familias vivas. |
 | P1-03: aprobación del precio exacto | 3 (regex por e-mail) | **8.5** (reauditoría: 7.8) | P1-03b (PROPUESTA): la vista expone `precio_id` y la Edge lo usa; la re-elección en JS queda como respaldo marcado en la traza. PGlite con la vista de producción (incluye el empate real 287). | No | Sin aplicar. 0 aprobaciones humanas reales. |
 | VH-100: costo oficial de líneas | 2 | **5** | Migración convertida en PROPUESTA (estaba en riesgo de `db push`). Hueco de rol por `user_metadata` cerrado. Historial y fin de la escritura directa. 6 pruebas que fallan con la versión anterior. | No | Falta el dato: 1,931/1,931 sin costo, 116 sin clave. **Bloqueado por Compras.** |
@@ -59,24 +59,19 @@ holdout) dependen de datos o de decisiones que no son de código.
 
 | Gate | Cómo se reproduce | Resultado |
 |---|---|---|
-| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | 339 archivos, 3,139 pruebas (bf096aa), ambos entornos; `vite build` OK |
-| SEG-01c adversarial | `npx vitest run supabase/tests/seg01cVinculoCosteo.test.js` | 47/47 (sesiones authenticated). El bloque ANTES carga la revisión 1 y demuestra que los ataques pasaban. |
+| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**'` y lo mismo con `VERCEL_ENV=preview CARRIL_RC=si` | Ver `CI_ESTADO.txt` del paquete de cada revisión (en `d5b45d6`: 343 archivos, 3,196 pruebas, build y E2E 93/0 fallas). |
+| SEG-01c adversarial | `npx vitest run supabase/tests/seg01cVinculoCosteo.test.js` | Sesiones authenticated sobre la base de producción. Dos bloques ANTES: la rev 1 y la rev 2 (la que auditó la reauditoría v3) contra sus ataques, que pasaban. |
 | VH-100 | `npx vitest run supabase/tests/cargarCostosOficiales.test.js`; con `VH100_MIG=<archivo viejo>` fallan 7 | 12/12 |
 | Estado y precio exacto | `npx vitest run src/datos/autoridadCosteoServidor.test.js` | 20/20 |
 | Smoke vivo | `lab/rescate/preview_link/librero_5x8_post_seg01b/` y `librero_5x8_integrado_bf096aa/` | 6/6, paridad al centavo, guardar y reabrir. Hubo una corrida FAIL intermedia (2649de8) por una regresión propia en la biblioteca, ya corregida. |
 | Edge RC | `scripts/edge_boot_check.sh costear-servidor-rc` y el workflow `deploy-edge.yml` run 38509149245 | arranca; despliegue OK |
-| Holdout v3 | `node scripts/congelar_holdout.mjs --verificar --db <huellas.json> --edges <edges.json> --modelos <modelos.json>` | Sin cualquiera de los tres: exit 2 (NO VERIFICADO). Un modelo distinto al esperado: exit 1. |
+| Holdout v4 | `node scripts/congelar_holdout.mjs --verificar --db … --edges … --modelos … --requests …` | Falta cualquiera, modelos vacíos o un request sin evento: exit 2. Un modelo distinto al esperado o cualquier cambio: exit 1. |
 
-## 4. Hallazgos nuevos al ejecutar lo que antes solo se leía (visibles con `it.fails`, sin tocar producción)
+## 4. Hallazgos ya corregidos en código (antes listados aquí como abiertos)
 
-- **P1 latente · medio centavo de diferencia entre JS y SQL.** `precioConDescuento(1000.10, 5)` da **950.09**, pero
-  `emitir_revision_v2` (desplegado) exige **950.10** y rechaza. Hoy no se dispara porque el descuento es global.
-  Saldrá cuando una línea traiga descuento propio. **Decisión:** qué regla de redondeo manda, y alinear la otra.
-- **P2 · la sombra cliente↔servidor redondea al peso el lado cliente.** El `diff` es distinto de 0 aunque la
-  paridad sea exacta. Solo afecta el diagnóstico.
-- **P2 · costo 0 "certificado".** Si cliente y servidor dicen costo 0 y estado `certificado`, se agrega la partida.
-  El servidor no debería producirlo (0 sin dato marca incompleto), pero el cliente no lo bloquea por su cuenta.
-
+- **Medio centavo JS↔SQL:** corregido; `precioConDescuento(1000.10, 5)` = 950.10, igual que `emitir_revision_v2`.
+- **Costo 0 "certificado":** corregido; CHECK en `costeos_servidor` y estado `incompleto` en el servidor de costeo.
+- **Abierto (P2):** la sombra cliente↔servidor redondea al peso del lado cliente; solo afecta el diagnóstico.
 
 ## 5. No verificable en esta operación (y por qué)
 

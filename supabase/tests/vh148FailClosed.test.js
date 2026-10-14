@@ -376,7 +376,7 @@ describe('VH-148b · COMPOSICIÓN con VH-035c, SEG-01 y SEG-01c', () => {
     const db = await baseProduccion();
     try {
       for (const f of [VH148, VH148B, SEG01, SEG01C]) await db.exec(leer(f));   // SEG-01c exige VH-148b antes
-      await db.exec(`update private_api.politica_emision_autoridad set modo = 'estricto'`);
+      await db.exec(`update private_api.politica_emision_autoridad set modo = 'estricto', version_motor_vigente = 'motor-1'`);   // rev3: estricto exige versión de motor
       const id = await sembrarCot(db);
       const vv = await vista(db, VENDEDOR, id);
       const precioLista = vv.partidas.reduce((s, p) => s + p.precioUnitario * p.cantidad, 0);

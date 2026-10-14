@@ -34,6 +34,22 @@
 --     + catalogo_motor de los insumos usados (formato, unidad, atributos, precio) y la versión del motor. Política
 --     `frescura`: 'exigir_vigente' (por omisión, fail-closed) o 'congelar_al_costear' — DECISIÓN DE DIRECCIÓN pendiente.
 --   · ACCESO (P2-02): motivos_autoridad_costeo verifica que la sesión sea dueña de la cotización o vea economía.
+--  REVISIÓN 3 (reauditoría externa v3, 14-oct · P0-01/P0-02/P1-01/P1-05):
+--   · IDENTIDAD DE ORIGEN (P0-01): la Edge recibe, en la MISMA solicitud que el despiece, la identidad del mueble
+--     (nombre, w, d) y la guarda en el costeo (`identidad_origen`) junto con el despiece costeado
+--     (`componentes_costeados`, para auditoría). El PRIMER vínculo exige que la identidad de la partida (nombre, w, d,
+--     h, medidas, material, descripción) sea EXACTAMENTE la declarada al costear. Atar el costeo de un escritorio a
+--     una mesa exige declarar en falso AL COSTEAR, y eso queda registrado con autor. Límite declarado: el servidor no
+--     puede saber que un despiece "es" una mesa; la identidad la declara quien costea (Dirección/Diseño).
+--   · RECOSTEO K1→K2 (P0-02): el vínculo VIGENTE vive en `partida_costeo_vigente` (una fila por partida). Un costeo
+--     sigue siendo de un solo uso (`costeos_servidor.cotizacion_id/partida_id` = dónde se consumió), pero la partida
+--     puede pasar a un costeo nuevo; el anterior queda `reemplazado_por`. Se quitó el índice único
+--     (cotizacion_id, partida_id) de `costeos_servidor`, que hacía imposible recostear.
+--   · TRASPASO DE ROL (P1-01): re-vincular el MISMO costeo vigente a la MISMA partida sin cambios es idempotente para
+--     cualquier Dirección/Diseño con acceso (Diseño costea, Dirección guarda). Ser el autor sólo se exige al vincular
+--     un costeo nuevo.
+--   · ACTIVACIÓN (P1-05): CHECK modo='estricto' ⇒ version_motor_vigente NOT NULL, y RPC
+--     `activar_autoridad_costeo(modo, frescura, version_motor)` sólo para Dirección humana (no cuentas_no_humanas).
 --  Lo que NO hace: no reescribe filas existentes, no toca precios, no cambia emitir_revision_v2 / asignar_folio_oficial /
 --  private_api.evaluar_emision_cotizacion (cuerpo de producción intacto).
 -- ============================================================================
@@ -66,21 +82,41 @@ create table if not exists public.costeos_servidor (
   -- Frescura de la base de costo (los escribe la Edge): huella de parámetros + catálogo de los insumos usados.
   insumos_usados text[] not null default '{}',
   base_costo_huella text,
-  -- Vínculo server-owned (lo escribe SÓLO adjuntar_costeo_a_partida).
+  -- Identidad del mueble declarada EN LA MISMA solicitud que el despiece, y el despiece costeado (auditoría).
+  identidad_origen jsonb,
+  componentes_costeados jsonb,
+  -- Dónde se CONSUMIÓ (un costeo, una partida, para siempre). El vínculo vigente vive en partida_costeo_vigente.
   cotizacion_id bigint references public.cotizaciones(id) on delete set null,
   partida_id text,
   vinculado_en timestamptz,
   vinculado_por text,
-  partida_huella text,   -- md5 de la definición de la partida al vincular (lo calcula el servidor)
+  reemplazado_por uuid,  -- recosteo: el costeo que lo sustituyó en esa partida
+  reemplazado_en timestamptz,
   constraint costeo_certificado_positivo check (estado <> 'certificado' or costo_unitario > 0),
-  constraint costeo_vinculo_completo check ((cotizacion_id is null) = (partida_id is null) and (cotizacion_id is null) = (partida_huella is null))
+  constraint costeo_vinculo_completo check ((cotizacion_id is null) = (partida_id is null))
 );
-create unique index if not exists costeos_servidor_una_partida on public.costeos_servidor (cotizacion_id, partida_id) where cotizacion_id is not null;
 comment on table public.costeos_servidor is
   'SEG-01c · costeo autoritativo. Lo escribe la Edge costear-servidor (service_role); el vínculo a (cotización, partida) sólo adjuntar_costeo_a_partida. La emisión exige vínculo, certificación, frescura y costo idéntico.';
 alter table public.costeos_servidor enable row level security;
 revoke all on table public.costeos_servidor from public, anon, authenticated;
 grant select, insert on table public.costeos_servidor to service_role;
+
+-- Vínculo VIGENTE: una fila por (cotización, partida); un costeo vigente en a lo más una partida.
+create table if not exists public.partida_costeo_vigente (
+  cotizacion_id bigint not null references public.cotizaciones(id) on delete cascade,
+  partida_id text not null,
+  costeo_id uuid not null references public.costeos_servidor(id),
+  partida_huella text not null,   -- md5 de la definición de la partida al vincular (lo calcula el servidor)
+  vinculado_por text not null,
+  vinculado_en timestamptz not null default now(),
+  primary key (cotizacion_id, partida_id)
+);
+create unique index if not exists partida_costeo_vigente_costeo on public.partida_costeo_vigente (costeo_id);
+comment on table public.partida_costeo_vigente is
+  'SEG-01c rev3 · costeo vigente de cada partida especial. Sólo lo escribe adjuntar_costeo_a_partida; recostear lo reemplaza (el costeo anterior queda reemplazado_por).';
+alter table public.partida_costeo_vigente enable row level security;
+revoke all on table public.partida_costeo_vigente from public, anon, authenticated;
+grant select on table public.partida_costeo_vigente to service_role;
 
 create table if not exists public.cuentas_no_humanas (
   email text primary key,
@@ -106,7 +142,9 @@ create table if not exists private_api.politica_emision_autoridad (
   -- Versión del motor desplegada; si se fija, un costeo de otra versión no emite (lo pone el runbook de despliegue).
   version_motor_vigente text,
   decidido_por text,
-  decidido_en timestamptz
+  decidido_en timestamptz,
+  -- P1-05: no hay modo estricto sin versión de motor fijada (la frescura de motor no puede quedar apagada por olvido).
+  constraint estricto_exige_version_motor check (modo <> 'estricto' or nullif(btrim(version_motor_vigente), '') is not null)
 );
 insert into private_api.politica_emision_autoridad(id) values (true) on conflict (id) do nothing;
 revoke all on table private_api.politica_emision_autoridad from public, anon, authenticated;
@@ -149,6 +187,55 @@ returns text language sql stable set search_path to 'pg_catalog', 'public', 'pri
 revoke all on function public.huella_base_costo(text[]) from public, anon, authenticated;
 grant execute on function public.huella_base_costo(text[]) to service_role;
 
+-- Identidad comercial de una partida (lo que el documento promete): nombre, medidas y material. Texto recortado,
+-- números como número (120 = 120.0), null/'' = ausente. La misma proyección se aplica a la identidad declarada al costear.
+create or replace function private_api.identidad_partida(p jsonb)
+returns jsonb language sql immutable set search_path to 'public' as $$
+  select case when jsonb_typeof(p) <> 'object' then null else jsonb_strip_nulls(jsonb_build_object(
+    'nombre', nullif(btrim(p->>'nombre'), ''),
+    'w', case when jsonb_typeof(p->'w') = 'number' then p->'w' when btrim(p->>'w') ~ '^[0-9]+(\.[0-9]+)?$' then to_jsonb(btrim(p->>'w')::numeric) end,
+    'd', case when jsonb_typeof(p->'d') = 'number' then p->'d' when btrim(p->>'d') ~ '^[0-9]+(\.[0-9]+)?$' then to_jsonb(btrim(p->>'d')::numeric) end,
+    'h', case when jsonb_typeof(p->'h') = 'number' then p->'h' when btrim(p->>'h') ~ '^[0-9]+(\.[0-9]+)?$' then to_jsonb(btrim(p->>'h')::numeric) end,
+    'medidas', nullif(btrim(p->>'medidas'), ''),
+    'material', nullif(btrim(p->>'material'), ''),
+    'descripcion', nullif(btrim(p->>'descripcion'), ''))) end $$;
+revoke all on function private_api.identidad_partida(jsonb) from public, anon;
+grant execute on function private_api.identidad_partida(jsonb) to authenticated, service_role;
+
+-- P1-05 · activación atómica: sólo Dirección HUMANA (permitidos=direccion y fuera de cuentas_no_humanas); estricto exige
+-- versión de motor (además del CHECK). Nadie más escribe la política (sin grants sobre la tabla).
+create or replace function private_api.activar_autoridad_costeo(p_modo text, p_frescura text, p_version_motor text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'private_api' as $$
+declare v_email text := lower(coalesce(auth.jwt()->>'email', '')); v_pol record;
+begin
+  if v_email = '' or coalesce((select lower(rol) from public.permitidos where lower(email) = v_email limit 1), '') <> 'direccion'
+     or to_regclass('public.cuentas_no_humanas') is null
+     or exists (select 1 from public.cuentas_no_humanas where lower(email) = v_email) then
+    raise exception 'no autorizado: sólo una persona de Dirección cambia la política de autoridad';
+  end if;
+  if p_modo not in ('preparado', 'estricto') then raise exception 'modo inválido: %', p_modo; end if;
+  if p_frescura not in ('exigir_vigente', 'congelar_al_costear') then raise exception 'frescura inválida: %', p_frescura; end if;
+  if p_modo = 'estricto' and nullif(btrim(p_version_motor), '') is null then
+    raise exception 'el modo estricto exige la versión de motor desplegada';
+  end if;
+  update private_api.politica_emision_autoridad
+     set modo = p_modo, frescura = p_frescura, version_motor_vigente = nullif(btrim(p_version_motor), ''),
+         decidido_por = v_email, decidido_en = now()
+   where id returning * into v_pol;
+  return jsonb_build_object('modo', v_pol.modo, 'frescura', v_pol.frescura, 'version_motor_vigente', v_pol.version_motor_vigente,
+    'decidido_por', v_pol.decidido_por);
+end $$;
+revoke all on function private_api.activar_autoridad_costeo(text, text, text) from public, anon;
+grant execute on function private_api.activar_autoridad_costeo(text, text, text) to authenticated;
+create or replace function public.activar_autoridad_costeo(p_modo text, p_frescura text, p_version_motor text)
+returns jsonb language plpgsql set search_path to 'pg_catalog', 'public', 'private_api' as $$
+begin
+  if auth.uid() is null then raise exception 'no autenticado'; end if;
+  return private_api.activar_autoridad_costeo(p_modo, p_frescura, p_version_motor);
+end $$;
+revoke all on function public.activar_autoridad_costeo(text, text, text) from public, anon;
+grant execute on function public.activar_autoridad_costeo(text, text, text) to authenticated;
+
 -- ----------------------------------------------------------------------------
 -- Vínculo autoritativo costeo → (cotización, partida). Un solo uso, con CAS. El servidor escribe la economía del
 -- renglón y la huella de su definición.
@@ -157,7 +244,7 @@ create or replace function private_api.adjuntar_costeo_a_partida(p_cotizacion_id
 returns jsonb language plpgsql security definer set search_path to 'public', 'private_api' as $$
 declare
   v_email text := lower(coalesce(auth.jwt()->>'email', ''));
-  v_rol text; v_c record; v_k record; v_i int; v_p jsonb; v_nueva jsonb; v_cant integer; v_act timestamptz; v_iso text; v_huella text;
+  v_rol text; v_c record; v_k record; v_vig record; v_i int; v_p jsonb; v_nueva jsonb; v_cant integer; v_act timestamptz; v_iso text; v_huella text;
 begin
   if p_actualizado_esperado is null then
     raise exception 'VERSION_REQUIRED: falta p_actualizado_esperado (el actualizado que devolvió tu guardado)'
@@ -177,10 +264,6 @@ begin
   end if;
   select * into v_k from public.costeos_servidor where id = p_costeo_id for update;
   if not found then raise exception 'costeo inexistente'; end if;
-  if lower(v_k.creado_por) <> v_email then raise exception 'el costeo lo hizo otra persona: recostea'; end if;
-  if v_k.cotizacion_id is not null and (v_k.cotizacion_id <> p_cotizacion_id or v_k.partida_id <> p_partida_id) then
-    raise exception 'costeo ya vinculado a otra partida: recostea (un costeo, una partida)';
-  end if;
   select ord - 1, value into v_i, v_p from jsonb_array_elements(coalesce(v_c.partidas, '[]'::jsonb)) with ordinality d(value, ord)
    where value->>'id' = p_partida_id limit 1;
   if v_i is null then raise exception 'partida % no existe en la cotizacion', p_partida_id; end if;
@@ -189,11 +272,32 @@ begin
      and coalesce(v_p->>'producto_version_id', v_p->>'productoVersionId', v_p->>'product_version_id', '') ~ '^[0-9]+$' then
     raise exception 'partida canónica: su costo es el de producto_version_economia';
   end if;
+  select * into v_vig from public.partida_costeo_vigente where cotizacion_id = p_cotizacion_id and partida_id = p_partida_id for update;
+
+  -- (A) Re-vincular el costeo VIGENTE de esta partida: idempotente para cualquier Dirección/Diseño con acceso (traspaso de
+  --     rol), y NO lava un cambio: la definición tiene que seguir siendo la que se vinculó.
+  if v_vig.costeo_id = p_costeo_id then
+    if v_vig.partida_huella <> private_api.huella_partida(v_p) then
+      raise exception 'la partida cambió desde que se vinculó este costeo: recostea';
+    end if;
+    return jsonb_build_object('ok', true, 'cotizacion_id', p_cotizacion_id, 'partida_id', p_partida_id, 'costeo_id', p_costeo_id,
+      'estado', v_k.estado, 'idempotente', true, 'actualizado', to_json(v_c.actualizado)#>>'{}');
+  end if;
+
+  -- (B) Costeo NUEVO para esta partida (primer vínculo o recosteo K1→K2).
+  if v_k.cotizacion_id is not null then
+    if v_k.cotizacion_id = p_cotizacion_id and v_k.partida_id = p_partida_id then
+      raise exception 'ese costeo ya fue reemplazado en esta partida: usa el vigente o recostea';
+    end if;
+    raise exception 'costeo ya vinculado a otra partida: recostea (un costeo, una partida)';
+  end if;
+  if lower(v_k.creado_por) <> v_email then raise exception 'el costeo lo hizo otra persona: recostea'; end if;
   begin v_cant := nullif(v_p->>'cantidad', '')::integer; exception when others then v_cant := null; end;
   if v_cant is distinct from v_k.cantidad then raise exception 'la partida tiene otra cantidad (% vs %): recostea', v_cant, v_k.cantidad; end if;
-  -- Re-vincular (cada guardado puede hacerlo) NO lava un cambio de la partida: la huella debe seguir siendo la misma.
-  if v_k.partida_huella is not null and v_k.partida_huella <> private_api.huella_partida(v_p) then
-    raise exception 'la partida cambió desde que se vinculó este costeo: recostea';
+  -- P0-01: la partida es el MISMO mueble que se declaró al costear (identidad declarada junto con el despiece).
+  if v_k.identidad_origen is null then raise exception 'el costeo no trae la identidad del mueble: recostea'; end if;
+  if private_api.identidad_partida(v_p) is distinct from private_api.identidad_partida(v_k.identidad_origen) then
+    raise exception 'el costeo es de otro mueble (nombre/medidas/material distintos a los declarados al costear): recostea';
   end if;
   v_nueva := v_p || jsonb_build_object('costoUnitario', v_k.costo_unitario, 'costoEstado', v_k.estado, 'costeoId', v_k.id::text, 'bomHash', v_k.bom_hash);
   update public.cotizaciones set partidas = jsonb_set(partidas, array[v_i::text], v_nueva)
@@ -201,9 +305,15 @@ begin
   returning actualizado, partidas->v_i into v_act, v_nueva;
   -- Huella de lo que QUEDÓ guardado (los triggers de escritura pueden normalizar la partida).
   v_huella := private_api.huella_partida(v_nueva);
+  if v_vig.costeo_id is not null then
+    update public.costeos_servidor set reemplazado_por = p_costeo_id, reemplazado_en = now() where id = v_vig.costeo_id;
+  end if;
+  insert into public.partida_costeo_vigente(cotizacion_id, partida_id, costeo_id, partida_huella, vinculado_por)
+  values (p_cotizacion_id, p_partida_id, p_costeo_id, v_huella, v_email)
+  on conflict (cotizacion_id, partida_id) do update
+    set costeo_id = excluded.costeo_id, partida_huella = excluded.partida_huella, vinculado_por = excluded.vinculado_por, vinculado_en = now();
   update public.costeos_servidor
-     set cotizacion_id = p_cotizacion_id, partida_id = p_partida_id, partida_huella = v_huella,
-         vinculado_en = coalesce(vinculado_en, now()), vinculado_por = coalesce(vinculado_por, v_email)
+     set cotizacion_id = p_cotizacion_id, partida_id = p_partida_id, vinculado_en = now(), vinculado_por = v_email
    where id = p_costeo_id;
   -- `actualizado`: la escritura sube la versión (VH-148b); el cliente la adopta y la encadena al siguiente vínculo.
   return jsonb_build_object('ok', true, 'cotizacion_id', p_cotizacion_id, 'partida_id', p_partida_id, 'costeo_id', p_costeo_id,
@@ -227,7 +337,7 @@ grant execute on function public.adjuntar_costeo_a_partida(bigint, text, uuid, t
 create or replace function private_api.motivos_autoridad_costeo(p_cotizacion_id bigint)
 returns text[] language plpgsql stable security definer set search_path to 'public', 'private_api' as $$
 declare
-  v_c record; v_p jsonb; v_ord bigint; v_out text[] := '{}'; v_cid text; v_r record; v_hasta timestamptz;
+  v_c record; v_p jsonb; v_ord bigint; v_out text[] := '{}'; v_cid text; v_r record; v_vig record; v_hasta timestamptz;
   v_costo numeric; v_cant integer; v_e jsonb; v_fresco boolean; v_pol record;
   v_vista_con_pid boolean := exists (select 1 from pg_attribute where attrelid = to_regclass('public.catalogo_vigente')
                                       and attname = 'precio_id' and not attisdropped);
@@ -252,11 +362,12 @@ begin
     if v_cid !~ '^[0-9a-fA-F-]{36}$' then v_out := array_append(v_out, format('linea_%s_costeo_servidor_inexistente', v_ord)); continue; end if;
     select * into v_r from public.costeos_servidor where id = v_cid::uuid;
     if not found then v_out := array_append(v_out, format('linea_%s_costeo_servidor_inexistente', v_ord)); continue; end if;
-    -- El vínculo lo escribió el servidor: el costeo pertenece a ESTA cotización y a ESTA partida.
-    if v_r.cotizacion_id is distinct from p_cotizacion_id or v_r.partida_id is distinct from nullif(v_p->>'id', '') then
+    -- El vínculo VIGENTE lo escribió el servidor: este costeo es el de ESTA cotización y ESTA partida.
+    select * into v_vig from public.partida_costeo_vigente where cotizacion_id = p_cotizacion_id and partida_id = nullif(v_p->>'id', '');
+    if v_vig.costeo_id is distinct from v_r.id then
       v_out := array_append(v_out, format('linea_%s_costeo_no_vinculado_a_esta_partida', v_ord)); continue; end if;
     -- …y a ESTA definición: la partida no cambió (nombre, medidas, material, despiece…) desde que se vinculó.
-    if v_r.partida_huella is null or v_r.partida_huella <> private_api.huella_partida(v_p) then
+    if v_vig.partida_huella <> private_api.huella_partida(v_p) then
       v_out := array_append(v_out, format('linea_%s_partida_cambio_desde_el_costeo', v_ord)); continue; end if;
     if lower(v_r.rol) not in ('direccion', 'diseno') then
       v_out := array_append(v_out, format('linea_%s_costeo_sin_autoridad', v_ord)); continue; end if;
@@ -341,7 +452,7 @@ commit;
 --  ORDEN: VH-035c (aplicada) → VH-148b → P1-03b → SEG-01c (preparado). P1-03b ANTES: cambia la salida de catalogo_motor
 --  (agrega precioId) y con ello la huella de base; aplicarla después invalidaría una vez todos los costeos ya registrados.
 --  ACTIVACIÓN (paso aparte, decisión de Dirección, DESPUÉS de Edge + cliente nuevos y de revisar el diagnóstico):
---    update private_api.politica_emision_autoridad set modo = 'estricto', decidido_por = '<email>', decidido_en = now();
+--    select public.activar_autoridad_costeo('estricto', '<exigir_vigente|congelar_al_costear>', '<MOTOR_VERSION desplegada>');  -- sesión de Dirección humana
 --  ROLLBACK: restaurar el wrapper de VH-035c (md5 cf6ef6a30bbb68eb2b867f2bcdb7c846) y quitar las funciones nuevas.
 -- RB begin;
 -- RB create or replace function public.evaluar_emision_cotizacion(p_cotizacion_id bigint, p_snapshot jsonb)
@@ -367,9 +478,12 @@ commit;
 -- RB drop function if exists public.huella_base_costo(text[]);
 -- RB drop function if exists private_api.huella_base_costo(text[]);
 -- RB drop function if exists private_api.huella_partida(jsonb);
+-- RB drop function if exists public.activar_autoridad_costeo(text, text, text);
+-- RB drop function if exists private_api.activar_autoridad_costeo(text, text, text);
+-- RB drop function if exists private_api.identidad_partida(jsonb);
 -- RB drop function if exists private_api.motivos_autoridad_costeo(bigint);
 -- RB drop function if exists private_api.modo_emision_autoridad();
 -- RB drop table if exists private_api.politica_emision_autoridad;
 -- RB commit;
--- (costeos_servidor y cuentas_no_humanas se conservan como rastro; borrarlas sólo con decisión expresa.)
+-- (costeos_servidor, partida_costeo_vigente y cuentas_no_humanas se conservan como rastro; borrarlas sólo con decisión expresa.)
 -- ============================================================================

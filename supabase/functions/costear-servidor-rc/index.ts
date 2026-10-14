@@ -335,6 +335,8 @@ Deno.serve(async (req) => {
       estado, aprobacion_humana: aprobacionHumana, version_motor: meta.versionMotor, version_catalogo: meta.versionCatalogo,
       fuente_costo: meta.fuenteCosto, precios: k.preciosUsados || [], warnings,
       insumos_usados: usados, base_costo_huella: baseHuella,
+      // SEG-01c rev3: identidad declarada en ESTA solicitud junto con el despiece, y el despiece costeado (auditoría).
+      identidad_origen: intent.identidad ?? null, componentes_costeados: pieza.componentes ?? [],
     }).select("id").single();
     if (regErr) warnings.push("Costeo sin registro autoritativo (SEG-01c no aplicada): no servirá para emitir cuando se aplique.");
     else costeoId = regC?.id ?? null;

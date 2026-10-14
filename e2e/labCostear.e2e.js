@@ -55,6 +55,11 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   });
   await page.addInitScript(() => { try { const k = 'costeador-vonhaucke-v1'; const s = JSON.parse(window.localStorage.getItem(k) || '{}'); s.onboardingVisto = true; window.localStorage.setItem(k, JSON.stringify(s)); } catch (_e) {} });
   await page.goto('/');
+  // Holdout v4 (P1-04): el SHA que sirve el navegador es el que se congeló (correr.sh exporta LAB_GIT_SHA).
+  const textoVersion = await page.getByText(/^v\S+ · \S+$/).first().innerText().catch(() => '');
+  const shaApp = (textoVersion.match(/ · (\S+)$/) || [])[1] || null;
+  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url() });
+  if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
   await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
@@ -193,11 +198,18 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
 
   // 4) Sombra: la última respuesta de costear-servidor vs el costo en pantalla.
   await page.waitForTimeout(6000);
-  const srv = edges.filter((e) => e.fn.startsWith('costear-servidor')).pop();
+  // Holdout v4 (P1-03): la Edge de costeo EXACTA (no `startsWith`: costear-servidor de producción también empieza así).
+  const FN_COSTEO = process.env.LAB_COSTEAR_FN || 'costear-servidor-rc';
+  const costeoAjeno = edges.filter((e) => e.fn.startsWith('costear-servidor') && e.fn !== FN_COSTEO).map((e) => e.fn);
+  expect(costeoAjeno, `se costeó con otra Edge que ${FN_COSTEO}`).toEqual([]);
+  const srv = edges.filter((e) => e.fn === FN_COSTEO).pop();
   const costoCliente = res3.precios.length && !res3.pendiente ? pesosNum(res3.precios[0]) : null;
   const costoSrv = srv?.body?.costoUnitario ?? srv?.body?.resultado?.costoUnitario ?? srv?.body?.costo?.costoUnitario ?? null;
-  const paridad = { costoCliente, costoSrv, estadoSrv: srv?.body?.estado ?? srv?.body?.estadoCosto ?? null, iguales: costoCliente != null && costoSrv != null ? Math.round(costoCliente * 100) === Math.round(Number(costoSrv) * 100) : null, llamadasSrv: edges.filter((e) => e.fn.startsWith('costear-servidor')).length };
+  const paridad = { costoCliente, costoSrv, estadoSrv: srv?.body?.estado ?? srv?.body?.estadoCosto ?? null, iguales: costoCliente != null && costoSrv != null ? Math.round(costoCliente * 100) === Math.round(Number(costoSrv) * 100) : null, llamadasSrv: edges.filter((e) => e.fn === FN_COSTEO).length };
   guarda('4-paridad.json', { paridad, servidor: srv?.body ?? null });
+  // Holdout v4 (P1-02): los request_id de IA de esta hoja; el verificador exige un ai_eventos con model_id para cada uno.
+  const iaRequests = edges.filter((e) => /^analizar-mueble/.test(e.fn)).map((e) => e.body?.request_id).filter(Boolean);
+  guarda('ia_requests.json', iaRequests);
   console.log('[lab-costear] paridad', JSON.stringify(paridad));
 
   // 4b) DIFICULTAD (Dirección 2026-10-13): "más difícil sube, más fácil baja". Atrás al paso de mano de obra,

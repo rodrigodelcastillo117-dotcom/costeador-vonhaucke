@@ -1,5 +1,8 @@
--- Holdout v3 · modelos de IA que resolvió la corrida (SOLO LECTURA). Sustituir :desde/:hasta por la ventana de la corrida.
--- Salida → modelos_<fecha>.json (arreglo de {fn, modo, model_id}) para `congelar_holdout.mjs --verificar --modelos`.
-select coalesce(json_agg(json_build_object('fn', fn, 'modo', modo, 'model_id', model_id) order by fn, modo, model_id), '[]'::json) as modelos
-from (select distinct fn, modo, model_id from public.ai_eventos
-       where fn = 'analizar-mueble-rc' and created_at between :'desde'::timestamptz and :'hasta'::timestamptz) x;
+-- Holdout v4 · modelos de IA que resolvió la corrida (SOLO LECTURA). Sustituir :requests por el arreglo de request_id que
+-- escribió la corrida (ia_requests.json, unión de todas las hojas). Ya no por ventana de tiempo: por request.
+-- Salida → modelos_<fecha>.json (arreglo de {fn, modo, model_id, request_id}) para `congelar_holdout.mjs --verificar
+-- --modelos <archivo> --requests <ia_requests.json>`.
+select coalesce(json_agg(json_build_object('fn', fn, 'modo', modo, 'model_id', model_id, 'request_id', request_id)
+                         order by request_id), '[]'::json) as modelos
+from public.ai_eventos
+where fn = 'analizar-mueble-rc' and request_id = any(:'requests'::text[]);

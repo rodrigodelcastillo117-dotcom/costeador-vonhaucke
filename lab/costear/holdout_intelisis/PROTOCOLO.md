@@ -24,9 +24,18 @@ todavía**: los debe entregar Compras.
    - **Modelos de IA** (`modelosEsperados` en el manifiesto), por (fn, modo): texto → `claude-opus-5`; imagen y
      revisión → `claude-opus-5-5`. El modelo sale de variables de entorno, que **no** cambian el SHA de la Edge: en
      7 días la Edge RC resolvió tres modelos distintos.
+1b. **Atadura al binario (v4, reauditoría v3: P1-03/P1-04).** `correr.sh` aborta si:
+   - hay cambios sin commit;
+   - el dev server no usa **exactamente** `analizar-mueble-rc` y `costear-servidor-rc` (sin `VITE_COSTEAR_FN` caía a
+     la Edge de producción);
+   - el dev server sirve otro checkout (su `cwd`).
+   Registra el SHA en `<BASE>/GIT_SHA`. El E2E exige que el navegador muestre ese mismo SHA (`0-binario.json`) y falla
+   si alguna llamada de costeo fue a otra Edge. Cada hoja escribe `ia_requests.json` con los `request_id` de IA.
 2. **Antes y después de correr:** se vuelven a medir las huellas (`huellas_db.sql`, solo lectura, y la lista de Edge).
    Al terminar se extraen los modelos observados en la ventana de la corrida (`modelos_observados.sql`). Luego se ejecuta:
-   `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json> --modelos <modelos.json>`
+   `node scripts/congelar_holdout.mjs --verificar --db <huellas_hoy.json> --edges <edges_hoy.json> --modelos <modelos.json> --requests <ia_requests.json>`
+   (`ia_requests.json` = unión de los de todas las hojas; `modelos_observados.sql` consulta **por request_id**, no por
+   ventana de tiempo. Un arreglo de modelos vacío o un request sin evento = NO VERIFICADO.)
    - **exit 0 (OK):** la corrida cuenta.
    - **exit 1 (cambió algo, incluido un modelo distinto al esperado):** la corrida **no cuenta**.
    - **exit 2 (falta alguna de las tres huellas):** **no hay verificación**.
