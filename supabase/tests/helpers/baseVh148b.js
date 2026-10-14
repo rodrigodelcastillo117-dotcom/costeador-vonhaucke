@@ -274,3 +274,67 @@ export function clientePglite(db, sesion) {
     },
   };
 }
+
+// --- cliente de SERVICIO (service role) sobre PGlite, con la interfaz de supabase-js que usa el núcleo del costeo ----
+// Cierre GO: las pruebas del pipeline llaman a src/datos/costeoServidor.js (la MISMA función que ejecuta la Edge) con este
+// cliente. Corre como dueño de las tablas (como service_role: sin RLS) y `auth.role()` responde 'service_role'. Sólo
+// traduce las formas de consulta que el núcleo usa; cualquier otra lanza error (la prueba no puede pasar por omisión).
+export function servicioPglite(db) {
+  const ident = (x) => { if (!/^[a-z_]+$/.test(x)) throw new Error(`identificador inválido: ${x}`); return x; };
+  const columnas = (cols) => (cols === '*' ? '*' : cols.split(',').map((c) => ident(c.trim())).join(', '));
+  const correr = async (sql, params = []) => {
+    await db.exec(`select set_config('request.jwt.claim.role', 'service_role', false)`);
+    try { return { rows: (await db.query(sql, params)).rows, error: null }; } catch (e) { return { rows: null, error: { message: e.message, code: e.code ?? null } }; } finally {
+      await db.exec(`select set_config('request.jwt.claim.role', '', false)`);
+    }
+  };
+  const llamadas = [];
+  return {
+    llamadas,
+    async rpc(fn, args = {}) {
+      llamadas.push(['rpc', ident(fn)]);
+      const ks = Object.keys(args).map(ident);
+      const { rows, error } = await correr(`select public.${fn}(${ks.map((k, i) => `${k} => $${i + 1}`).join(', ')}) as r`,
+        ks.map((k) => (args[k] !== null && typeof args[k] === 'object' && !Array.isArray(args[k]) ? JSON.stringify(args[k]) : args[k])));
+      return { data: error ? null : rows[0].r, error };
+    },
+    from(tabla) {
+      ident(tabla);
+      const e = { cols: '*', filtros: [], params: [], count: false };
+      const sql = () => `select ${e.count ? 'count(*)::int as n' : columnas(e.cols)} from public.${tabla}${e.filtros.length ? ' where ' + e.filtros.join(' and ') : ''}`;
+      const lista = async () => { llamadas.push(['select', tabla]); const r = await correr(sql(), e.params); return e.count ? { data: null, count: r.error ? null : r.rows[0].n, error: r.error } : { data: r.rows, error: r.error }; };
+      const uno = async (estricto) => {
+        const r = await lista();
+        if (r.error) return { data: null, error: r.error };
+        if (r.data.length > 1 || (estricto && r.data.length === 0)) return { data: null, error: { message: `se esperaba una fila y hubo ${r.data.length}` } };
+        return { data: r.data[0] ?? null, error: null };
+      };
+      const b = {
+        select(cols = '*', opts = {}) {
+          e.cols = cols;
+          if (opts.count) { if (opts.count !== 'exact' || !opts.head) throw new Error('sólo count exact + head'); e.count = true; }
+          return b;
+        },
+        eq(c, v) { e.params.push(v); e.filtros.push(`${ident(c)} = $${e.params.length}`); return b; },
+        in(c, vs) { if (!Array.isArray(vs)) throw new Error('in() exige arreglo'); e.params.push(vs.map(String)); e.filtros.push(`${ident(c)}::text = any($${e.params.length}::text[])`); return b; },
+        is(c, v) { if (v !== null) throw new Error('is() sólo con null'); e.filtros.push(`${ident(c)} is null`); return b; },
+        single: () => uno(true),
+        maybeSingle: () => uno(false),
+        then: (ok, ko) => lista().then(ok, ko),
+        insert(fila) {
+          const ks = Object.keys(fila).map(ident);
+          const ins = async (ret) => {
+            llamadas.push(['insert', tabla]);
+            const r = await correr(`insert into public.${tabla} (${ks.join(', ')}) select ${ks.join(', ')} from jsonb_populate_record(null::public.${tabla}, $1::jsonb) returning ${ret}`, [JSON.stringify(fila)]);
+            return r;
+          };
+          return {
+            select: (cols) => ({ single: async () => { const r = await ins(columnas(cols)); return r.error ? { data: null, error: r.error } : { data: r.rows[0], error: null }; } }),
+            then: (ok, ko) => ins('1').then((r) => ({ data: null, error: r.error })).then(ok, ko),
+          };
+        },
+      };
+      return b;
+    },
+  };
+}

@@ -97,10 +97,11 @@ export async function partidaAutoritativaDeCosteo({ costeo, resultado, precio, m
     materiales: promesa.materiales ?? [],
     piezas: promesa.piezas ?? [],
     nombresExcluidos: promesa.nombresExcluidos ?? [],
-    // SEG-01c rev5: el despiece EXACTO que se costeó (spec_tecnica_v1 de la MISMA pieza saneada que recibió el servidor).
-    // adjuntar la re-proyecta en SQL y exige la huella que el servidor selló con el costeo. Sin intención válida no hay
-    // especificación y el vínculo falla cerrado.
-    especificacion_tecnica: v.ok ? specTecnicaDeCosteo(v.intent.pieza) : null,
+    // SEG-01c rev5 (cierre GO): la especificación técnica EFECTIVA que devolvió el servidor (la pieza reconciliada que
+    // entró a calcular(), la misma que selló en K). El navegador sólo la transporta: adjuntar la re-proyecta en SQL y la
+    // compara con la huella que el servidor ya guardó; si se altera un campo, la huella no coincide y el vínculo se
+    // rechaza. Sin especificación en la respuesta (Ventas, Edge vieja) no hay vínculo: falla cerrado.
+    especificacion_tecnica: specTecnicaDeCosteo(autoridad.especificacionTecnica),
   };
   return { ok: true, partida, costoUnitario: costoServidor, estado: autoridad.estado };
 }

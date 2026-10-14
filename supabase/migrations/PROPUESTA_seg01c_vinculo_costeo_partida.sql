@@ -385,7 +385,7 @@ begin
      or jsonb_array_length(p->'componentes') = 0 then return null; end if;
   for v_c in select value from jsonb_array_elements(p->'componentes') loop
     if jsonb_typeof(v_c) is distinct from 'object' then return null; end if;
-    v_o := '{}'::jsonb; v_partes := '{}'::text[];
+    v_o := '{}'::jsonb;
     foreach v_k in array c_campos loop
       v_v := v_c->v_k;
       if v_v is null or jsonb_typeof(v_v) = 'null' then continue; end if;
@@ -394,18 +394,28 @@ begin
         v_t := nullif(btrim(v_v #>> '{}', E' \t\n\r'), '');
         if v_t is null then continue; end if;
         v_o := v_o || jsonb_build_object(v_k, v_t);
-        v_partes := v_partes || (v_k || '=' || v_t);
       elsif v_k = any(c_numero) then
         if not private_api.spec_numero_ok(v_v) then return null; end if;
         v_n := trim_scale((v_v #>> '{}')::numeric);
         v_o := v_o || jsonb_build_object(v_k, v_n);
-        v_partes := v_partes || (v_k || '=' || v_n::text);
       else
         if jsonb_typeof(v_v) <> 'boolean' then return null; end if;
-        if v_v = 'true'::jsonb then v_o := v_o || jsonb_build_object(v_k, true); v_partes := v_partes || (v_k || '=true'); end if;
+        if v_v = 'true'::jsonb then v_o := v_o || jsonb_build_object(v_k, true); end if;
       end if;
     end loop;
-    v_crudos := v_crudos || jsonb_build_array(jsonb_build_object('k', array_to_string(v_partes, chr(31)), 'o', v_o));
+    -- Clave de orden INYECTIVA (= specTecnica.js claveComponente): por campo, en orden fijo, '-' si falta o
+    -- '<longitud en caracteres>:<valor>'. La longitud delimita el valor: ningún contenido (U+001F, '|', '=', saltos de
+    -- línea, emoji) imita otro campo. Claves iguales ⇔ componentes iguales: el orden de entrada no cambia nada.
+    v_partes := '{}'::text[];
+    foreach v_k in array c_campos loop
+      if v_o ? v_k then
+        v_t := case when jsonb_typeof(v_o->v_k) = 'string' then v_o->>v_k else (v_o->v_k)::text end;
+        v_partes := v_partes || (char_length(v_t)::text || ':' || v_t);
+      else
+        v_partes := v_partes || '-'::text;
+      end if;
+    end loop;
+    v_crudos := v_crudos || jsonb_build_array(jsonb_build_object('k', array_to_string(v_partes, ''), 'o', v_o));
   end loop;
   select jsonb_agg(e->'o' order by e->>'k' collate "C") into v_comps from jsonb_array_elements(v_crudos) e;
   if p ? 'horas' and jsonb_typeof(p->'horas') <> 'null' then

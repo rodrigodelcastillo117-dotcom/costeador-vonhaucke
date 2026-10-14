@@ -1,10 +1,15 @@
 import { test, expect } from '@playwright/test';
+import fs from 'node:fs';
 
 //  GOLDEN 757 · EDICIÓN MANUAL + PERSISTENCIA REAL (VH-109, prueba B.8 del despliegue controlado).
 //  Reabre desde "Presupuestos anteriores" el presupuesto que dejó golden757 (GOLDEN_CLIENTE), gira UNA
 //  pieza a mano en la planta, espera el guardado real (RPC `cotizacion_segura`), vacía el estado local,
 //  recarga y reabre: la pieza girada sigue girada en la nube y al reabrir. Sólo con credenciales reales.
 //  No crea ni desactiva registros: edita el presupuesto de prueba identificado y lo deja así.
+//  Cierre GO (14-oct): corre en el proyecto `golden757-edicion`, que DEPENDE de `golden757` (playwright.config.js), y
+//  abre EXACTAMENTE el presupuesto que golden757 acaba de dejar (test-results/golden757-ultimo.json). Antes buscaba "el
+//  golden más reciente con acomodo" entre datos compartidos mientras golden757 corría en paralelo: flaky en CI 786 y 789
+//  ("ningún presupuesto golden reciente tiene acomodo": las 6 tarjetas recientes estaban a medias).
 const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
 const CLIENTE = process.env.GOLDEN_CLIENTE || 'Torre Sur (golden)';
 const CLAVE = 'costeador-vonhaucke-v1';
@@ -25,10 +30,14 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     await page.getByRole('button', { name: /^Entrar$/i }).click();
     await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
 
-    // Abre el presupuesto golden MÁS RECIENTE QUE YA TENGA ACOMODO: golden757 guarda (autosave) antes de
-    // acomodar, así que, corriendo en paralelo, la tarjeta más nueva puede ser una corrida a medias.
-    const abrir = async (conPlan = true, idBuscado = null) => {
-      for (let i = 0; i < 6; i++) {
+    // Abre EXACTAMENTE el presupuesto que dejó golden757 en esta corrida (por id): ni "el más reciente" ni datos ajenos.
+    const golden = JSON.parse(fs.readFileSync('test-results/golden757-ultimo.json', 'utf8'));
+    expect(golden.id, 'golden757 dejó el id de su presupuesto').toBeTruthy();
+    const abrir = async (conPlan = true, idBuscado = golden.id) => {
+      await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
+      const total = await page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).count();
+      await page.getByRole('button', { name: /^Inicio$/ }).click();
+      for (let i = 0; i < Math.min(Math.max(total, 1), 30); i++) {
         await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
         const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).nth(i);
         await expect(tarjeta).toBeVisible({ timeout: 20000 });
@@ -40,9 +49,10 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
         console.log('[golden757-edicion] tarjeta', i, idBuscado != null ? `es ${cot?.id}, busco ${idBuscado}` : 'sin acomodo (corrida a medias)', '; pruebo la siguiente');
         await page.getByRole('button', { name: /^Inicio$/ }).click();
       }
-      throw new Error('ningún presupuesto golden reciente tiene acomodo');
+      throw new Error(`el presupuesto ${idBuscado} que dejó golden757 no aparece en "Presupuestos anteriores"`);
     };
     const cot0 = await abrir();
+    expect(String(cot0.id)).toBe(String(golden.id));
     const id = cot0.id; expect(id).toBeTruthy();
     const antes = firmaCol(cot0.acomodo?.plan);
     expect((cot0.acomodo?.plan?.colocacion || []).length).toBeGreaterThan(0);

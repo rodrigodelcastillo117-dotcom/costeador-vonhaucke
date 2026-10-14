@@ -1,0 +1,20 @@
+# Cierre GO · trazabilidad ANTES (registroCosteo.js y agregarCosteo.js de 2d02527: spec desde intent.pieza)
+# npx vitest run supabase/tests/seg01cVinculoCosteo.test.js -t 'Q3/Q4' (con el núcleo y las pruebas nuevas)
+ × supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > control: el núcleo de la Edge calcula estado y aprobación (nada a mano), sella la spec EFECTIVA, la devuelve y la partida vincula
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > la pieza efectiva sólo trae lo que la spec cubre: componentes, horas y dificultad (lo demás que lee calcular() no cruza el DTO)
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > el núcleo aplica su DTO y su capability: margen en el body ⇒ 400; un vendedor que confirma material ⇒ 403
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > NO comparte K — multiplicidad: 1 Entrepaño → 3 Entrepaños
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > NO comparte K — dimensión: Lateral 700×400 → 900×400
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > NO comparte K — horas: ensamble 1 → 4
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > NO comparte K — pintura: areaPintadaM2 1.5 → 2.25
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > NO comparte K — dificultad: normal → difícil
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > NO comparte K — material: MDF blanco → nogal
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > NO comparte K — configuración: se agrega una cajonera
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > orden: los mismos renglones en otro orden ⇒ MISMA spec; el K de A vincula con la partida de A invertida
+ × supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > reconciliación: el navegador manda material_match EXACT (spoof); el servidor costea con su clase reconciliada y ESA es la spec de K y de la partida
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > el navegador transporta la spec pero no decide: alterar CUALQUIER campo técnico de la partida ⇒ rechazo
+ × supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > sin especificación en la respuesta del servidor (Edge vieja / Ventas) la partida no la inventa: queda sin spec y no vincula
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > nombresExcluidos distintos — la partida de A editada para excluir el entrepaño NO acepta el K de A
+ ✓ supabase/tests/seg01cVinculoCosteo.test.js > Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario > observación (fuera de alcance): Costear NO puede agregar un especial con una pieza excluida — el validador descarta `excluida` y el servidor la costea; la paridad falla cerrada
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  3 failed | 13 passed | 94 skipped (110)

@@ -61,4 +61,11 @@ describe('la spec cubre EXACTAMENTE lo que cruza la frontera del DTO', () => {
     for (const n of [0, 1e-6, 1, 1.5, 0.30000000000000004, Number.MAX_SAFE_INTEGER]) expect(enDominio(n)).toBe(true);
     for (const n of [-1, 1e-7, Number.MAX_SAFE_INTEGER + 1, Infinity, NaN, '1']) expect(enDominio(n)).toBe(false);
   });
+  it('cierre GO · el validador (frontera del DTO) conserva los centros toString, constructor y __proto__: la spec de la intención los trae', () => {
+    const body = JSON.parse('{"cantidad":1,"pieza":{"componentes":[{"nombre":"Cubierta","insumoId":"mdf18","cantidad":1}],"horas":{"__proto__":2,"toString":1,"constructor":3}}}');
+    const v = validarIntentCosteo(body);
+    expect(v.ok).toBe(true);
+    expect(Object.keys(v.intent.pieza.horas).sort()).toEqual(['__proto__', 'constructor', 'toString']);
+    expect(JSON.parse(JSON.stringify(specTecnicaDeCosteo(v.intent.pieza)))).toEqual(JSON.parse('{"v":"v1","componentes":[{"insumoId":"mdf18","nombre":"Cubierta","cantidad":1}],"horas":{"__proto__":2,"toString":1,"constructor":3}}'));
+  });
 });

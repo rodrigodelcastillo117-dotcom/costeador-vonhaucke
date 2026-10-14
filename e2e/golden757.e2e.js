@@ -18,6 +18,8 @@ const CLAVE = 'costeador-vonhaucke-v1';
 const PROG = (o) => ({ source: 'CONFIRMADO_PROGRAMA', sinPrecioAutorizado: true, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY', autoridad: 'SERVIDOR', ...o });
 // Datos de prueba claramente identificados: GOLDEN_CLIENTE permite etiquetar la corrida (p. ej. post-deploy).
 const CLIENTE_GOLDEN = process.env.GOLDEN_CLIENTE || 'Torre Sur (golden)';
+// El id del presupuesto que deja esta prueba (lo lee golden757Edicion, que depende de este proyecto).
+const GOLDEN_ID = 'test-results/golden757-ultimo.json';
 const SEMILLA = {
   onboardingVisto: true,
   cotizacion: {
@@ -247,6 +249,9 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     expect(enNube.cliente).toBe(CLIENTE_GOLDEN);
     expect(enNube.partidas).toHaveLength(cot.partidas.length);
     expect(firmaDe(enNube.partidas)).toBe(firma);
+    // golden757Edicion (proyecto dependiente) edita EXACTAMENTE este presupuesto: se deja su id, nada de "el más reciente".
+    fs.mkdirSync('test-results', { recursive: true });
+    fs.writeFileSync(GOLDEN_ID, JSON.stringify({ id: idNube, cliente: CLIENTE_GOLDEN, colocadas, en: new Date().toISOString() }));
 
     // 5) REABRIR desde otra computadora: se vacía el estado local, se recarga y se abre el presupuesto
     //    desde "Presupuestos anteriores" (RPC `cotizacion_segura`) → mismas partidas y mismo acomodo.

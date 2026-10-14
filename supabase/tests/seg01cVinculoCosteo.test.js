@@ -15,7 +15,7 @@
 // ============================================================================
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import {
-  DIRECCION, VENDEDOR, DISENO, VH148, VH148B, SEG01, SEG01C, leer, baseProduccion, uno, q, fallo, vista, guardar3, md5Def, clientePglite,
+  DIRECCION, VENDEDOR, DISENO, VH148, VH148B, SEG01, SEG01C, leer, baseProduccion, uno, q, fallo, vista, guardar3, md5Def, clientePglite, servicioPglite,
 } from './helpers/baseVh148b.js';
 // src/nube.js crea su cliente al importarse: aquí no se usa (vincularCosteos recibe el cliente PGlite explícito).
 vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({}) }));
@@ -881,72 +881,67 @@ describe('SEG-01c rev 2 · el cliente encadena la versión en los vínculos (P0-
 });
 
 // ============================================================================
-//  Q3 · PIPELINE REAL (reauditoría final, P1): Costear → intentDesdePieza → validarIntentCosteo → [Edge: misma
-//  frontera + catalogo_motor real + reconciliación de material del servidor + motor + filaCosteoServidor] →
-//  partidaAutoritativaDeCosteo → guardar (sesión de Dirección) → vincularCosteos (cliente real) → adjuntar (SQL real).
-//  NADA se inyecta a mano: promesa y spec salen del costeo por las mismas funciones que usa Rodrigo. Lo único que no es
-//  el código de producción es el transporte HTTP de la Edge (el objeto que se inserta lo arma la MISMA función).
+//  Q3/Q4 · PIPELINE REAL (cierre GO): Costear → intentDesdePieza → validarIntentCosteo (navegador) → JSON →
+//  atenderCosteo (src/datos/costeoServidor.js: LA MISMA función que ejecuta la Edge costear-servidor-rc después de
+//  autenticar: DTO, rol, capability, catalogo_motor real, reconciliación, calcular, estado, aprobación humana, fila,
+//  trigger SQL y respuesta por rol) → partidaAutoritativaDeCosteo (con la spec EFECTIVA que devolvió el servidor) →
+//  guardar → vincularCosteos (cliente real) → adjuntar (SQL real). Nada del servidor se reconstruye a mano: ni estado,
+//  ni aprobación, ni la fila. Lo único que no corre es el transporte HTTP de Deno y la verificación del JWT.
 // ============================================================================
-describe('Q3 · pipeline real: lo que pasa la prueba es lo que pasa el usuario', () => {
-  let db, h, vincularCosteos, pipe;
+describe('Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueba es lo que pasa el usuario', () => {
+  let db, h, vincularCosteos, pipe, svc, atenderCosteo, costearConMotor, validar, intentDe;
   const conf = (c) => ({ ...c, material_confirmado: true });
   const A = { nombre: 'Credenza', w: 1800, d: 450, piezas: 1, componentes: [
     conf({ nombre: 'Cubierta', insumoId: 'mdf18', cantidad: 1, largoMM: 1800, anchoMM: 450 }),
-    conf({ nombre: 'Entrepaño', insumoId: 'mdf18', cantidad: 1, largoMM: 1760, anchoMM: 420 }) ] };
-  const conEntrepano = (cambio) => ({ ...A, componentes: [A.componentes[0], { ...A.componentes[1], ...cambio }] });
+    conf({ nombre: 'Entrepaño', insumoId: 'mdf18', cantidad: 1, largoMM: 1760, anchoMM: 420 }),
+    conf({ nombre: 'Lateral', insumoId: 'mdf18', cantidad: 2, largoMM: 700, anchoMM: 400 }),
+    conf({ nombre: 'Pintura', insumoId: 'pintura-polvo-negro', areaPintadaM2: 1.5 }) ] };
+  const cambia = (nombre, cambio) => ({ ...A, componentes: A.componentes.map((c) => (c.nombre === nombre ? { ...c, ...cambio } : c)) });
   const vigentes = async (k) => Number((await db.query('select count(*)::int n from public.partida_costeo_vigente where costeo_id = $1', [k])).rows[0].n);
+  const kDe = async (id) => (await db.query('select estado, aprobacion_humana, spec_tecnica_origen, spec_tecnica_version, spec_tecnica_huella, componentes_costeados from public.costeos_servidor where id = $1', [id])).rows[0];
 
   beforeAll(async () => {
     db = await base(); h = ayudas(db);
     ({ vincularCosteos } = await import('../../src/datos/cotizaciones.js'));
-    const { validarIntentCosteo, intentDesdePieza } = await import('../../src/datos/validarIntentCosteo.js');
+    ({ validarIntentCosteo: validar, intentDesdePieza: intentDe } = await import('../../src/datos/validarIntentCosteo.js'));
+    ({ atenderCosteo, costearConMotor } = await import('../../src/datos/costeoServidor.js'));
     const { partidaAutoritativaDeCosteo } = await import('../../src/datos/agregarCosteo.js');
-    const { filaCosteoServidor } = await import('../../src/datos/registroCosteo.js');
-    const { reconciliarMaterialServidor } = await import('../../src/datos/materialMatch.js');
-    const { calcular, modeloParaPieza, bomHash, PARAMETROS_DEFAULT } = await import('../../src/motor/calculo.js');
-    const { dinero } = await import('../../src/motor/dinero.js');
-    // MDF 18 por m² (blanco y nogal), cada uno con su precio aprobado por una persona de Dirección.
+    const { calcular, modeloParaPieza, PARAMETROS_DEFAULT } = await import('../../src/motor/calculo.js');
+    // Lo que la Edge encuentra en producción: la envoltura pública de catalogo_motor (exige service_role) y auth.role().
+    await db.exec(`create or replace function auth.role() returns text language sql stable as $$ select nullif(current_setting('request.jwt.claim.role', true), '') $$;`);
+    await db.exec(funcionDeMigracion(VH088, 'public.catalogo_motor'));
+    // MDF 18 blanco y nogal por m² y pintura en polvo por kg, cada uno con su precio aprobado por una persona de Dirección.
     await db.exec(`insert into public.insumos_catalogo (id, nombre, seccion, unidad_costeo, activo, clasificacion, familia, atributos) values
         ('mdf18', 'MDF 18 mm blanco', 'tableros', 'm2', true, 'curado', 'mdf', '{}'::jsonb),
-        ('mdf18n', 'MDF 18 mm nogal', 'tableros', 'm2', true, 'curado', 'mdf', '{}'::jsonb);
+        ('mdf18n', 'MDF 18 mm nogal', 'tableros', 'm2', true, 'curado', 'mdf', '{}'::jsonb),
+        ('pintura-polvo-negro', 'Pintura en polvo negra', 'acabados', 'kg', true, 'curado', 'pintura', '{}'::jsonb);
       insert into public.insumo_precios (id, insumo_id, precio, estado, confidence, vigente_desde, approved_by, approved_at,
         unidad_compra, precio_compra, factor_conversion, evidence_status, requiere_validacion_compras) overriding system value values
         (902, 'mdf18', 450, 'aprobado', 'alta', '2026-10-01', '${DIRECCION}', now(), 'm2', 450, 1, 'documentada', false),
-        (903, 'mdf18n', 520, 'aprobado', 'alta', '2026-10-01', '${DIRECCION}', now(), 'm2', 520, 1, 'documentada', false);`);
-    const PRECIOS = { mdf18: { precio_id: 902, precio_usado: 450 }, mdf18n: { precio_id: 903, precio_usado: 520 } };
+        (903, 'mdf18n', 520, 'aprobado', 'alta', '2026-10-01', '${DIRECCION}', now(), 'm2', 520, 1, 'documentada', false),
+        (904, 'pintura-polvo-negro', 180, 'aprobado', 'alta', '2026-10-01', '${DIRECCION}', now(), 'kg', 180, 1, 'documentada', false);`);
+    svc = servicioPglite(db);
+    // Estricto con la versión de motor DESPLEGADA (runbook §5.5: activar_autoridad_costeo(..., MOTOR_VERSION)): el núcleo
+    // registra MOTOR_VERSION, no un valor de prueba.
+    const { MOTOR_VERSION } = await import('../../src/motor/calculo.js');
+    await db.exec(`update private_api.politica_emision_autoridad set modo = 'estricto', version_motor_vigente = '${MOTOR_VERSION}'`);
     const cfg = (await db.query(`select datos from public.config where id = 'vonhaucke'`)).rows[0].datos;
     const parametros = { ...PARAMETROS_DEFAULT, ...(cfg.parametros || {}) };
-    const insumosDe = async (ids) => (await db.query('select private_api.catalogo_motor(false, $1::text[]) as m', [ids])).rows[0].m;   // núcleo de la envoltura pública que llama la Edge
-    const COLS = { precios: 'jsonb', warnings: 'jsonb', insumos_usados: 'text[]', identidad_origen: 'jsonb', componentes_costeados: 'jsonb', promesa_origen: 'jsonb', spec_tecnica_origen: 'jsonb' };
-    // nube.costearServidor + Edge costear-servidor-rc, sin el transporte HTTP.
-    const costearServidor = async (costeo, n) => {
-      const v = validarIntentCosteo(intentDesdePieza(costeo, n));                 // nube.js: lo que sale del navegador
+    // nube.costearServidor sin el transporte: lo que sale del navegador viaja como JSON y lo atiende EL núcleo de la Edge.
+    const costearServidor = async (costeo, n, email = DIRECCION) => {
+      const v = validar(intentDe(costeo, n));
       if (!v.ok) return { ok: false, error: v.code };
-      const e = validarIntentCosteo(v.intent);                                    // Edge: la misma frontera
-      if (!e.ok) return { ok: false, error: e.code };
-      const ids = [...new Set(e.intent.pieza.componentes.map((c) => c.insumoId).filter(Boolean))];
-      const insumos = await insumosDe(ids);
-      const piezaRec = { ...e.intent.pieza, componentes: e.intent.pieza.componentes.map((c) => reconciliarMaterialServidor(c, (id) => insumos[id], Object.values(insumos),
-        { puedeConfirmar: true, origenLegacyConfiable: false, origenSpecConfiable: false })) };
-      const r = calcular(piezaRec, n, insumos, modeloParaPieza(parametros, piezaRec).par);
-      const fila = filaCosteoServidor({ intent: e.intent, n, email: DIRECCION, rol: 'direccion', bomHash: bomHash(piezaRec.componentes),
-        costoUnitario: dinero(r.costoUnitario), estado: 'certificado', aprobacionHumana: true, meta: { versionMotor: 'motor-1', fuenteCosto: 'catalogo' },
-        precios: ids.map((id) => ({ insumo_id: id, ...PRECIOS[id], approved_by: DIRECCION, humana: true })), warnings: [], insumosUsados: ids,
-        baseCostoHuella: (await db.query('select private_api.huella_base_costo($1::text[]) as hh', [ids])).rows[0].hh });
-      const cols = Object.keys(fila);
-      const id = (await db.query(`insert into public.costeos_servidor (${cols.join(', ')}) values (${cols.map((c, i) => `$${i + 1}${COLS[c] ? '::' + COLS[c] : ''}`).join(', ')}) returning id`,
-        cols.map((c) => (COLS[c] === 'jsonb' ? (fila[c] == null ? null : JSON.stringify(fila[c])) : fila[c])))).rows[0].id;
-      return { ok: true, estado: 'certificado', costo: { costoUnitario: fila.costo_unitario }, costeoId: id, bomHash: fila.bom_hash, versionMotor: 'motor-1' };
+      const out = await atenderCosteo({ svc, body: JSON.parse(JSON.stringify(v.intent)), email });
+      return out.status === 200 ? JSON.parse(JSON.stringify(out.body)) : { ok: false, error: out.body.error || out.body.code, status: out.status };
     };
     // Costear (App.jsx onAgregarCotizacion): el resultado del cliente es el motor sobre el MISMO costeo.
     pipe = async (costeo) => {
       const ids = [...new Set(costeo.componentes.map((c) => c.insumoId).filter(Boolean))];
-      const insumos = await insumosDe(ids);
+      const insumos = (await db.query('select private_api.catalogo_motor(false, $1::text[]) as m', [ids])).rows[0].m;
       const resultado = calcular(costeo, costeo.piezas, insumos, modeloParaPieza(parametros, costeo).par);
-      const r = await partidaAutoritativaDeCosteo({ costeo, resultado, precio: 12000, margen: 40, costearServidor,
-        pendientes: () => [], nuevoId: () => 'p1' });
-      return r;
+      return partidaAutoritativaDeCosteo({ costeo, resultado, precio: 12000, margen: 40, costearServidor, pendientes: () => [], nuevoId: () => 'p1' });
     };
+    pipe.servidor = costearServidor;
   }, 180_000);
   afterAll(async () => { await db?.close(); });
 
@@ -956,45 +951,131 @@ describe('Q3 · pipeline real: lo que pasa la prueba es lo que pasa el usuario',
     return { id, r };
   };
 
-  it('control: Costear A → partida A → guardar → vincular con su K ⇒ vinculado, promesa y spec de la partida = las del K, ALLOWED', async () => {
+  it('control: el núcleo de la Edge calcula estado y aprobación (nada a mano), sella la spec EFECTIVA, la devuelve y la partida vincula', async () => {
     const a = await pipe(A);
     expect(a.ok).toBe(true);
+    const k = await kDe(a.partida.costeoId);
+    // estado y aprobación salen del núcleo: precios aprobados por una persona de Dirección (no QA) ⇒ certificado.
+    expect(k.estado).toBe('certificado'); expect(k.aprobacion_humana).toBe(true);
+    // la spec que selló K es la de la pieza EFECTIVA (componentes reconciliados), no la de la intención.
+    const v = validar(intentDe(A, 1));
+    const efectiva = (await costearConMotor(svc, v.intent.pieza, 1, true)).piezaEfectiva;
+    expect(k.spec_tecnica_origen).toEqual(JSON.parse(JSON.stringify(specTecnicaDeCosteo(efectiva))));
+    expect(k.spec_tecnica_origen).not.toEqual(JSON.parse(JSON.stringify(specTecnicaDeCosteo(v.intent.pieza))));   // la reconciliación SÍ la cambia
+    expect(k.spec_tecnica_origen.componentes.every((c) => c.material_match === 'USER_CONFIRMED')).toBe(true);
+    expect(a.partida.especificacion_tecnica).toEqual(k.spec_tecnica_origen);
+    expect(k.componentes_costeados).toEqual(JSON.parse(JSON.stringify(efectiva.componentes)));
     const { id, r } = await guardarYVincular(a.partida);
     expect(r.fallidos).toEqual([]);
-    const k = (await db.query(`select promesa_huella = private_api.huella_promesa($2::jsonb) as p, spec_tecnica_huella = private_api.huella_spec_tecnica($3::jsonb) as s
-      from public.costeos_servidor where id = $1`, [a.partida.costeoId, JSON.stringify(a.partida), JSON.stringify(a.partida.especificacion_tecnica)])).rows[0];
-    expect(k).toEqual({ p: true, s: true });
     expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 12000 }))).state).toBe('ALLOWED');
   });
 
+  it('la pieza efectiva sólo trae lo que la spec cubre: componentes, horas y dificultad (lo demás que lee calcular() no cruza el DTO)', async () => {
+    const v = validar(intentDe({ ...A, horas: { ensamble: 1 }, dificultad: 'dificil' }, 1));
+    const k = await costearConMotor(svc, v.intent.pieza, 1, true);
+    expect(Object.keys(k.piezaEfectiva).sort()).toEqual(['componentes', 'dificultad', 'horas']);
+    // Lo demás que lee calcular() (factores, modo de mano de obra, preparación, modelo) NUNCA llega: el DTO lo rechaza
+    // (400) o lo descarta; en ningún caso la pieza que atiende el núcleo lo trae.
+    for (const [campo, valor] of [['factorDirecta', 1], ['factorIndirecta', 1], ['modoManoObra', 'horas'], ['preparacionHoras', 2], ['modeloCosteo', 'intelisis'], ['parModelo', {}]]) {
+      const w = validar({ cantidad: 1, pieza: { ...v.intent.pieza, [campo]: valor } });
+      if (w.ok) expect(Object.keys(w.intent.pieza).every((x) => ['componentes', 'horas', 'dificultad'].includes(x)), campo).toBe(true);
+      const out = await atenderCosteo({ svc, body: { cantidad: 1, pieza: { ...v.intent.pieza, [campo]: valor } }, email: DIRECCION });
+      expect([200, 400], campo).toContain(out.status);
+      if (out.status === 200) expect(out.body.costo.costoUnitario, campo).toBe((await atenderCosteo({ svc, body: { cantidad: 1, pieza: v.intent.pieza }, email: DIRECCION })).body.costo.costoUnitario);
+    }
+  });
+
+  it('el núcleo aplica su DTO y su capability: margen en el body ⇒ 400; un vendedor que confirma material ⇒ 403', async () => {
+    await db.exec(`insert into public.permitidos(email, rol) values ('vendedor.q3@vh.mx', 'vendedor') on conflict do nothing`);
+    const v = validar(intentDe(A, 1));
+    expect((await atenderCosteo({ svc, body: { ...v.intent, pieza: { ...v.intent.pieza, margen: 40 } }, email: DIRECCION })).status).toBe(400);
+    const r = await atenderCosteo({ svc, body: JSON.parse(JSON.stringify(v.intent)), email: 'vendedor.q3@vh.mx' });
+    expect(r.status).toBe(403); expect(r.body.code).toBe('MATERIAL_CONFIRMATION_FORBIDDEN');
+  });
+
   it.each([
-    ['configuración distinta (se agrega una cajonera al despiece)', { ...A, componentes: [...A.componentes, conf({ nombre: 'Cajonera', insumoId: 'mdf18', cantidad: 1, largoMM: 500, anchoMM: 400 })] }, /promete otra cosa/],
-    ['acabado distinto (MDF blanco → nogal)', { ...A, componentes: A.componentes.map((c) => ({ ...c, insumoId: 'mdf18n' })) }, /promete otra cosa/],
-    ['multiplicidad distinta (1 → 3 entrepaños; misma promesa)', conEntrepano({ cantidad: 3 }), /describe otro despiece/],
-    ['dimensión interna distinta (entrepaño 1760 → 1500; misma promesa)', conEntrepano({ largoMM: 1500 }), /describe otro despiece/],
-  ])('Q2 por el pipeline real: el K de A NO se vincula a la partida de B — %s', async (_n, B, motivo) => {
-    const a = await pipe(A); const b = await pipe(B);
+    ['multiplicidad: 1 Entrepaño → 3 Entrepaños', cambia('Entrepaño', { cantidad: 3 }), /describe otro despiece/],
+    ['dimensión: Lateral 700×400 → 900×400', cambia('Lateral', { largoMM: 900 }), /describe otro despiece/],
+    ['horas: ensamble 1 → 4', { ...A, horas: { ensamble: 4 } }, /describe otro despiece/, { ...A, horas: { ensamble: 1 } }],
+    ['pintura: areaPintadaM2 1.5 → 2.25', cambia('Pintura', { areaPintadaM2: 2.25 }), /describe otro despiece/],
+    ['dificultad: normal → difícil', { ...A, dificultad: 'dificil' }, /describe otro despiece/, { ...A, dificultad: 'normal' }],
+    ['material: MDF blanco → nogal', cambia('Cubierta', { insumoId: 'mdf18n' }), /promete otra cosa/],
+    ['configuración: se agrega una cajonera', { ...A, componentes: [...A.componentes, conf({ nombre: 'Cajonera', insumoId: 'mdf18', cantidad: 1, largoMM: 500, anchoMM: 400 })] }, /promete otra cosa/],
+  ])('NO comparte K — %s', async (_n, B, motivo, A2 = A) => {
+    const a = await pipe(A2); const b = await pipe(B);
     expect(a.ok && b.ok).toBe(true);
-    // El usuario real: cada partida con SU costeo se vincula.
-    expect((await guardarYVincular(b.partida)).r.fallidos).toEqual([]);
-    // Ataque: la partida de B (tal cual la armó Costear) con el costeoId de A.
-    const { id, r } = await guardarYVincular({ ...b.partida, costeoId: a.partida.costeoId });
+    expect((await guardarYVincular(b.partida)).r.fallidos).toEqual([]);           // B con SU costeo sí vincula
+    const { id, r } = await guardarYVincular({ ...b.partida, costeoId: a.partida.costeoId });   // B con el K de A
     expect(r.fallidos).toHaveLength(1);
     expect(r.fallidos[0].error).toMatch(motivo);
     expect(await vigentes(a.partida.costeoId)).toBe(0);
     expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 12000 }))).reasons).toContain('linea_1_costeo_no_vinculado_a_esta_partida');
   });
 
-  it('Q2 por el pipeline real: nombresExcluidos distintos — la partida de A editada para excluir el entrepaño NO acepta el K de A', async () => {
+  it('orden: los mismos renglones en otro orden ⇒ MISMA spec; el K de A vincula con la partida de A invertida', async () => {
     const a = await pipe(A);
-    const { id, r } = await guardarYVincular({ ...a.partida, nombresExcluidos: ['Entrepaño'] });
+    const inv = await pipe({ ...A, componentes: [...A.componentes].reverse() });
+    expect(inv.partida.especificacion_tecnica).toEqual(a.partida.especificacion_tecnica);
+    const { r } = await guardarYVincular({ ...inv.partida, costeoId: a.partida.costeoId });
+    expect(r.fallidos).toEqual([]);
+  });
+
+  it('reconciliación: el navegador manda material_match EXACT (spoof); el servidor costea con su clase reconciliada y ESA es la spec de K y de la partida', async () => {
+    const spoof = { ...A, componentes: A.componentes.map((c) => ({ ...c, material_match: 'EXACT' })) };
+    const v = validar(intentDe(spoof, 1));
+    expect(specTecnicaDeCosteo(v.intent.pieza).componentes.every((c) => c.material_match === 'EXACT')).toBe(true);
+    const s = await pipe(spoof);
+    expect(s.ok).toBe(true);
+    const k = await kDe(s.partida.costeoId);
+    expect(k.spec_tecnica_origen.componentes.every((c) => c.material_match === 'USER_CONFIRMED')).toBe(true);
+    expect(s.partida.especificacion_tecnica).toEqual(k.spec_tecnica_origen);
+    expect((await guardarYVincular(s.partida)).r.fallidos).toEqual([]);
+    // Si el navegador reescribe la especificación con lo que él mandó (EXACT), la huella no coincide: se rechaza
+    // (un costeo nuevo, sin vincular, para que el rechazo sea por la spec y no por "ya vinculado").
+    const s2 = await pipe(spoof);
+    const { r } = await guardarYVincular({ ...s2.partida, especificacion_tecnica: specTecnicaDeCosteo(v.intent.pieza) });
+    expect(r.fallidos[0]?.error).toMatch(/describe otro despiece/);
+    expect(await vigentes(s2.partida.costeoId)).toBe(0);
+  });
+
+  it('el navegador transporta la spec pero no decide: alterar CUALQUIER campo técnico de la partida ⇒ rechazo', async () => {
+    const a = await pipe(A);
+    const sp = a.partida.especificacion_tecnica;
+    const en = (nombre, cambio) => ({ ...sp, componentes: sp.componentes.map((c) => (c.nombre === nombre ? { ...c, ...cambio } : c)) });
+    const alteraciones = [
+      en('Entrepaño', { cantidad: 2 }), en('Lateral', { largoMM: 701 }), en('Pintura', { areaPintadaM2: 1.6 }),
+      en('Cubierta', { material_match: 'EXACT' }), en('Cubierta', { insumoId: 'mdf18n' }),
+      { ...sp, horas: { ensamble: 1 } }, { ...sp, dificultad: 'dificil' }, { ...sp, componentes: sp.componentes.slice(1) },
+    ];
+    for (const alt of alteraciones) {
+      // cada alteración cambia de verdad la spec (si no, la prueba no probaría nada)
+      expect(specTecnicaDeCosteo(alt)).not.toEqual(specTecnicaDeCosteo(sp));
+      const { r } = await guardarYVincular({ ...a.partida, especificacion_tecnica: alt });
+      expect(r.fallidos[0]?.error).toMatch(/describe otro despiece/);
+    }
+    expect(await vigentes(a.partida.costeoId)).toBe(0);
+  });
+
+  it('sin especificación en la respuesta del servidor (Edge vieja / Ventas) la partida no la inventa: queda sin spec y no vincula', async () => {
+    const { partidaAutoritativaDeCosteo } = await import('../../src/datos/agregarCosteo.js');
+    const real = await pipe.servidor(A, 1);
+    const r = await partidaAutoritativaDeCosteo({ costeo: A, resultado: { costoUnitario: real.costo.costoUnitario }, precio: 12000, margen: 40,
+      costearServidor: async () => ({ ...real, especificacionTecnica: undefined }), pendientes: () => [], nuevoId: () => 'p1' });
+    expect(r.ok).toBe(true);
+    expect(r.partida.especificacion_tecnica).toBeNull();
+    const { r: v } = await guardarYVincular(r.partida);
+    expect(v.fallidos[0]?.error).toMatch(/no trae su especificación técnica/);
+  });
+
+  it('nombresExcluidos distintos — la partida de A editada para excluir el entrepaño NO acepta el K de A', async () => {
+    const a = await pipe(A);
+    const { r } = await guardarYVincular({ ...a.partida, nombresExcluidos: ['Entrepaño'] });
     expect(r.fallidos[0]?.error).toMatch(/promete otra cosa/);
     expect(await vigentes(a.partida.costeoId)).toBe(0);
-    expect(id).toBeTruthy();
   });
 
   it('observación (fuera de alcance): Costear NO puede agregar un especial con una pieza excluida — el validador descarta `excluida` y el servidor la costea; la paridad falla cerrada', async () => {
-    const r = await pipe({ ...A, componentes: [A.componentes[0], { ...A.componentes[1], excluida: true }] });
+    const r = await pipe({ ...A, componentes: [A.componentes[0], { ...A.componentes[1], excluida: true }, ...A.componentes.slice(2)] });
     expect(r.ok).toBe(false);
     expect(r.error).toMatch(/difieren/);
   });

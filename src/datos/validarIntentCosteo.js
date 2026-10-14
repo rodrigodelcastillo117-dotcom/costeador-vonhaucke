@@ -168,7 +168,8 @@ export function validarIntentCosteo(body) {
   if (pieza.horas != null) {
     if (typeof pieza.horas !== 'object') issues.push({ field: 'pieza.horas', msg: 'horas debe ser un objeto por centro.' });
     else {
-      horas = {};
+      // Sin prototipo: un centro llamado `__proto__` (o `toString`, `constructor`…) es un dato, no se pierde ni se hereda.
+      horas = Object.create(null);
       for (const [centro, h] of Object.entries(pieza.horas)) {
         if (!(finito(h) && h >= 0)) issues.push({ field: `pieza.horas.${centro}`, msg: 'horas por centro debe ser finito ≥ 0.' });
         else horas[centro] = h;

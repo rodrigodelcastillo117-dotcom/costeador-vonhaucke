@@ -18,11 +18,18 @@
 
 La promesa no se tocó. No se le agregó ningún detalle técnico.
 
-### Cómo nace la spec con K
+### Cómo nace la spec con K (cierre GO: pieza EFECTIVA)
 
 1. Costear manda la intención técnica. `nube.costearServidor` envía `validarIntentCosteo(intentDesdePieza(costeo, n)).intent`.
-2. La Edge vuelve a pasar la intención por `validarIntentCosteo`; ésa es la frontera del DTO. Después costea `intent.pieza` con el motor.
-3. La fila del costeo la arma `filaCosteoServidor` (`src/datos/registroCosteo.js`), la **misma** función que usan las pruebas del pipeline. Guarda `spec_tecnica_origen = specTecnicaDeCosteo(intent.pieza)`: la pieza saneada que entró al motor, no un objeto paralelo del navegador.
+2. La Edge sólo autentica (JWT → email) y llama a `atenderCosteo` (`src/datos/costeoServidor.js`). Ese núcleo es el que corren también las pruebas del pipeline, con un cliente PGlite. Hace esto:
+   - vuelve a pasar la intención por `validarIntentCosteo`, la frontera del DTO;
+   - reconcilia cada componente contra el catálogo autoritativo;
+   - costea `piezaEfectiva` con `calcular()`. `piezaEfectiva` es la intención saneada con los componentes reconciliados: exactamente el objeto que recibe `calcular()`.
+3. La fila del costeo la arma `filaCosteoServidor`, con `spec_tecnica_origen = specTecnicaDeCosteo(piezaEfectiva)`. Antes salía de `intent.pieza`, es decir, de la pieza **previa** a la reconciliación.
+4. La respuesta, para Diseño y Dirección, incluye `especificacionTecnica`: esa misma spec efectiva. Costear arma la partida con ella (`agregarCosteo.js`).
+   - El navegador la transporta, pero no decide: `adjuntar` la re-proyecta en SQL y la compara con la huella que el servidor ya guardó en K.
+   - Si el navegador altera un campo, la huella no coincide y el vínculo se rechaza.
+   - Si la respuesta no trae spec (Edge vieja o Ventas), la partida queda sin spec y no vincula.
 4. El trigger `trg_costeo_spec_servidor`:
    - la vuelve a proyectar en SQL;
    - fija `spec_tecnica_version = 'v1'` y `spec_tecnica_huella = md5`;
@@ -114,7 +121,14 @@ La prueba `specTecnica.test.js` falla si la allowlist y `SPEC_CAMPOS` divergen (
 - **Número:** sólo número JSON en el dominio `[0, 2^53−1]` y además `0` ó `≥ 1e-6`. En ese dominio, JS (`String(n)`) y SQL (`trim_scale(n)::text`) escriben el mismo texto.
 - **Bandera:** `true` = presente; `false` = ausente.
 - **Fuera de contrato:** cualquier otro tipo presente, un número fuera de dominio, una dificultad desconocida o un centro de horas repetido tras recortar ⇒ **sin spec** (null). Sin spec no hay vínculo.
-- **Orden:** el de los renglones no cuenta. Se ordenan por la clave canónica `campo=valor` en el orden fijo de `SPEC_CAMPOS`, unida con U+001F, por punto de código (= `COLLATE "C"`).
+- **Orden:** el de los renglones no cuenta. Se ordenan por una clave canónica **inyectiva**, comparada por punto de código (= `COLLATE "C"`). Por cada campo de `SPEC_CAMPOS`, en orden fijo, se escribe `-` si falta o `<longitud en puntos de código>:<valor>` si está presente.
+  - La longitud delimita el valor: ningún contenido puede imitar otro campo, ni siquiera con U+001F, `|`, `=`, saltos de línea o emoji.
+  - Claves iguales ⇔ renglones iguales, así que el orden de entrada nunca cambia el resultado.
+  - Cierre GO: la clave anterior unía `campo=valor` con U+001F, y `{nombre:"x\u001fcantidad=1"}` chocaba con `{nombre:"x", cantidad:1}`.
+- **Texto válido:** sólo escalares Unicode y sin U+0000, que es lo que jsonb puede guardar. Un sustituto UTF-16 suelto o U+0000 ⇒ sin spec en JS; en SQL ni siquiera entra.
+- **Horas:** sólo propiedades **propias**. `toString`, `constructor`, `__proto__`, `hasOwnProperty` y `valueOf` son centros como cualquier otro.
+  - Cierre GO: antes `k in {}` los veía heredados en JS, mientras SQL los aceptaba.
+  - El validador del DTO también usa un objeto sin prototipo, así que ya no pierde `__proto__`.
 - **Multiplicidad:** sí cuenta.
 
 ### Duplicados (decisión explícita)

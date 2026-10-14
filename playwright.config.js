@@ -3,6 +3,13 @@ import { defineConfig, devices } from '@playwright/test';
 // E2E real en navegador (Chromium). Los specs se llaman *.e2e.js para NO chocar con
 // vitest (que corre *.test.js). Playwright levanta el dev server solo y lo reutiliza
 // si ya está arriba. Pensado también para CI (headless).
+const NAVEGADOR = {
+  ...devices['Desktop Chrome'],
+  // Entornos con un Chromium ya instalado en otra ruta (sin `playwright install`):
+  // PW_EXECUTABLE=/ruta/al/chromium npm run e2e
+  ...(process.env.PW_EXECUTABLE ? { launchOptions: { executablePath: process.env.PW_EXECUTABLE } } : {}),
+};
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.js',
@@ -15,15 +22,15 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
-  projects: [{
-    name: 'chromium',
-    use: {
-      ...devices['Desktop Chrome'],
-      // Entornos con un Chromium ya instalado en otra ruta (sin `playwright install`):
-      // PW_EXECUTABLE=/ruta/al/chromium npm run e2e
-      ...(process.env.PW_EXECUTABLE ? { launchOptions: { executablePath: process.env.PW_EXECUTABLE } } : {}),
-    },
-  }],
+  // Cierre GO (14-oct): golden757Edicion edita el presupuesto que CREA golden757. Antes corrían en paralelo y la edición
+  // buscaba "el golden más reciente con acomodo" entre datos compartidos de la nube: si golden757 aún no acomodaba, las 6
+  // tarjetas recientes estaban a medias y fallaba (flaky en CI 786 y 789). Ahora la edición es un proyecto que DEPENDE de
+  // golden757 y abre EXACTAMENTE el presupuesto que éste dejó (su id), sin carrera ni estado ajeno.
+  projects: [
+    { name: 'chromium', testIgnore: /golden757(Edicion)?\.e2e\.js$/, use: NAVEGADOR },
+    { name: 'golden757', testMatch: /golden757\.e2e\.js$/, use: NAVEGADOR },
+    { name: 'golden757-edicion', testMatch: /golden757Edicion\.e2e\.js$/, dependencies: ['golden757'], use: NAVEGADOR },
+  ],
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:5173',

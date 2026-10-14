@@ -1,0 +1,82 @@
+# Cierre GO · P2 de canonicalización ANTES de la corrección (specTecnica.js, validarIntentCosteo.js y SQL de 2d02527)
+# npx vitest run supabase/tests/specTecnicaGolden.test.js src/datos/specTecnica.test.js (con las fixtures y pruebas nuevas)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > hay fixtures y la versión es v1
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > A · Credenza: Cubierta + 1 × Entrepaño MDF18 (lo de arriba del componente es promesa, no spec)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > B · misma Credenza con 3 × Entrepaño: otra spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > A reordenada: el orden de los renglones no cuenta (misma spec que A)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > Lateral MDF18 700 × 400
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > Lateral MDF18 900 × 400: otra spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > horas: ensamble 1 h
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > horas: ensamble 4 h (otra spec)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > pintura: mismo insumo, 1.5 m² pintados
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > pintura: mismo insumo, 2.25 m² pintados (otra spec)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > duplicados: dos renglones idénticos cantidad 1 se quedan como dos (multiplicidad)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > duplicados: un renglón cantidad 2 NO es lo mismo que dos de cantidad 1 (decisión explícita: no se fusionan)
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > normalización: texto recortado, false fuera, claves ajenas fuera, pendiente sin insumo, horas y dificultad (Jaladera sin insumoId ordena primero: "-" < dígito)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > dificultad numérica dentro de 0.25–3
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > fuera de contrato: número > 2^53 − 1 ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > fuera de contrato: número entre 0 y 1e-6 ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > fuera de contrato: cantidad como texto ⇒ sin spec (el DTO sólo admite números)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > fuera de contrato: dificultad desconocida ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > fuera de contrato: centro de horas repetido tras recortar ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > sin componentes, componente que no es objeto o entrada que no es objeto ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > arreglo vacío ⇒ sin spec
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > horas con claves de Object.prototype (toString, constructor, __proto__, hasOwnProperty, valueOf): son centros como cualquier otro
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > horas: sólo toString (antes JS daba null por herencia y SQL lo aceptaba)
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > horas: sólo constructor
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > horas: sólo __proto__ (propiedad propia en JSON)
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > horas: ' toString' y 'toString' chocan tras recortar ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > U+001F: un nombre con 'x\u001fcantidad=1' NO se confunde con {nombre:'x', cantidad:1} (orden A,B)
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > U+001F: los mismos dos renglones en orden B,A dan la MISMA spec (antes la clave chocaba y el orden contaba)
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > U+001F y '=' en material_solicitado contra campos separados: no colisionan
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > Unicode: |, §, salto de línea y tab internos, emoji (par sustituto), acentos — orden por longitud y punto de código
+ × src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > Unicode: los mismos seis renglones invertidos dan la MISMA spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > nulls: campos null, horas null y dificultad null = ausentes
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > nulls: un renglón null dentro del arreglo ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > número como texto en una medida ('700') ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > número como texto en horas ('1') ⇒ sin spec
+ ✓ src/datos/specTecnica.test.js > spec_tecnica_v1 · fixtures doradas (JS) > no es un objeto ⇒ null
+ ✓ src/datos/specTecnica.test.js > la spec cubre EXACTAMENTE lo que cruza la frontera del DTO > cada campo que el validador deja pasar está en SPEC_CAMPOS (y viceversa, más `pendiente`)
+ ✓ src/datos/specTecnica.test.js > la spec cubre EXACTAMENTE lo que cruza la frontera del DTO > multiplicidad, dimensión interna, horas, dificultad y pintura cambian la spec; el orden no
+ ✓ src/datos/specTecnica.test.js > la spec cubre EXACTAMENTE lo que cruza la frontera del DTO > lo que el validador descarta (economía, excluida, factores, modelo) NO cambia la spec: el motor del servidor no lo ve
+ ✓ src/datos/specTecnica.test.js > la spec cubre EXACTAMENTE lo que cruza la frontera del DTO > dominio numérico del contrato
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > A · Credenza: Cubierta + 1 × Entrepaño MDF18 (lo de arriba del componente es promesa, no spec)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > B · misma Credenza con 3 × Entrepaño: otra spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > A reordenada: el orden de los renglones no cuenta (misma spec que A)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > Lateral MDF18 700 × 400
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > Lateral MDF18 900 × 400: otra spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > horas: ensamble 1 h
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > horas: ensamble 4 h (otra spec)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > pintura: mismo insumo, 1.5 m² pintados
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > pintura: mismo insumo, 2.25 m² pintados (otra spec)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > duplicados: dos renglones idénticos cantidad 1 se quedan como dos (multiplicidad)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > duplicados: un renglón cantidad 2 NO es lo mismo que dos de cantidad 1 (decisión explícita: no se fusionan)
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > normalización: texto recortado, false fuera, claves ajenas fuera, pendiente sin insumo, horas y dificultad (Jaladera sin insumoId ordena primero: "-" < dígito)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > dificultad numérica dentro de 0.25–3
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > fuera de contrato: número > 2^53 − 1 ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > fuera de contrato: número entre 0 y 1e-6 ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > fuera de contrato: cantidad como texto ⇒ sin spec (el DTO sólo admite números)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > fuera de contrato: dificultad desconocida ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > fuera de contrato: centro de horas repetido tras recortar ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > sin componentes, componente que no es objeto o entrada que no es objeto ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > arreglo vacío ⇒ sin spec
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > horas con claves de Object.prototype (toString, constructor, __proto__, hasOwnProperty, valueOf): son centros como cualquier otro
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > horas: sólo toString (antes JS daba null por herencia y SQL lo aceptaba)
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > horas: sólo constructor
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > horas: sólo __proto__ (propiedad propia en JSON)
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > horas: ' toString' y 'toString' chocan tras recortar ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > U+001F: un nombre con 'x\u001fcantidad=1' NO se confunde con {nombre:'x', cantidad:1} (orden A,B)
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > U+001F: los mismos dos renglones en orden B,A dan la MISMA spec (antes la clave chocaba y el orden contaba)
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > U+001F y '=' en material_solicitado contra campos separados: no colisionan
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > Unicode: |, §, salto de línea y tab internos, emoji (par sustituto), acentos — orden por longitud y punto de código
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > Unicode: los mismos seis renglones invertidos dan la MISMA spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > nulls: campos null, horas null y dificultad null = ausentes
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > nulls: un renglón null dentro del arreglo ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > número como texto en una medida ('700') ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > número como texto en horas ('1') ⇒ sin spec
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > la huella distingue multiplicidad, medidas, horas y pintura; no el orden ni lo que el DTO descarta
+ ✓ supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > cambiar CUALQUIER campo técnico de un renglón cambia la huella (SQL) y la spec (JS)
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > reordenar los renglones nunca cambia la huella (todas las rotaciones e inversión de cada fixture con varios renglones)
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > sin colisiones: en TODOS los renglones de las fixtures, misma clave de orden ⇔ mismo renglón; spec distinta ⇒ huella distinta
+ × supabase/tests/specTecnicaGolden.test.js > spec_tecnica_v1 · fixtures doradas (SQL = JS) > fuera del dominio de jsonb (U+0000, sustituto UTF-16 suelto, en un valor o en un centro de horas): JS no da spec y SQL ni lo admite
+⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯

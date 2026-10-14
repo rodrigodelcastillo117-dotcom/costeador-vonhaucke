@@ -76,7 +76,8 @@ describe('Edge costear-servidor-rc · modo cocrear', () => {
   });
   it('lee el BOM del expediente guardado (service role), no del body, y usa el mismo DTO y motor', () => {
     const i = src.indexOf('if (esSolicitudCocrear(body))');
-    const b = src.slice(i, src.indexOf('// --- DTO ESTRICTO', i));
+    const b = src.slice(i, src.indexOf('// --- Costeo normal', i));
+    expect(b.length).toBeGreaterThan(200);
     expect(b).toContain('from("expedientes")');
     expect(b).toContain('piezaDeCocreacion(exp.cocrear)');
     expect(b).toContain('validarIntentCosteo({ cantidad: 1, pieza: pz.pieza })');
@@ -89,8 +90,13 @@ describe('Edge costear-servidor-rc · modo cocrear', () => {
   it('sin registro del resultado no presume validación ni costo oficial', () => {
     expect(src).toContain('REGISTRO_NO_DISPONIBLE');
   });
-  it('el costeo normal conserva su DTO y su 403 de confirmación de material', () => {
-    expect(src).toContain('const v = validarIntentCosteo(body);');
-    expect(src).toContain('MATERIAL_CONFIRMATION_FORBIDDEN');
+  it('el costeo normal conserva su DTO y su 403 de confirmación de material (ahora en el núcleo compartido que la Edge llama)', () => {
+    // Cierre GO: la Edge delega TODO el costeo normal en src/datos/costeoServidor.js (las pruebas del pipeline llaman a la
+    // misma función). El comportamiento (400 del DTO, 403 de confirmación) se prueba ejecutándolo en seg01cVinculoCosteo.
+    expect(src).toContain('atenderCosteo({ svc: createClient(URL, SERVICE), body, email })');
+    const nucleo = fs.readFileSync('src/datos/costeoServidor.js', 'utf8');
+    expect(nucleo).toContain('const v = validarIntentCosteo(body);');
+    expect(nucleo).toContain('MATERIAL_CONFIRMATION_FORBIDDEN');
+    expect(src).not.toContain('calcular(');   // el motor no se llama desde la Edge: sólo desde el núcleo
   });
 });
