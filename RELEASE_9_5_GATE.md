@@ -191,6 +191,11 @@ No se activa estricto sin la decisión de Dirección.
 7. **VH-100 sin dato:** 1,931 productos de lista sin costo oficial. Cotizar líneas de catálogo sigue `ECONOMICS_INCOMPLETE` hasta que Compras entregue el reporte.
 8. **Council:** Anthropic agota el tiempo (presupuesto 14–22 s contra latencia real de 29–43 s). Todo sale con un solo proveedor y bien etiquetado. Arreglarlo requiere tocar `voni-council` de producción.
 9. **`qa-direccion`: RIESGO ACEPTADO POR DIRECCIÓN.**
+10. **E2E inestable: `golden757Edicion`.**
+    - En CI 786 (`66dd3a0`) falló en el primer intento ("ningún presupuesto golden reciente tiene acomodo") y pasó en el reintento.
+    - En CI 785 (`5057d61`, mismo código de app) pasó sin reintento.
+    - Depende de datos QA compartidos en la nube: busca entre los 6 presupuestos "Torre Sur (golden)" más recientes uno que ya tenga acomodo, y otras corridas, en paralelo o canceladas, los dejan a medias.
+    - No se tocó en este cierre: cambiar `e2e/` invalida el congelamiento del holdout. Va a la lista de después del lote Intelisis.
 
 ## 8. Holdout Intelisis
 
@@ -200,4 +205,16 @@ No se activa estricto sin la decisión de Dirección.
 
 ## 9. Evidencia del SHA final
 
-Se agrega en el commit siguiente.
+**SHA evaluado: `66dd3a0359c8b233a7ebcd5871ae6b69720af59f`.** Es el último con código y evidencia. El commit que agrega esta sección sólo cambia este archivo, así que su CI y su preview se reportan en el paquete de reauditoría (`00_LEEME_AUDITOR.md`).
+
+| Evidencia | Resultado |
+|---|---|
+| CI | [run 786](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38589415579): `verify` en **success** (audit, vitest y `vite build`) y E2E en **success**: 93 passed, 12 skipped, **1 flaky** (`golden757Edicion`, riesgo residual 10). |
+| CI anterior, mismo código de app (`5057d61`) | [run 785](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38586081121): success, 94 passed, 12 skipped, 0 flaky |
+| Preview Vercel | `dpl_5SKh38tXAGNgXjtqjutxH1KB1xft` (`costeador-vonhaucke-m631befvd-rodrigos-eurotrip.vercel.app`), **READY**, `githubCommitSha` = `66dd3a0…` |
+| Suite local | 349 archivos, 3,306 pruebas, 0 fallas (`fcfedc2`) |
+| Pruebas focales | 11 archivos, 252/252 |
+| Holdout v5.1 | `--verificar` → **OK** (exit 0) sobre `corrida_humo_20261014b`; 9/9 casos alterados fallan cerrado |
+| Edge RC | `costear-servidor-rc` v22 `d97214c7…`, `analizar-mueble-rc` v8 `f226b792…` (releídas a las 15:25 UTC) |
+| Edge de producción | `costear-servidor` v9 `f0722f95…`, `analizar-mueble` v35 `1e1d496e…`: **sin cambios** |
+| Producción | sin SQL de esquema ni promoción del cliente; SEG-01c no aplicada, así que tampoco está en estricto; sin merge |
