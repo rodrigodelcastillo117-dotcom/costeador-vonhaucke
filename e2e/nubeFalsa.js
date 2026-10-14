@@ -17,8 +17,12 @@
 //     (tampoco aplicada): fusión recursiva, STALE por producto/material/lote/definición, re-pin rechazado (42501),
 //     autoridad protegida, normalize de cost_status y compuerta de emisión que lee `cost_stale` de la
 //     fila. Espejo de la SQL probada en supabase/tests/preservaEconomiaIntegral.test.js y
-//     composicionVh035cVh148.test.js; e2e en e2e/persistenciaVh035c.e2e.js. El DEFAULT (false) sigue
-//     siendo producción hoy: e2e/persistencia.e2e.js:125 queda ROJO a propósito.
+//     composicionVh035cVh148.test.js; e2e en e2e/persistenciaVh035c.e2e.js.
+//     DEFAULT = 'vh035c' desde el 14-oct-2026: VH-035c ESTÁ APLICADA en producción (verificado en solo lectura:
+//     private_api.actualizar_cotizacion_segura llama fusionar_economia_partidas; wrapper de emisión md5 cf6ef6a3…).
+//     Antes el default (false) simulaba la producción previa a VH-035c y dejaba e2e/persistencia.e2e.js:125 rojo
+//     "a propósito"; ese rojo ya no describía producción (reauditoría externa 14-oct, P1-05). `preservaEconomia:
+//     false` sigue disponible para reproducir el defecto histórico.
 //   - VH-148 (control optimista, PROPUESTA_vh148_control_optimista_cotizacion.sql, probada contra
 //     PostgreSQL real en supabase/tests/controlOptimista.test.js): `cotizacion_segura` devuelve
 //     `actualizado`; `actualizar_cotizacion_segura` honra `p_actualizado_esperado` si viene en el body
@@ -380,11 +384,11 @@ export function evaluarEmision(fila, snap, aprobaciones = []) {
   return { state: 'ALLOWED', reasons: [], ...base };
 }
 
-// `preservaEconomia` (default false = producción hoy): true = semántica de la migración 20261010170000;
+// `preservaEconomia` (default 'vh035c' = producción desde VH-035c; false = producción ANTERIOR, defecto VH-035): true = semántica de la migración 20261010170000;
 // 'vh035c' = PROPUESTA_vh035c (compuesta con VH-148: el control de versión va ANTES y delega en el mismo núcleo).
 // `rpcVieja` (default false = con PROPUESTA_vh148): true = producción SIN la migración VH-148 (cotizacion_segura
 // no devuelve `actualizado` y la sobrecarga de tres argumentos no existe → PostgREST 404 PGRST202).
-export function crearNubeFalsa({ usuarios, preservaEconomia = false, rpcVieja = false }) {
+export function crearNubeFalsa({ usuarios, preservaEconomia = 'vh035c', rpcVieja = false }) {
   const permitidos = new Map(Object.entries(usuarios));   // email → rol
   const modo035c = preservaEconomia === 'vh035c';
   // Compuerta de emisión: con VH-035c el wrapper suma los motivos de recosteo pendiente de la FILA.
