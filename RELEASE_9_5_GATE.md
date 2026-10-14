@@ -115,12 +115,14 @@ Nota técnica: el MCP de Supabase se cuelga 60 s ante cualquier `drop`, porque p
 - La merma se calculó de esos tres reportes (rango 6.2–7.7 %, supuesto pata U = 2×720 + ancho) y la autorizó Dirección.
 - Las pruebas fallan con el motor anterior.
 
-**SIN APLICAR (requiere autorización expresa):** `PROPUESTA_tramo_por_pieza_catalogo.sql` marca 155 barras ERP:
+**APLICADA (autorizada por Rodrigo: "si aplicalo"):** `20261014160000_tramo_por_pieza_catalogo` marca 155 barras ERP:
 - 128 tubulares al 6.94 % y 27 perfiles al 5 %;
-- la marca va en `atributos.tramoPorPieza`. El motor de producción la ignora (sin cambio de costo); el RC la usa.
+- la marca va en `atributos.tramoPorPieza`; `formato` queda intacto, así que el motor de producción no cambia;
+- verificado: 155 marcadas, ninguna con `formato` tocado, y `catalogo_motor` entrega la marca.
 
-Sin esa migración, todo mueble con tubular ERP sigue sin costear (unidad pza sin formato → conflicto crítico en el amarre).
-
-**Bandera `D2_RATIFICADA_POR_PRODUCCION = false` (sin cambio):** todo costo con tubular por fracción queda tope `preliminar` y no se emite. Cambiarla es decisión de Rodrigo / Producción.
+**D2 RATIFICADA por Dirección** ("mi autorizacion de la merma sustituye la ratificacion de produccion"), motor `2026-10-14b`:
+- `D2_RATIFICADA_POR_PRODUCCION = true`;
+- merma 6.94 % de política en todo tubular de acero (los curados decían 5 %): de +0.03 % a +0.98 % de costo en las 10 familias con PTR;
+- `costear-servidor-rc` desplegada (run 42).
 
 **Holdout:** INVÁLIDO desde `07ff56d` (cambió `calculo.js` y `nube.js`). No se ha corrido; hay que re-congelarlo (v5) antes de correrlo.
