@@ -15,7 +15,7 @@ import { NIVELES_DIFICULTAD } from '../datos/dificultadNiveles.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
-import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64 } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64, aprobarPrecio } from '../nube.js';
 import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-072
 import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
@@ -29,6 +29,7 @@ import { conAcompanantes } from '../datos/autoInsumos.js';
 import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
 import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js';
 import { buscarInsumosMotor } from '../nube.js';
+import { preciosAprobables, preciosNoAprobables } from '../datos/autoridadCosteoServidor.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, patchPropuestaHermana, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
@@ -87,7 +88,7 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
   return [...byKey.values()];
 }
 
-export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null, semillaCocrear = null, onVolverCocrear = null }) {
+export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null, semillaCocrear = null, onVolverCocrear = null }) {
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
@@ -210,6 +211,8 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
   const [etiquetasTxt, setEtiquetasTxt] = useState('');
   const [estadoExp, setEstadoExp] = useState('borrador');
   // P0.16: validación SERVER-AUTHORITY vigente para el BOM hash actual (null = sin validar).
+  const [aprobandoPrecios, setAprobandoPrecios] = useState(false);
+  const [msgPrecios, setMsgPrecios] = useState('');
   const [validacionSrv, setValidacionSrv] = useState(null); // { valido, razon, estado, costoUnitario, bomHash }
   const [validandoSrv, setValidandoSrv] = useState(false);
   const [guardandoExp, setGuardandoExp] = useState(false);
@@ -405,11 +408,16 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
       const valido = ok && estadoOK && costoFinito && cuadra;
       let razon = '';
       if (!ok) razon = 'el servidor no validó el costo.';
-      else if (!estadoOK) razon = `el servidor marca el costo como ${estadoSrv || 'no emitible'} (faltan confirmaciones de material).`;
+      else if (!estadoOK) {
+        // OP9.5-04: los motivos los da el servidor; antes el texto fijo culpaba a "confirmaciones de material" aunque
+        // la causa fuera otra (formato, Ingeniería, precio faltante).
+        const mot = (Array.isArray(srv?.warnings) ? srv.warnings : []).map(String).slice(0, 3).join(' · ');
+        razon = `el servidor marca el costo como ${estadoSrv || 'no emitible'}${mot ? `: ${mot}` : ' sin motivo registrado (defecto: repórtalo)'}.`;
+      }
       else if (!costoFinito) razon = 'el costo del servidor no es finito.';
       else if (!cuadra) razon = `el costo local (${pesos2(resultado.costoUnitario)}) no coincide con el del servidor (${pesos2(costoSrv)}).`;
       // P0-04: la fuente y versión REAL del catálogo con que el servidor costeó viajan al snapshot.
-      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual, versionCatalogo: srv?.versionCatalogo || null, fuenteCosto: srv?.fuenteCosto || srv?.catalogoFuente || null, aprobacionHumana: srv?.aprobacionHumana === true, advertencias: Array.isArray(srv?.warnings) ? srv.warnings.map(String).slice(0, 12) : [] };
+      const v = { valido, razon, estado: estadoSrv, costoUnitario: costoSrv, bomHash: hashActual, versionCatalogo: srv?.versionCatalogo || null, fuenteCosto: srv?.fuenteCosto || srv?.catalogoFuente || null, aprobacionHumana: srv?.aprobacionHumana === true, advertencias: Array.isArray(srv?.warnings) ? srv.warnings.map(String).slice(0, 12) : [], precios: Array.isArray(srv?.precios) ? srv.precios : [] };
       setValidacionSrv(v);
       if (estadoSrv) setCostoEstado(estadoSrv);
       return v;
@@ -1499,6 +1507,51 @@ export default function AsistenteEspecial({ estado, onVerDetalle, onInicio, onBi
             <strong style={{ color: estadoCosto3.estado === 'bloqueado' ? 'var(--alerta,#b22a22)' : estadoCosto3.estado === 'validado' ? 'var(--ok,#1a7f37)' : '#8a6d00' }}>{estadoCosto3.etiqueta}</strong>
             {estadoCosto3.motivos.length > 0 && <> — {estadoCosto3.motivos.join(' · ')}</>}
           </div>
+          {rol === 'direccion' && estadoCosto3.estado !== 'bloqueado' && (() => {
+            // P1-03: Dirección ve y aprueba EL precio exacto que usó el servidor (no una lista genérica).
+            const vig = validacionSrv && validacionSrv.bomHash === bomHash(b.componentes) ? validacionSrv : null;
+            const aprob = vig ? preciosAprobables(vig.precios) : [];
+            const noAprob = vig ? preciosNoAprobables(vig.precios) : [];
+            return (
+              <div className="ayuda columna-texto" data-testid="precios-por-aprobar" style={{ textAlign: 'left', marginTop: 8 }}>
+                {!vig && (
+                  <button type="button" className="boton" disabled={validandoSrv} data-testid="revisar-precios"
+                    onClick={async () => { setValidandoSrv(true); setMsgPrecios(''); try { await validarServidorParaAprobar(); } finally { setValidandoSrv(false); } }}>
+                    {validandoSrv ? 'Consultando…' : 'Revisar con el servidor los precios usados'}
+                  </button>
+                )}
+                {vig && aprob.length === 0 && noAprob.length === 0 && <span>Todos los precios usados tienen aprobación humana de Dirección.</span>}
+                {vig && aprob.length > 0 && (
+                  <>
+                    <strong>{aprob.length} precio(s) usado(s) sin aprobación humana:</strong>
+                    <ul style={{ margin: '4px 0 6px 18px' }}>
+                      {aprob.map((p) => (
+                        <li key={p.precio_id}>{p.insumo_id} · {pesos2(p.precio)}{p.unidad ? ` / ${p.unidad}` : ''}{p.source_document ? ` · ${p.source_document}` : ''} — {p.motivo}{p.approved_by ? ` (${p.approved_by})` : ''}</li>
+                      ))}
+                    </ul>
+                    <button type="button" className="boton primario" disabled={aprobandoPrecios} data-testid="aprobar-precios"
+                      onClick={async () => {
+                        if (!window.confirm(`Vas a aprobar como Dirección ${aprob.length} precio(s) exactos. Quedará tu nombre y la fecha. ¿Continuar?`)) return;
+                        setAprobandoPrecios(true); setMsgPrecios('');
+                        const fallas = [];
+                        for (const p of aprob) { const r = await aprobarPrecio(p.precio_id, 'Aprobado desde Costear'); if (!r.ok) fallas.push(`${p.insumo_id}: ${r.error}`); }
+                        setAprobandoPrecios(false);
+                        setMsgPrecios(fallas.length ? `No se aprobaron ${fallas.length}: ${fallas.join(' · ')}` : '✓ Precios aprobados. Revalidando con el servidor…');
+                        await validarServidorParaAprobar();
+                      }}>
+                      {aprobandoPrecios ? 'Aprobando…' : `Aprobar ${aprob.length} precio(s) como Dirección`}
+                    </button>
+                  </>
+                )}
+                {vig && noAprob.length > 0 && (
+                  <div style={{ marginTop: 6, color: '#8a2d00' }}>
+                    No se pueden aprobar aquí (requieren Compras): {noAprob.map((p) => `${p.insumo_id} — ${p.motivo}`).join(' · ')}
+                  </div>
+                )}
+                {msgPrecios && <div style={{ marginTop: 6 }}>{msgPrecios}</div>}
+              </div>
+            );
+          })()}
           {/* RENDER V1 — ilustra el producto definido; no lo modifica */}
           <div className="espacio" />
           <div style={{ borderTop: '1px solid var(--borde)', paddingTop: 14, textAlign: 'left' }}>

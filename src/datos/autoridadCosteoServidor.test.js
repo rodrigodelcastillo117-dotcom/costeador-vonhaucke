@@ -1,7 +1,7 @@
 // Operación 9.5 · OP9.5-04 (estado del servidor con motivos) y P1-03 (aprobación humana del PRECIO EXACTO).
 // Datos de las filas: valores reales de producción leídos el 14-oct-2026 (aprobadores, el empate de lamina-3x10-14).
 import { describe, it, expect } from 'vitest';
-import { estadoBaseServidor, conMotivos, precioVigenteElegido, aprobacionPrecioExacto } from './autoridadCosteoServidor.js';
+import { estadoBaseServidor, conMotivos, precioVigenteElegido, aprobacionPrecioExacto, preciosAprobables, preciosNoAprobables } from './autoridadCosteoServidor.js';
 import { costeoEmitible } from '../motor/calculo.js';
 import { clasificarCosto } from './estadoCosto.js';
 
@@ -150,5 +150,21 @@ describe('P1-03 · aprobación humana del precio exacto (rol + lista explícita,
 
   it('sin insumos usados no hay nada que certificar', () => {
     expect(aprobacionPrecioExacto({ usados: [], noHumanas }).aprobacionHumana).toBe(false);
+  });
+});
+
+describe('P1-03 · qué precios ofrece aprobar Costear a Dirección', () => {
+  const base = { humana: false, precio_id: 1 };
+  const casos = [
+    { ...base, insumo_id: 'qa', motivo: 'aprobado por una cuenta no humana' },
+    { ...base, insumo_id: 'prop', motivo: "precio en estado 'propuesto'" },
+    { ...base, insumo_id: 'dif', motivo: 'el precio usado no coincide con el precio aprobado' },
+    { ...base, insumo_id: 'emp', motivo: 'empate entre precios vigentes distintos' },
+    { humana: false, precio_id: null, insumo_id: 'nada', motivo: 'sin precio vigente' },
+    { humana: true, precio_id: 9, insumo_id: 'ok', motivo: null },
+  ];
+  it('ofrece aprobar sólo el precio exacto usado; lo que no se arregla firmando se manda a Compras', () => {
+    expect(preciosAprobables(casos).map((p) => p.insumo_id)).toEqual(['qa', 'prop']);
+    expect(preciosNoAprobables(casos).map((p) => p.insumo_id)).toEqual(['dif', 'emp', 'nada']);
   });
 });

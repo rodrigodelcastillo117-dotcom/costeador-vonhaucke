@@ -498,6 +498,16 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
   };
 }
 
+// P1-03: Dirección aprueba EL precio exacto (insumo_precios.id) que usó el servidor. La RPC de producción exige rol
+// direccion y registra approved_by/approved_at; el servidor no cuenta como humana una cuenta de cuentas_no_humanas.
+export async function aprobarPrecio(precioId, nota = null) {
+  const id = Number(precioId);
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'precio_id inválido' };
+  const { error } = await nube.rpc('aprobar_precio', { p_precio_id: id, p_nota: nota });
+  if (error) return { ok: false, error: error.message || 'No se pudo aprobar el precio.' };
+  return { ok: true };
+}
+
 export async function costearServidor(pieza, cantidad = 1) {
   // VH-036: se manda la INTENCIÓN TÉCNICA saneada (sin margen/factores/modelo) y se
   // valida ANTES de salir con el mismo validador que espeja el servidor.

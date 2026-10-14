@@ -112,3 +112,17 @@ export function aprobacionPrecioExacto({ usados = [], insumos = {}, filasPrecio 
   if (sinHumano.length) motivos.push(`${sinHumano.length} de ${precios.length} precio(s) sin aprobación humana verificada (${[...new Set(sinHumano.map((p) => p.motivo))].slice(0, 3).join('; ')}).`);
   return { aprobacionHumana: precios.length > 0 && sinHumano.length === 0 && Array.isArray(noHumanas), precios, motivos };
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+//  P1-03 · qué precios puede aprobar Dirección desde Costear (RPC de producción `aprobar_precio(p_precio_id)`, que exige
+//  rol direccion y registra quién y cuándo). Sólo se ofrece aprobar EL precio exacto que usó el motor. No se ofrece
+//  cuando el precio usado no coincide con el vigente, cuando hay empate entre precios vigentes o cuando no hay precio:
+//  eso no se arregla firmando, se arregla con Compras.
+// ---------------------------------------------------------------------------------------------------------------------
+const NO_APROBABLE = /no coincide|empate|sin precio vigente|no verificable/;
+export function preciosAprobables(precios = []) {
+  return lista(precios).filter((p) => p && !p.humana && p.precio_id != null && !NO_APROBABLE.test(String(p.motivo || '')));
+}
+export function preciosNoAprobables(precios = []) {
+  return lista(precios).filter((p) => p && !p.humana && (p.precio_id == null || NO_APROBABLE.test(String(p.motivo || ''))));
+}
