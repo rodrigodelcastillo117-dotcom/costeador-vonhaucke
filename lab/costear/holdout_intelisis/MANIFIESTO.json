@@ -1,18 +1,18 @@
 {
- "congeladoEn": "2026-10-14T14:49:43.671Z",
- "huellaTotal": "1496aefd3f8d5c47ae933e8001bd8cc8918d80bd8e6c108ab2e3cb35e5856532",
+ "congeladoEn": "2026-10-14T15:21:14.877Z",
+ "huellaTotal": "1dfa826a6072688751273a47c34e8a60ef39b5808474d94bd2f637b1ba5950c9",
  "nArchivos": 108,
- "frontendSha": "2bd5092fc510989bf1519c42205aacf33b896d2d",
+ "frontendSha": "fcfedc274c6130bef95cf997ed8a450ae17fbdfd",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
-  "e2e/labCostear.e2e.js": "69ece1b79adaddbcb03aca9a72fedf81abfe83c145ad3b7864fce80c11aba1f8",
+  "e2e/labCostear.e2e.js": "42167cf5785a82f43d3358c4e0895bc73ba87b5f20a24e2af03744d9207d6176",
   "lab/costear/ciego_erp/comparar.mjs": "3210d8ed7934ff5d025dee948d7159a68b9e91fb390a170173b2c9b17ec9ee00",
   "lab/costear/ciego_erp/correr.sh": "780d4f6f41de13c083970f56189819b5bdcf085706083fc790a23d8686a78d73",
   "lab/costear/ciego_erp/gen_hojas.py": "90b999e46d821e0a9de50ea34279d4f2ec5197bc2cd8ac1bc661d7a8293c7591",
   "lab/costear/holdout_intelisis/huellas_db.sql": "51b15d0c49be718c3d7df76903d099364309e76af534c65cd4438e1598951e15",
   "lab/costear/holdout_intelisis/modelos_observados.sql": "28346b5355dbd8cd6e1cc1c936b0958ced9b85687ab23fa33433e070d844023a",
   "package-lock.json": "538a510235a23e6b74aef63b12aba3529781b40c5d9577cc1e2733c3dd8c0d7b",
-  "scripts/congelar_holdout.mjs": "47873bfe658a99527ec26a346b4e9e121758c8a01ea152c6b430b2c27e4d7cb8",
+  "scripts/congelar_holdout.mjs": "9293f73ef6ba03de55617bb29942e7542454229bceb3abcac7e19031e778b046",
   "src/datos/acabados.js": "bcd40a5a0ccfa43ab3f847eaab2a9b25a7a0b38bd7e9955ddf90f652f2e16508",
   "src/datos/accents.js": "2cd745232d4c9c8278e6e57912e1eb54ace34a95ac27e8f7e7ae6204c277f0ad",
   "src/datos/alba.js": "b8d92956308166762da26196002999a04dfe5f43c29fe5e4255d4bedf22baf31",
@@ -52,7 +52,7 @@
   "src/datos/feather.js": "ae1f196ae6895d87726b1469a7a07951a4d48695974d1864bba43c0ad2eae03d",
   "src/datos/flex.js": "6d8dc882f9e5152790358a4569eff11f34fd6c92e5f8c2f0e45699530377e37b",
   "src/datos/fuentes/producto_maestro.json": "18d5334c2d745323aa66dfdd66fcebef12380f1d59ecb2635eaf8d36bcb270b4",
-  "src/datos/holdoutHuellas.js": "783a7ceebfe4bad39c87997d59037fd6b4e546563442c417e57b9a7e1545d402",
+  "src/datos/holdoutHuellas.js": "42c8cc0534e93dbd8abecc00527596a9d96435a30a3a6d6a3a7cabfb6d5a1382",
   "src/datos/imagenStorage.js": "4414fdeb8c907a137c42af1a7d7e08120d44764c665f41611d69eeb30398a809",
   "src/datos/insumos.js": "32be168611dc9ff7a5be7a2142cd418c4ebb7838ab90c44164560963c8d3981b",
   "src/datos/lineas.js": "db5e4dc9eb230dad5467f5b875f1eb37cd314b5d4a757b32217f27122b3612de",
@@ -121,7 +121,7 @@
    "private_api.catalogo_motor": "fe81d391dc205365bc712441376eefa0",
    "public.buscar_insumos_motor": "5b9b9afad0a486bf2ddfc66948c3946e"
   },
-  "medido_en": "2026-10-14T14:46:32.667973+00:00",
+  "medido_en": "2026-10-14T15:20:56.118384+00:00",
   "insumo_precios": {
    "md5": "6d9863e8d0b24746862f158b369e00dd",
    "filas": 11849
