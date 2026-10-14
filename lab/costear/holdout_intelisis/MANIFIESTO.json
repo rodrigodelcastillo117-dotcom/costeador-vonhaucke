@@ -1,0 +1,61 @@
+{
+ "congeladoEn": "2026-10-14T04:26:24.169Z",
+ "huellaTotal": "c3db350fde005186cfc1c6cca4802bb7aa447719c961fc9c56a94cf9b136af97",
+ "nArchivos": 37,
+ "archivos": {
+  "e2e/labCostear.e2e.js": "cf8f76f646937bd84b79032f35f7620a7d9f14383936649d299d1d4dc2a4ca14",
+  "lab/costear/ciego_erp/comparar.mjs": "3210d8ed7934ff5d025dee948d7159a68b9e91fb390a170173b2c9b17ec9ee00",
+  "lab/costear/ciego_erp/correr.sh": "bd3eff9f9c1d2acf752a7e311206755f274f55847ffa777823259b290f65b2f1",
+  "lab/costear/ciego_erp/gen_hojas.py": "90b999e46d821e0a9de50ea34279d4f2ec5197bc2cd8ac1bc661d7a8293c7591",
+  "src/datos/autoridadCosteoServidor.js": "a25fd551f6c0938de73b22859fadb6bc00018034d93ead85a1bed59f73469c24",
+  "src/datos/conservarConfirmados.js": "7d58989e985dca783ff055c02607b2436dfcba00b39a834c86c192858c97096b",
+  "src/datos/estadoCosto.js": "1e45c1ccb968f30d1bbdc57e1c163e845e534396418d03311ff2ac073ad06723",
+  "src/datos/insumos.js": "32be168611dc9ff7a5be7a2142cd418c4ebb7838ab90c44164560963c8d3981b",
+  "src/datos/materialMatch.js": "1b02d0cb81987791c278f2ea4646ea46598403073ad8776c67f02c3c8df5fa14",
+  "src/datos/metricasHoldout.js": "f9622c43347b1ddfe3d09755eb2ed6108948f4f24f94c3a54fb6bceda7178d21",
+  "src/datos/revisionEstructural.js": "781401a3aec7718fbd6d0db766dce23770c327814aec53605e37fc79c686103d",
+  "src/datos/topeEstadoCosteo.js": "b0d61ed76d68615479fc5baa6a835e95b83b4e77f292492b2b35b68a91e215f7",
+  "src/datos/validarIntentCosteo.js": "9bc29c7036ad11cd34acec586f4b0d9158bd90f1147c659ed360dc2cc5f76f11",
+  "src/motor/calculo.js": "cc0ca3952b4331ea3ea1c9797a3efa9b1537f85c025d3ad18507d41fcd6623bc",
+  "src/motor/calibracion.js": "e0f9895619ed2d50aa8c95fdc91a68cd5d5956057db95656f40119ea0f11bbbd",
+  "src/motor/comercialDinero.js": "0b6e6075e17eaf1676700aaf8471e180f9ff171db644fcd80330a156628ed17b",
+  "src/motor/costeoVivo.js": "4f09944087c0c489af80f3f3a89c44f1567cef4de8bdfa4f6d8e7b190961bc98",
+  "src/motor/dificultad.js": "5c47b9894af0d4a5636534b0a1df854ea38b6596d82d11c7e746a8e9c247e036",
+  "src/motor/dinero.js": "024dde5fa6030a1f8a192c4d0393dd6e7e2cdc7c92f8cb286be0a36bfb8899b6",
+  "src/motor/fixtures/intelisis_alba_2026-08-12.json": "1e2c44d59034696b1553b1b665bf7597f9de558abbcb3f3dfe68e820a8181599",
+  "src/motor/formulaAlba.js": "feaf687b3bf225fc5997b9b148ce259e0a449598ebaed68da9d647acafcc375f",
+  "src/motor/optimizacionCorte.js": "4069d9f7c51e5fae61a025069e8d9a77ba47954bd81d3b53e348ff66039e7954",
+  "src/motor/politicaMerma.js": "39e479509338b0239c466866d6abad882522f68f9c4c1e8fccc8bb8229e35a45",
+  "src/voni/conocimiento.js": "ff5b8d53d4605829b4216f2f626744e928d7cac6908a81c210b442587759779e",
+  "src/voni/especialidades.js": "928345a190cc50f1997bad8313ec1892a8b3ece9eb5d7a46744c3dd47b2338b4",
+  "src/voni/lentes.js": "93b209659f69febfc09c2c9354b5ea57180ed61b66f7dbda58a5bd3a7cec868c",
+  "src/voni/nucleo.js": "382df1c70c6c505ea090c6943b7692a2771d898b13b622c5ada281615bae4553",
+  "src/voni/observabilidad.js": "2f0a29d20e1e6e3f8a9c2915b882043321e8f1035560aad780bc4bc42259e04b",
+  "src/voni/permisos.js": "1d9f28a9b850477f71bcb4cb735ef1851d957c3883a2e61b845cfce1d1374e18",
+  "src/voni/proveedorReal.js": "4db00e489704cb0e23412923479114dd9b9a1bedf5eed7b50df365d07a01b01f",
+  "src/voni/respuesta.js": "277ddafb8e6c9b5c8333ab9f76ebe639c3033da8481b0c2d0150661ba9b4b66b",
+  "src/voni/tools.js": "51131126fe6def364d5b0ad82ab46311ae56e43235845c9f22ca3efabf4651f4",
+  "supabase/functions/analizar-mueble-rc/index.ts": "f28d6896f36368751c26c407127381ea52afcfb8a5849d4baa5c5ac7df094de6",
+  "supabase/functions/analizar-mueble-rc/modelConfig.js": "a9f6d10b0a3cd27dbdd9b86dcc16f09cb4150cc85eb32cc62c4921103439ba6f",
+  "supabase/functions/analizar-mueble-rc/requestPlan.js": "e50e5a407feb8d7aa8c4a97db05da9f9e7f08a55dab62da64f77959e0f180545",
+  "supabase/functions/analizar-mueble-rc/telemetria.js": "1bfa7209e17d41c49b9f6faa544688af3267a1d04f7cdce821de9b7868e40d10",
+  "supabase/functions/costear-servidor-rc/index.ts": "7746ee48026b069645f451eed3e40d7822faecb11d67ba7226c62d024e7ab529"
+ },
+ "baseDatos": {
+  "medidoEn": "2026-10-14T04:26:07Z",
+  "proyecto": "mtuvnbgljwbsaizjjgzs",
+  "insumo_precios": {
+   "filas": 11350,
+   "md5": "7356074fc73dd207ed8bf86ec712253c",
+   "consulta": "md5(string_agg(id||':'||insumo_id||':'||precio||':'||estado||':'||coalesce(vigente_hasta,''), ',' order by id))"
+  },
+  "insumos_catalogo": {
+   "filas": 11223,
+   "md5": "60621b7c2a007118e8661323e63f5035",
+   "consulta": "md5(string_agg(id||':'||atributos||':'||unidad_costeo||':'||activo, ',' order by id))"
+  },
+  "config_vonhaucke": {
+   "md5": "3a42a8b6004893fcaef1266c4fc8e3ac"
+  }
+ }
+}

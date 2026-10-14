@@ -1,0 +1,188 @@
+{
+ "familias": {
+  "acometida": 1,
+  "biombo": 1,
+  "cubierta": 6,
+  "faldon": 2,
+  "omega": 2,
+  "pata": 3
+ },
+ "muebles": 15,
+ "noCosteados": 0,
+ "global": {
+  "mp": {
+   "n": 15,
+   "sinDato": 0,
+   "mae": 126.85,
+   "mape": 33.1,
+   "sesgo": 28.51,
+   "dentro5": 0,
+   "dentro10": 6.67,
+   "dentro20": 20
+  },
+  "mo": {
+   "n": 0,
+   "sinDato": 15,
+   "mae": null,
+   "mape": null,
+   "sesgo": null,
+   "dentro5": null,
+   "dentro10": null,
+   "dentro20": null
+  },
+  "gi": {
+   "n": 0,
+   "sinDato": 15,
+   "mae": null,
+   "mape": null,
+   "sesgo": null,
+   "dentro5": null,
+   "dentro10": null,
+   "dentro20": null
+  },
+  "total": {
+   "n": 15,
+   "sinDato": 0,
+   "mae": 260.52,
+   "mape": 33.21,
+   "sesgo": 18.86,
+   "dentro5": 13.33,
+   "dentro10": 26.67,
+   "dentro20": 40
+  }
+ },
+ "porFamilia": {
+  "acometida": {
+   "total": {
+    "n": 1,
+    "sinDato": 0,
+    "mae": 12.11,
+    "mape": 4.25,
+    "sesgo": -4.25,
+    "dentro5": 100,
+    "dentro10": 100,
+    "dentro20": 100
+   },
+   "mp": {
+    "n": 1,
+    "sinDato": 0,
+    "mae": 67.93,
+    "mape": 81.13,
+    "sesgo": 81.13,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 0
+   }
+  },
+  "biombo": {
+   "total": {
+    "n": 1,
+    "sinDato": 0,
+    "mae": 222.84,
+    "mape": 25.15,
+    "sesgo": 25.15,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 0
+   },
+   "mp": {
+    "n": 1,
+    "sinDato": 0,
+    "mae": 177.57,
+    "mape": 22.16,
+    "sesgo": 22.16,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 0
+   }
+  },
+  "cubierta": {
+   "total": {
+    "n": 6,
+    "sinDato": 0,
+    "mae": 394.82,
+    "mape": 35.25,
+    "sesgo": 32.36,
+    "dentro5": 0,
+    "dentro10": 33.33,
+    "dentro20": 33.33
+   },
+   "mp": {
+    "n": 6,
+    "sinDato": 0,
+    "mae": 191.3,
+    "mape": 23.66,
+    "sesgo": 23.66,
+    "dentro5": 0,
+    "dentro10": 16.67,
+    "dentro20": 16.67
+   }
+  },
+  "faldon": {
+   "total": {
+    "n": 2,
+    "sinDato": 0,
+    "mae": 256.72,
+    "mape": 61.7,
+    "sesgo": 61.7,
+    "dentro5": 50,
+    "dentro10": 50,
+    "dentro20": 50
+   },
+   "mp": {
+    "n": 2,
+    "sinDato": 0,
+    "mae": 135.87,
+    "mape": 47.06,
+    "sesgo": 36.27,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 50
+   }
+  },
+  "omega": {
+   "total": {
+    "n": 2,
+    "sinDato": 0,
+    "mae": 23.12,
+    "mape": 19.57,
+    "sesgo": 19.57,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 50
+   },
+   "mp": {
+    "n": 2,
+    "sinDato": 0,
+    "mae": 23.2,
+    "mape": 44.64,
+    "sesgo": 44.64,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 0
+   }
+  },
+  "pata": {
+   "total": {
+    "n": 3,
+    "sinDato": 0,
+    "mae": 248.08,
+    "mape": 31.54,
+    "sesgo": -31.54,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 33.33
+   },
+   "mp": {
+    "n": 3,
+    "sinDato": 0,
+    "mae": 63.76,
+    "mape": 22.6,
+    "sesgo": 6.88,
+    "dentro5": 0,
+    "dentro10": 0,
+    "dentro20": 33.33
+   }
+  }
+ }
+}
