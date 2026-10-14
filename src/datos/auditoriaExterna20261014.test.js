@@ -37,7 +37,7 @@ describe('P1-01 · material confirmado ≠ pieza confirmada', () => {
     expect(r.motivos.join(' ')).toMatch(/infirió/);
   });
   it('con pieza_confirmada sí valida; una pieza excluida no cuenta', () => {
-    expect(clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'D', procedencia: 'SUPUESTO', pieza_confirmada: true }] }).estado).toBe(ESTADO_COSTO.VALIDADO);
+    expect(clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'D', insumoId: 'x', procedencia: 'SUPUESTO', pieza_confirmada: true }] }).estado).toBe(ESTADO_COSTO.VALIDADO);
     expect(clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'D', procedencia: 'SUPUESTO', excluida: true }] }).estado).toBe(ESTADO_COSTO.VALIDADO);
   });
   it('el contrato del servidor conserva procedencia y pieza_confirmada (antes los descartaba) y rechaza valores raros', () => {
@@ -139,5 +139,15 @@ describe('Paridad cliente/servidor del canto (lab en el link, 14-oct)', () => {
   });
   it('con material elegido, cliente y servidor clasifican igual', () => {
     expect(reconciliarMaterialServidor(canto, res, vals, { puedeConfirmar: true }).insumoId).toBe('cubrecanto-32');
+  });
+});
+
+describe('Pieza sin material (lab en el link, 14-oct)', () => {
+  it('una pieza sin material bloquea aunque el motor la haya puesto en "por confirmar"; excluida no cuenta', () => {
+    const emision = { emitible: false, bloqueos: { materiales_por_confirmar: ['Tapa metálica'] }, pendientes: [] };
+    const r = clasificarCosto({ emision, componentes: [{ nombre: 'Cubierta', insumoId: 'melamina-28' }, { nombre: 'Tapa metálica', insumoId: '' }] });
+    expect(r.estado).toBe(ESTADO_COSTO.BLOQUEADO);
+    expect(r.motivos).toContain('Sin material: Tapa metálica');
+    expect(clasificarCosto({ emision: limpio, servidor: srv('certificado'), componentes: [{ nombre: 'Tapa', insumoId: '', excluida: true }] }).estado).toBe(ESTADO_COSTO.VALIDADO);
   });
 });

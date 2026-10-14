@@ -36,6 +36,12 @@ export function clasificarCosto({ emision = {}, servidor = null, componentes = [
     ...(b.costo_invalido ? ['Costo calculado inválido'] : []),
     ...pend.filter((p) => /^Estructura:|^Lectura de la IA incompleta/.test(String(p))),
   ];
+  // Lab en el link (14-oct, ATCUBS45ABS): una pieza SIN material (p. ej. la tapa metálica que la IA supuso y nadie eligió)
+  // aporta $0 al total; contarla como "material por confirmar" dejaba el costo en PRELIMINAR con una pieza fuera. Bloquea.
+  const yaListadas = new Set(duros.join(' | ').split(/[:·|]/).map((x) => x.trim()));
+  for (const c of componentes || []) {
+    if (c && !c.excluida && !String(c.insumoId || '').trim() && c.nombre && !yaListadas.has(c.nombre)) duros.push(`Sin material: ${c.nombre}`);
+  }
   // Auditoría 2026-10-14 (P1-02): el SERVIDOR es autoridad. Si su validación vigente dice incompleto/bloqueado —o un
   // estado que no conocemos— el costo está BLOQUEADO aunque la pantalla no haya encontrado el motivo por su cuenta.
   const srvVigente = !!servidor && servidor.bomVigente !== false;

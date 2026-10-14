@@ -1,0 +1,44 @@
+
+Running 1 test using 1 worker
+
+[1/1] [chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[chromium] › e2e/labCostear.e2e.js:45:1 › COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir
+[lab-costear] edge analizar-mueble-rc 200 {"ok":true,"propuesta":{"producto":"Cubierta App LT 1500×600×28 mm en melamina con cantos ABS y tapa registrable metálica","tipo":"mesa","piezas":[{"nombre":"Cubierta melamina 28 mm 1500×600","insumoId":"melamina-28","material_solicitado":"Melamina 28 mm (color no especificado) modelo App LT","mater
+
+[lab-costear] analizar-mueble 200 en 28 s · piezas 4 · lote 1
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1307.29,"materialTotal":811.43,"manoObra":123.96,"indirectosFabrica":371.89,"desperdicio":267.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] BOM inicial {"piezas":4,"pendientes":["Tapa registrable metálica App LT (puerta metálica)"],"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] tras ERP {"erp":{"intentado":false,"resultados":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] respuestas [{"pregunta":"¿Color/acabado de la melamina 28 mm?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿La cotización incluye estructura/patas o sólo la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas tapas registrables metálicas lleva la cubierta?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Lleva módulo eléctrico/contactos bajo la tapa registrable?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Cuántas cubiertas iguales se requieren?","elegido":"(sin responder: el plano no lo dice)"},{"pregunta":"¿Canto ABS de 2 mm o 3 mm de espesor?","elegido":"(sin responder: el plano no lo dice)"}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1307.29,"materialTotal":811.43,"manoObra":123.96,"indirectosFabrica":371.89,"desperdicio":267.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] tras confirmar {"confirmacion":{"ofrecida":true,"texto":"Confirmar los 1 propuestos","diferencias":"2 difieren de lo pedido y se confirman uno por uno: Canto ABS perímetro cubierta, Tornillería de montaje tapa/cubierta. ","diferenciasAceptadas":0},"resultado":{"precios":[],"margen":null,"estado":null,"estado3":null,"validadores":[],"linea":null,"pendiente":false,"porConfirmar":false}}
+
+[lab-costear] precio {"precios":["$1,307.29","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $811.43 · Mano de obra $123.96 · Fábrica $371.89","pendiente":false,"porConfirmar":true}
+
+[lab-costear] paridad {"costoCliente":1307.29,"costoSrv":1307.29,"estadoSrv":"incompleto","iguales":true,"llamadasSrv":2}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1456.04,"materialTotal":811.43,"manoObra":161.15,"indirectosFabrica":483.46,"desperdicio":267.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] dificultad {"costoNormal":1307.29,"marcado":"true","costoDificil":1456.04,"reqDificultad":"dificil","costoSrvDificil":1456.04,"sube":true,"paridad":true,"costoDeVueltaNormal":1307.29,"regresaIgual":true}
+
+[lab-costear] expedientes POST 201 [{"id":153}]
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1307.29,"materialTotal":811.43,"manoObra":123.96,"indirectosFabrica":371.89,"desperdicio":267.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] guardado {"status":201,"id":153,"mensaje":"Guardado en la biblioteca"}
+
+[lab-costear] edge costear-servidor-rc 200 {"ok":true,"estado":"incompleto","aprobacionHumana":false,"piezas":1,"precioVenta":null,"margen":40,"costo":{"costoUnitario":1307.29,"materialTotal":811.43,"manoObra":123.96,"indirectosFabrica":371.89,"desperdicio":267.79,"detalleInsumos":[{"insumoId":"melamina-28","nombre":"Melamina ABS 28 mm (cubi
+
+[lab-costear] transferencia {"intentado":true,"habilitado":false,"title":"No se puede cotizar mientras el motor marque bloqueos de costeo"}
+
+[lab-costear] hoja de control {"esperados":0,"pass":0,"fail":0,"riesgo":0,"sobrantesNoPermitidos":3,"renglonesBom":4,"veredicto":"FAIL"} []
+
+[lab-costear] reabierta {"tarjeta":"sin render PRUEBA RC · LAB v2 ATCUBS45ABS 1014-0153 BORRADOR mesa cubierta de trabajo App LT con tapa registrable metálica Melamina de 28 mm","piezas":4,"mismoBom":true,"costoAntes":"$1,307.29","costoDespues":"$1,307.29","mismoCosto":true,"resultado":{"precios":["$1,307.29","Por confirmar"],"margen":null,"estado":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.","estado3":"COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.","validadores":[],"linea":"Material $811.43 · Mano de obra $123.96 · Fábrica $371.89","pendiente":false,"porConfirmar":true},"pageErrors":0}
+
+  1 passed (1.4m)

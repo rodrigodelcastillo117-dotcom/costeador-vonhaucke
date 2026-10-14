@@ -1,0 +1,52 @@
+{
+  "reabierta": {
+    "tarjeta": "sin render PRUEBA RC · LAB v2 ATCUBS45ABS 1014-0153 BORRADOR mesa cubierta de trabajo App LT con tapa registrable metálica Melamina de 28 mm",
+    "piezas": 4,
+    "mismoBom": true,
+    "costoAntes": "$1,307.29",
+    "costoDespues": "$1,307.29",
+    "mismoCosto": true,
+    "resultado": {
+      "precios": [
+        "$1,307.29",
+        "Por confirmar"
+      ],
+      "margen": null,
+      "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.",
+      "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.",
+      "validadores": [],
+      "linea": "Material $811.43 · Mano de obra $123.96 · Fábrica $371.89",
+      "pendiente": false,
+      "porConfirmar": true
+    },
+    "pageErrors": 0
+  },
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1500×600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": []
+    },
+    {
+      "nombre": "Canto ABS perímetro cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («espesor ancho color igual melamina») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica App LT (puerta metálica)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería de montaje tapa/cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ]
+}

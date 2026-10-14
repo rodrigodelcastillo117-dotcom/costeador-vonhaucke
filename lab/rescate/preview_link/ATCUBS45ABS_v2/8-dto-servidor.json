@@ -1,0 +1,299 @@
+{
+  "req": {
+    "cantidad": 1,
+    "pieza": {
+      "componentes": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Cubierta melamina 28 mm 1500×600",
+          "cantidad": 1,
+          "largoMM": 1500,
+          "anchoMM": 600,
+          "piezas": 1,
+          "material_solicitado": "Melamina 28 mm (color no especificado) modelo App LT",
+          "material_match": "USER_CONFIRMED",
+          "material_confirmado": true,
+          "procedencia": "OBSERVADO"
+        },
+        {
+          "insumoId": "canto-abs-32",
+          "nombre": "Canto ABS perímetro cubierta",
+          "cantidad": 4.2,
+          "piezas": 1,
+          "material_solicitado": "Canto ABS para espesor 28 mm (ancho 32 mm), color igual a melamina",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "procedencia": "OBSERVADO"
+        },
+        {
+          "insumoId": "",
+          "nombre": "Tapa registrable metálica App LT (puerta metálica)",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tapa/puerta metálica registrable para cubierta App LT",
+          "material_match": "CANDIDATE_REQUIRES_CONFIRMATION",
+          "procedencia": "SUPUESTO",
+          "pendiente": true
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornillería de montaje tapa/cubierta",
+          "cantidad": 1,
+          "piezas": 1,
+          "material_solicitado": "Tornillería de ensamble",
+          "material_match": "SAME_FAMILY_COMPATIBLE_PROPOSED",
+          "procedencia": "SUPUESTO"
+        }
+      ]
+    }
+  },
+  "res": {
+    "ok": true,
+    "estado": "incompleto",
+    "aprobacionHumana": false,
+    "piezas": 1,
+    "precioVenta": null,
+    "margen": 40,
+    "costo": {
+      "costoUnitario": 1307.29,
+      "materialTotal": 811.43,
+      "manoObra": 123.96,
+      "indirectosFabrica": 371.89,
+      "desperdicio": 267.79,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "costo": 667.8,
+          "certificable": true,
+          "evidencia": "aprobado"
+        },
+        {
+          "insumoId": "canto-abs-32",
+          "nombre": "Perfil de canto ABS 32 mm Walnut",
+          "seccion": "cubiertas",
+          "costo": 98.63,
+          "certificable": false,
+          "evidencia": "propuesto_validado"
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "costo": 45,
+          "certificable": true,
+          "evidencia": "aprobado"
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica App LT (puerta metálica)"
+      ]
+    },
+    "evidencia": {
+      "usados": 3,
+      "certificados": 1,
+      "noCertificados": 2
+    },
+    "desglose": {
+      "piezas": 1,
+      "materialDirecto": 766.42944,
+      "materialIndirecto": 45,
+      "materialTotal": 811.42944,
+      "desperdicio": 267.79069880139747,
+      "manoObra": 123.96441599999999,
+      "modoManoObra": "porcentaje",
+      "factorEquivalente": 16.17427639522824,
+      "preparacion": 0,
+      "empaque": 0,
+      "costoDirecto": 935.393856,
+      "indirectosFabrica": 371.89324799999997,
+      "gastosOperacion": 0,
+      "costoFabricacion": 1307.287104,
+      "modeloCosteo": "clasico",
+      "formulaCosteo": "ALBA_V1",
+      "mermaProcesoPct": 0,
+      "parametrosCorte": {
+        "kerfMM": 4,
+        "recorteOrillaMM": 10,
+        "aprovechamientoCorte": 80
+      },
+      "costoLote": 1307.287104,
+      "costoLoteConMerma": 1307.287104,
+      "costoUnitario": 1307.287104,
+      "detalleInsumos": [
+        {
+          "insumoId": "melamina-28",
+          "nombre": "Melamina ABS 28 mm (cubierta APP LT)",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "hoja",
+          "formato": {
+            "tipo": "tablero",
+            "corto": "tablero",
+            "medida": 2.9768,
+            "nombre": "tablero 1.22 x 2.44",
+            "anchoMM": 1220,
+            "largoMM": 2440
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Cubierta melamina 28 mm 1500×600"
+          ],
+          "optimizacionCorte": {
+            "disponible": true,
+            "completo": true,
+            "certificable": false,
+            "hojas": 1,
+            "piezas_solicitadas": 1,
+            "piezas_colocadas": 1,
+            "placements": [
+              {
+                "id": "Cubierta melamina 28 mm 1500×600#1",
+                "nombre": "Cubierta melamina 28 mm 1500×600",
+                "x": 10,
+                "y": 10,
+                "w": 1500,
+                "h": 600,
+                "rot": 0,
+                "hoja": 1
+              }
+            ],
+            "remanentes": [
+              {
+                "hoja": 1,
+                "x": 10,
+                "y": 614,
+                "w": 2420,
+                "h": 596,
+                "area_mm2": 1442320
+              },
+              {
+                "hoja": 1,
+                "x": 1514,
+                "y": 10,
+                "w": 916,
+                "h": 1200,
+                "area_mm2": 1099200
+              }
+            ],
+            "issues": [],
+            "area_piezas_mm2": 900000,
+            "area_comprada_mm2": 2976800,
+            "desperdicio_mm2": 2076800,
+            "eficiencia_pct": 30.991735537190085,
+            "parametros": {
+              "veta": false,
+              "kerfMM": 4,
+              "recorteOrillaMM": 10,
+              "formato": {
+                "largoMM": 2440,
+                "anchoMM": 1220
+              }
+            },
+            "advisory": true
+          },
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "RENDIMIENTO_GEOMETRICO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 0.8999999999999999,
+          "comprado": 1.4884,
+          "unidades": 0.5,
+          "costo": 667.8,
+          "desperdicio": 263.9972588013975,
+          "pct": 39.532383767804355,
+          "precio": 1335.6,
+          "noCabe": false,
+          "fraccion": true,
+          "reglaProduccion": "produccion-rogelio-2026-10",
+          "piezasRegla": [
+            {
+              "pieza": "Cubierta melamina 28 mm 1500×600",
+              "largoMM": 1500,
+              "anchoMM": 600,
+              "hojasPorPieza": 0.5
+            }
+          ]
+        },
+        {
+          "insumoId": "canto-abs-32",
+          "nombre": "Perfil de canto ABS 32 mm Walnut",
+          "seccion": "cubiertas",
+          "clase": "directa",
+          "unidad": "m",
+          "formato": {
+            "tipo": "rollo",
+            "corto": "rollo",
+            "medida": 100,
+            "nombre": "rollo de 100 m"
+          },
+          "veta": false,
+          "nombresComponentes": [
+            "Canto ABS perímetro cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "cubierta",
+          "metodoConsumo": "INVENTARIO_CONTINUO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 4.2,
+          "comprado": 4.368,
+          "unidades": null,
+          "costo": 98.62944,
+          "desperdicio": 3.793440000000003,
+          "pct": 3.8461538461538494,
+          "precio": 22.58,
+          "noCabe": false
+        },
+        {
+          "insumoId": "tornilleria",
+          "nombre": "Tornilleria",
+          "seccion": "herrajes",
+          "clase": "indirecta",
+          "unidad": "juego",
+          "formato": null,
+          "veta": false,
+          "nombresComponentes": [
+            "Tornillería de montaje tapa/cubierta"
+          ],
+          "optimizacionCorte": null,
+          "optimizacionCorte1D": null,
+          "tipoAlbaAplicado": "general",
+          "metodoConsumo": "CONSUMO_DIRECTO",
+          "usaAprovechamientoGenerico": false,
+          "neto": 1,
+          "comprado": 1,
+          "unidades": null,
+          "costo": 45,
+          "desperdicio": 0,
+          "pct": 0,
+          "precio": 45,
+          "noCabe": false
+        }
+      ],
+      "componentesIgnorados": [
+        "Tapa registrable metálica App LT (puerta metálica)"
+      ],
+      "componentesExcluidos": [],
+      "materialesPorConfirmar": [
+        "Canto ABS perímetro cubierta",
+        "Tornillería de montaje tapa/cubierta"
+      ],
+      "tarifasFaltantes": [],
+      "estadoCosto": "incompleto",
+      "pendientes": [
+        "Tapa registrable metálica App LT (puerta metálica)"
+      ],
+      "costoOficial": null
+    },
+    "versionMotor": "2026-10-13c",
+    "versionConfig": "cfglu0aa4",
+    "versionCatalogo": "cat-ap1793-cfg5po44r",
+    "fuenteCosto": "catalogo",
+    "calculadoEn": "2026-10-14T01:54:25.058Z",
+    "catalogoFuente": "catalogo",
+    "warnings": [
+      "1 pieza(s) sin material/precio usable: Tapa registrable metálica App LT (puerta metálica)"
+    ]
+  }
+}

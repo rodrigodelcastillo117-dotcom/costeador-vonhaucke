@@ -1,0 +1,68 @@
+{
+  "piezas": [
+    {
+      "nombre": "Cubierta melamina 28 mm 1500×600",
+      "material": "Melamina ABS 28 mm (cubierta APP LT)",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR"
+      ]
+    },
+    {
+      "nombre": "Canto ABS perímetro cubierta",
+      "material": "Perfil de canto ABS 32 mm Walnut",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («espesor ancho color igual melamina») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    },
+    {
+      "nombre": "Tapa registrable metálica App LT (puerta metálica)",
+      "material": "Tapa registrable metalica + herraje (App LT)",
+      "alertas": [
+        "⚠ Costo pendiente — falta confirmar material."
+      ]
+    },
+    {
+      "nombre": "Tornillería de montaje tapa/cubierta",
+      "material": "Tornilleria",
+      "alertas": [
+        "🟡 IA · POR CONFIRMAR: Variante pedida («ensamble») no está en el nombre del catálogo Acepto esta diferencia"
+      ]
+    }
+  ],
+  "resultado": {
+    "precios": [],
+    "margen": null,
+    "estado": null,
+    "estado3": null,
+    "validadores": [],
+    "linea": null,
+    "pendiente": false,
+    "porConfirmar": false
+  },
+  "analizar": {
+    "status": 200,
+    "piezas": 4,
+    "producto": "Cubierta App LT 1500×600×28 mm en melamina con cantos ABS y tapa registrable metálica",
+    "uso": {
+      "input_tokens": 22033,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 2464,
+      "output_tokens_details": {
+        "thinking_tokens": 43
+      },
+      "service_tier": "standard",
+      "inference_geo": "global"
+    }
+  },
+  "tiempos": {
+    "analizarSeg": 27.812,
+    "bomVisibleSeg": 27.917
+  },
+  "lote": 1,
+  "entrada": "texto"
+}

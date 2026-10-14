@@ -1,0 +1,16 @@
+{
+  "resultado": {
+    "precios": [
+      "$1,307.29",
+      "Por confirmar"
+    ],
+    "margen": null,
+    "estado": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.",
+    "estado3": "COSTO PRELIMINAR — Tornillería como juego genérico: falta la tornillería por unión según el despiece o la tabla de Producción (D3). · 2 pieza(s) que la IA infirió sin verla, sin confirmar que existen: Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · 3 material(es) propuestos sin confirmar: Canto ABS perímetro cubierta, Tapa registrable metálica App LT (puerta metálica), Tornillería de montaje tapa/cubierta · El servidor aún no validó este despiece.",
+    "validadores": [],
+    "linea": "Material $811.43 · Mano de obra $123.96 · Fábrica $371.89",
+    "pendiente": false,
+    "porConfirmar": true
+  },
+  "piezas": []
+}
