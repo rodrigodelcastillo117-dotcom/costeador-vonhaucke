@@ -7,7 +7,7 @@ es el runbook para la decisión GO/NO-GO de la ventana y para la ventana misma.
 | | |
 |---|---|
 | Rama | `claude/costing-app-architecture-psf02g` ([PR #37](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37)) |
-| **FINAL_SHA** | **El commit que agrega esta versión del gate** (hijo directo de `214786b`). Es el último commit del release: después de él no se agrega nada a la rama. |
+| **FINAL_SHA** | **El commit que agrega esta versión del gate.** Es el último commit del release: después de él no se agrega nada a la rama. Reemplaza a `0e19fd3` (mismo código, sólo documentos). Al verificar `0e19fd3` encontré que el paso 3 y R3 del runbook no se podían ejecutar tal como estaban escritos (§5.3 y §5.4); toda la evidencia se rehízo sobre FINAL_SHA. |
 | Por qué el SHA no está escrito aquí | Un commit no puede contener su propio SHA. Todo lo que nombra a FINAL_SHA vive **fuera del repo**, en el paquete del auditor (`00_LEEME_AUDITOR.md`): CI ×3, preview de Vercel, Edge RC desplegada desde FINAL_SHA, manifiesto del holdout congelado sobre FINAL_SHA, `--verificar` y la relectura final de producción. Escribirlo aquí movería el SHA. |
 | Último cambio de código | `214786b` (§2). FINAL_SHA sólo agrega documentación: `git diff 214786b FINAL_SHA -- src supabase e2e scripts lab package.json package-lock.json vite.config.js playwright.config.js` es **vacío**. |
 | Edge RC | `costear-servidor-rc` se despliega desde FINAL_SHA con el workflow "Deploy edge functions". Desde `214786b` (mismo código): **v24** `52e4228e454c172ad488cfbbec240d6996af02f49412bd66f427688bc98d9786`. `analizar-mueble-rc` v8 `f226b792…` (sin cambios). |
@@ -173,7 +173,8 @@ Entre los pasos 3 y 4, el cliente viejo (`c8dd2b3`) costea con la Edge nueva. `i
 | P4 | `docs/auditoria/baseline_prod.sql` | **idéntico** a la salida del paquete (sin drift). Incluye la última migración `20261014130610 tramo_por_pieza_catalogo`. |
 | P5 | `select application_name from pg_stat_activity where usename = 'authenticator'` (también en la consulta de P4) | `PostgREST 14.5`. Si cambió, repetir `medir_40001.mjs` con esa versión. |
 | P6 | Objetos nuevos: sobrecarga de 3 argumentos, `adjuntar_costeo_a_partida`, columnas `promesa_*` y `spec_tecnica_*`, `cargar_costos_oficiales` | no existen |
-| P7 | Código de `costear-servidor` v9 y `analizar-mueble` v35 (`get_edge_function`), y `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3` del cliente | guardados para el rollback |
+| P7 | Código de `costear-servidor` v9 y `analizar-mueble` v35 (`get_edge_function`), y `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3` del cliente | guardados para el rollback. Origen de v9: `ff25ea7` (R3). |
+| P7b | Máquina del operador con Supabase CLI y token personal; worktrees de FINAL_SHA (paso 3) y de `ff25ea7` (R3) | listos **antes** de abrir la ventana |
 | P8 | Paso 0 aplicado: `_conteos` del respaldo = conteos del origen | sí |
 | P9 | Línea base de VH-100: `select count(*), md5(string_agg(concat_ws('\|', producto_version_id, costo_oficial_referencia, formula_version, fuente, actualizado), ',' order by producto_version_id)) from public.producto_version_economia` | anotar. El 14-oct: **12 filas, md5 `363e27c0…`** |
 | P10 | Dependientes de `public.catalogo_vigente` (`pg_depend`) | sólo `private_api.insumo_motor`. Si hay otro, el rollback de P1-03b falla a propósito: hay que revisarlo antes. |
@@ -205,14 +206,25 @@ Entre los pasos 3 y 4, el cliente viejo (`c8dd2b3`) costea con la Edge nueva. `i
 
 ### 5.3 Edge y frontend de producción: qué artefacto se promueve
 
-**Edge (paso 3).**
+**Edge (paso 3): el código de `costear-servidor-rc` de FINAL_SHA se publica con el slug `costear-servidor`.**
 
-- Se despliega `costear-servidor` con el código de `costear-servidor-rc` **de FINAL_SHA**, con el workflow "Deploy edge functions".
+- **No con el workflow "Deploy edge functions".** El workflow despliega `supabase/functions/<slug>/index.ts` del ref. En FINAL_SHA, `supabase/functions/costear-servidor/index.ts` es el código **viejo** (último cambio en `3b0020c`), que importa los módulos **nuevos** de `src/`. Esa mezcla nunca se probó: **prohibido**.
+- **Cómo se hace** (Supabase CLI y token personal en la máquina del operador; la copia vive sólo en el worktree, **no se commitea**):
+
+  ```bash
+  git worktree add /tmp/ventana-edge <FINAL_SHA> && cd /tmp/ventana-edge
+  cp supabase/functions/costear-servidor-rc/index.ts supabase/functions/costear-servidor/index.ts
+  supabase functions deploy costear-servidor --project-ref mtuvnbgljwbsaizjjgzs
+  ```
+
+  Los imports son relativos (`../../../src/…`) y las dos carpetas están a la misma profundidad: la copia resuelve igual.
+  Lo único distinto es el comentario de la línea 2.
+- **Probado el 14-oct, en local y sin desplegar:** worktree limpio de `0e19fd3` (mismo código que FINAL_SHA), la copia y `scripts/edge_boot_check.sh costear-servidor` → `OPTIONS=200 POST=500`, ARRANCA.
 - Va **después** del SQL porque registra en las tablas y columnas de SEG-01c.
-- Se verifica:
-  - versión y `ezbr_sha256` nuevos (`list_edge_functions`);
-  - que el run del workflow tenga `head_sha = FINAL_SHA`;
-  - que la RC de FINAL_SHA dé el mismo resultado sobre el mismo intent.
+- **Se verifica:**
+  - versión nueva y su `ezbr_sha256` (`list_edge_functions`), que se anotan;
+  - con `get_edge_function costear-servidor`, que el `index.ts` publicado sea **byte a byte** el de `supabase/functions/costear-servidor-rc/index.ts` de FINAL_SHA, y que los módulos de `src/` sean los de FINAL_SHA;
+  - que la RC y la nueva `costear-servidor` den el mismo resultado sobre el mismo intent.
 
 **Frontend (paso 4). La preview certificada NO se promueve tal cual. El build de producción es obligatorio.**
 
@@ -228,6 +240,7 @@ Promover la preview sin recompilar dejaría producción sin control optimista y,
 1. **Cómo se construye.** Fast-forward de `c3.4-seller-safe` a FINAL_SHA: `git push origin <FINAL_SHA>:c3.4-seller-safe`. `c8dd2b3` es ancestro de la rama, así que el push no reescribe nada y el PR #37 queda como merged. Vercel compila producción **de FINAL_SHA exacto**.
    - **No** usar el botón de merge de GitHub: crea otro SHA (merge commit, o commits reescritos con rebase).
    - Si por error se usó, el artefacto no es FINAL_SHA: **STOP**. Para seguir, se verifica que el árbol sea idéntico (`git diff --quiet FINAL_SHA <sha>`) y se registra como artefacto nuevo.
+   - Si Vercel no compila solo al recibir el push, se crea el deployment a mano: `create_deployment` con `target: production` y `gitSource.sha = FINAL_SHA`.
 2. **Qué se verifica antes de seguir al paso 5** (y siempre antes de estricto):
    - `get_deployment`: `target = production`, `readyState = READY`, `githubCommitSha = FINAL_SHA`.
    - El log del build corrió la suite con 0 fallas.
@@ -251,7 +264,7 @@ Cada paso es una transacción propia. El orden **no** es una convención: cada p
 |---|---|---|---|
 | R1 | **Estricto → preparado** | `select public.activar_autoridad_costeo('preparado', …)` (sesión humana de Dirección) | Deja de bloquear la emisión al instante y sin quitar nada. Si se quedara en estricto durante R2–R4, el cliente viejo armaría partidas especiales sin promesa ni spec, y la emisión las bloquearía hasta R5. |
 | R2 | **Frontend** | rollback de Vercel a `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3` (`c8dd2b3`) | El cliente nuevo llama a funciones que R5–R8 quitan (3 argumentos, `adjuntar_costeo_a_partida`). El cliente viejo sólo usa firmas de dos argumentos, que existen en todos los estados. |
-| R3 | **Edge** | volver a desplegar el código de `costear-servidor` v9 guardado en P7 | La Edge nueva escribe `costeos_servidor` con promesa y spec. Sin los triggers de SEG-01c (R5), esas filas quedarían sin sellar. La v9 funciona con o sin SEG-01c. |
+| R3 | **Edge** | redesplegar v9 desde **su commit de origen `ff25ea7`** (el run 4 de "Deploy edge functions", 12-oct 12:32 UTC, publicó v9 a las 12:33:03): `git worktree add /tmp/ventana-r3 ff25ea7 && cd /tmp/ventana-r3 && supabase functions deploy costear-servidor --project-ref mtuvnbgljwbsaizjjgzs`. Esperado: `ezbr_sha256` `f0722f95…`. Que el bundle salga idéntico es una inferencia, no está probada: el CLI respondió "No change found" al redesplegar fuente idéntica de la RC. Si el sha difiere, se compara el contenido con lo guardado en P7. Probado en local: el código de `ff25ea7` arranca (`edge_boot_check`: `OPTIONS=200 POST=500`). | La Edge nueva escribe `costeos_servidor` con promesa y spec. Sin los triggers de SEG-01c (R5), esas filas quedarían sin sellar. La v9 funciona con o sin SEG-01c. |
 | R4 | **VH-100** | líneas `-- RB`: `drop function cargar_costos_oficiales` y `grant insert, update, delete on producto_version_economia to authenticated` | Fue lo último que se aplicó. Devuelve los grants exactos de producción (`authenticated` con escritura, `anon` sin nada). El historial se conserva (auditoría). |
 | R5 | **SEG-01c** | líneas `-- RB` | Restaura el wrapper de VH-035c (md5 `cf6ef6a3…`) y quita funciones, triggers, la política y el comentario de `cuentas_no_humanas`. **Dependencia dura con VH-148b:** `adjuntar` confía en `trg_vh148_version` para su CAS; si VH-148b se quitara antes, `adjuntar` seguiría existiendo sin CAS. **Con SEG-01 no hay dependencia dura:** SEG-01c no llama funciones de SEG-01, y cada uno toca una función distinta (SEG-01c, el wrapper público; SEG-01, la compuerta privada). Va antes por LIFO. |
 | R6 | **SEG-01** | bloque `>>> ROLLBACK SEG-01` | Restaura la compuerta de producción byte a byte (md5 `9c660b09…`). |
@@ -430,7 +443,7 @@ FALLÓ:
 
 | Evidencia | Resultado |
 |---|---|
-| CI | [run 791](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38628955786): `verify` **success** (audit, vitest y `vite build`); E2E **success**: 94 passed, 12 skipped, **0 flaky** |
+| CI | [run 791](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38628955786): `verify` **success** (audit, vitest y `vite build`); E2E **success**: 94 passed, 12 skipped, **0 flaky**. Sobre `0e19fd3` (mismo código), [run 792](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/actions/runs/38631131534): igual, 94 passed y 0 flaky. |
 | Suite local | 352 archivos, 3,432 pruebas, 0 fallas |
 | Focales | 10 archivos, 285/285 |
 | Antes/después | P2: 21 fallan con `2d02527`. Trazabilidad: 3 fallan con `2d02527`. Anteriores: P0, 13 con la rev4; holdout, 6 con la v5.1; runbook, la cadena falla con los rollbacks anteriores. |
