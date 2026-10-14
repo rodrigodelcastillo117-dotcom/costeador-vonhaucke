@@ -11,6 +11,9 @@ import { renderParaPartida } from './datos/renderPartida.js';
 import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
 import { createClient } from '@supabase/supabase-js';
 import { mensajeErrorEdge } from './datos/erroresEdge.js';
+import {
+  controlOptimistaActivo, resultadoConflictoVersion, resultadoDeErrorEscritura, revisionEsperadaPara, crearRegistroVersiones,
+} from './datos/conflictoGuardado.js';
 
 const URL = 'https://mtuvnbgljwbsaizjjgzs.supabase.co';
 const LLAVE = 'sb_publishable_lDPhCTatyJ2cap3FNEGs7A_uPapgg6y';
@@ -620,10 +623,21 @@ export async function guardarExpediente(exp) {
   if (error) return { ok: false, error: error.message };
   return { ok: true, id: data?.id };
 }
-// Actualiza un expediente existente (edición del equipo de diseño).
+// Actualiza un expediente existente (edición del equipo de diseño) por UPDATE directo: es la ruta del
+// cliente de producción (bandera de control optimista apagada). Con PROPUESTA_vh148b el servidor exige
+// `revision = la del servidor + 1` (compare-and-swap); si otra persona ya subió la revisión responde 40001
+// y aquí se devuelve { ok:false, code:'VERSION_CONFLICT', status:409 } (antes: { ok:false, error } suelto).
 export async function actualizarExpediente(id, patch) {
   const { error } = await nube.from('expedientes').update({ ...patch, actualizado: new Date().toISOString() }).eq('id', id);
-  return error ? { ok: false, error: error.message } : { ok: true };
+  return error ? resultadoDeErrorEscritura(error) : { ok: true };
+}
+// VH-148b · edición con revisión esperada (bandera prendida): candado + comparación + snapshot inmutable
+// en UNA transacción del servidor (actualizar_expediente_seguro). Sin revisión conocida NO se escribe.
+export async function actualizarExpedienteSeguro(id, patch, revisionEsperada) {
+  if (!Number.isInteger(revisionEsperada)) return resultadoConflictoVersion({ sinVersion: true });
+  const { data, error } = await nube.rpc('actualizar_expediente_seguro', { p_expediente_id: id, p_patch: patch, p_revision_esperada: revisionEsperada });
+  if (error) return resultadoDeErrorEscritura(error);
+  return { ok: true, revision: data?.revision ?? null, actualizado: data?.actualizado ?? null, revisionRegistrada: data?.revision_registrada === true };
 }
 // Lista expedientes (más recientes primero) y filtra por palabra clave (nombre o etiquetas) en cliente.
 export async function listarExpedientes(q) {
@@ -645,8 +659,16 @@ export async function obtenerExpediente(id) {
   return error ? { ok: false, error: error.message } : { ok: true, expediente: data };
 }
 // Guarda un snapshot INMUTABLE de revisión (no pisa el anterior).
+// VH-148b: ANTES se tragaba cualquier error (incluido el 23505 del índice único expediente_id+rev: otra persona
+// ya registró ese número de revisión) y la pantalla decía "✓ Actualizado". Ahora el resultado vuelve SIEMPRE:
+// { ok:true } | { ok:false, code:'VERSION_CONFLICT', status:409 } | { ok:false, error }.
 export async function guardarRevisionExpediente(row) {
-  try { await nube.from('expediente_revisiones').insert(row); } catch (e) { /* no bloquea */ }
+  try {
+    const { error } = await nube.from('expediente_revisiones').insert(row);
+    return error ? resultadoDeErrorEscritura(error) : { ok: true };
+  } catch (e) {
+    return { ok: false, error: String(e?.message || e) };
+  }
 }
 // Historial de revisiones de un expediente (rev desc).
 export async function listarRevisiones(expedienteId) {
@@ -659,15 +681,30 @@ export async function listarRevisiones(expedienteId) {
 //     El backend valida rol/propiedad, despoja economía al vendedor y versiona.
 // Guarda/actualiza una co-creación. id=null crea; id crea una revisión nueva (rev+1)
 // salvo que el contenido sea idéntico (idempotente por hash). Devuelve {ok, expediente_id, revision, ...}.
-export async function guardarCocrearSeguro(expedienteId, payload) {
-  const { data, error } = await nube.rpc('guardar_cocrear_seguro', { p_expediente_id: expedienteId ?? null, p_payload: payload });
-  if (error) return { ok: false, error: error.message };
+// VH-148b: con la bandera de control optimista prendida viaja `p_revision_esperada` = la última revisión que
+// ESTA pestaña vio de ese expediente (al cargarlo o al guardarlo). Sin revisión conocida no se escribe a
+// ciegas: { ok:false, code:'VERSION_CONFLICT', status:409 }. Bandera apagada: la llamada de siempre.
+export const revisionesCocrear = crearRegistroVersiones();
+export async function guardarCocrearSeguro(expedienteId, payload, { revisionEsperada, controlOptimista = controlOptimistaActivo() } = {}) {
+  const args = { p_expediente_id: expedienteId ?? null, p_payload: payload };
+  if (controlOptimista) {
+    if (expedienteId == null) args.p_revision_esperada = null;              // crear: no hay versión previa
+    else {
+      const rev = revisionEsperadaPara(revisionEsperada ?? revisionesCocrear.esperada(expedienteId), true);
+      if (rev == null) return resultadoConflictoVersion({ sinVersion: true });
+      args.p_revision_esperada = rev;
+    }
+  }
+  const { data, error } = await nube.rpc('guardar_cocrear_seguro', args);
+  if (error) return resultadoDeErrorEscritura(error);
+  if (data?.ok && data.expediente_id != null) revisionesCocrear.recordar(data.expediente_id, data.revision);
   return data;
 }
 // Carga una co-creación completa (sin economía si el rol no la ve). {ok, id, cocrear, historia, ...}.
 export async function cargarCocrearSeguro(expedienteId) {
   const { data, error } = await nube.rpc('cocrear_seguro', { p_expediente_id: expedienteId });
   if (error) return { ok: false, error: error.message };
+  if (data?.ok) revisionesCocrear.recordar(data.id ?? expedienteId, data.revision);
   return data;
 }
 // Lista las CO-CREACIONES guardadas (expedientes con payload cocrear). RLS aplica

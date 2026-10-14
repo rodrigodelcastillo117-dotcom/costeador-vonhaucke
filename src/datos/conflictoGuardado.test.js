@@ -34,11 +34,11 @@ describe('qué versión se manda', () => {
   it('bandera apagada → nunca se manda el parámetro (firma vieja)', () => {
     expect(esperadoParaGuardar(ISO, false)).toBeUndefined();
   });
-  it('bandera prendida sin versión conocida → tampoco (degradación segura contra el servidor viejo)', () => {
-    expect(esperadoParaGuardar(null, true)).toBeUndefined();
-    expect(esperadoParaGuardar(undefined, true)).toBeUndefined();
-    expect(esperadoParaGuardar('', true)).toBeUndefined();
-    expect(esperadoParaGuardar(123, true)).toBeUndefined();
+  it('VH-148b · bandera prendida SIN versión conocida → null: "hace falta versión y no la tengo" (antes undefined = guardar sin control)', () => {
+    expect(esperadoParaGuardar(null, true)).toBeNull();
+    expect(esperadoParaGuardar(undefined, true)).toBeNull();
+    expect(esperadoParaGuardar('', true)).toBeNull();
+    expect(esperadoParaGuardar(123, true)).toBeNull();
   });
   it('bandera prendida con versión → la cadena TAL CUAL (no se pasa por Date: conserva microsegundos)', () => {
     expect(esperadoParaGuardar(ISO, true)).toBe(ISO);
@@ -82,11 +82,11 @@ describe('aviso y estado de conflicto', () => {
     expect(horaDe('no-es-fecha')).toBe('');
     expect(horaDe(null)).toBe('');
   });
-  it('el texto del aviso es el acordado con Dirección', () => {
+  it('VH-148b · el texto del aviso es EXACTAMENTE el acordado (con o sin versión del servidor)', () => {
     expect(mensajeConflicto({ actualizadoServidor: ISO }, { timeZone: 'UTC' }))
-      .toBe('Otra persona cambió esta cotización a las 05:20. Tus cambios siguen en esta computadora.');
+      .toBe('Existe una versión más reciente. Recarga o compara antes de guardar.');
     expect(mensajeConflicto({ actualizadoServidor: null }))
-      .toBe('Otra persona cambió esta cotización. Tus cambios siguen en esta computadora.');
+      .toBe('Existe una versión más reciente. Recarga o compara antes de guardar.');
   });
 });
 

@@ -22,8 +22,9 @@ export default function ConflictoGuardado({ conflicto, ocupado = false, onVerSer
   };
   return (
     <div role="alert" aria-live="assertive" data-testid="conflicto-guardado" data-actualizado={conflicto.actualizadoServidor || ''} className="no-imprimir" style={estilo.caja}>
-      <p style={estilo.texto}>
-        <strong>Guardado detenido.</strong> {mensajeConflicto(conflicto)}
+      {/* VH-148b: el texto EXACTO acordado (una sola verdad: conflictoGuardado.js · MENSAJE_VERSION_CONFLICT). */}
+      <p style={estilo.texto} data-testid="conflicto-mensaje">
+        <strong>{mensajeConflicto(conflicto)}</strong>
       </p>
       {/* VH-148: qué hace cada salida, dicho antes de pulsar. "Volver a aplicar" es de DOCUMENTO COMPLETO. */}
       <p style={{ ...estilo.texto, flexBasis: '100%', fontSize: 13 }} data-testid="conflicto-explicacion">

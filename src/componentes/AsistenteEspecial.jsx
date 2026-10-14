@@ -15,7 +15,9 @@ import { NIVELES_DIFICULTAD } from '../datos/dificultadNiveles.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
-import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, subirPlano, guardarRevisionExpediente, urlABase64, aprobarPrecio } from '../nube.js';
+import { analizarRender, analizarRenderImagenes, analizarTexto, verificarDespiece, responderDespiece, costearServidor, registrarSombra, hashInput, generarRender, subirRender, urlADataUrl, guardarRender, guardarConfirmaciones, sesionActual, guardarExpediente, actualizarExpediente, actualizarExpedienteSeguro, subirPlano, guardarRevisionExpediente, urlABase64, aprobarPrecio } from '../nube.js';
+import { guardarExpedienteEditado, guardarExpedienteNuevo } from '../datos/expedienteVersionado.js';
+import { controlOptimistaActivo } from '../datos/conflictoGuardado.js';
 import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-072
 import { filaSombra } from '../datos/sombraCosteo.js';   // VH-073
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
@@ -474,15 +476,19 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
       if (planoUrls.length === 0 && !expId) exp.plano_urls = [];
       if (exp.plano_urls === undefined) delete exp.plano_urls; // al actualizar sin planos nuevos, no pisa los guardados
       const snap = (eid, rev) => ({ expediente_id: eid, rev, creado_por: quien, nombre: exp.nombre, bom: exp.bom, costo: exp.costo, confirmaciones: exp.confirmaciones, materiales: exp.materiales, plano_urls: planoUrls, render_aislado_url: exp.render_aislado_url, render_ambiente_url: exp.render_ambiente_url, analysis_hash: exp.analysis_hash });
+      // VH-148b: guardado versionado (src/datos/expedienteVersionado.js). Un conflicto de versión NO se reintenta
+      // ni se fusiona: se enseña el mensaje y la persona recarga o compara.
       if (expId) {
-        const nuevaRev = revActual + 1;
-        const r = await actualizarExpediente(expId, { ...exp, revision: nuevaRev, actualizado_por: quien });
-        if (r.ok) { await guardarRevisionExpediente(snap(expId, nuevaRev)); setRevActual(nuevaRev); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg(`✓ Actualizado — revisión ${nuevaRev}`); }
-        else setExpMsg(r.error || 'No se pudo actualizar.');
+        const r = await guardarExpedienteEditado({ id: expId, exp, revActual, quien, snap, controlOptimista: controlOptimistaActivo(),
+          deps: { actualizarExpediente, actualizarExpedienteSeguro, guardarRevisionExpediente } });
+        if (r.ok) { setRevActual(r.revision); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg(`✓ Actualizado — revisión ${r.revision}`); }
+        else setExpMsg(r.mensaje);
       } else {
-        const r = await guardarExpediente({ ...exp, plano_urls: planoUrls, revision: 1, creado_por: quien });
-        if (r.ok) { setExpId(r.id); await guardarRevisionExpediente(snap(r.id, 1)); setRevActual(1); setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg('✓ Guardado en la biblioteca'); }
-        else setExpMsg(r.error || 'No se pudo guardar.');
+        const r = await guardarExpedienteNuevo({ exp: { ...exp, plano_urls: planoUrls, revision: 1, creado_por: quien }, snap,
+          deps: { guardarExpediente, guardarRevisionExpediente } });
+        if (r.id) { setExpId(r.id); setRevActual(1); }
+        if (r.ok) { setCostoGuardado(exp.costo); setBomDirty(false); setExpMsg('✓ Guardado en la biblioteca'); }
+        else setExpMsg(r.mensaje);
       }
     } finally { setGuardandoExp(false); }
   }

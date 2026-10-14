@@ -24,7 +24,7 @@ import { totalesCotizacion } from './totales.js';
 import { MOTOR_VERSION } from '../motor/calculo.js';
 import { dinero } from '../motor/dinero.js';
 import { claveCreacionNueva, CLAVE_CREACION_RE } from '../util.js';
-import { esConflictoGuardado, actualizadoDeError } from './conflictoGuardado.js';
+import { esConflictoGuardado, actualizadoDeError, resultadoConflictoVersion } from './conflictoGuardado.js';
 
 // ---------------------------------------------------------------------------
 //  HUELLA DE LA MATERIA PRIMA
@@ -270,12 +270,18 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
   try {
     if (id) {
       // VH-148 · control optimista. `actualizadoEsperado` es la versión (cadena ISO TAL CUAL, de
-      // cotizacion_segura o del último guardado) desde la que la persona edita. Sólo viaja cuando
-      // viene (bandera prendida Y versión conocida): así PostgREST escoge la sobrecarga de tres
-      // argumentos sólo si existe en la base y el cliente nuevo sigue funcionando contra la RPC de
-      // dos argumentos de producción. Ver src/datos/conflictoGuardado.js.
+      // cotizacion_segura o del último guardado) desde la que la persona edita.
+      //  · undefined → bandera apagada: la llamada de siempre (dos argumentos; producción sin VH-148).
+      //  · null      → bandera prendida y versión DESCONOCIDA. VH-148b · FAIL-CLOSED: NO se escribe a ciegas
+      //                (antes caía en la firma de dos argumentos, sin control). Se devuelve el conflicto y la
+      //                persona recarga o compara ("Ver la versión del servidor" / "Volver a aplicar").
+      //  · cadena    → viaja como p_actualizado_esperado (sobrecarga de tres argumentos).
+      // Ver src/datos/conflictoGuardado.js.
+      if (actualizadoEsperado === null) {
+        return { id, guardado: false, motivo: 'conflicto', actualizadoServidor: null, sinVersion: true, ...resultadoConflictoVersion() };
+      }
       const args = { p_cotizacion_id: id, p_patch: patch };
-      if (actualizadoEsperado !== undefined && actualizadoEsperado !== null) args.p_actualizado_esperado = actualizadoEsperado;
+      if (actualizadoEsperado !== undefined) args.p_actualizado_esperado = actualizadoEsperado;
       const { data, error } = await nube.rpc('actualizar_cotizacion_segura', args);
       if (error) {
         const tipo = clasificarErrorGuardado(error);
@@ -283,7 +289,7 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
         if (tipo === 'no-existe' || tipo === 'sin-acceso') return { id: null, guardado: false, motivo: tipo, soltarId: true };
         // Otra persona guardó antes (SQLSTATE 40001): NO se reintenta ni se fusiona aquí. Se devuelve
         // la versión del servidor para que la app enseñe el conflicto y la persona decida.
-        if (tipo === 'conflicto') return { id, guardado: false, motivo: tipo, actualizadoServidor: actualizadoDeError(error) };
+        if (tipo === 'conflicto') return { id, guardado: false, motivo: tipo, actualizadoServidor: actualizadoDeError(error), ...resultadoConflictoVersion() };
         // Emitida: no se toca (el flujo correcto es una revisión). Se conserva el id
         // para NO duplicar.
         return { id, guardado: false, motivo: tipo, ...(tipo === 'rechazado' ? { detalle: String(error?.message || '').slice(0, 200) } : {}) };
@@ -311,8 +317,19 @@ export async function guardarCotizacion(estado, usuario, id = null, { claveCreac
       // La fila existe (recuperada o recién creada con lo de entonces): ahora se escribe lo de hoy. La creación
       // pendiente se olvida SÓLO cuando esto se confirma; si falla, el siguiente intento repite los dos pasos
       // (el primero es idempotente), nunca nace otra fila.
-      const upd = await nube.rpc('actualizar_cotizacion_segura', { p_cotizacion_id: idPrevio, p_patch: patch });
-      if (upd.error) return { id: null, guardado: false, motivo: clasificarErrorGuardado(upd.error) };
+      // VH-148b: con la bandera prendida también este guardado lleva versión: la que el servidor acaba de
+      // devolver para la fila recuperada. Sin versión en la respuesta (servidor sin VH-148) NO se escribe a ciegas.
+      const argsUpd = { p_cotizacion_id: idPrevio, p_patch: patch };
+      if (actualizadoEsperado !== undefined) {
+        if (typeof previo.data?.actualizado !== 'string') return { id: idPrevio, guardado: false, motivo: 'conflicto', actualizadoServidor: null, sinVersion: true, ...resultadoConflictoVersion() };
+        argsUpd.p_actualizado_esperado = previo.data.actualizado;
+      }
+      const upd = await nube.rpc('actualizar_cotizacion_segura', argsUpd);
+      if (upd.error) {
+        const tipoUpd = clasificarErrorGuardado(upd.error);
+        if (tipoUpd === 'conflicto') return { id: idPrevio, guardado: false, motivo: tipoUpd, actualizadoServidor: actualizadoDeError(upd.error), ...resultadoConflictoVersion() };
+        return { id: null, guardado: false, motivo: tipoUpd };
+      }
       olvidarCreacionPendiente(storage);
       return { id: upd.data?.id ?? idPrevio, guardado: true, actualizado: typeof upd.data?.actualizado === 'string' ? upd.data.actualizado : null, recuperoCreacion: true };
     }

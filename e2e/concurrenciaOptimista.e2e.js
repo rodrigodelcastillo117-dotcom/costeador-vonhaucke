@@ -127,7 +127,8 @@ test.describe('VH-148 · control optimista entre dos pestañas', () => {
     // --- B edita con su copia vieja: el servidor la rechaza y B lo enseña ---
     await inputCliente(B.page).fill('Tradeco Sur');
     await expect(banner(B.page)).toBeVisible({ timeout: 10000 });
-    await expect(banner(B.page)).toContainText(/Otra persona cambió esta cotización a las \d{2}:\d{2}\. Tus cambios siguen en esta computadora\./);
+    // VH-148b: texto EXACTO acordado (conflictoGuardado.js · MENSAJE_VERSION_CONFLICT).
+    await expect(B.page.getByTestId('conflicto-mensaje')).toHaveText('Existe una versión más reciente. Recarga o compara antes de guardar.');
     await expect(banner(B.page)).toHaveAttribute('data-actualizado', version1);
     expect(nube.conflictos).toBe(1);
     expect(nube.esperados.at(-1)).toBe(version0);                 // B mandó la versión desde la que editaba
@@ -230,7 +231,9 @@ test.describe('VH-148 · control optimista entre dos pestañas', () => {
     await A.context.close(); await B.context.close();
   });
 
-  test('bandera PRENDIDA contra la RPC VIEJA (SQL aún no desplegado): la app sigue guardando sin control, sin errores', async ({ browser }) => {
+  // VH-148b · FAIL-CLOSED: antes la bandera prendida sin versión conocida caía en la firma de dos argumentos y
+  // guardaba SIN control. Ahora no se escribe a ciegas: se enseña el aviso y la persona recarga o compara.
+  test('bandera PRENDIDA contra la RPC VIEJA (SQL aún no desplegado): NO escribe a ciegas y avisa (fail-closed)', async ({ browser }) => {
     test.setTimeout(90_000);
     const nube = crearNubeFalsa({ usuarios: USUARIOS, rpcVieja: true });
     const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Oxxo', partidas: [PARTIDA], total: 55680, piezas: 1 });
@@ -238,13 +241,11 @@ test.describe('VH-148 · control optimista entre dos pestañas', () => {
     await entrar(A.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(A.page);
     expect((await leerLocal(A.page)).cotizacion.actualizado ?? null).toBeNull();   // el servidor viejo no manda versión
     await inputCliente(A.page).fill('Oxxo Centro');
-    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Oxxo Centro');
-    expect(nube.esperados).toEqual([undefined]);                   // no se mandó el parámetro → no hubo PGRST202
-    await expect(A.page.getByTestId('nube-estado')).toHaveAttribute('data-estado', 'conectado');
-    await expect(banner(A.page)).toBeHidden();
-    await inputCliente(A.page).fill('Oxxo Centro 2');
-    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Oxxo Centro 2');
-    expect(nube.esperados).toEqual([undefined, undefined]);
+    await expect(banner(A.page)).toBeVisible({ timeout: 10000 });
+    await expect(A.page.getByTestId('conflicto-mensaje')).toHaveText('Existe una versión más reciente. Recarga o compara antes de guardar.');
+    expect(nube.esperados).toEqual([]);                             // no salió ninguna escritura
+    expect(nube.filas.get(id).cliente).toBe('Oxxo');
+    await expect(inputCliente(A.page)).toHaveValue('Oxxo Centro');   // lo local sigue en pantalla
     await A.context.close();
   });
   test('recuperación + reapertura: B recupera SU folio encima del cliente de A, guarda con la versión fresca (sin 40001) y al reabrir en otra computadora están los dos', async ({ browser }) => {

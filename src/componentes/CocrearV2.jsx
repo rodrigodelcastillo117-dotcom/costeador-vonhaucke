@@ -15,6 +15,7 @@ import { parametrosEfectivos } from './Costeador.jsx';
 import { precioVenta } from '../motor/calculo.js';
 import { compileRenderPrompt, renderStale } from '../datos/renderPrompt.js';
 import { visualRevisionHash } from '../datos/visualRevision.js';
+import { mensajeEscritura, errorDeEscritura } from '../datos/conflictoGuardado.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
@@ -128,7 +129,7 @@ export default function CocrearV2({estado,onAgregar}){
 
   const pedirVoni=async()=>{const frase=nl.trim();if(!frase||pensando)return;setPensando(true);setMensaje('');try{const r=await voniCouncil({task:'interpret_change',request:frase,context:{brief:texto,intent,spec,resumen},constraints:['No inventar costos','Proponer cambios explícitos y fabricables'],lenses:['diseño','fabricación','uso']});setAnalisis(r||{});setMensaje(councilText(r)||'VONI analizó el cambio. Confirma el resultado con los controles y regenera el render.');const next=prepararIntentCocrear(`${intent?._brief||texto}. Cambio solicitado: ${frase}`,intent);if(JSON.stringify(next)!==JSON.stringify(intent))commit(next,frase);setNl('');}catch(e){setMensaje(`VONI no pudo responder: ${String(e?.message||e)}`)}setPensando(false)};
 
-  const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(!r?.ok)throw new Error(r?.error||'No se pudo guardar');if(r.expediente_id)setExpedienteId(r.expediente_id);setGuardado(true);setMensaje('✓ Co-creación guardada.');}catch(e){setMensaje(`No se pudo guardar: ${String(e?.message||e)}`)}setGuardando(false)};
+  const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));if(!r?.ok)throw errorDeEscritura(r,'No se pudo guardar');if(r.expediente_id)setExpedienteId(r.expediente_id);setGuardado(true);setMensaje('✓ Co-creación guardada.');}catch(e){setMensaje(mensajeEscritura(e,'No se pudo guardar'))}setGuardando(false)};
   const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);setRender(null);setFase('studio');}catch(e){setMensaje(String(e?.message||e))}};
 
   const costoRaw=pipeline?.costo?.official_cost;
@@ -146,7 +147,7 @@ export default function CocrearV2({estado,onAgregar}){
   try{
     if(!id){
       const s=await guardarCocrearSeguro(null,cocrearPayload({brief:texto,intent,historia,render,insumos,par}));
-      if(!s?.ok||!s?.expediente_id)throw new Error(s?.error||'No se pudo crear el expediente canónico.');
+      if(!s?.ok||!s?.expediente_id)throw errorDeEscritura(s,'No se pudo crear el expediente canónico.');
       id=s.expediente_id;setExpedienteId(id);
     }
     const reg=await registrarProductoDesdeExpediente(id);
@@ -163,7 +164,7 @@ export default function CocrearV2({estado,onAgregar}){
       if(!up?.ok)avisoRender=` Render canónico pendiente: ${up?.error||'no se pudo registrar'}.`;
     }
   }catch(e){
-    setMensaje(`No se agregó a la cotización: ${String(e?.message||e)}`);
+    setMensaje(mensajeEscritura(e,'No se agregó a la cotización'));
     return;
   }
   const margen=Number.isFinite(Number(par.margenObjetivo))?Number(par.margenObjetivo):50;

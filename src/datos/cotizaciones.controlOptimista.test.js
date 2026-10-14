@@ -25,15 +25,23 @@ const errorConflicto = { code: '40001', message: `CONFLICTO_VERSION: la cotizaci
 describe('VH-148 · guardarCotizacion y p_actualizado_esperado', () => {
   beforeEach(() => rpc.mockReset());
 
-  it('sin versión (bandera apagada o desconocida) → NO viaja p_actualizado_esperado: la llamada de siempre', async () => {
+  it('bandera APAGADA (actualizadoEsperado undefined) → NO viaja p_actualizado_esperado: la llamada de siempre', async () => {
     rpc.mockResolvedValue({ data: { ok: true, id: 1372 }, error: null });
     await guardarCotizacion(estado, 'x@vh.mx', 1372);
     await guardarCotizacion(estado, 'x@vh.mx', 1372, { actualizadoEsperado: undefined });
-    await guardarCotizacion(estado, 'x@vh.mx', 1372, { actualizadoEsperado: null });
+    expect(rpc).toHaveBeenCalledTimes(2);
     for (const [fn, args] of rpc.mock.calls) {
       expect(fn).toBe('actualizar_cotizacion_segura');
       expect(Object.keys(args).sort()).toEqual(['p_cotizacion_id', 'p_patch']);
     }
+  });
+
+  it('VH-148b · bandera PRENDIDA sin versión conocida (null) → NO se escribe a ciegas: conflicto 409 sin llamar al servidor', async () => {
+    rpc.mockResolvedValue({ data: { ok: true, id: 1372 }, error: null });
+    const r = await guardarCotizacion(estado, 'x@vh.mx', 1372, { actualizadoEsperado: null });
+    expect(rpc).not.toHaveBeenCalled();
+    expect(r).toEqual({ id: 1372, guardado: false, motivo: 'conflicto', actualizadoServidor: null, sinVersion: true,
+      ok: false, code: 'VERSION_CONFLICT', status: 409, error: 'Existe una versión más reciente. Recarga o compara antes de guardar.' });
   });
 
   it('con versión → viaja p_actualizado_esperado TAL CUAL (cadena con microsegundos, sin pasar por Date)', async () => {
@@ -52,7 +60,8 @@ describe('VH-148 · guardarCotizacion y p_actualizado_esperado', () => {
     rpc.mockResolvedValue({ data: null, error: errorConflicto });
     const r = await guardarCotizacion(estado, 'x@vh.mx', 1372, { actualizadoEsperado: ISO });
     expect(rpc).toHaveBeenCalledTimes(1);
-    expect(r).toEqual({ id: 1372, guardado: false, motivo: 'conflicto', actualizadoServidor: ISO2 });
+    expect(r).toEqual({ id: 1372, guardado: false, motivo: 'conflicto', actualizadoServidor: ISO2,
+      ok: false, code: 'VERSION_CONFLICT', status: 409, error: 'Existe una versión más reciente. Recarga o compara antes de guardar.' });
     expect(r).not.toHaveProperty('soltarId');
   });
 

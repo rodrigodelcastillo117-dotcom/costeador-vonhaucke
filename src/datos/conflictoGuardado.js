@@ -42,25 +42,106 @@ export function controlOptimistaActivo({ env, storage } = {}) {
 }
 
 /**
- * La versión que se manda al servidor en este intento, o `undefined` para NO mandar el parámetro.
- *  - bandera apagada → undefined (firma vieja, siempre).
- *  - bandera prendida pero no se conoce la versión (servidor viejo, cotización recién creada
- *    por un cliente sin `actualizado`) → undefined (degradación segura).
- *  - si no, la cadena tal cual.
+ * La versión que se manda al servidor en este intento.
+ *  - bandera apagada → undefined: NO se manda el parámetro (firma vieja; el servidor de producción sin VH-148).
+ *  - bandera prendida con versión conocida → la cadena TAL CUAL.
+ *  - bandera prendida SIN versión conocida → null (VH-148b · fail-closed): "hace falta versión y no la tengo".
+ *    guardarCotizacion NO escribe a ciegas con null: lo trata como conflicto (la persona recarga o compara).
+ *    Antes devolvía undefined y el guardado caía en la firma de dos argumentos, sin control (hueco H1 cliente).
  */
 export function esperadoParaGuardar(actualizadoConocido, activo) {
   if (!activo) return undefined;
-  if (typeof actualizadoConocido !== 'string' || !actualizadoConocido.trim()) return undefined;
+  if (typeof actualizadoConocido !== 'string' || !actualizadoConocido.trim()) return null;
   return actualizadoConocido;
 }
 
-/** ¿Este error del servidor es el conflicto de versión (40001 / CONFLICTO_VERSION)? */
-export function esConflictoGuardado(e) {
+// ============================================================================
+//  VH-148b · RESULTADO ÚNICO DE "VERSIÓN EN CONFLICTO" para TODAS las escrituras versionadas
+//  (cotizaciones, expedientes y sus revisiones, cocreaciones). El servidor lo señala con:
+//   · SQLSTATE 40001 'CONFLICTO_VERSION' (otra persona guardó antes),
+//   · SQLSTATE 23505 (el número de revisión ya existe: índice único expediente_id, rev),
+//   · SQLSTATE 22004 'VERSION_REQUIRED' (se pidió escribir sin decir desde qué versión).
+//  El cliente lo convierte SIEMPRE en { ok:false, code:'VERSION_CONFLICT', status:409 } y la UI muestra
+//  EXACTAMENTE MENSAJE_VERSION_CONFLICT. Sin reintento silencioso ni fusión automática.
+// ============================================================================
+export const CODIGO_VERSION_CONFLICT = 'VERSION_CONFLICT';
+export const ESTADO_VERSION_CONFLICT = 409;
+export const MENSAJE_VERSION_CONFLICT = 'Existe una versión más reciente. Recarga o compara antes de guardar.';
+
+/** ¿Este error del servidor (PostgREST / pg) es un conflicto de versión? */
+export function esConflictoVersion(e) {
   if (!e) return false;
+  if (e.code === CODIGO_VERSION_CONFLICT) return true;
   const code = String(e.code ?? e.error?.code ?? '');
-  if (code === '40001') return true;
+  if (code === '40001' || code === '23505') return true;
   const m = String(e.message || e.error?.message || e || '');
-  return /CONFLICTO_VERSION|CONFLICTO/i.test(m);
+  return /VERSION_REQUIRED|CONFLICTO_VERSION/.test(m);
+}
+
+/** El resultado de una escritura rechazada por versión. `extra` se agrega (p. ej. la versión del servidor). */
+export function resultadoConflictoVersion(extra = {}) {
+  return { ...extra, ok: false, code: CODIGO_VERSION_CONFLICT, status: ESTADO_VERSION_CONFLICT, error: MENSAJE_VERSION_CONFLICT };
+}
+
+/** La revisión del servidor que viaja en el DETAIL ('revision=N') de un 40001 de expedientes, o null. */
+export function revisionDeError(e) {
+  const det = String(e?.details ?? e?.detail ?? '');
+  const m = /revision=(\d+)/.exec(det);
+  return m ? Number(m[1]) : null;
+}
+
+/** Convierte `{ error }` de PostgREST en el resultado de la escritura: conflicto (409) u otro error. */
+export function resultadoDeErrorEscritura(error) {
+  if (esConflictoVersion(error)) {
+    const revisionServidor = revisionDeError(error);
+    const actualizadoServidor = actualizadoDeError(error);
+    return resultadoConflictoVersion({ ...(revisionServidor != null ? { revisionServidor } : {}), ...(actualizadoServidor ? { actualizadoServidor } : {}) });
+  }
+  return { ok: false, error: String(error?.message || error || 'error desconocido') };
+}
+
+/**
+ * Texto para la persona tras una escritura fallida: el conflicto de versión SIEMPRE con el texto exacto;
+ * cualquier otro error con el prefijo de la pantalla. Acepta un resultado `{ code, error }` o un Error.
+ */
+export function mensajeEscritura(r, prefijo = 'No se pudo guardar') {
+  if (r?.code === CODIGO_VERSION_CONFLICT || esConflictoVersion(r)) return MENSAJE_VERSION_CONFLICT;
+  const det = String(r?.error || r?.message || r || '').trim();
+  return det ? `${prefijo}: ${det}` : `${prefijo}.`;
+}
+
+/** Un Error que conserva el código del resultado (para los flujos que propagan con throw). */
+export function errorDeEscritura(r, porOmision = 'No se pudo guardar') {
+  const e = new Error(r?.code === CODIGO_VERSION_CONFLICT ? MENSAJE_VERSION_CONFLICT : (r?.error || porOmision));
+  if (r?.code) e.code = r.code;
+  if (r?.status) e.status = r.status;
+  return e;
+}
+
+/**
+ * Revisión entera que se manda como p_revision_esperada: undefined con la bandera apagada (firma vieja);
+ * null si está prendida y no se conoce (fail-closed: no se escribe); el entero si se conoce.
+ */
+export function revisionEsperadaPara(revisionConocida, activo) {
+  if (!activo) return undefined;
+  return Number.isInteger(revisionConocida) && revisionConocida > 0 ? revisionConocida : null;
+}
+
+/** Registro (por pestaña) de la última revisión vista de cada expediente/cocreación. Puro, sin red. */
+export function crearRegistroVersiones() {
+  const m = new Map();
+  return {
+    recordar(id, revision) { if (id != null && Number.isInteger(Number(revision))) m.set(String(id), Number(revision)); },
+    esperada(id) { return id == null ? null : (m.has(String(id)) ? m.get(String(id)) : null); },
+    olvidar(id) { m.delete(String(id)); },
+  };
+}
+
+/** ¿Este error del guardado de la cotización es un conflicto de versión? (40001 / 23505 / VERSION_REQUIRED / CONFLICTO_VERSION) */
+export function esConflictoGuardado(e) {
+  if (esConflictoVersion(e)) return true;
+  // Compatibilidad VH-148: cualquier mensaje con "CONFLICTO" del guardado de la cotización.
+  return !!e && /CONFLICTO/i.test(String(e.message || e.error?.message || e || ''));
 }
 
 const ISO_RE = /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:?\d{2})?/;
@@ -91,10 +172,9 @@ export function horaDe(iso, { locale = 'es-MX', timeZone } = {}) {
   }
 }
 
-/** El texto del aviso, una sola verdad para la UI y las pruebas. */
-export function mensajeConflicto(conflicto, opts) {
-  const hora = horaDe(conflicto?.actualizadoServidor, opts);
-  return `Otra persona cambió esta cotización${hora ? ` a las ${hora}` : ''}. Tus cambios siguen en esta computadora.`;
+/** El texto del aviso, una sola verdad para la UI y las pruebas (VH-148b: EXACTAMENTE el acordado). */
+export function mensajeConflicto() {
+  return MENSAJE_VERSION_CONFLICT;
 }
 
 /** Estado de conflicto que guarda la app mientras la persona decide. */

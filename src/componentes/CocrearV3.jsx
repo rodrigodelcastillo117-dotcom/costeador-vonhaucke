@@ -10,6 +10,7 @@ import {listarCocreaciones,guardarCocrearSeguro,cargarCocrearSeguro,registrarPro
 // COCREAR 10 (D-01): puente Cocrear → Costeo (mueble de línea escalado o mueble nuevo vía Costear).
 import {lineasEscalables,bajarLineaABom,reescalarSiAplica,sincronizarFuncionesPendientes,semillaCostearDesdeCocrear,aplicarRetornoCosteo,despieceVigente} from '../datos/cocrearPuente.js';
 import {costearConfig} from '../datos/lineas.js';
+import {mensajeEscritura,errorDeEscritura} from '../datos/conflictoGuardado.js';
 // COCREAR 10 (D-02/D-03): la verdad de dinero y de ingeniería es la del servidor.
 import {validacionDesdeFila} from '../datos/cocrearServidor.js';
 // N-04: el MISMO flujo de carga de imagen que Costear.
@@ -384,7 +385,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const guardarActual=async()=>{
   const img=await asegurarImagenes(expedienteId);
   const r=await guardarCocrearSeguro(expedienteId,cocrearPayload({brief:texto,intent,historia,render:img.render,referencia:img.referencia,insumos,par}));
-  if(!r?.ok)throw new Error(r?.error||'No se pudo guardar');
+  if(!r?.ok)throw errorDeEscritura(r,'No se pudo guardar');
   const id=r.expediente_id||expedienteId;
   if(id)setExpedienteId(id);
   setGuardado(true);
@@ -408,7 +409,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    if(validar)setMensaje(r.ingenieria_validada?`✓ Ingeniería validada por el servidor (${r.validada_por||usuarioEmail||rol}). Cualquier cambio posterior la invalida.${avisos}`:`No se validó: ${r.validacion?.motivo||'el servidor no la aprobó'}${avisos}`);
    else setMensaje(`✓ Costeado en el servidor: ${r.estado}.${r.precioPorConfirmar?' Precio por confirmar.':''}${avisos}`);
    return r;
-  }catch(e){setMensaje(`No se pudo costear en el servidor: ${String(e?.message||e)}`);return null}
+  }catch(e){setMensaje(mensajeEscritura(e,'No se pudo costear en el servidor'));return null}
   finally{setCosteandoSrv(false)}
  };
 
@@ -438,7 +439,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
   setPensando(false)
  };
 
- const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const g=await guardarActual();setMensaje(`✓ Co-creación guardada.${g.avisos.length?' '+g.avisos.join(' '):''}`);}catch(e){setMensaje(`No se pudo guardar: ${String(e?.message||e)}`)}setGuardando(false)};
+ const guardar=async()=>{if(!intent)return;setGuardando(true);setMensaje('');try{const g=await guardarActual();setMensaje(`✓ Co-creación guardada.${g.avisos.length?' '+g.avisos.join(' '):''}`);}catch(e){setMensaje(mensajeEscritura(e,'No se pudo guardar'))}setGuardando(false)};
  const reabrir=async id=>{try{const r=await cargarCocrearSeguro(id);const est=r?.ok?cocrearDeExpediente({cocrear:r.cocrear}):null;if(!est?.intent)throw new Error('Expediente sin intención válida');setIntent(est.intent);setHistoria(est.historia?.length?est.historia:[{rev:1,label:'Reabierta',intent:est.intent}]);setTexto(est.brief||est.intent?._brief||'');setExpedienteId(id);
   // N-04 y D-02/D-03: la referencia y la verdad del servidor (costo/validación de esa revisión) vuelven con el expediente.
   setReferencia(est.referencia?{...est.referencia,base64:null,dataUrl:est.referencia.url}:null);
@@ -533,7 +534,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
       if(!up?.ok)avisoRender=` Render canónico pendiente: ${up?.error||'no se pudo registrar'}.`;else if(up?.storage_url)renderUrl=up.storage_url;
     }
   }catch(e){
-    setMensaje(`No se agregó a la cotización: ${String(e?.message||e)}`);
+    setMensaje(mensajeEscritura(e,'No se agregó a la cotización'));
     return;
   }
   const pv=precioServidor;
