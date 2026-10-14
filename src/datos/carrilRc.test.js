@@ -14,10 +14,10 @@ describe('carril RC publicado', () => {
     expect(nube).toContain("const FN_COSTEAR = CARRIL_RC ? 'costear-servidor-rc' :");
     expect(nube).not.toMatch(/FN_(LEER_PLANO|COTIZAR_TEXTO|GENERAR_RENDER|ACOMODAR) = CARRIL_RC/);
   });
-  it('el carril se enciende sólo con VERCEL_ENV=preview y CARRIL_RC=si (también al correr en el build de Vercel)', async () => {
+  it('fuera de un navegador en una URL de preview el carril queda apagado, aunque el build traiga la bandera', async () => {
+    // Auditoría P1-06: la bandera horneada no basta; sin hostname de preview (Node, pruebas, dominio de producción) → Edge productivas.
     const m = await import('../nube.js');
-    const esperado = process.env.VERCEL_ENV === 'preview' && process.env.CARRIL_RC === 'si';
-    expect(m.CARRIL_RC).toBe(esperado);
+    expect(m.CARRIL_RC).toBe(false);
   });
   it('la app avisa visiblemente que es un link de prueba', () => {
     const app = fs.readFileSync('src/App.jsx', 'utf8');
