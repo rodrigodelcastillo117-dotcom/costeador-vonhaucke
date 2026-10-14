@@ -24,6 +24,8 @@ import { INSUMOS_SEMILLA, mapaInsumos } from "../../../src/datos/insumos.js";
 // cualquier campo económico (margen, precio, costo, insumo inline, factores,
 // modeloCosteo…) del body antes de tocar el motor. Ver src/datos/validarIntentCosteo.js.
 import { validarIntentCosteo } from "../../../src/datos/validarIntentCosteo.js";
+// SEG-01c: la fila autoritativa del costeo (identidad, promesa y spec técnica de origen) — misma función que las pruebas.
+import { filaCosteoServidor } from "../../../src/datos/registroCosteo.js";
 // P0.5: el material_match del BROWSER no es autoridad. El servidor RECALCULA la clase efectiva
 // contra el catálogo autoritativo con la MISMA lógica determinista compartida (sin duplicar).
 // P0.9: la confirmación técnica de material (USER_CONFIRMED) la autoriza el SERVIDOR por rol.
@@ -330,17 +332,13 @@ Deno.serve(async (req) => {
       const { data: hb, error: hbErr } = await svc.rpc("huella_base_costo", { p_ids: usados });
       if (!hbErr && typeof hb === "string") baseHuella = hb;
     } catch (_e) { /* SEG-01c sin aplicar: queda null */ }
-    const { data: regC, error: regErr } = await svc.from("costeos_servidor").insert({
-      creado_por: email, rol, bom_hash: huellaBom, cantidad: n, costo_unitario: dinero(r.costoUnitario),
-      estado, aprobacion_humana: aprobacionHumana, version_motor: meta.versionMotor, version_catalogo: meta.versionCatalogo,
-      fuente_costo: meta.fuenteCosto, precios: k.preciosUsados || [], warnings,
-      insumos_usados: usados, base_costo_huella: baseHuella,
-      // SEG-01c rev3: identidad declarada en ESTA solicitud junto con el despiece, y el despiece costeado (auditoría).
-      identidad_origen: intent.identidad ?? null, componentes_costeados: pieza.componentes ?? [],
-      // SEG-01c rev4: promesa comercial de origen (lo declarado + materiales/piezas del despiece que se costeó, ver
-      // validarIntentCosteo). La versión y la huella las sella el trigger de la base; sin promesa, el costeo no vincula.
-      promesa_origen: intent.promesa ?? null, promesa_version: intent.promesa ? "v1" : null,
-    }).select("id").single();
+    // SEG-01c rev3/rev4/rev5: identidad, promesa comercial y ESPECIFICACIÓN TÉCNICA de origen salen de la intención
+    // SANEADA que costeó el motor; la fila la arma la MISMA función que usan las pruebas del pipeline (registroCosteo.js).
+    // Versión y huella de promesa y spec las sella el trigger de la base; sin ellas, el costeo no vincula.
+    const { data: regC, error: regErr } = await svc.from("costeos_servidor").insert(filaCosteoServidor({
+      intent, n, email, rol, bomHash: huellaBom, costoUnitario: dinero(r.costoUnitario), estado, aprobacionHumana, meta,
+      precios: k.preciosUsados || [], warnings, insumosUsados: usados, baseCostoHuella: baseHuella,
+    })).select("id").single();
     if (regErr) warnings.push("Costeo sin registro autoritativo (SEG-01c no aplicada): no servirá para emitir cuando se aplique.");
     else costeoId = regC?.id ?? null;
   }

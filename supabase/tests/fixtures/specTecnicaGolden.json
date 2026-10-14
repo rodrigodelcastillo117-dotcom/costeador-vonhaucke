@@ -1,0 +1,128 @@
+{
+  "_doc": "SEG-01c rev5 · fixtures doradas de spec_tecnica_v1. Las corren src/datos/specTecnica.test.js (JS) y supabase/tests/specTecnicaGolden.test.js (SQL, private_api.spec_tecnica). Los 'esperado' están escritos a mano, no generados. Orden de componentes: clave 'campo=valor' en orden fijo (insumoId, nombre, cantidad, piezas, largoMM, anchoMM, hojas, areaPintadaM2, tubular, material_solicitado, material_match, material_confirmado, engineering_override, override_motivo, procedencia, pieza_confirmada, pendiente) unida con U+001F, por punto de código.",
+  "casos": [
+    {
+      "nombre": "A · Credenza: Cubierta + 1 × Entrepaño MDF18 (lo de arriba del componente es promesa, no spec)",
+      "entrada": { "nombre": "Credenza", "w": 1800, "d": 450, "productoId": "CR",
+        "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 }, { "nombre": "Entrepaño", "insumoId": "mdf18", "cantidad": 1 } ] },
+      "esperado": { "v": "v1", "componentes": [
+        { "insumoId": "mdf18", "nombre": "Cubierta", "cantidad": 1 },
+        { "insumoId": "mdf18", "nombre": "Entrepaño", "cantidad": 1 } ] }
+    },
+    {
+      "nombre": "B · misma Credenza con 3 × Entrepaño: otra spec",
+      "entrada": { "nombre": "Credenza", "w": 1800, "d": 450, "productoId": "CR",
+        "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 }, { "nombre": "Entrepaño", "insumoId": "mdf18", "cantidad": 3 } ] },
+      "esperado": { "v": "v1", "componentes": [
+        { "insumoId": "mdf18", "nombre": "Cubierta", "cantidad": 1 },
+        { "insumoId": "mdf18", "nombre": "Entrepaño", "cantidad": 3 } ] }
+    },
+    {
+      "nombre": "A reordenada: el orden de los renglones no cuenta (misma spec que A)",
+      "entrada": { "componentes": [ { "cantidad": 1, "insumoId": "mdf18", "nombre": "Entrepaño" }, { "nombre": "Cubierta", "cantidad": 1, "insumoId": "mdf18" } ] },
+      "esperado": { "v": "v1", "componentes": [
+        { "insumoId": "mdf18", "nombre": "Cubierta", "cantidad": 1 },
+        { "insumoId": "mdf18", "nombre": "Entrepaño", "cantidad": 1 } ] }
+    },
+    {
+      "nombre": "Lateral MDF18 700 × 400",
+      "entrada": { "componentes": [ { "nombre": "Lateral", "insumoId": "mdf18", "cantidad": 2, "largoMM": 700, "anchoMM": 400 } ] },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "mdf18", "nombre": "Lateral", "cantidad": 2, "largoMM": 700, "anchoMM": 400 } ] }
+    },
+    {
+      "nombre": "Lateral MDF18 900 × 400: otra spec",
+      "entrada": { "componentes": [ { "nombre": "Lateral", "insumoId": "mdf18", "cantidad": 2, "largoMM": 900, "anchoMM": 400 } ] },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "mdf18", "nombre": "Lateral", "cantidad": 2, "largoMM": 900, "anchoMM": 400 } ] }
+    },
+    {
+      "nombre": "horas: ensamble 1 h",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 } ], "horas": { "ensamble": 1 } },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "mdf18", "nombre": "Cubierta", "cantidad": 1 } ], "horas": { "ensamble": 1 } }
+    },
+    {
+      "nombre": "horas: ensamble 4 h (otra spec)",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 } ], "horas": { "ensamble": 4 } },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "mdf18", "nombre": "Cubierta", "cantidad": 1 } ], "horas": { "ensamble": 4 } }
+    },
+    {
+      "nombre": "pintura: mismo insumo, 1.5 m² pintados",
+      "entrada": { "componentes": [ { "nombre": "Pintura", "insumoId": "pint-negro", "areaPintadaM2": 1.5, "tubular": true } ] },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "pint-negro", "nombre": "Pintura", "areaPintadaM2": 1.5, "tubular": true } ] }
+    },
+    {
+      "nombre": "pintura: mismo insumo, 2.25 m² pintados (otra spec)",
+      "entrada": { "componentes": [ { "nombre": "Pintura", "insumoId": "pint-negro", "areaPintadaM2": 2.25, "tubular": true } ] },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "pint-negro", "nombre": "Pintura", "areaPintadaM2": 2.25, "tubular": true } ] }
+    },
+    {
+      "nombre": "duplicados: dos renglones idénticos cantidad 1 se quedan como dos (multiplicidad)",
+      "entrada": { "componentes": [ { "nombre": "Entrepaño", "insumoId": "mdf18", "cantidad": 1 }, { "nombre": "Entrepaño", "insumoId": "mdf18", "cantidad": 1 } ] },
+      "esperado": { "v": "v1", "componentes": [
+        { "insumoId": "mdf18", "nombre": "Entrepaño", "cantidad": 1 },
+        { "insumoId": "mdf18", "nombre": "Entrepaño", "cantidad": 1 } ] }
+    },
+    {
+      "nombre": "duplicados: un renglón cantidad 2 NO es lo mismo que dos de cantidad 1 (decisión explícita: no se fusionan)",
+      "entrada": { "componentes": [ { "nombre": "Entrepaño", "insumoId": "mdf18", "cantidad": 2 } ] },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "mdf18", "nombre": "Entrepaño", "cantidad": 2 } ] }
+    },
+    {
+      "nombre": "normalización: texto recortado, false fuera, claves ajenas fuera, pendiente sin insumo, horas y dificultad",
+      "entrada": {
+        "componentes": [
+          { "nombre": "\t Cubierta \r\n", "insumoId": " mdf18 ", "cantidad": 1, "largoMM": 1800.0, "anchoMM": 450,
+            "material_confirmado": false, "tubular": false, "excluida": true, "costoUnitario": 99, "_match": { "clase": "EXACT" } },
+          { "nombre": "Jaladera", "insumoId": "", "pendiente": true, "material_solicitado": " jaladera barra ", "material_match": "PENDING_MATERIAL", "cantidad": 2 },
+          { "nombre": "Bisagra", "insumoId": "bis35", "cantidad": 4, "procedencia": "INFERIDO", "pieza_confirmada": true, "material_confirmado": true }
+        ],
+        "horas": { " ensamble ": 1.50, "corte": 0 },
+        "dificultad": "dificil"
+      },
+      "esperado": { "v": "v1", "componentes": [
+        { "insumoId": "bis35", "nombre": "Bisagra", "cantidad": 4, "material_confirmado": true, "procedencia": "INFERIDO", "pieza_confirmada": true },
+        { "insumoId": "mdf18", "nombre": "Cubierta", "cantidad": 1, "largoMM": 1800, "anchoMM": 450 },
+        { "nombre": "Jaladera", "cantidad": 2, "material_solicitado": "jaladera barra", "material_match": "PENDING_MATERIAL", "pendiente": true } ],
+        "horas": { "ensamble": 1.5, "corte": 0 }, "dificultad": "dificil" }
+    },
+    {
+      "nombre": "dificultad numérica dentro de 0.25–3",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 } ], "dificultad": 1.25 },
+      "esperado": { "v": "v1", "componentes": [ { "insumoId": "mdf18", "nombre": "Cubierta", "cantidad": 1 } ], "dificultad": 1.25 }
+    },
+    {
+      "nombre": "fuera de contrato: número > 2^53 − 1 ⇒ sin spec",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 9007199254740992 } ] },
+      "esperado": null
+    },
+    {
+      "nombre": "fuera de contrato: número entre 0 y 1e-6 ⇒ sin spec",
+      "entrada": { "componentes": [ { "nombre": "Pintura", "insumoId": "pint", "areaPintadaM2": 0.0000001 } ] },
+      "esperado": null
+    },
+    {
+      "nombre": "fuera de contrato: cantidad como texto ⇒ sin spec (el DTO sólo admite números)",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": "3" } ] },
+      "esperado": null
+    },
+    {
+      "nombre": "fuera de contrato: dificultad desconocida ⇒ sin spec",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 } ], "dificultad": 5 },
+      "esperado": null
+    },
+    {
+      "nombre": "fuera de contrato: centro de horas repetido tras recortar ⇒ sin spec",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 } ], "horas": { "ensamble": 1, " ensamble": 2 } },
+      "esperado": null
+    },
+    {
+      "nombre": "sin componentes, componente que no es objeto o entrada que no es objeto ⇒ sin spec",
+      "entrada": { "componentes": [ { "nombre": "Cubierta", "insumoId": "mdf18", "cantidad": 1 }, "basura" ] },
+      "esperado": null
+    },
+    {
+      "nombre": "arreglo vacío ⇒ sin spec",
+      "entrada": { "componentes": [] },
+      "esperado": null
+    }
+  ]
+}

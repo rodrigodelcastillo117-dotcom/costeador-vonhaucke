@@ -21,6 +21,7 @@ import {
 vi.mock('@supabase/supabase-js', () => ({ createClient: () => ({}) }));
 import { tablaDeBaseline, vistaCatalogoVigenteProduccion, funcionDeMigracion, privateApiDeBaseline } from './fixtures/erpBaseAislada.js';
 import { promesaComercialDeCosteo } from '../../src/datos/promesaComercial.js';
+import { specTecnicaDeCosteo } from '../../src/datos/specTecnica.js';
 
 const P103B = 'supabase/migrations/PROPUESTA_p103b_precio_id_en_catalogo.sql';
 const VH088 = 'supabase/migrations/20261012043000_vh088_catalogo_motor.sql';
@@ -36,6 +37,10 @@ const COSTEADO = {
   cantidad: 1, precioUnitario: 10000, costoUnitario: 6000,
   pieza: { componentes: [{ id: 'c1', nombre: 'Cubierta', largo: 1200, ancho: 600, insumoId: 'm16' }] },
 };
+// rev5: la pieza saneada que costeó el motor y la especificación técnica que lleva la partida (la arma Costear con la
+// misma función). Por omisión el K sella esta misma spec: las pruebas de rev2–rev4 siguen probando lo suyo.
+const PIEZA_COSTEADA = { componentes: [{ nombre: 'Cubierta', insumoId: 'm16', cantidad: 1, largoMM: 1200, anchoMM: 600 }] };
+COSTEADO.especificacion_tecnica = specTecnicaDeCosteo(PIEZA_COSTEADA);
 // Identidad que Costear manda JUNTO con el despiece (rev3) = la de la partida que se agrega.
 const IDENTIDAD = { nombre: COSTEADO.nombre, medidas: COSTEADO.medidas, material: COSTEADO.material };
 // Precio aprobado por una persona de Dirección: id 900, melamina 16, $612.40.
@@ -44,7 +49,10 @@ const PRECIO = (id, precio, desde) => `insert into public.insumo_precios (id, in
   unidad_compra, precio_compra, factor_conversion, evidence_status, requiere_validacion_compras) overriding system value
   values (${id}, 'm16', ${precio}, 'aprobado', 'alta', '${desde}', '${DIRECCION}', now(), 'hoja', ${precio}, 1, 'documentada', false)`;
 
-async function base({ seg01c = SEG01C, conP103b = true, conVh148b = true } = {}) {
+// Evidencia "antes/después": SEG01C_MIG=<archivo> corre TODO el archivo contra otra revisión (p. ej. la rev4,
+// supabase/tests/fixtures/seg01c_rev4_8cc0adb.sql): las pruebas de rev5 y del pipeline real deben FALLAR ahí.
+const SEG01C_ACTUAL = process.env.SEG01C_MIG || SEG01C;
+async function base({ seg01c = SEG01C_ACTUAL, conP103b = true, conVh148b = true } = {}) {
   const db = await baseProduccion();
   await db.exec(`insert into public.permitidos(email, rol) values ('${VENDEDOR2}', 'vendedor')`);
   await db.exec(tablaDeBaseline('insumos_catalogo'));
@@ -62,6 +70,10 @@ async function base({ seg01c = SEG01C, conP103b = true, conVh148b = true } = {})
   if (conVh148b) { await db.exec(leer(VH148)); await db.exec(leer(VH148B)); }
   await db.exec(leer(SEG01));
   await db.exec(leer(seg01c));
+  // Una revisión anterior a rev5 no tiene las columnas de spec: se agregan vacías para que el registro del costeo no
+  // truene por el esquema y la prueba mida el COMPORTAMIENTO (si vincula o no), no un error de columna.
+  if (seg01c !== SEG01C) await db.exec(`alter table public.costeos_servidor add column if not exists spec_tecnica_origen jsonb;
+    alter table public.costeos_servidor add column if not exists spec_tecnica_version text`).catch(() => {});
   await db.exec(`update private_api.politica_emision_autoridad set ${seg01c === SEG01C_REV1 ? "modo = 'estricto'" : ESTRICTO}`);
   return db;
 }
@@ -72,13 +84,16 @@ function ayudas(db) {
   // Como la Edge (service_role): registra el costeo con la huella de su base de costo.
   h.reg = async (o = {}) => (await db.query(
     `insert into public.costeos_servidor (creado_por, rol, bom_hash, cantidad, costo_unitario, estado, aprobacion_humana, precios,
-       insumos_usados, base_costo_huella, version_motor, identidad_origen, componentes_costeados, promesa_origen)
-     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[], case when $10 then private_api.huella_base_costo($9::text[]) end, $11, $12::jsonb, $13::jsonb, $14::jsonb) returning id`,
+       insumos_usados, base_costo_huella, version_motor, identidad_origen, componentes_costeados, promesa_origen, spec_tecnica_origen, spec_tecnica_version)
+     values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9::text[], case when $10 then private_api.huella_base_costo($9::text[]) end, $11, $12::jsonb, $13::jsonb, $14::jsonb,
+             $15::jsonb, case when $15::jsonb is null then null else coalesce($16, 'v1') end) returning id`,
     [o.por ?? DIRECCION, o.rol ?? 'direccion', o.bom ?? 'bom-escritorio', o.cantidad ?? 1, o.costo ?? 6000, o.estado ?? 'certificado',
       o.humana ?? true, JSON.stringify(o.precios ?? TRAZA), o.insumos ?? ['m16'], o.base !== false, o.motor ?? 'motor-1',
       o.identidad === null ? null : JSON.stringify(o.identidad ?? IDENTIDAD), JSON.stringify(COSTEADO.pieza.componentes),
       // rev4: la promesa de origen que manda la Edge (por omisión, la del mueble costeado). El trigger la sella.
-      o.promesa === null ? null : JSON.stringify(promesaComercialDeCosteo(o.promesa ?? o.identidad ?? COSTEADO))])).rows[0].id;
+      o.promesa === null ? null : JSON.stringify(promesaComercialDeCosteo(o.promesa ?? o.identidad ?? COSTEADO)),
+      // rev5: la spec técnica de origen que manda la Edge (la pieza saneada que costeó). El trigger la sella.
+      o.spec === null ? null : JSON.stringify(specTecnicaDeCosteo(o.spec ?? PIEZA_COSTEADA) ?? o.spec), o.specVersion ?? null])).rows[0].id;
   // Dirección guarda la cotización (a nombre del vendedor) con las partidas dadas.
   h.sembrar = async (partidas = [{ ...COSTEADO }]) => (await uno(db, DIRECCION,
     `insert into public.cotizaciones(usuario, cliente, folio, partidas, total, piezas) values ($1, 'Cliente demo', 'COT-DEMO', $2::jsonb, 11600, 1) returning id`,
@@ -427,7 +442,9 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
 
   it('P0-01 v3 sin falsos positivos: 120 = 120.0, espacios y null = ausente cuentan como la misma identidad', async () => {
     const k = await h.reg({ identidad: { nombre: '  Credenza  ', w: 120, d: 45 } });
-    const id = await h.sembrar([{ id: 'p1', nombre: 'Credenza', w: 120.0, d: '45', h: null, medidas: '', cantidad: 1, precioUnitario: 10000, costeoId: k }]);
+    // rev5 (cambio intencional): toda partida especial lleva la especificación técnica de lo que se costeó.
+    const id = await h.sembrar([{ id: 'p1', nombre: 'Credenza', w: 120.0, d: '45', h: null, medidas: '', cantidad: 1, precioUnitario: 10000, costeoId: k,
+      especificacion_tecnica: COSTEADO.especificacion_tecnica }]);
     expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
   });
 
@@ -493,7 +510,8 @@ describe('SEG-01c rev 2 · vínculo server-side costeo → cotización → parti
     try {
       expect(await md5Def(db, 'public.evaluar_emision_cotizacion(bigint, jsonb)')).toBe(MD5_WRAPPER_PROD);
       for (const f of ['public.adjuntar_costeo_a_partida(bigint, text, uuid, timestamptz)', 'private_api.huella_partida(jsonb)', 'public.huella_base_costo(text[])', 'public.activar_autoridad_costeo(text, text, text)', 'private_api.identidad_partida(jsonb)',
-        'private_api.promesa_partida(jsonb)', 'private_api.huella_promesa(jsonb)', 'private_api.costeo_promesa_servidor()']) {
+        'private_api.promesa_partida(jsonb)', 'private_api.huella_promesa(jsonb)', 'private_api.costeo_promesa_servidor()',
+        'private_api.spec_tecnica(jsonb)', 'private_api.huella_spec_tecnica(jsonb)', 'private_api.spec_numero_ok(jsonb)', 'private_api.costeo_spec_servidor()']) {
         expect((await db.query('select to_regprocedure($1) is null as no', [f])).rows[0].no, f).toBe(true);
       }
     } finally { await db.exec(leer(SEG01C)); await h.politica(ESTRICTO); }
@@ -638,7 +656,9 @@ describe('ANTES · SEG-01c revisión 3 (96bab98): el K de A se vinculaba a B con
     db = await base({ seg01c: 'supabase/tests/fixtures/seg01c_rev3_96bab98.sql' }); h = ayudas(db);
     const reg = h.reg;
     h.reg = async (o = {}) => reg({ ...o, promesa: null });   // rev3 no tenía promesa
-    await db.exec('alter table public.costeos_servidor add column if not exists promesa_origen jsonb');
+    await db.exec(`alter table public.costeos_servidor add column if not exists promesa_origen jsonb;
+      alter table public.costeos_servidor add column if not exists spec_tecnica_origen jsonb;
+      alter table public.costeos_servidor add column if not exists spec_tecnica_version text`);
   }, 180_000);
   afterAll(async () => { await db?.close(); });
 
@@ -650,6 +670,157 @@ describe('ANTES · SEG-01c revisión 3 (96bab98): el K de A se vinculaba a B con
   ])('defecto rev3: distinto %s ⇒ vinculaba y quedaba ALLOWED', async (_n, cambio) => {
     const k = await h.reg();
     const id = await h.sembrar([{ ...A, ...cambio, costeoId: k }]);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+});
+
+// ============================================================================
+//  rev5 (reauditoría final, P0): la PROMESA no distingue dos despieces técnicamente distintos con los mismos nombres e
+//  insumos. La SPEC TÉCNICA v1 sí: el K sólo se vincula a una partida que describe EXACTAMENTE el despiece que costeó.
+// ============================================================================
+describe('SEG-01c rev 5 · spec técnica v1 atada al costeo', () => {
+  let db, h;
+  const pieza = (...componentes) => ({ componentes });
+  const CUB = { nombre: 'Cubierta', insumoId: 'mdf18', cantidad: 1 };
+  const ENT = (cantidad = 1, extra = {}) => ({ nombre: 'Entrepaño', insumoId: 'mdf18', cantidad, ...extra });
+  const LAT = (largoMM) => ({ nombre: 'Lateral', insumoId: 'mdf18', cantidad: 2, largoMM, anchoMM: 400 });
+  const PINT = (areaPintadaM2) => ({ nombre: 'Pintura', insumoId: 'pint-negro', areaPintadaM2, tubular: true });
+  const A = pieza(CUB, ENT(1));
+  const partida = (piezaTec, extra = {}) => ({ ...COSTEADO, especificacion_tecnica: specTecnicaDeCosteo(piezaTec), ...extra });
+  const vigentes = async (k) => Number((await db.query('select count(*)::int n from public.partida_costeo_vigente where costeo_id = $1', [k])).rows[0].n);
+  const consumido = async (k) => (await db.query('select cotizacion_id from public.costeos_servidor where id = $1', [k])).rows[0].cotizacion_id;
+  beforeAll(async () => { db = await base(); h = ayudas(db); }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  it('control: el K de A se vincula a la partida que describe A y emite', async () => {
+    const k = await h.reg({ spec: A });
+    const id = await h.sembrar([partida(A, { costeoId: k })]);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+    expect((await h.evaluar(id)).state).toBe('ALLOWED');
+  });
+
+  it('el servidor sella versión y huella de la spec (re-proyecta en SQL); nadie las cambia después', async () => {
+    const k = await h.reg({ spec: pieza(ENT(1, { nombre: ' Entrepaño ', costoUnitario: 1, excluida: true }), CUB) });
+    const r = (await db.query(`select spec_tecnica_version v, spec_tecnica_huella hh, spec_tecnica_origen o,
+      private_api.huella_spec_tecnica($2::jsonb) as esperada from public.costeos_servidor where id = $1`, [k, JSON.stringify(A)])).rows[0];
+    expect(r).toMatchObject({ v: 'v1', hh: r.esperada, o: specTecnicaDeCosteo(A) });
+    expect((await fallo(db.query(`update public.costeos_servidor set spec_tecnica_origen = '{"v":"v1","componentes":[{"insumoId":"x"}]}'::jsonb where id = $1`, [k])))?.message).toMatch(/no se cambia/);
+    expect((await fallo(db.query(`update public.costeos_servidor set spec_tecnica_huella = md5('x') where id = $1`, [k])))?.message).toMatch(/no se cambia/);
+    expect((await fallo(h.reg({ spec: A, specVersion: 'v9' })))?.message).toMatch(/spec_tecnica_version desconocida/);
+    // Fuera de contrato ⇒ el servidor no sella spec (y ese K no vinculará).
+    const kFuera = await h.reg({ spec: pieza({ ...CUB, cantidad: Number.MAX_SAFE_INTEGER + 1 }) });
+    expect((await db.query('select spec_tecnica_huella from public.costeos_servidor where id = $1', [kFuera])).rows[0].spec_tecnica_huella).toBeNull();
+  });
+
+  it.each([
+    ['multiplicidad: 1 × Entrepaño MDF18 → 3 × Entrepaño MDF18', A, pieza(CUB, ENT(3))],
+    ['dimensión interna: Lateral MDF18 700 × 400 → 900 × 400', pieza(CUB, LAT(700)), pieza(CUB, LAT(900))],
+    ['horas: ensamble 1 h → 4 h (mismo BOM de materiales)', { ...A, horas: { ensamble: 1 } }, { ...A, horas: { ensamble: 4 } }],
+    ['pintura: mismo insumo, 1.5 m² → 2.25 m²', pieza(CUB, PINT(1.5)), pieza(CUB, PINT(2.25))],
+    ['dificultad: normal → difícil', { ...A, dificultad: 'normal' }, { ...A, dificultad: 'dificil' }],
+    ['duplicados: dos renglones cantidad 1 → un renglón cantidad 2 (no se fusionan)', pieza(CUB, ENT(1), ENT(1)), pieza(CUB, ENT(2))],
+  ])('P0: el K NO se vincula por primera vez a una partida con la MISMA promesa pero otro despiece — %s', async (_n, costeado, otra) => {
+    const k = await h.reg({ spec: costeado });
+    const id = await h.sembrar([partida(otra, { costeoId: k })]);
+    // La promesa es idéntica (mismo nombre, medidas, material, cantidad): lo que la distingue es la spec.
+    expect((await db.query('select private_api.huella_promesa($1::jsonb) = promesa_huella as igual from public.costeos_servidor where id = $2',
+      [JSON.stringify(partida(otra)), k])).rows[0].igual).toBe(true);
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k)))?.message).toMatch(/describe otro despiece/);
+    expect(await vigentes(k)).toBe(0);
+    expect(await consumido(k)).toBeNull();
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_costeo_no_vinculado_a_esta_partida');
+    // …y cada despiece con SU propio K sí vincula.
+    const kOtra = await h.reg({ spec: otra });
+    const id2 = await h.sembrar([partida(otra, { costeoId: kOtra })]);
+    expect(await h.adjuntar(DIRECCION, id2, 'p1', kOtra)).toMatchObject({ ok: true });
+  });
+
+  it('el ORDEN de los renglones no cuenta: la misma spec reordenada vincula', async () => {
+    const k = await h.reg({ spec: pieza(CUB, ENT(1), LAT(700)) });
+    const id = await h.sembrar([partida(pieza(LAT(700), ENT(1), CUB), { costeoId: k })]);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
+  });
+
+  it('K sin spec de origen, partida sin especificación o con especificación fuera de contrato ⇒ no hay vínculo', async () => {
+    const k0 = await h.reg({ spec: null });
+    const id0 = await h.sembrar([partida(A, { costeoId: k0 })]);
+    expect((await fallo(h.adjuntar(DIRECCION, id0, 'p1', k0)))?.message).toMatch(/no trae la especificación técnica v1/);
+    const k = await h.reg({ spec: A });
+    const sin = await h.sembrar([{ ...COSTEADO, especificacion_tecnica: undefined, costeoId: k }]);
+    expect((await fallo(h.adjuntar(DIRECCION, sin, 'p1', k)))?.message).toMatch(/no trae su especificación técnica/);
+    const fuera = await h.sembrar([{ ...COSTEADO, costeoId: k, especificacion_tecnica: { v: 'v1', componentes: [{ ...CUB, cantidad: '1' }, ENT(1)] } }]);
+    expect((await fallo(h.adjuntar(DIRECCION, fuera, 'p1', k)))?.message).toMatch(/no trae su especificación técnica/);
+    expect(await vigentes(k)).toBe(0);
+  });
+
+  it('K1→K2: cambia el despiece, K1 deja de valer, K2 (costeado con el despiece nuevo) vincula; K1 histórico, sólo K2 vigente', async () => {
+    const k1 = await h.reg({ spec: A });
+    const id = await h.sembrar([partida(A, { costeoId: k1 })]);
+    await h.adjuntar(DIRECCION, id, 'p1', k1);
+    const B = pieza(CUB, ENT(3));
+    await h.guardarP1(id, { especificacion_tecnica: specTecnicaDeCosteo(B) });
+    expect((await h.evaluar(id)).reasons).toContain('linea_1_partida_cambio_desde_el_costeo');
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k1)))?.message).toMatch(/cambió desde que se vinculó/);
+    const k2 = await h.reg({ spec: B, costo: 7400 });
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k2)).toMatchObject({ ok: true });
+    expect((await db.query('select costeo_id from public.partida_costeo_vigente where cotizacion_id = $1', [id])).rows.map((r) => r.costeo_id)).toEqual([k2]);
+    expect((await db.query('select reemplazado_por from public.costeos_servidor where id = $1', [k1])).rows[0].reemplazado_por).toBe(k2);
+    expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 11500 }))).state).toBe('ALLOWED');
+  });
+
+  it('K2 no lava un cambio de despiece hecho DESPUÉS de nacer K2', async () => {
+    const k1 = await h.reg({ spec: A });
+    const id = await h.sembrar([partida(A, { costeoId: k1 })]);
+    await h.adjuntar(DIRECCION, id, 'p1', k1);
+    const k2 = await h.reg({ spec: pieza(CUB, ENT(3)) });                                   // K2 nace con 3 entrepaños…
+    await h.guardarP1(id, { especificacion_tecnica: specTecnicaDeCosteo(pieza(CUB, ENT(4))) });  // …y DESPUÉS la partida pasa a 4
+    expect((await fallo(h.adjuntar(DIRECCION, id, 'p1', k2)))?.message).toMatch(/describe otro despiece/);
+    expect(await vigentes(k2)).toBe(0);
+  });
+
+  it('rama idempotente: mismo K vigente + misma partida + misma spec no exige al creador (Diseño costea, Dirección re-vincula)', async () => {
+    const k = await h.reg({ spec: A, por: DISENO, rol: 'diseno' });
+    const id = await h.sembrar([partida(A, { costeoId: k })]);
+    await h.adjuntar(DISENO, id, 'p1', k);
+    expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true, idempotente: true });
+  });
+
+  it('emisión: si la spec de la partida no es la del costeo vigente ⇒ no emite (defensa en la emisión, no sólo en adjuntar)', async () => {
+    const k = await h.reg({ spec: A });
+    const id = await h.sembrar([partida(A, { costeoId: k })]);
+    await h.adjuntar(DIRECCION, id, 'p1', k);
+    // Vínculo escrito por fuera de adjuntar: la huella de la partida cuadra, pero el K vigente costeó otro despiece.
+    const kOtro = await h.reg({ spec: pieza(CUB, ENT(3)) });
+    await db.query(`update public.partida_costeo_vigente set costeo_id = $2 where cotizacion_id = $1`, [id, kOtro]);
+    await db.query(`update public.cotizaciones set partidas = jsonb_set(partidas, '{0,costeoId}', to_jsonb($2::text)) where id = $1`, [id, kOtro]);
+    await db.query(`update public.partida_costeo_vigente set partida_huella = private_api.huella_partida((select partidas->0 from public.cotizaciones where id = $1)) where cotizacion_id = $1`, [id]);
+    expect(await h.motivos(id)).toContain('linea_1_spec_distinta_al_costeo');
+  });
+});
+
+// ============================================================================
+//  ANTES · rev4 (8cc0adb): los mismos ataques de despiece PASABAN (el P0 de la reauditoría final). Las pruebas de rev5
+//  fallan contra rev4.
+// ============================================================================
+describe('ANTES · SEG-01c revisión 4 (8cc0adb): el K de A se vinculaba a B con la misma promesa y otro despiece', () => {
+  let db, h;
+  const pieza = (...componentes) => ({ componentes });
+  const CUB = { nombre: 'Cubierta', insumoId: 'mdf18', cantidad: 1 };
+  beforeAll(async () => {
+    db = await base({ seg01c: 'supabase/tests/fixtures/seg01c_rev4_8cc0adb.sql' }); h = ayudas(db);
+    await db.exec(`alter table public.costeos_servidor add column if not exists spec_tecnica_origen jsonb;
+      alter table public.costeos_servidor add column if not exists spec_tecnica_version text`);
+  }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  it.each([
+    ['multiplicidad (1 → 3 entrepaños)', pieza(CUB, { nombre: 'Entrepaño', insumoId: 'mdf18', cantidad: 1 }), pieza(CUB, { nombre: 'Entrepaño', insumoId: 'mdf18', cantidad: 3 })],
+    ['dimensión interna (700 → 900)', pieza(CUB, { nombre: 'Lateral', insumoId: 'mdf18', cantidad: 2, largoMM: 700, anchoMM: 400 }), pieza(CUB, { nombre: 'Lateral', insumoId: 'mdf18', cantidad: 2, largoMM: 900, anchoMM: 400 })],
+    ['horas (1 → 4)', { ...pieza(CUB), horas: { ensamble: 1 } }, { ...pieza(CUB), horas: { ensamble: 4 } }],
+  ])('defecto rev4: %s ⇒ vinculaba y quedaba ALLOWED', async (_n, costeado, otra) => {
+    const k = await h.reg({ spec: costeado });
+    const id = await h.sembrar([{ ...COSTEADO, especificacion_tecnica: specTecnicaDeCosteo(otra), costeoId: k }]);
     expect(await h.adjuntar(DIRECCION, id, 'p1', k)).toMatchObject({ ok: true });
     expect((await h.evaluar(id)).state).toBe('ALLOWED');
   });
@@ -706,6 +877,126 @@ describe('SEG-01c rev 2 · el cliente encadena la versión en los vínculos (P0-
     // El siguiente guardado (con la versión fresca) los vincula: no se marcaron como hechos.
     const r2 = await vincularCosteos(id, partidas, await h.version(id), clientePglite(db, { email: DIRECCION }));
     expect(r2.fallidos).toEqual([]);
+  });
+});
+
+// ============================================================================
+//  Q3 · PIPELINE REAL (reauditoría final, P1): Costear → intentDesdePieza → validarIntentCosteo → [Edge: misma
+//  frontera + catalogo_motor real + reconciliación de material del servidor + motor + filaCosteoServidor] →
+//  partidaAutoritativaDeCosteo → guardar (sesión de Dirección) → vincularCosteos (cliente real) → adjuntar (SQL real).
+//  NADA se inyecta a mano: promesa y spec salen del costeo por las mismas funciones que usa Rodrigo. Lo único que no es
+//  el código de producción es el transporte HTTP de la Edge (el objeto que se inserta lo arma la MISMA función).
+// ============================================================================
+describe('Q3 · pipeline real: lo que pasa la prueba es lo que pasa el usuario', () => {
+  let db, h, vincularCosteos, pipe;
+  const conf = (c) => ({ ...c, material_confirmado: true });
+  const A = { nombre: 'Credenza', w: 1800, d: 450, piezas: 1, componentes: [
+    conf({ nombre: 'Cubierta', insumoId: 'mdf18', cantidad: 1, largoMM: 1800, anchoMM: 450 }),
+    conf({ nombre: 'Entrepaño', insumoId: 'mdf18', cantidad: 1, largoMM: 1760, anchoMM: 420 }) ] };
+  const conEntrepano = (cambio) => ({ ...A, componentes: [A.componentes[0], { ...A.componentes[1], ...cambio }] });
+  const vigentes = async (k) => Number((await db.query('select count(*)::int n from public.partida_costeo_vigente where costeo_id = $1', [k])).rows[0].n);
+
+  beforeAll(async () => {
+    db = await base(); h = ayudas(db);
+    ({ vincularCosteos } = await import('../../src/datos/cotizaciones.js'));
+    const { validarIntentCosteo, intentDesdePieza } = await import('../../src/datos/validarIntentCosteo.js');
+    const { partidaAutoritativaDeCosteo } = await import('../../src/datos/agregarCosteo.js');
+    const { filaCosteoServidor } = await import('../../src/datos/registroCosteo.js');
+    const { reconciliarMaterialServidor } = await import('../../src/datos/materialMatch.js');
+    const { calcular, modeloParaPieza, bomHash, PARAMETROS_DEFAULT } = await import('../../src/motor/calculo.js');
+    const { dinero } = await import('../../src/motor/dinero.js');
+    // MDF 18 por m² (blanco y nogal), cada uno con su precio aprobado por una persona de Dirección.
+    await db.exec(`insert into public.insumos_catalogo (id, nombre, seccion, unidad_costeo, activo, clasificacion, familia, atributos) values
+        ('mdf18', 'MDF 18 mm blanco', 'tableros', 'm2', true, 'curado', 'mdf', '{}'::jsonb),
+        ('mdf18n', 'MDF 18 mm nogal', 'tableros', 'm2', true, 'curado', 'mdf', '{}'::jsonb);
+      insert into public.insumo_precios (id, insumo_id, precio, estado, confidence, vigente_desde, approved_by, approved_at,
+        unidad_compra, precio_compra, factor_conversion, evidence_status, requiere_validacion_compras) overriding system value values
+        (902, 'mdf18', 450, 'aprobado', 'alta', '2026-10-01', '${DIRECCION}', now(), 'm2', 450, 1, 'documentada', false),
+        (903, 'mdf18n', 520, 'aprobado', 'alta', '2026-10-01', '${DIRECCION}', now(), 'm2', 520, 1, 'documentada', false);`);
+    const PRECIOS = { mdf18: { precio_id: 902, precio_usado: 450 }, mdf18n: { precio_id: 903, precio_usado: 520 } };
+    const cfg = (await db.query(`select datos from public.config where id = 'vonhaucke'`)).rows[0].datos;
+    const parametros = { ...PARAMETROS_DEFAULT, ...(cfg.parametros || {}) };
+    const insumosDe = async (ids) => (await db.query('select private_api.catalogo_motor(false, $1::text[]) as m', [ids])).rows[0].m;   // núcleo de la envoltura pública que llama la Edge
+    const COLS = { precios: 'jsonb', warnings: 'jsonb', insumos_usados: 'text[]', identidad_origen: 'jsonb', componentes_costeados: 'jsonb', promesa_origen: 'jsonb', spec_tecnica_origen: 'jsonb' };
+    // nube.costearServidor + Edge costear-servidor-rc, sin el transporte HTTP.
+    const costearServidor = async (costeo, n) => {
+      const v = validarIntentCosteo(intentDesdePieza(costeo, n));                 // nube.js: lo que sale del navegador
+      if (!v.ok) return { ok: false, error: v.code };
+      const e = validarIntentCosteo(v.intent);                                    // Edge: la misma frontera
+      if (!e.ok) return { ok: false, error: e.code };
+      const ids = [...new Set(e.intent.pieza.componentes.map((c) => c.insumoId).filter(Boolean))];
+      const insumos = await insumosDe(ids);
+      const piezaRec = { ...e.intent.pieza, componentes: e.intent.pieza.componentes.map((c) => reconciliarMaterialServidor(c, (id) => insumos[id], Object.values(insumos),
+        { puedeConfirmar: true, origenLegacyConfiable: false, origenSpecConfiable: false })) };
+      const r = calcular(piezaRec, n, insumos, modeloParaPieza(parametros, piezaRec).par);
+      const fila = filaCosteoServidor({ intent: e.intent, n, email: DIRECCION, rol: 'direccion', bomHash: bomHash(piezaRec.componentes),
+        costoUnitario: dinero(r.costoUnitario), estado: 'certificado', aprobacionHumana: true, meta: { versionMotor: 'motor-1', fuenteCosto: 'catalogo' },
+        precios: ids.map((id) => ({ insumo_id: id, ...PRECIOS[id], approved_by: DIRECCION, humana: true })), warnings: [], insumosUsados: ids,
+        baseCostoHuella: (await db.query('select private_api.huella_base_costo($1::text[]) as hh', [ids])).rows[0].hh });
+      const cols = Object.keys(fila);
+      const id = (await db.query(`insert into public.costeos_servidor (${cols.join(', ')}) values (${cols.map((c, i) => `$${i + 1}${COLS[c] ? '::' + COLS[c] : ''}`).join(', ')}) returning id`,
+        cols.map((c) => (COLS[c] === 'jsonb' ? (fila[c] == null ? null : JSON.stringify(fila[c])) : fila[c])))).rows[0].id;
+      return { ok: true, estado: 'certificado', costo: { costoUnitario: fila.costo_unitario }, costeoId: id, bomHash: fila.bom_hash, versionMotor: 'motor-1' };
+    };
+    // Costear (App.jsx onAgregarCotizacion): el resultado del cliente es el motor sobre el MISMO costeo.
+    pipe = async (costeo) => {
+      const ids = [...new Set(costeo.componentes.map((c) => c.insumoId).filter(Boolean))];
+      const insumos = await insumosDe(ids);
+      const resultado = calcular(costeo, costeo.piezas, insumos, modeloParaPieza(parametros, costeo).par);
+      const r = await partidaAutoritativaDeCosteo({ costeo, resultado, precio: 12000, margen: 40, costearServidor,
+        pendientes: () => [], nuevoId: () => 'p1' });
+      return r;
+    };
+  }, 180_000);
+  afterAll(async () => { await db?.close(); });
+
+  const guardarYVincular = async (partida) => {
+    const id = await h.sembrar([partida]);
+    const r = await vincularCosteos(id, [partida], await h.version(id), clientePglite(db, { email: DIRECCION }));
+    return { id, r };
+  };
+
+  it('control: Costear A → partida A → guardar → vincular con su K ⇒ vinculado, promesa y spec de la partida = las del K, ALLOWED', async () => {
+    const a = await pipe(A);
+    expect(a.ok).toBe(true);
+    const { id, r } = await guardarYVincular(a.partida);
+    expect(r.fallidos).toEqual([]);
+    const k = (await db.query(`select promesa_huella = private_api.huella_promesa($2::jsonb) as p, spec_tecnica_huella = private_api.huella_spec_tecnica($3::jsonb) as s
+      from public.costeos_servidor where id = $1`, [a.partida.costeoId, JSON.stringify(a.partida), JSON.stringify(a.partida.especificacion_tecnica)])).rows[0];
+    expect(k).toEqual({ p: true, s: true });
+    expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 12000 }))).state).toBe('ALLOWED');
+  });
+
+  it.each([
+    ['configuración distinta (se agrega una cajonera al despiece)', { ...A, componentes: [...A.componentes, conf({ nombre: 'Cajonera', insumoId: 'mdf18', cantidad: 1, largoMM: 500, anchoMM: 400 })] }, /promete otra cosa/],
+    ['acabado distinto (MDF blanco → nogal)', { ...A, componentes: A.componentes.map((c) => ({ ...c, insumoId: 'mdf18n' })) }, /promete otra cosa/],
+    ['multiplicidad distinta (1 → 3 entrepaños; misma promesa)', conEntrepano({ cantidad: 3 }), /describe otro despiece/],
+    ['dimensión interna distinta (entrepaño 1760 → 1500; misma promesa)', conEntrepano({ largoMM: 1500 }), /describe otro despiece/],
+  ])('Q2 por el pipeline real: el K de A NO se vincula a la partida de B — %s', async (_n, B, motivo) => {
+    const a = await pipe(A); const b = await pipe(B);
+    expect(a.ok && b.ok).toBe(true);
+    // El usuario real: cada partida con SU costeo se vincula.
+    expect((await guardarYVincular(b.partida)).r.fallidos).toEqual([]);
+    // Ataque: la partida de B (tal cual la armó Costear) con el costeoId de A.
+    const { id, r } = await guardarYVincular({ ...b.partida, costeoId: a.partida.costeoId });
+    expect(r.fallidos).toHaveLength(1);
+    expect(r.fallidos[0].error).toMatch(motivo);
+    expect(await vigentes(a.partida.costeoId)).toBe(0);
+    expect((await h.evaluar(id, await h.snap(id, { precioUnitario: 12000 }))).reasons).toContain('linea_1_costeo_no_vinculado_a_esta_partida');
+  });
+
+  it('Q2 por el pipeline real: nombresExcluidos distintos — la partida de A editada para excluir el entrepaño NO acepta el K de A', async () => {
+    const a = await pipe(A);
+    const { id, r } = await guardarYVincular({ ...a.partida, nombresExcluidos: ['Entrepaño'] });
+    expect(r.fallidos[0]?.error).toMatch(/promete otra cosa/);
+    expect(await vigentes(a.partida.costeoId)).toBe(0);
+    expect(id).toBeTruthy();
+  });
+
+  it('observación (fuera de alcance): Costear NO puede agregar un especial con una pieza excluida — el validador descarta `excluida` y el servidor la costea; la paridad falla cerrada', async () => {
+    const r = await pipe({ ...A, componentes: [A.componentes[0], { ...A.componentes[1], excluida: true }] });
+    expect(r.ok).toBe(false);
+    expect(r.error).toMatch(/difieren/);
   });
 });
 

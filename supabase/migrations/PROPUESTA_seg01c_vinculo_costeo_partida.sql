@@ -64,6 +64,23 @@
 --   · adjuntar_costeo_a_partida exige huella_promesa(partida actual) = promesa_huella(K) en el primer vínculo y en el
 --     recosteo (K2 con SU promesa de origen) y también en la rama idempotente. Nunca aprende la promesa de la partida.
 --   · motivos_autoridad_costeo: costeo sin promesa ⇒ no emite; promesa distinta a la del costeo ⇒ no emite.
+--  REVISIÓN 5 (reauditoría final, P0 · spec_tecnica_v1):
+--   · HUECO de rev4: la promesa comercial no distingue dos despieces técnicamente distintos con los mismos nombres e
+--     insumos: "1 × Entrepaño MDF18" vs "3 × Entrepaño MDF18", un lateral de 700 vs uno de 900, 1 h vs 4 h de ensamble,
+--     otra área pintada. El K de A se vinculaba por primera vez a B con la promesa idéntica.
+--   · DOS AUTORIDADES: la promesa responde "¿qué se le promete al cliente?"; la SPEC TÉCNICA v1
+--     (private_api.spec_tecnica ≡ src/datos/specTecnica.js, fixtures doradas compartidas) responde "¿qué despiece exacto
+--     costeó el servidor?": la pieza saneada que entra al motor (todo lo que cruza la frontera del DTO), sin orden de
+--     renglones y CON multiplicidad. Inventario: docs/auditoria/SEG01C_REV5_SPEC_TECNICA.md.
+--   · La Edge guarda `spec_tecnica_origen` (la pieza saneada que costeó); el TRIGGER la re-proyecta en SQL y sella
+--     `spec_tecnica_version='v1'` y `spec_tecnica_huella`; nadie las cambia después.
+--   · La partida especial lleva su `especificacion_tecnica` (Costear la arma con la MISMA función sobre la MISMA pieza
+--     saneada). adjuntar exige huella_spec_tecnica(partida) = spec_tecnica_huella(K) en el primer vínculo, el recosteo
+--     y la rama idempotente; la emisión lo vuelve a exigir. El servidor re-proyecta la especificación de la partida:
+--     no compara un hash que copie el navegador. Si el navegador reescribe la especificación de la partida para que
+--     cuadre con un K barato, ESA especificación es la que se cotiza, se emite y queda en la huella de la partida.
+--   · `bom_hash` queda INFORMATIVO (FNV-1a de 32 bits, sólo JS, no cubre horas, dificultad, pintura ni tubular; VH-035c
+--     lo usa como dato de identidad). No es autoridad: la autoridad técnica es `spec_tecnica_huella`.
 --  Lo que NO hace: no reescribe filas existentes, no toca precios, no cambia emitir_revision_v2 / asignar_folio_oficial /
 --  private_api.evaluar_emision_cotizacion (cuerpo de producción intacto).
 -- ============================================================================
@@ -103,6 +120,10 @@ create table if not exists public.costeos_servidor (
   promesa_origen jsonb,
   promesa_version text,
   promesa_huella text,
+  -- rev5: especificación técnica de origen (la pieza saneada que costeó el motor); versión y huella las fija el trigger.
+  spec_tecnica_origen jsonb,
+  spec_tecnica_version text,
+  spec_tecnica_huella text,
   -- Dónde se CONSUMIÓ (un costeo, una partida, para siempre). El vínculo vigente vive en partida_costeo_vigente.
   cotizacion_id bigint references public.cotizaciones(id) on delete set null,
   partida_id text,
@@ -121,6 +142,11 @@ grant select, insert on table public.costeos_servidor to service_role;
 alter table public.costeos_servidor add column if not exists promesa_origen jsonb;
 alter table public.costeos_servidor add column if not exists promesa_version text;
 alter table public.costeos_servidor add column if not exists promesa_huella text;
+alter table public.costeos_servidor add column if not exists spec_tecnica_origen jsonb;
+alter table public.costeos_servidor add column if not exists spec_tecnica_version text;
+alter table public.costeos_servidor add column if not exists spec_tecnica_huella text;
+comment on column public.costeos_servidor.bom_hash is
+  'INFORMATIVO (FNV-1a 32 bits del despiece, calculado en JS). No es autoridad: la autoridad técnica es spec_tecnica_huella.';
 
 -- Vínculo VIGENTE: una fila por (cotización, partida); un costeo vigente en a lo más una partida.
 create table if not exists public.partida_costeo_vigente (
@@ -332,6 +358,107 @@ revoke all on function private_api.costeo_promesa_servidor() from public, anon, 
 create or replace trigger trg_costeo_promesa_servidor before insert or update on public.costeos_servidor
   for each row execute function private_api.costeo_promesa_servidor();
 
+-- ----------------------------------------------------------------------------
+--  rev5 · SPEC TÉCNICA v1 — la pieza saneada que entra al motor. Mismas reglas que src/datos/specTecnica.js:
+--   texto recortado ('' = ausente), número JSON en [0, 2^53−1] y (0 ó ≥ 1e-6), bandera true; otro tipo presente ⇒ null
+--   (fuera de contrato). Componentes ordenados por su clave canónica (campo=valor en orden fijo, U+001F, COLLATE "C");
+--   la multiplicidad cuenta. horas {centro: número}; dificultad nivel o número 0.25–3. spec(spec(x)) = spec(x).
+-- ----------------------------------------------------------------------------
+-- >>> spec_v1 (bloque que también cargan las fixtures doradas: supabase/tests/specTecnicaGolden.test.js)
+create or replace function private_api.spec_numero_ok(v jsonb)
+returns boolean language sql immutable set search_path to 'pg_catalog' as $$
+  select coalesce(jsonb_typeof(v) = 'number' and (v #>> '{}')::numeric >= 0 and (v #>> '{}')::numeric <= 9007199254740991
+         and ((v #>> '{}')::numeric = 0 or (v #>> '{}')::numeric >= 0.000001), false) $$;
+
+create or replace function private_api.spec_tecnica(p jsonb)
+returns jsonb language plpgsql immutable set search_path to 'pg_catalog', 'private_api' as $$
+declare
+  c_campos constant text[] := array['insumoId','nombre','cantidad','piezas','largoMM','anchoMM','hojas','areaPintadaM2','tubular',
+    'material_solicitado','material_match','material_confirmado','engineering_override','override_motivo','procedencia',
+    'pieza_confirmada','pendiente'];
+  c_texto constant text[] := array['insumoId','nombre','material_solicitado','material_match','override_motivo','procedencia'];
+  c_numero constant text[] := array['cantidad','piezas','largoMM','anchoMM','hojas','areaPintadaM2'];
+  v_c jsonb; v_k text; v_v jsonb; v_o jsonb; v_t text; v_n numeric; v_partes text[];
+  v_crudos jsonb := '[]'::jsonb; v_comps jsonb; v_horas jsonb := '{}'::jsonb; v_dif jsonb;
+begin
+  if jsonb_typeof(p) is distinct from 'object' or jsonb_typeof(p->'componentes') is distinct from 'array'
+     or jsonb_array_length(p->'componentes') = 0 then return null; end if;
+  for v_c in select value from jsonb_array_elements(p->'componentes') loop
+    if jsonb_typeof(v_c) is distinct from 'object' then return null; end if;
+    v_o := '{}'::jsonb; v_partes := '{}'::text[];
+    foreach v_k in array c_campos loop
+      v_v := v_c->v_k;
+      if v_v is null or jsonb_typeof(v_v) = 'null' then continue; end if;
+      if v_k = any(c_texto) then
+        if jsonb_typeof(v_v) <> 'string' then return null; end if;
+        v_t := nullif(btrim(v_v #>> '{}', E' \t\n\r'), '');
+        if v_t is null then continue; end if;
+        v_o := v_o || jsonb_build_object(v_k, v_t);
+        v_partes := v_partes || (v_k || '=' || v_t);
+      elsif v_k = any(c_numero) then
+        if not private_api.spec_numero_ok(v_v) then return null; end if;
+        v_n := trim_scale((v_v #>> '{}')::numeric);
+        v_o := v_o || jsonb_build_object(v_k, v_n);
+        v_partes := v_partes || (v_k || '=' || v_n::text);
+      else
+        if jsonb_typeof(v_v) <> 'boolean' then return null; end if;
+        if v_v = 'true'::jsonb then v_o := v_o || jsonb_build_object(v_k, true); v_partes := v_partes || (v_k || '=true'); end if;
+      end if;
+    end loop;
+    v_crudos := v_crudos || jsonb_build_array(jsonb_build_object('k', array_to_string(v_partes, chr(31)), 'o', v_o));
+  end loop;
+  select jsonb_agg(e->'o' order by e->>'k' collate "C") into v_comps from jsonb_array_elements(v_crudos) e;
+  if p ? 'horas' and jsonb_typeof(p->'horas') <> 'null' then
+    if jsonb_typeof(p->'horas') <> 'object' then return null; end if;
+    for v_k, v_v in select key, value from jsonb_each(p->'horas') loop
+      v_t := btrim(v_k, E' \t\n\r');
+      if v_t = '' or v_horas ? v_t or not private_api.spec_numero_ok(v_v) then return null; end if;
+      v_horas := v_horas || jsonb_build_object(v_t, trim_scale((v_v #>> '{}')::numeric));
+    end loop;
+  end if;
+  v_v := p->'dificultad';
+  if v_v is not null and jsonb_typeof(v_v) <> 'null' then
+    if jsonb_typeof(v_v) = 'string' and (v_v #>> '{}') = any(array['muy_facil','facil','normal','dificil','muy_dificil']) then v_dif := v_v;
+    elsif jsonb_typeof(v_v) = 'number' and (v_v #>> '{}')::numeric between 0.25 and 3 then v_dif := to_jsonb(trim_scale((v_v #>> '{}')::numeric));
+    else return null; end if;
+  end if;
+  return jsonb_strip_nulls(jsonb_build_object('v', 'v1', 'componentes', v_comps,
+    'horas', case when v_horas = '{}'::jsonb then null else v_horas end, 'dificultad', v_dif));
+end $$;
+create or replace function private_api.huella_spec_tecnica(p jsonb)
+returns text language sql immutable set search_path to 'pg_catalog', 'private_api' as $$
+  select md5(private_api.spec_tecnica(p)::text) $$;
+revoke all on function private_api.spec_numero_ok(jsonb) from public, anon;
+revoke all on function private_api.spec_tecnica(jsonb) from public, anon;
+revoke all on function private_api.huella_spec_tecnica(jsonb) from public, anon;
+grant execute on function private_api.spec_numero_ok(jsonb), private_api.spec_tecnica(jsonb), private_api.huella_spec_tecnica(jsonb)
+  to authenticated, service_role;
+-- <<< spec_v1
+
+-- La spec de origen la normaliza y la sella el SERVIDOR al registrar el costeo; después no se cambia.
+create or replace function private_api.costeo_spec_servidor()
+returns trigger language plpgsql security definer set search_path to 'pg_catalog', 'private_api' as $$
+begin
+  if tg_op = 'UPDATE' then
+    if new.spec_tecnica_origen is distinct from old.spec_tecnica_origen or new.spec_tecnica_version is distinct from old.spec_tecnica_version
+       or new.spec_tecnica_huella is distinct from old.spec_tecnica_huella then
+      raise exception 'la especificación técnica de un costeo no se cambia: recostea';
+    end if;
+    return new;
+  end if;
+  if coalesce(new.spec_tecnica_version, 'v1') <> 'v1' then raise exception 'spec_tecnica_version desconocida: %', new.spec_tecnica_version; end if;
+  new.spec_tecnica_origen := private_api.spec_tecnica(new.spec_tecnica_origen);   -- fuera de contrato ⇒ null (sin vínculo)
+  if new.spec_tecnica_origen is null then
+    new.spec_tecnica_version := null; new.spec_tecnica_huella := null; return new;
+  end if;
+  new.spec_tecnica_version := 'v1';
+  new.spec_tecnica_huella := md5(new.spec_tecnica_origen::text);
+  return new;
+end $$;
+revoke all on function private_api.costeo_spec_servidor() from public, anon, authenticated;
+create or replace trigger trg_costeo_spec_servidor before insert or update on public.costeos_servidor
+  for each row execute function private_api.costeo_spec_servidor();
+
 -- P1-05 · activación atómica: sólo Dirección HUMANA (permitidos=direccion y fuera de cuentas_no_humanas); estricto exige
 -- versión de motor (además del CHECK). Nadie más escribe la política (sin grants sobre la tabla).
 create or replace function private_api.activar_autoridad_costeo(p_modo text, p_frescura text, p_version_motor text)
@@ -414,6 +541,10 @@ begin
     if v_k.promesa_huella is null or private_api.huella_promesa(v_p) is distinct from v_k.promesa_huella then
       raise exception 'la partida ya no promete lo que se costeó: recostea';
     end if;
+    -- rev5: …y sigue describiendo el despiece que se costeó.
+    if v_k.spec_tecnica_huella is null or private_api.huella_spec_tecnica(v_p->'especificacion_tecnica') is distinct from v_k.spec_tecnica_huella then
+      raise exception 'la partida ya no describe el despiece que se costeó: recostea';
+    end if;
     return jsonb_build_object('ok', true, 'cotizacion_id', p_cotizacion_id, 'partida_id', p_partida_id, 'costeo_id', p_costeo_id,
       'estado', v_k.estado, 'idempotente', true, 'actualizado', to_json(v_c.actualizado)#>>'{}');
   end if;
@@ -440,6 +571,17 @@ begin
   end if;
   if private_api.huella_promesa(v_p) is distinct from v_k.promesa_huella then
     raise exception 'la partida promete otra cosa que lo costeado (material, acabado, configuración, accesorios o exclusiones): recostea';
+  end if;
+  -- rev5: la SPEC TÉCNICA de la partida es la de origen de ESTE costeo (la pieza saneada que costeó el motor, sellada por
+  -- el servidor). El servidor re-proyecta la especificación de la partida; sin spec de origen no hay vínculo.
+  if v_k.spec_tecnica_huella is null or v_k.spec_tecnica_version is distinct from 'v1' then
+    raise exception 'el costeo no trae la especificación técnica v1: recostea';
+  end if;
+  if private_api.spec_tecnica(v_p->'especificacion_tecnica') is null then
+    raise exception 'la partida no trae su especificación técnica (o está fuera de contrato): recostea';
+  end if;
+  if private_api.huella_spec_tecnica(v_p->'especificacion_tecnica') is distinct from v_k.spec_tecnica_huella then
+    raise exception 'la partida describe otro despiece que lo costeado (cantidades, medidas, horas, pintura o materiales): recostea';
   end if;
   v_nueva := v_p || jsonb_build_object('costoUnitario', v_k.costo_unitario, 'costoEstado', v_k.estado, 'costeoId', v_k.id::text, 'bomHash', v_k.bom_hash);
   update public.cotizaciones set partidas = jsonb_set(partidas, array[v_i::text], v_nueva)
@@ -516,6 +658,11 @@ begin
       v_out := array_append(v_out, format('linea_%s_costeo_sin_promesa', v_ord)); continue; end if;
     if private_api.huella_promesa(v_p) is distinct from v_r.promesa_huella then
       v_out := array_append(v_out, format('linea_%s_promesa_distinta_al_costeo', v_ord)); continue; end if;
+    -- rev5: …y describe el despiece exacto que se costeó.
+    if v_r.spec_tecnica_huella is null then
+      v_out := array_append(v_out, format('linea_%s_costeo_sin_spec', v_ord)); continue; end if;
+    if private_api.huella_spec_tecnica(v_p->'especificacion_tecnica') is distinct from v_r.spec_tecnica_huella then
+      v_out := array_append(v_out, format('linea_%s_spec_distinta_al_costeo', v_ord)); continue; end if;
     if lower(v_r.rol) not in ('direccion', 'diseno') then
       v_out := array_append(v_out, format('linea_%s_costeo_sin_autoridad', v_ord)); continue; end if;
     if v_r.estado <> 'certificado' or not v_r.aprobacion_humana then
@@ -628,6 +775,11 @@ commit;
 -- RB drop function if exists public.activar_autoridad_costeo(text, text, text);
 -- RB drop function if exists private_api.activar_autoridad_costeo(text, text, text);
 -- RB drop function if exists private_api.identidad_partida(jsonb);
+-- RB drop trigger if exists trg_costeo_spec_servidor on public.costeos_servidor;
+-- RB drop function if exists private_api.costeo_spec_servidor();
+-- RB drop function if exists private_api.huella_spec_tecnica(jsonb);
+-- RB drop function if exists private_api.spec_tecnica(jsonb);
+-- RB drop function if exists private_api.spec_numero_ok(jsonb);
 -- RB drop trigger if exists trg_costeo_promesa_servidor on public.costeos_servidor;
 -- RB drop function if exists private_api.costeo_promesa_servidor();
 -- RB drop function if exists private_api.huella_promesa(jsonb);
