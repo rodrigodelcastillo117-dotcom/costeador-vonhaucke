@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida, costeableDeHoja } from './holdoutHuellas.js';
+import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida, costeableDeHoja, argumentosViteValidos } from './holdoutHuellas.js';
 
 const M = {
   archivos: { 'src/motor/calculo.js': 'a1' },
@@ -15,7 +15,8 @@ const edgesHoja = [
   { fn: 'costear-servidor-rc', body: { ok: true } },
 ];
 const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z', reintento: 0, arbolLimpio: true,
-  entornoVite: { BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false, VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc' } };
+  entornoVite: { BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false, VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc' },
+  configPlaywright: 'playwright.config.js', servidor: { mismoCheckout: true, argumentos: ['--max-old-space-size=8192', '--port', '5173', '--strictPort'] } };
 // v5.2: cada hoja trae su FIXTURE leída de git en el SHA servido (ruta + sha256 + datos); el E2E declara la misma ruta y sha.
 const HOJA = { texto: 'Pata tipo "u" de 600 x 720 mm', clave_erp: 'ATPU2M' };
 const fixtureDe = (datos = HOJA, ruta = 'lab/costear/ciego_erp/hojas/ATPU2M.json') => ({ ruta, sha256: `sha-${JSON.stringify(datos).length}-${ruta.length}`, datos });
@@ -272,5 +273,41 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
       .toContain('entorno de Vite servido en 0-binario.json (entornoVite)');
     const { entornoVite: _e, ...manifiestoViejo } = M;
     expect(compararHuellas(manifiestoViejo, hoy).falta).toContain('entorno de Vite esperado en el MANIFIESTO');
+  });
+
+  // ---- v5.4 (revisión propia del cierre v5.3): el config que Playwright CARGÓ y el servidor que contestó ----
+  const conBinario = (b) => ({ ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: b })]) });
+  it('Q · ATAQUE: un playwright.config.ts SIN versionar (Playwright lo carga antes que el .js congelado) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO', () => {
+    const r = compararHuellas(M, conBinario({ ...binario, configPlaywright: 'playwright.config.ts' }));
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios).toEqual(['Playwright cargó playwright.config.ts, no el config congelado (playwright.config.js)']);
+    expect(compararHuellas(M, conBinario({ ...binario, configPlaywright: 'otro/playwright.config.js' })).estado).toBe('CAMBIO');
+    const { configPlaywright, ...sinDato } = binario;
+    const v = compararHuellas(M, conBinario(sinDato));
+    expect(v.estado).toBe('NO_VERIFICADO');
+    expect(v.falta).toContain('config de Playwright cargado en 0-binario.json (configPlaywright)');
+  });
+  it('R · el Vite que contestó es de OTRO checkout, o se lanzó con otra raíz, --config o --import ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO', () => {
+    expect(compararHuellas(M, conBinario({ ...binario, servidor: { ...binario.servidor, mismoCheckout: false } })).cambios)
+      .toEqual(['el servidor de Vite que contestó no es de este checkout']);
+    for (const argumentos of [['/otro/checkout', '--port', '5173'], ['--config', '/tmp/vite.otro.js'], ['--import', '/tmp/parche.mjs'], ['--mode', 'production'], ['--port']]) {
+      const r = compararHuellas(M, conBinario({ ...binario, servidor: { mismoCheckout: true, argumentos } }));
+      expect(r.estado, argumentos.join(' ')).toBe('CAMBIO');
+      expect(r.cambios).toEqual([`servidor de Vite lanzado con argumentos no permitidos: ${argumentos.join(' ')}`]);
+    }
+    // como lo lanzan vite_rc.sh (`vite --port 5173 --strictPort`) y el webServer del config (`npm run dev` ⇒ `vite`)
+    expect(compararHuellas(M, conBinario({ ...binario, servidor: { mismoCheckout: true, argumentos: [] } })).estado).toBe('OK');
+    const { servidor, ...sinDato } = binario;
+    for (const b of [sinDato, { ...binario, servidor: null }, { ...binario, servidor: { mismoCheckout: true } }]) {
+      const v = compararHuellas(M, conBinario(b));
+      expect(v.estado).toBe('NO_VERIFICADO');
+      expect(v.falta).toContain('servidor de Vite que contestó en 0-binario.json (servidor)');
+    }
+  });
+  it('argumentosViteValidos: lista permitida (puerto, strictPort, force, memoria de node); todo lo demás no', () => {
+    expect(argumentosViteValidos([])).toBe(true);
+    expect(argumentosViteValidos(['--port', '5173', '--strictPort'])).toBe(true);
+    expect(argumentosViteValidos(['--port=5173', '--force', '--max-old-space-size=8192'])).toBe(true);
+    for (const a of [null, undefined, 'vite', ['--port'], ['--port', 'x'], ['5173'], ['.'], ['--host'], ['-c', 'x'], ['--require', 'x'], ['--loader=x'], ['--max-old-space-size']]) expect(argumentosViteValidos(a), JSON.stringify(a)).toBe(false);
   });
 });

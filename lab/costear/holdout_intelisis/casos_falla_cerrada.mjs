@@ -1,4 +1,4 @@
-// Holdout v5.1/v5.2 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
+// Holdout v5.1–v5.4 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
 // copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca (v5.3: sólo objetos
 // git sueltos para el caso del config de Playwright).
 //   node lab/costear/holdout_intelisis/casos_falla_cerrada.mjs <corrida> <huellas_db_post> <edges_post> <modelos>
@@ -67,6 +67,14 @@ const casos = [
   ['corrida servida con cambios sin commit (arbolLimpio false)', { binario: { ...binario, arbolLimpio: false } }],
   ['entorno de Vite con una variable extra (VITE_CONTROL_OPTIMISTA, p. ej. de un .env ignorado)', { binario: { ...binario, entornoVite: { ...binario.entornoVite, VITE_CONTROL_OPTIMISTA: '1' } } }],
   ['entorno de Vite apuntando a la Edge de producción', { binario: { ...binario, entornoVite: { ...binario.entornoVite, VITE_COSTEAR_FN: 'costear-servidor' } } }],
+  // v5.4 (revisión propia del cierre v5.3): el config que Playwright CARGÓ y el servidor de Vite que contestó.
+  ['Playwright cargó un playwright.config.ts sin versionar (le gana al .js congelado)', { binario: { ...binario, configPlaywright: 'playwright.config.ts' } }],
+  ['0-binario.json sin `configPlaywright` (E2E v5.3)', { binario: (({ configPlaywright, ...b }) => b)(binario) }],
+  ['el Vite que contestó es de otro checkout', { binario: { ...binario, servidor: { ...binario.servidor, mismoCheckout: false } } }],
+  ['Vite lanzado con otra raíz (`vite /otro/checkout`)', { binario: { ...binario, servidor: { mismoCheckout: true, argumentos: ['/otro/checkout', '--port', '5173'] } } }],
+  ['Vite lanzado con --config', { binario: { ...binario, servidor: { mismoCheckout: true, argumentos: ['--config', '/tmp/vite.otro.js'] } } }],
+  ['node con --import (NODE_OPTIONS)', { binario: { ...binario, servidor: { mismoCheckout: true, argumentos: ['--import', '/tmp/parche.mjs', '--port', '5173'] } } }],
+  ['0-binario.json sin `servidor` (E2E v5.3)', { binario: (({ servidor, ...b }) => b)(binario) }],
 ];
 const filas = [];
 for (const [i, [nombre, c]] of casos.entries()) {

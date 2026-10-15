@@ -106,6 +106,24 @@ export function unirCorrida(hojas = []) {
 const RE_CODIGO = /^(src|supabase|e2e|scripts|public|index\.html|vite\.config|playwright\.config|package(-lock)?\.json|lab\/costear\/ciego_erp)/;
 const RE_NO_CODIGO = /^lab\/costear\/holdout_intelisis\/MANIFIESTO\.json$|\.md$/;
 
+// v5.4 (revisión propia del cierre v5.3): el config que Playwright CARGÓ y el servidor que contestó en el baseURL.
+// Playwright prueba playwright.config.ts antes que .js: un .ts sin versionar no sale en `git status --untracked-files=no`
+// ni en el diff y deja intacta la huella del .js congelado. Y con reuseExistingServer el E2E usa cualquier Vite que esté en
+// el puerto, sea del checkout que sea.
+export const CONFIG_PLAYWRIGHT_CONGELADO = 'playwright.config.js';
+// Argumentos permitidos del servidor (opciones de node, NODE_OPTIONS y Vite): sólo memoria de node, puerto, strictPort y
+// force. Una raíz posicional (`vite /otro/checkout`), `--config`, `--mode`, `--require`/`--import`/`--loader` o cualquier otro
+// argumento cambian qué código se sirve ⇒ no se aceptan (lista permitida, no lista negra).
+export function argumentosViteValidos(args) {
+  if (!Array.isArray(args)) return false;
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--port' && /^\d+$/.test(String(args[i + 1] ?? ''))) { i++; continue; }
+    if (/^(--port=\d+|--strictPort|--force|--max-old-space-size=\d+)$/.test(String(args[i]))) continue;
+    return false;
+  }
+  return true;
+}
+
 export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corrida, cambiosGit }) {
   const cambios = [];
   for (const f of new Set([...Object.keys(manifiesto.archivos || {}), ...Object.keys(archivos)])) if (manifiesto.archivos?.[f] !== archivos[f]) cambios.push(`archivo ${f}`);
@@ -151,6 +169,9 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     corrida && binarios.some((b) => b && typeof b.arbolLimpio !== 'boolean') && 'estado del árbol de git en 0-binario.json (arbolLimpio)',
     corrida && binarios.some((b) => b && !(b.entornoVite && typeof b.entornoVite === 'object')) && 'entorno de Vite servido en 0-binario.json (entornoVite)',
     corrida && !(manifiesto.entornoVite && typeof manifiesto.entornoVite === 'object') && 'entorno de Vite esperado en el MANIFIESTO',
+    // v5.4: sin el config cargado o sin el servidor que contestó, la evidencia no demuestra con qué arnés ni de qué checkout salió.
+    corrida && binarios.some((b) => b && typeof b.configPlaywright !== 'string') && 'config de Playwright cargado en 0-binario.json (configPlaywright)',
+    corrida && binarios.some((b) => b && !(b.servidor && typeof b.servidor.mismoCheckout === 'boolean' && Array.isArray(b.servidor.argumentos))) && 'servidor de Vite que contestó en 0-binario.json (servidor)',
     corrida && binarios.length && !Array.isArray(cambiosGit) && 'diferencias git entre el SHA congelado y el servido'].filter(Boolean);
   // Los modelos se comparan aunque falte otra huella: un modelo distinto ya invalida.
   if (esperados && Array.isArray(modelos)) {
@@ -171,6 +192,11 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     if (b?.entornoVite && typeof b.entornoVite === 'object' && manifiesto.entornoVite && canon(b.entornoVite) !== canon(manifiesto.entornoVite)) {
       const claves = [...new Set([...Object.keys(b.entornoVite), ...Object.keys(manifiesto.entornoVite)])].filter((k) => canon(b.entornoVite[k]) !== canon(manifiesto.entornoVite[k])).sort();
       cambios.push(`entorno de Vite distinto al congelado: ${claves.join(', ')}`);
+    }
+    if (typeof b?.configPlaywright === 'string' && b.configPlaywright !== CONFIG_PLAYWRIGHT_CONGELADO) cambios.push(`Playwright cargó ${b.configPlaywright}, no el config congelado (${CONFIG_PLAYWRIGHT_CONGELADO})`);
+    if (b?.servidor && typeof b.servidor === 'object') {
+      if (b.servidor.mismoCheckout === false) cambios.push('el servidor de Vite que contestó no es de este checkout');
+      if (Array.isArray(b.servidor.argumentos) && !argumentosViteValidos(b.servidor.argumentos)) cambios.push(`servidor de Vite lanzado con argumentos no permitidos: ${b.servidor.argumentos.join(' ')}`);
     }
   }
   for (const f of Array.isArray(cambiosGit) ? cambiosGit : []) if (RE_CODIGO.test(f) && !RE_NO_CODIGO.test(f)) cambios.push(`código cambiado después del congelamiento: ${f}`);

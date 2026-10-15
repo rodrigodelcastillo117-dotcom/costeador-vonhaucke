@@ -5,7 +5,8 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { auditarLlamadasCorrida, costeableDeHoja } from '../src/datos/holdoutHuellas.js';
+import { auditarLlamadasCorrida, costeableDeHoja, argumentosViteValidos, CONFIG_PLAYWRIGHT_CONGELADO } from '../src/datos/holdoutHuellas.js';
+import { servidorEnPuerto } from './servidorVite.js';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
 const HOJA = process.env.LAB_HOJA ? JSON.parse(fs.readFileSync(process.env.LAB_HOJA, 'utf8')) : null;
@@ -71,10 +72,18 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     const m = fuente.match(/import\.meta\.env = (\{[^;]*\});/);
     if (m) entornoVite = Object.fromEntries(Object.entries(JSON.parse(m[1])).map(([k, v]) => [k, /KEY|SECRET|TOKEN|PASS/i.test(k) ? '<redactado>' : v]));
   } catch (_e) {}
-  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite });
+  // v5.4: el config que Playwright CARGÓ (un playwright.config.ts sin versionar le gana al .js congelado) y el servidor que
+  // contestó (con reuseExistingServer puede ser de otro checkout).
+  let raiz = null; try { raiz = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim(); } catch (_e) {}
+  const configPlaywright = raiz && testInfo.config.configFile ? path.relative(raiz, testInfo.config.configFile) : null;
+  let servidor = null; try { servidor = raiz ? servidorEnPuerto(new URL(page.url()).port || 80, raiz) : null; } catch (_e) {}
+  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite, configPlaywright, servidor });
   if (HOJA) {
     expect(testInfo.retry, 'holdout: la evidencia sólo vale del primer intento (sin reintentos)').toBe(0);
     expect(arbolLimpio, 'holdout: el árbol de git tiene cambios sin commit').toBe(true);
+    expect(configPlaywright, 'holdout: Playwright no cargó el config congelado').toBe(CONFIG_PLAYWRIGHT_CONGELADO);
+    expect(servidor?.mismoCheckout, 'holdout: el servidor de Vite no es de este checkout').toBe(true);
+    expect(argumentosViteValidos(servidor?.argumentos), `holdout: Vite lanzado con argumentos no permitidos (${servidor?.argumentos?.join(' ')})`).toBe(true);
   }
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);

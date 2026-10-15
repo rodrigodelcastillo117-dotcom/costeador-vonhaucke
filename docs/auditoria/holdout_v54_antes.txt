@@ -1,0 +1,8 @@
+# Holdout v5.4 · pruebas nuevas Q, R y argumentosViteValidos contra holdoutHuellas.js de 2111f0a (v5.3): deben fallar.
+# Comando: npx vitest run src/datos/holdoutHuellas.test.js (con src/datos/holdoutHuellas.js de 2111f0a)
+   × Holdout v2 · congelamiento verificable (fail-closed) > Q · ATAQUE: un playwright.config.ts SIN versionar (Playwright lo carga antes que el .js congelado) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO 10ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > R · el Vite que contestó es de OTRO checkout, o se lanzó con otra raíz, --config o --import ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO 3ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > argumentosViteValidos: lista permitida (puerto, strictPort, force, memoria de node); todo lo demás no 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  3 failed | 31 passed (34)
