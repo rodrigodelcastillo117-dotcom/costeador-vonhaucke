@@ -1,0 +1,11 @@
+# Holdout v5.6 · prueba nueva T (P1-HO-03) contra holdoutHuellas.js de 6a0091e (v5.5): debe fallar.
+# Comando: npx vitest run src/datos/holdoutHuellas.test.js (con src/datos/holdoutHuellas.js de 6a0091e)
+   × Holdout v2 · congelamiento verificable (fail-closed) > T · ATAQUE: src/App.jsx modificado y oculto con assume-unchanged o skip-worktree (git status limpio, mismo HEAD) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO 10ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  1 failed | 36 passed (37)
+
+# scripts/integridadGit.test.js (9 pruebas con repos git reales) no tiene 'antes': el módulo no existe en 6a0091e.
+# Cada caso de ataque afirma PRIMERO, con git real, que git status / git diff HEAD no ven el cambio (el ataque existe)
+# y DESPUÉS que medirIntegridadGit sí lo ve. La reproducción de punta a punta con el E2E y el verificador reales de
+# 6a0091e (OK, exit 0) está en el paquete del auditor (02a_ataque_assume_unchanged_reproducido_con_6a0091e.txt).

@@ -135,6 +135,10 @@ export function envGitLimpio(env = {}) {
   return { ...Object.fromEntries(Object.entries(env).filter(([k]) => !/^GIT_/i.test(k))), GIT_NO_REPLACE_OBJECTS: '1' };
 }
 export const esShaCompleto = (s) => typeof s === 'string' && /^[0-9a-f]{40}$/.test(s);
+// v5.6 (P1-HO-03): la evidencia de que los BYTES del checkout son los del HEAD medido (scripts/integridadGit.mjs): banderas
+// del índice que ocultan cambios (assume-unchanged/skip-worktree) y archivos del árbol de HEAD cuyo blob en disco difiere.
+const integridadValida = (g) => !!g && typeof g === 'object' && esShaCompleto(g.headGit) && Array.isArray(g.banderas) && Array.isArray(g.distintos)
+  && Number.isInteger(g.nBanderas) && Number.isInteger(g.nDistintos) && Number.isInteger(g.revisados) && g.revisados > 0;
 // Un SHA corto sólo identifica al HEAD si tiene 7–40 hex y es su prefijo (con 1 carácter, `GIT_SHA=8`, "coincidiría").
 const esPrefijoDe = (corto, head) => typeof corto === 'string' && /^[0-9a-f]{7,40}$/.test(corto) && head.startsWith(corto);
 
@@ -185,6 +189,8 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     corrida && !(manifiesto.entornoVite && typeof manifiesto.entornoVite === 'object') && 'entorno de Vite esperado en el MANIFIESTO',
     // v5.5: sin el HEAD medido (40 hex) la evidencia no demuestra qué commit sirvió; un SHA corto o declarado no basta.
     corrida && binarios.some((b) => b && !esShaCompleto(b.headGit)) && 'HEAD de git medido en 0-binario.json (headGit)',
+    // v5.6: sin la integridad por bytes, un archivo modificado y oculto con flags del índice no se ve.
+    corrida && binarios.some((b) => b && !integridadValida(b.integridadGit)) && 'integridad por bytes del checkout en 0-binario.json (integridadGit)',
     // v5.4: sin el config cargado o sin el servidor que contestó, la evidencia no demuestra con qué arnés ni de qué checkout salió.
     corrida && binarios.some((b) => b && typeof b.configPlaywright !== 'string') && 'config de Playwright cargado en 0-binario.json (configPlaywright)',
     corrida && binarios.some((b) => b && !(b.servidor && typeof b.servidor.mismoCheckout === 'boolean' && Array.isArray(b.servidor.argumentos))) && 'servidor de Vite que contestó en 0-binario.json (servidor)',
@@ -206,6 +212,12 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     if (esShaCompleto(b?.headGit)) {
       if (b.shaApp && !esPrefijoDe(b.shaApp, b.headGit)) cambios.push(`binario: el navegador sirvió ${b.shaApp} y el HEAD medido del checkout es ${b.headGit.slice(0, 7)}`);
       if (b.shaGit && !esPrefijoDe(b.shaGit, b.headGit)) cambios.push(`binario: el SHA declarado (LAB_GIT_SHA) ${b.shaGit} no es el HEAD medido del checkout ${b.headGit.slice(0, 7)}`);
+    }
+    if (integridadValida(b?.integridadGit)) {
+      const g = b.integridadGit;
+      if (g.nBanderas > 0 || g.banderas.length) cambios.push(`binario: el índice de git oculta cambios (assume-unchanged/skip-worktree) en ${Math.max(g.nBanderas, g.banderas.length)} archivo(s): ${g.banderas.slice(0, 3).join(', ')}`);
+      if (g.nDistintos > 0 || g.distintos.length) cambios.push(`binario: ${Math.max(g.nDistintos, g.distintos.length)} archivo(s) versionado(s) con bytes distintos a HEAD: ${g.distintos.slice(0, 3).join(', ')}`);
+      if (esShaCompleto(b.headGit) && g.headGit !== b.headGit) cambios.push(`binario: la integridad se midió sobre ${g.headGit.slice(0, 7)} y el HEAD medido es ${b.headGit.slice(0, 7)}`);
     }
     if (Number.isInteger(b?.reintento) && b.reintento !== 0) cambios.push(`evidencia de un reintento de Playwright (reintento ${b.reintento}): sólo vale el primer intento`);
     if (b?.arbolLimpio === false) cambios.push('binario: la corrida se sirvió con cambios sin commit en el árbol de git');

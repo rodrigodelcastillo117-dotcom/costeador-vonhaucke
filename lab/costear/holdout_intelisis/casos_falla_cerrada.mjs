@@ -1,4 +1,4 @@
-// Holdout v5.1–v5.5 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
+// Holdout v5.1–v5.6 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
 // copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca (v5.3/v5.5: sólo objetos
 // git sueltos para los casos de commit cambiado).
 //   node lab/costear/holdout_intelisis/casos_falla_cerrada.mjs <corrida> <huellas_db_post> <edges_post> <modelos>
@@ -63,7 +63,7 @@ const casos = [
   ['hoja sin declarar (E2E v5.1)', { editar: (a) => ({ ...a, hoja: null }) }],
   // v5.3 (auditoría binaria del FINAL_SHA, P1): el arnés de la prueba también está congelado y la evidencia sólo vale del
   // primer intento.
-  ['SHA servido = HEAD + sólo playwright.config.js con retries 5', { binario: (() => { const s = shaConConfigCambiado(); return { ...binario, shaGit: s.slice(0, 7), shaApp: s.slice(0, 7), headGit: s }; })() }],
+  ['SHA servido = HEAD + sólo playwright.config.js con retries 5', { binario: (() => { const s = shaConConfigCambiado(); return { ...binario, shaGit: s.slice(0, 7), shaApp: s.slice(0, 7), headGit: s, integridadGit: { ...binario.integridadGit, headGit: s } }; })() }],
   ['evidencia de un reintento de Playwright (reintento 1)', { binario: { ...binario, reintento: 1 } }],
   ['0-binario.json sin `reintento` (E2E v5.2)', { binario: (({ reintento, ...b }) => b)(binario) }],
   ['corrida servida con cambios sin commit (arbolLimpio false)', { binario: { ...binario, arbolLimpio: false } }],
@@ -78,10 +78,16 @@ const casos = [
   ['node con --import (NODE_OPTIONS)', { binario: { ...binario, servidor: { mismoCheckout: true, argumentos: ['--import', '/tmp/parche.mjs', '--port', '5173'] } } }],
   ['0-binario.json sin `servidor` (E2E v5.3)', { binario: (({ servidor, ...b }) => b)(binario) }],
   // v5.5 (P1-HO-02, auditoría de 9013d20): la identidad git se mide; LAB_GIT_SHA y GIT_SHA ya no la declaran.
-  ['checkout B (HEAD + src/App.jsx) con LAB_GIT_SHA y GIT_SHA = SHA congelado: shaApp y shaGit "correctos", HEAD medido = B', { binario: { ...binario, headGit: shaB } }],
-  ['checkout B honesto: shaApp = shaGit = HEAD medido = B', { binario: { ...binario, shaApp: shaB.slice(0, 7), shaGit: shaB.slice(0, 7), headGit: shaB } }],
+  ['checkout B (HEAD + src/App.jsx) con LAB_GIT_SHA y GIT_SHA = SHA congelado: shaApp y shaGit "correctos", HEAD medido = B', { binario: { ...binario, headGit: shaB, integridadGit: { ...binario.integridadGit, headGit: shaB } } }],
+  ['checkout B honesto: shaApp = shaGit = HEAD medido = B', { binario: { ...binario, shaApp: shaB.slice(0, 7), shaGit: shaB.slice(0, 7), headGit: shaB, integridadGit: { ...binario.integridadGit, headGit: shaB } } }],
   ['0-binario.json sin `headGit` (E2E v5.4)', { binario: (({ headGit, ...b }) => b)(binario) }],
   ['headGit corto (7 caracteres: puede ser un valor declarado)', { binario: { ...binario, headGit: String(binario.headGit).slice(0, 7) } }],
+  // v5.6 (P1-HO-03, auditoría de 6a0091e): los bytes del checkout son los del HEAD medido (los ataques con git real están en
+  // casos_integridad_git.mjs; aquí, la evidencia que escribiría el E2E en esos checkouts sobre la corrida real).
+  ['mismo HEAD, src/App.jsx modificado y assume-unchanged (git status limpio)', { binario: { ...binario, arbolLimpio: true, integridadGit: { ...binario.integridadGit, banderas: ['h src/App.jsx'], nBanderas: 1, distintos: ['src/App.jsx'], nDistintos: 1 } } }],
+  ['mismo HEAD, src/App.jsx modificado y skip-worktree (git status limpio)', { binario: { ...binario, arbolLimpio: true, integridadGit: { ...binario.integridadGit, banderas: ['S src/App.jsx'], nBanderas: 1, distintos: ['src/App.jsx'], nDistintos: 1 } } }],
+  ['mismo HEAD, sin banderas pero bytes distintos (mismo tamaño + mtime restaurado + core.trustctime=false)', { binario: { ...binario, arbolLimpio: true, integridadGit: { ...binario.integridadGit, distintos: ['src/App.jsx'], nDistintos: 1 } } }],
+  ['0-binario.json sin `integridadGit` (E2E v5.5)', { binario: (({ integridadGit, ...b }) => b)(binario) }],
 ];
 const filas = [];
 for (const [i, [nombre, c]] of casos.entries()) {

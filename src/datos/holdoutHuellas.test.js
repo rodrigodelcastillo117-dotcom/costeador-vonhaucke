@@ -17,7 +17,8 @@ const edgesHoja = [
 const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z', reintento: 0, arbolLimpio: true,
   entornoVite: { BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false, VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc' },
   configPlaywright: 'playwright.config.js', servidor: { mismoCheckout: true, argumentos: ['--max-old-space-size=8192', '--port', '5173', '--strictPort'] },
-  headGit: 'abc1234def000000000000000000000000000000' };
+  headGit: 'abc1234def000000000000000000000000000000',
+  integridadGit: { headGit: 'abc1234def000000000000000000000000000000', banderas: [], nBanderas: 0, distintos: [], nDistintos: 0, revisados: 3516 } };
 // v5.2: cada hoja trae su FIXTURE leída de git en el SHA servido (ruta + sha256 + datos); el E2E declara la misma ruta y sha.
 const HOJA = { texto: 'Pata tipo "u" de 600 x 720 mm', clave_erp: 'ATPU2M' };
 const fixtureDe = (datos = HOJA, ruta = 'lab/costear/ciego_erp/hojas/ATPU2M.json') => ({ ruta, sha256: `sha-${JSON.stringify(datos).length}-${ruta.length}`, datos });
@@ -310,14 +311,16 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
   it('S · ATAQUE: checkout B con otro HEAD, LAB_GIT_SHA y GIT_SHA = SHA congelado ⇒ CAMBIO (antes daba OK); sin HEAD medido ⇒ NO_VERIFICADO', () => {
     const B = 'bbbbbbb000000000000000000000000000000000';
     // lo que escribe el E2E corriendo en B: shaApp y shaGit "correctos" (declarados por entorno), HEAD medido = B
-    const r = compararHuellas(M, conBinario({ ...binario, shaApp: 'abc1234', shaGit: 'abc1234', headGit: B }));
+    // (v5.6: la integridad se mide en el mismo checkout, así que también lleva el HEAD de B)
+    const enB = { ...binario.integridadGit, headGit: B };
+    const r = compararHuellas(M, conBinario({ ...binario, shaApp: 'abc1234', shaGit: 'abc1234', headGit: B, integridadGit: enB }));
     expect(r.estado).toBe('CAMBIO');
     expect(r.cambios).toEqual([
       'binario: el navegador sirvió abc1234 y el HEAD medido del checkout es bbbbbbb',
       'binario: el SHA declarado (LAB_GIT_SHA) abc1234 no es el HEAD medido del checkout bbbbbbb',
     ]);
     // B honesto (sin falsear GIT_SHA ni LAB_GIT_SHA): el diff se hace desde el HEAD medido y atrapa src/App.jsx
-    const honesto = compararHuellas(M, { ...conBinario({ ...binario, shaApp: 'bbbbbbb', shaGit: 'bbbbbbb', headGit: B }), cambiosGit: ['src/App.jsx'] });
+    const honesto = compararHuellas(M, { ...conBinario({ ...binario, shaApp: 'bbbbbbb', shaGit: 'bbbbbbb', headGit: B, integridadGit: enB }), cambiosGit: ['src/App.jsx'] });
     expect(honesto.estado).toBe('CAMBIO');
     expect(honesto.cambios).toEqual(['código cambiado después del congelamiento: src/App.jsx']);
     // un SHA visible/declarado de menos de 7 hex no identifica al HEAD aunque sea su prefijo (GIT_SHA=8, LAB_GIT_SHA=8)
@@ -332,6 +335,32 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
       const v = compararHuellas(M, conBinario({ ...binario, headGit }));
       expect(v.estado, String(headGit)).toBe('NO_VERIFICADO');
       expect(v.falta).toContain('HEAD de git medido en 0-binario.json (headGit)');
+    }
+  });
+  // ---- v5.6 (P1-HO-03, auditoría de 6a0091e): los BYTES del checkout son los del HEAD medido ----
+  it('T · ATAQUE: src/App.jsx modificado y oculto con assume-unchanged o skip-worktree (git status limpio, mismo HEAD) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO', () => {
+    const integ = binario.integridadGit;
+    // lo que escribe el E2E v5.6 en el checkout atacado: arbolLimpio sigue en true (git status es ciego), HEAD = congelado
+    const asumido = compararHuellas(M, conBinario({ ...binario, arbolLimpio: true, integridadGit: { ...integ, banderas: ['h src/App.jsx'], nBanderas: 1, distintos: ['src/App.jsx'], nDistintos: 1 } }));
+    expect(asumido.estado).toBe('CAMBIO');
+    expect(asumido.cambios).toEqual([
+      'binario: el índice de git oculta cambios (assume-unchanged/skip-worktree) en 1 archivo(s): h src/App.jsx',
+      'binario: 1 archivo(s) versionado(s) con bytes distintos a HEAD: src/App.jsx',
+    ]);
+    expect(compararHuellas(M, conBinario({ ...binario, integridadGit: { ...integ, banderas: ['S src/App.jsx'], nBanderas: 1 } })).estado).toBe('CAMBIO');
+    // sin banderas (mismo tamaño + mtime restaurado + core.trustctime=false): sólo los bytes lo ven
+    expect(compararHuellas(M, conBinario({ ...binario, integridadGit: { ...integ, distintos: ['src/App.jsx'], nDistintos: 1 } })).cambios)
+      .toEqual(['binario: 1 archivo(s) versionado(s) con bytes distintos a HEAD: src/App.jsx']);
+    // la lista recortada a 50 no esconde nada: cuenta nDistintos
+    expect(compararHuellas(M, conBinario({ ...binario, integridadGit: { ...integ, nDistintos: 51 } })).estado).toBe('CAMBIO');
+    // la integridad medida sobre otro HEAD que el medido no vale
+    expect(compararHuellas(M, conBinario({ ...binario, integridadGit: { ...integ, headGit: 'bbbbbbb000000000000000000000000000000000' } })).cambios)
+      .toEqual(['binario: la integridad se midió sobre bbbbbbb y el HEAD medido es abc1234']);
+    const { integridadGit, ...sinDato } = binario;
+    for (const b of [sinDato, { ...binario, integridadGit: null }, { ...binario, integridadGit: { ...integ, revisados: 0 } }, { ...binario, integridadGit: { ...integ, banderas: undefined } }, { ...binario, integridadGit: { ...integ, headGit: 'abc1234' } }]) {
+      const v = compararHuellas(M, conBinario(b));
+      expect(v.estado).toBe('NO_VERIFICADO');
+      expect(v.falta).toContain('integridad por bytes del checkout en 0-binario.json (integridadGit)');
     }
   });
   it('envGitLimpio: quita GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE… y apaga los objetos `git replace`; lo demás queda', () => {

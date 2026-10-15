@@ -21,6 +21,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { compararHuellas, cierreDeImports, unirCorrida, envGitLimpio, esShaCompleto } from '../src/datos/holdoutHuellas.js';
+import { medirIntegridadGit } from './integridadGit.mjs';
 
 const RAIZ = process.cwd();
 const SALIDA = 'lab/costear/holdout_intelisis/MANIFIESTO.json';
@@ -107,6 +108,10 @@ if (process.argv.includes('--verificar')) {
 }
 // Congelar: con --db/--edges se guardan las huellas FRESCAS (si no, se conservan las previas) y el SHA de HEAD exacto.
 if (git('status', '--porcelain', '--untracked-files=no')) { console.error('ABORTO: hay cambios sin commit; se congela sobre un árbol limpio'); process.exit(2); }
+// v5.6 (P1-HO-03): `git status` no ve archivos marcados assume-unchanged/skip-worktree; las huellas del manifiesto salen de
+// los bytes en disco, así que se exige que sean los de HEAD.
+{ const integ = medirIntegridadGit(RAIZ, process.env);
+  if (integ.banderas.length || integ.distintos.length) { console.error(`ABORTO: el checkout no es HEAD byte a byte (banderas del índice: ${integ.banderas.slice(0, 3).join(', ') || 'ninguna'}; distintos: ${integ.distintos.slice(0, 3).join(', ') || 'ninguno'})`); process.exit(2); } }
 const previo = fs.existsSync(path.join(RAIZ, SALIDA)) ? JSON.parse(fs.readFileSync(path.join(RAIZ, SALIDA), 'utf8')) : {};
 fs.writeFileSync(path.join(RAIZ, SALIDA), JSON.stringify({
   congeladoEn: new Date().toISOString(), huellaTotal: total, nArchivos: lista.length,

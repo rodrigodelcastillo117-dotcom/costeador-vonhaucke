@@ -7,6 +7,7 @@ import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node
 import { execFileSync } from 'node:child_process';
 import { auditarLlamadasCorrida, costeableDeHoja, argumentosViteValidos, CONFIG_PLAYWRIGHT_CONGELADO, envGitLimpio, esShaCompleto } from '../src/datos/holdoutHuellas.js';
 import { servidorEnPuerto } from './servidorVite.js';
+import { evidenciaIntegridadGit } from '../scripts/integridadGit.mjs';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
 const HOJA = process.env.LAB_HOJA ? JSON.parse(fs.readFileSync(process.env.LAB_HOJA, 'utf8')) : null;
@@ -80,9 +81,11 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // v5.5 (P1-HO-02): el HEAD que de verdad está en el checkout que sirvió (el mismo del Vite: `servidor.mismoCheckout`).
   // LAB_GIT_SHA queda sólo como valor ESPERADO: ya no es la identidad de la corrida.
   let headGit = null; try { headGit = git(['rev-parse', 'HEAD']); } catch (_e) {}
+  // v5.6 (P1-HO-03): los bytes de cada archivo versionado son los del HEAD medido; banderas del índice que ocultan cambios.
+  let integridadGit = null; try { integridadGit = evidenciaIntegridadGit(process.cwd(), process.env); } catch (_e) {}
   const configPlaywright = raiz && testInfo.config.configFile ? path.relative(raiz, testInfo.config.configFile) : null;
   let servidor = null; try { servidor = raiz ? servidorEnPuerto(new URL(page.url()).port || 80, raiz) : null; } catch (_e) {}
-  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite, configPlaywright, servidor, headGit });
+  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite, configPlaywright, servidor, headGit, integridadGit });
   if (HOJA) {
     expect(testInfo.retry, 'holdout: la evidencia sólo vale del primer intento (sin reintentos)').toBe(0);
     expect(arbolLimpio, 'holdout: el árbol de git tiene cambios sin commit').toBe(true);
@@ -91,6 +94,9 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     expect(argumentosViteValidos(servidor?.argumentos), `holdout: Vite lanzado con argumentos no permitidos (${servidor?.argumentos?.join(' ')})`).toBe(true);
     expect(esShaCompleto(headGit), 'holdout: no se pudo medir el HEAD de git').toBe(true);
     expect(!!shaApp && headGit.startsWith(shaApp), `holdout: el navegador sirve ${shaApp} y el HEAD del checkout es ${headGit?.slice(0, 7)}`).toBe(true);
+    expect(integridadGit?.revisados > 0 && integridadGit.headGit === headGit, 'holdout: no se pudo medir la integridad por bytes del checkout').toBe(true);
+    expect(integridadGit.banderas, 'holdout: el índice de git oculta cambios (assume-unchanged/skip-worktree)').toEqual([]);
+    expect(integridadGit.distintos, 'holdout: archivos versionados con bytes distintos a HEAD').toEqual([]);
     if (process.env.LAB_GIT_SHA) expect(headGit.startsWith(process.env.LAB_GIT_SHA), `holdout: LAB_GIT_SHA=${process.env.LAB_GIT_SHA} no es el HEAD del checkout (${headGit.slice(0, 7)})`).toBe(true);
   }
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
