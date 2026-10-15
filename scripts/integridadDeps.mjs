@@ -16,9 +16,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-// Cachés de runtime que Vite/esbuild generan DURANTE la corrida (no son contenido instalado); el runner las borra tras
-// `npm ci` para que se reconstruyan desde la instalación limpia. Se excluyen del hash para que preparación = corrida.
-const EXCLUIR = /(^|\/)(\.vite|\.cache)(\/|$)/;
+// v5.8 (P1-HO-05): se hashea TODO node_modules, sin exclusiones. En v5.7 se excluían `.vite` y `.cache` por "caché de
+// runtime", pero Vite 5 PREEMPAQUETA las dependencias en `node_modules/.vite/deps/*.js` y el navegador EJECUTA esos
+// archivos en el dev server (p. ej. react.js). Excluirlos dejaba una vía para servir código alterado (envenenar un
+// prebundle tras preparar) sin huella. Comprobado: `node_modules/.vite` es byte-estable entre reinicios del dev server
+// sin `--force`, así que el runner lo genera en la preparación con `vite optimize` (determinista, reutilizado byte a byte
+// por la corrida) y entra a la huella. No hay whitelist: si cambia un byte de cualquier archivo instalado o preempaquetado,
+// el hash cambia. `node_modules/.cache` no existe en esta instalación; si apareciera, también entraría al hash.
 
 // sha256 estable de TODO node_modules: por cada entrada (ordenada) la ruta relativa + tipo + (bytes del archivo | destino
 // del symlink). No se siguen symlinks de directorio (se registra su destino): evita ciclos y cubre los .bin.
@@ -31,7 +35,6 @@ export function hashNodeModules(raiz) {
     for (const e of ents) {
       const p = path.join(d, e.name);
       const rel = path.relative(nm, p);
-      if (EXCLUIR.test(rel)) continue;
       if (e.isDirectory()) walk(p); else archivos.push(rel); // isDirectory() es false para symlinks a directorio
     }
   };

@@ -1,4 +1,4 @@
-// Holdout v5.7 (P1-HO-04) · hash estable de node_modules y validez de la atestación de dependencias.
+// Holdout v5.8 (P1-HO-05) · hash estable de node_modules ENTERO (incl. node_modules/.vite) y validez de la atestación.
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -32,14 +32,21 @@ describe('Holdout v5.7 · hash de node_modules', () => {
     fs.appendFileSync(path.join(limpio, 'node_modules/@vitejs/plugin-react/dist/index.js'), "\nglobalThis.__ATAQUE='P1-HO-04';\n");
     expect(hashNodeModules(limpio).nodeModulesHash).not.toBe(h1);
   });
-  it('las cachés de runtime (.vite, .cache) se excluyen: no cambian el hash', () => {
-    const r = raizFalsa({ 'vite/bin/vite.js': 'A' });
+  it('P1-HO-05: envenenar un prebundle de node_modules/.vite/deps SÍ cambia el hash (el navegador lo ejecuta)', () => {
+    const r = raizFalsa({ 'vite/bin/vite.js': 'A', '.vite/deps/react.js': 'export default React;' });
     const h1 = hashNodeModules(r).nodeModulesHash;
-    fs.mkdirSync(path.join(r, 'node_modules/.vite/deps'), { recursive: true });
-    fs.writeFileSync(path.join(r, 'node_modules/.vite/deps/chunk.js'), 'cualquier cosa');
+    // el ataque de la clase: alterar el código preempaquetado que el navegador ejecuta en el dev server, sin tocar nada versionado
+    fs.appendFileSync(path.join(r, 'node_modules/.vite/deps/react.js'), "\nglobalThis.__HOLDOUT_VITE_CACHE_ATTACK='P1-HO-05';\n");
+    expect(hashNodeModules(r).nodeModulesHash).not.toBe(h1);
+  });
+  it('P1-HO-05: ya NO hay whitelist — un archivo nuevo bajo node_modules/.vite o .cache cambia el hash', () => {
+    const r = raizFalsa({ 'vite/bin/vite.js': 'A', '.vite/deps/_metadata.json': '{}' });
+    const h1 = hashNodeModules(r).nodeModulesHash;
     fs.mkdirSync(path.join(r, 'node_modules/.cache'), { recursive: true });
     fs.writeFileSync(path.join(r, 'node_modules/.cache/x'), 'y');
-    expect(hashNodeModules(r).nodeModulesHash).toBe(h1);
+    expect(hashNodeModules(r).nodeModulesHash).not.toBe(h1);
+    fs.writeFileSync(path.join(r, 'node_modules/.vite/deps/chunk.js'), 'cualquier cosa');
+    expect(hashNodeModules(r).nodeModulesHash).not.toBe(h1);
   });
   it('los symlinks (.bin) cuentan por su destino, no se siguen como directorio', () => {
     const r = raizFalsa({ 'vite/bin/vite.js': 'A', '.bin/vite': { symlink: '../vite/bin/vite.js' } });

@@ -93,6 +93,10 @@ const casos = [
   ['preparación de dependencias con un lockfile distinto al congelado', { binario: { ...binario, integridadDeps: { prep: { ...binario.integridadDeps?.prep, lockfileSha256: 'c'.repeat(64) }, ejecutado: { ...binario.integridadDeps?.ejecutado, lockfileSha256: 'c'.repeat(64) } } } }],
   ['el runner reutilizó node_modules previo (sin npm ci limpio)', { binario: { ...binario, integridadDeps: { ...binario.integridadDeps, prep: { ...binario.integridadDeps?.prep, npmCiOk: false, freshInstall: false, reutilizado: true } } } }],
   ['0-binario.json sin `integridadDeps` (E2E v5.6)', { binario: (({ integridadDeps, ...b }) => b)(binario) }],
+  // v5.8 (P1-HO-05, auditoría de 65ebbf4): node_modules/.vite (los prebundles que el navegador EJECUTA) entra a la huella.
+  // ADVERSARIAL V · cache ejecutable node_modules/.vite alterada: el navegador recibe código distinto; git limpio; lockfile
+  // idéntico; el resto de node_modules idéntico; SÓLO cambia el hash porque cambió un prebundle de .vite ⇒ debe dar CAMBIO.
+  ['V · node_modules/.vite envenenado tras preparar (git limpio, lockfile idéntico, sólo cambia el prebundle ejecutado)', { binario: { ...binario, arbolLimpio: true, integridadDeps: { prep: { ...binario.integridadDeps?.prep }, ejecutado: { ...binario.integridadDeps?.ejecutado, nodeModulesHash: 'e'.repeat(64), lockfileSha256: binario.integridadDeps?.prep?.lockfileSha256 } } } }],
 ];
 const filas = [];
 for (const [i, [nombre, c]] of casos.entries()) {

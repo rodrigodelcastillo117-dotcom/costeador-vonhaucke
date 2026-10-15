@@ -1,11 +1,16 @@
 #!/usr/bin/env node
-// Runner oficial del holdout (v5.7, P1-HO-04): prepara un entorno EFÍMERO y verificable, del que luego salen Vite y
+// Runner oficial del holdout (v5.8, P1-HO-05): prepara un entorno EFÍMERO y verificable, del que luego salen Vite y
 // Playwright. No depende de pasos a mano ni reutiliza instalaciones previas.
 //   node scripts/prepararEntornoHoldout.mjs <dir-destino> [sha]
 // 1) worktree limpio del sha (por defecto HEAD); 2) aborta si integridadGit no está limpio (reusa P1-HO-02/03);
 // 3) rm -rf node_modules (nunca se reutiliza ni se aceptan hardlinks de otra instalación); 4) `npm ci` del lockfile
-// congelado; 5) borra cachés de runtime (node_modules/.vite, .cache); 6) mide node_modules; 7) escribe holdout-deps.json.
-// Falla cerrado (exit != 0) si el checkout no es byte a byte, si npm ci falla, o si no puede medir la instalación.
+// congelado; 5) PREEMPAQUETA las dependencias con `vite optimize` (genera node_modules/.vite determinista que el dev
+// server REUTILIZA byte a byte sin re-optimizar); 6) mide node_modules ENTERO, con .vite dentro; 7) escribe holdout-deps.json.
+// Falla cerrado (exit != 0) si el checkout no es byte a byte, si npm ci o el preempaquetado fallan, o si no puede medir.
+// v5.8: antes (v5.7) el paso 5 BORRABA node_modules/.vite y lo dejaba fuera de la huella. Pero Vite 5 sirve al navegador
+// los prebundles de node_modules/.vite/deps/*.js (react, react-dom, @supabase, jspdf, pdfjs, recharts): son código EJECUTADO.
+// Dejarlos fuera permitía envenenar un prebundle tras preparar y aun así obtener OK (P1-HO-05). Ahora se GENERAN en la
+// preparación (reproducible) y ENTRAN a la huella; la corrida los reutiliza y el verificador exige hash_corrida == hash_prep.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -40,10 +45,22 @@ let npmCiOk = false;
 try { execFileSync('npm', ['ci', '--no-audit', '--no-fund'], { cwd: abs, env: process.env, stdio: 'inherit', maxBuffer: 1 << 28 }); npmCiOk = true; } catch (_e) { npmCiOk = false; }
 if (!npmCiOk) { console.error('ABORTO: `npm ci` falló'); process.exit(4); }
 
-// 5) borra cachés de runtime para que Vite/esbuild las reconstruyan desde la instalación limpia
-for (const c of ['.vite', '.cache']) fs.rmSync(path.join(abs, 'node_modules', c), { recursive: true, force: true });
+// 5) PREEMPAQUETA las dependencias que el navegador ejecuta (node_modules/.vite/deps) de forma reproducible. `vite optimize`
+// recorre el grafo de imports desde index.html y escribe .vite igual que lo haría el dev server, pero SIN levantar servidor,
+// así que es determinista y sin condiciones de carrera. Comprobado: el dev server reutiliza este .vite byte a byte, sin
+// re-optimizar (no se pasa --force). Entra a la huella en el paso 6. Entorno mínimo: `vite optimize` no depende de las vars
+// VITE_* del holdout (sólo preempaqueta dependencias), así que se corre con el entorno limpio del worktree.
+let viteOptimizeOk = false;
+try {
+  execFileSync(path.join(abs, 'node_modules', '.bin', 'vite'), ['optimize'], { cwd: abs, env: process.env, stdio: 'inherit', maxBuffer: 1 << 28 });
+  viteOptimizeOk = true;
+} catch (_e) { viteOptimizeOk = false; }
+if (!viteOptimizeOk) { console.error('ABORTO: `vite optimize` (preempaquetado de dependencias) falló'); process.exit(6); }
+if (!fs.existsSync(path.join(abs, 'node_modules', '.vite', 'deps'))) {
+  console.error('ABORTO: `vite optimize` no generó node_modules/.vite/deps'); process.exit(6);
+}
 
-// 6) + 7) mide la instalación y deja la evidencia de la preparación
+// 6) + 7) mide la instalación ENTERA (incluyendo node_modules/.vite, los prebundles que el navegador ejecuta) y deja la evidencia
 const hm = hashNodeModules(abs);
 if (!hm.nodeModulesHash || !hm.archivos) { console.error('ABORTO: no se pudo medir node_modules tras npm ci'); process.exit(5); }
 const rec = {
@@ -52,6 +69,7 @@ const rec = {
   freshInstall: true,
   reutilizado: false,
   npmCiOk: true,
+  viteOptimize: true,
   lockfileSha256: sha256Archivo(path.join(abs, 'package-lock.json')),
   nodeModulesHash: hm.nodeModulesHash,
   archivos: hm.archivos,
