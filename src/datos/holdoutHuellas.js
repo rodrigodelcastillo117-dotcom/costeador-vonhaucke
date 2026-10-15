@@ -124,6 +124,20 @@ export function argumentosViteValidos(args) {
   return true;
 }
 
+// v5.5 (P1-HO-02, auditoría de 9013d20): la identidad git se MIDE, no se declara. Antes `shaGit` salía de LAB_GIT_SHA y el
+// `git diff` del verificador se hacía contra ese valor: un checkout B con otro HEAD, LAB_GIT_SHA=SHA congelado y
+// GIT_SHA=SHA congelado (que vite.config.js prefiere para el SHA visible) daba OK aunque B sirviera otro código.
+// Ahora el E2E mide `headGit` (git rev-parse HEAD, 40 hex) en el checkout que sirvió y el verificador exige que el SHA
+// visible y el declarado coincidan con él; el diff y la hoja congelada se leen desde `headGit`.
+// Los comandos git corren sin variables GIT_* del entorno (GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE…), que harían medir
+// otro repo, y sin objetos `git replace`, que harían ver otro contenido bajo el mismo SHA.
+export function envGitLimpio(env = {}) {
+  return { ...Object.fromEntries(Object.entries(env).filter(([k]) => !/^GIT_/i.test(k))), GIT_NO_REPLACE_OBJECTS: '1' };
+}
+export const esShaCompleto = (s) => typeof s === 'string' && /^[0-9a-f]{40}$/.test(s);
+// Un SHA corto sólo identifica al HEAD si tiene 7–40 hex y es su prefijo (con 1 carácter, `GIT_SHA=8`, "coincidiría").
+const esPrefijoDe = (corto, head) => typeof corto === 'string' && /^[0-9a-f]{7,40}$/.test(corto) && head.startsWith(corto);
+
 export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corrida, cambiosGit }) {
   const cambios = [];
   for (const f of new Set([...Object.keys(manifiesto.archivos || {}), ...Object.keys(archivos)])) if (manifiesto.archivos?.[f] !== archivos[f]) cambios.push(`archivo ${f}`);
@@ -169,6 +183,8 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     corrida && binarios.some((b) => b && typeof b.arbolLimpio !== 'boolean') && 'estado del árbol de git en 0-binario.json (arbolLimpio)',
     corrida && binarios.some((b) => b && !(b.entornoVite && typeof b.entornoVite === 'object')) && 'entorno de Vite servido en 0-binario.json (entornoVite)',
     corrida && !(manifiesto.entornoVite && typeof manifiesto.entornoVite === 'object') && 'entorno de Vite esperado en el MANIFIESTO',
+    // v5.5: sin el HEAD medido (40 hex) la evidencia no demuestra qué commit sirvió; un SHA corto o declarado no basta.
+    corrida && binarios.some((b) => b && !esShaCompleto(b.headGit)) && 'HEAD de git medido en 0-binario.json (headGit)',
     // v5.4: sin el config cargado o sin el servidor que contestó, la evidencia no demuestra con qué arnés ni de qué checkout salió.
     corrida && binarios.some((b) => b && typeof b.configPlaywright !== 'string') && 'config de Playwright cargado en 0-binario.json (configPlaywright)',
     corrida && binarios.some((b) => b && !(b.servidor && typeof b.servidor.mismoCheckout === 'boolean' && Array.isArray(b.servidor.argumentos))) && 'servidor de Vite que contestó en 0-binario.json (servidor)',
@@ -187,6 +203,10 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
   // El binario: lo que sirvió el navegador es lo que se congeló (mismo SHA en navegador y git; sin código cambiado entre medio).
   for (const b of binarios) {
     if (!b?.shaApp || !b?.shaGit || !String(b.shaGit).startsWith(String(b.shaApp)) && !String(b.shaApp).startsWith(String(b.shaGit))) cambios.push(`binario: el navegador sirvió ${b?.shaApp ?? 'sin SHA'} y git era ${b?.shaGit ?? 'sin SHA'}`);
+    if (esShaCompleto(b?.headGit)) {
+      if (b.shaApp && !esPrefijoDe(b.shaApp, b.headGit)) cambios.push(`binario: el navegador sirvió ${b.shaApp} y el HEAD medido del checkout es ${b.headGit.slice(0, 7)}`);
+      if (b.shaGit && !esPrefijoDe(b.shaGit, b.headGit)) cambios.push(`binario: el SHA declarado (LAB_GIT_SHA) ${b.shaGit} no es el HEAD medido del checkout ${b.headGit.slice(0, 7)}`);
+    }
     if (Number.isInteger(b?.reintento) && b.reintento !== 0) cambios.push(`evidencia de un reintento de Playwright (reintento ${b.reintento}): sólo vale el primer intento`);
     if (b?.arbolLimpio === false) cambios.push('binario: la corrida se sirvió con cambios sin commit en el árbol de git');
     if (b?.entornoVite && typeof b.entornoVite === 'object' && manifiesto.entornoVite && canon(b.entornoVite) !== canon(manifiesto.entornoVite)) {

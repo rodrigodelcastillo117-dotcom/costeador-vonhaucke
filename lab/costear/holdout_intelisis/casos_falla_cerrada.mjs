@@ -1,6 +1,6 @@
-// Holdout v5.1–v5.4 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
-// copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca (v5.3: sólo objetos
-// git sueltos para el caso del config de Playwright).
+// Holdout v5.1–v5.5 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
+// copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca (v5.3/v5.5: sólo objetos
+// git sueltos para los casos de commit cambiado).
 //   node lab/costear/holdout_intelisis/casos_falla_cerrada.mjs <corrida> <huellas_db_post> <edges_post> <modelos>
 import fs from 'node:fs';
 import os from 'node:os';
@@ -25,21 +25,23 @@ const ia = (e) => /^analizar-mueble/.test(e.fn);
 const prod = { fn: 'costear-servidor', status: 200, body: '{}' };
 
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'holdout-q4-'));
-// v5.3: commit-OBJETO local = HEAD con sólo playwright.config.js cambiado (retries 5). Índice temporal: no toca ramas, el
-// árbol de trabajo ni el remoto; sólo deja objetos sueltos en .git que nadie referencia.
-function shaConConfigCambiado() {
+// v5.3: commit-OBJETO local = HEAD con UN archivo cambiado (v5.5: cualquiera). Índice temporal: no toca ramas, el árbol
+// de trabajo ni el remoto; sólo deja objetos sueltos en .git que nadie referencia.
+function shaConArchivoCambiado(ruta, cambiar, mensaje) {
   const g = (args, env = {}, input) => spawnSync('git', args, { encoding: 'utf8', env: { ...process.env, ...env }, input });
-  const env = { GIT_INDEX_FILE: path.join(base, 'index.tmp') };
+  const env = { GIT_INDEX_FILE: path.join(base, `index-${ruta.replace(/\W/g, '_')}.tmp`) };
   const head = g(['rev-parse', 'HEAD']).stdout.trim();
   g(['read-tree', head], env);
-  const cfg = g(['show', `${head}:playwright.config.js`]).stdout.replace(/retries:[^,\n]*,/, 'retries: 5,');
-  const blob = g(['hash-object', '-w', '--stdin'], {}, cfg).stdout.trim();
-  g(['update-index', '--cacheinfo', `100644,${blob},playwright.config.js`], env);
+  const blob = g(['hash-object', '-w', '--stdin'], {}, cambiar(g(['show', `${head}:${ruta}`]).stdout)).stdout.trim();
+  g(['update-index', '--cacheinfo', `100644,${blob},${ruta}`], env);
   const tree = g(['write-tree'], env).stdout.trim();
-  const sha = g(['commit-tree', tree, '-p', head, '-m', 'holdout v5.3: ataque retries (objeto local, no se publica)']).stdout.trim();
-  if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('no se pudo crear el commit de ataque');
+  const sha = g(['commit-tree', tree, '-p', head, '-m', mensaje]).stdout.trim();
+  if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error(`no se pudo crear el commit de ataque (${ruta})`);
   return sha;
 }
+const shaConConfigCambiado = () => shaConArchivoCambiado('playwright.config.js', (t) => t.replace(/retries:[^,\n]*,/, 'retries: 5,'), 'holdout v5.3: ataque retries (objeto local, no se publica)');
+// v5.5 (P1-HO-02): "checkout B" = HEAD con src/App.jsx cambiado (fuera del cierre de imports: sólo lo atrapa el git diff).
+const shaB = shaConArchivoCambiado('src/App.jsx', (t) => `// checkout B: código distinto al congelado\n${t}`, 'holdout v5.5: checkout B (objeto local, no se publica)');
 
 const casos = [
   ['corrida real, sin alterar', {}],
@@ -61,7 +63,7 @@ const casos = [
   ['hoja sin declarar (E2E v5.1)', { editar: (a) => ({ ...a, hoja: null }) }],
   // v5.3 (auditoría binaria del FINAL_SHA, P1): el arnés de la prueba también está congelado y la evidencia sólo vale del
   // primer intento.
-  ['SHA servido = HEAD + sólo playwright.config.js con retries 5', { binario: (() => { const s = shaConConfigCambiado(); return { ...binario, shaGit: s.slice(0, 7), shaApp: s.slice(0, 7) }; })() }],
+  ['SHA servido = HEAD + sólo playwright.config.js con retries 5', { binario: (() => { const s = shaConConfigCambiado(); return { ...binario, shaGit: s.slice(0, 7), shaApp: s.slice(0, 7), headGit: s }; })() }],
   ['evidencia de un reintento de Playwright (reintento 1)', { binario: { ...binario, reintento: 1 } }],
   ['0-binario.json sin `reintento` (E2E v5.2)', { binario: (({ reintento, ...b }) => b)(binario) }],
   ['corrida servida con cambios sin commit (arbolLimpio false)', { binario: { ...binario, arbolLimpio: false } }],
@@ -75,6 +77,11 @@ const casos = [
   ['Vite lanzado con --config', { binario: { ...binario, servidor: { mismoCheckout: true, argumentos: ['--config', '/tmp/vite.otro.js'] } } }],
   ['node con --import (NODE_OPTIONS)', { binario: { ...binario, servidor: { mismoCheckout: true, argumentos: ['--import', '/tmp/parche.mjs', '--port', '5173'] } } }],
   ['0-binario.json sin `servidor` (E2E v5.3)', { binario: (({ servidor, ...b }) => b)(binario) }],
+  // v5.5 (P1-HO-02, auditoría de 9013d20): la identidad git se mide; LAB_GIT_SHA y GIT_SHA ya no la declaran.
+  ['checkout B (HEAD + src/App.jsx) con LAB_GIT_SHA y GIT_SHA = SHA congelado: shaApp y shaGit "correctos", HEAD medido = B', { binario: { ...binario, headGit: shaB } }],
+  ['checkout B honesto: shaApp = shaGit = HEAD medido = B', { binario: { ...binario, shaApp: shaB.slice(0, 7), shaGit: shaB.slice(0, 7), headGit: shaB } }],
+  ['0-binario.json sin `headGit` (E2E v5.4)', { binario: (({ headGit, ...b }) => b)(binario) }],
+  ['headGit corto (7 caracteres: puede ser un valor declarado)', { binario: { ...binario, headGit: String(binario.headGit).slice(0, 7) } }],
 ];
 const filas = [];
 for (const [i, [nombre, c]] of casos.entries()) {

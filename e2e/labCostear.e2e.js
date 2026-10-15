@@ -5,7 +5,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { auditarLlamadasCorrida, costeableDeHoja, argumentosViteValidos, CONFIG_PLAYWRIGHT_CONGELADO } from '../src/datos/holdoutHuellas.js';
+import { auditarLlamadasCorrida, costeableDeHoja, argumentosViteValidos, CONFIG_PLAYWRIGHT_CONGELADO, envGitLimpio, esShaCompleto } from '../src/datos/holdoutHuellas.js';
 import { servidorEnPuerto } from './servidorVite.js';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
@@ -65,7 +65,9 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // primer intento, sin importar `retries` del config, `--retries` o `CI=1`.
   // También el árbol de git (sin cambios sin commit) y el import.meta.env que el servidor de desarrollo inyecta de verdad
   // (cubre .env ignorados por git y variables VITE_ extra al lanzar Vite). Los valores con pinta de secreto no se guardan.
-  let arbolLimpio = null; try { arbolLimpio = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() === ''; } catch (_e) {}
+  // v5.5 (P1-HO-02): git se MIDE en este checkout, sin variables GIT_* ni objetos `git replace` (envGitLimpio).
+  const git = (args) => execFileSync('git', args, { encoding: 'utf8', env: envGitLimpio(process.env) }).trim();
+  let arbolLimpio = null; try { arbolLimpio = git(['status', '--porcelain', '--untracked-files=no']) === ''; } catch (_e) {}
   let entornoVite = null;
   try {
     const fuente = await (await page.request.get('/src/datos/conflictoGuardado.js')).text();
@@ -74,16 +76,22 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   } catch (_e) {}
   // v5.4: el config que Playwright CARGÓ (un playwright.config.ts sin versionar le gana al .js congelado) y el servidor que
   // contestó (con reuseExistingServer puede ser de otro checkout).
-  let raiz = null; try { raiz = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim(); } catch (_e) {}
+  let raiz = null; try { raiz = git(['rev-parse', '--show-toplevel']); } catch (_e) {}
+  // v5.5 (P1-HO-02): el HEAD que de verdad está en el checkout que sirvió (el mismo del Vite: `servidor.mismoCheckout`).
+  // LAB_GIT_SHA queda sólo como valor ESPERADO: ya no es la identidad de la corrida.
+  let headGit = null; try { headGit = git(['rev-parse', 'HEAD']); } catch (_e) {}
   const configPlaywright = raiz && testInfo.config.configFile ? path.relative(raiz, testInfo.config.configFile) : null;
   let servidor = null; try { servidor = raiz ? servidorEnPuerto(new URL(page.url()).port || 80, raiz) : null; } catch (_e) {}
-  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite, configPlaywright, servidor });
+  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite, configPlaywright, servidor, headGit });
   if (HOJA) {
     expect(testInfo.retry, 'holdout: la evidencia sólo vale del primer intento (sin reintentos)').toBe(0);
     expect(arbolLimpio, 'holdout: el árbol de git tiene cambios sin commit').toBe(true);
     expect(configPlaywright, 'holdout: Playwright no cargó el config congelado').toBe(CONFIG_PLAYWRIGHT_CONGELADO);
     expect(servidor?.mismoCheckout, 'holdout: el servidor de Vite no es de este checkout').toBe(true);
     expect(argumentosViteValidos(servidor?.argumentos), `holdout: Vite lanzado con argumentos no permitidos (${servidor?.argumentos?.join(' ')})`).toBe(true);
+    expect(esShaCompleto(headGit), 'holdout: no se pudo medir el HEAD de git').toBe(true);
+    expect(!!shaApp && headGit.startsWith(shaApp), `holdout: el navegador sirve ${shaApp} y el HEAD del checkout es ${headGit?.slice(0, 7)}`).toBe(true);
+    if (process.env.LAB_GIT_SHA) expect(headGit.startsWith(process.env.LAB_GIT_SHA), `holdout: LAB_GIT_SHA=${process.env.LAB_GIT_SHA} no es el HEAD del checkout (${headGit.slice(0, 7)})`).toBe(true);
   }
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);

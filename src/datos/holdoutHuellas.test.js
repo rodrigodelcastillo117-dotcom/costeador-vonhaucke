@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida, costeableDeHoja, argumentosViteValidos } from './holdoutHuellas.js';
+import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida, costeableDeHoja, argumentosViteValidos, envGitLimpio } from './holdoutHuellas.js';
 
 const M = {
   archivos: { 'src/motor/calculo.js': 'a1' },
@@ -16,7 +16,8 @@ const edgesHoja = [
 ];
 const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z', reintento: 0, arbolLimpio: true,
   entornoVite: { BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false, VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc' },
-  configPlaywright: 'playwright.config.js', servidor: { mismoCheckout: true, argumentos: ['--max-old-space-size=8192', '--port', '5173', '--strictPort'] } };
+  configPlaywright: 'playwright.config.js', servidor: { mismoCheckout: true, argumentos: ['--max-old-space-size=8192', '--port', '5173', '--strictPort'] },
+  headGit: 'abc1234def000000000000000000000000000000' };
 // v5.2: cada hoja trae su FIXTURE leída de git en el SHA servido (ruta + sha256 + datos); el E2E declara la misma ruta y sha.
 const HOJA = { texto: 'Pata tipo "u" de 600 x 720 mm', clave_erp: 'ATPU2M' };
 const fixtureDe = (datos = HOJA, ruta = 'lab/costear/ciego_erp/hojas/ATPU2M.json') => ({ ruta, sha256: `sha-${JSON.stringify(datos).length}-${ruta.length}`, datos });
@@ -128,7 +129,8 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
   it('C · binario: SHA del navegador ≠ git, sin 0-binario, o código cambiado entre el SHA congelado y el servido ⇒ no OK', () => {
     const otro = { ...binario, shaApp: 'fff0000' };
     expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: otro })]) }).cambios)
-      .toEqual(['binario: el navegador sirvió fff0000 y git era abc1234']);
+      // v5.5: además del SHA declarado, el HEAD medido tampoco es el que sirvió el navegador
+      .toEqual(['binario: el navegador sirvió fff0000 y git era abc1234', 'binario: el navegador sirvió fff0000 y el HEAD medido del checkout es abc1234']);
     expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: undefined })]) }).falta).toContain('evidencia del binario (0-binario.json)');
     expect(compararHuellas(M, { ...hoy, cambiosGit: ['src/App.jsx'] }).cambios).toEqual(['código cambiado después del congelamiento: src/App.jsx']);
     expect(compararHuellas(M, { ...hoy, cambiosGit: ['RELEASE_9_5_GATE.md', 'lab/costear/holdout_intelisis/MANIFIESTO.json'] }).estado).toBe('OK');
@@ -303,6 +305,39 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
       expect(v.estado).toBe('NO_VERIFICADO');
       expect(v.falta).toContain('servidor de Vite que contestó en 0-binario.json (servidor)');
     }
+  });
+  // ---- v5.5 (P1-HO-02, auditoría de 9013d20): la identidad git se MIDE en el checkout que sirvió ----
+  it('S · ATAQUE: checkout B con otro HEAD, LAB_GIT_SHA y GIT_SHA = SHA congelado ⇒ CAMBIO (antes daba OK); sin HEAD medido ⇒ NO_VERIFICADO', () => {
+    const B = 'bbbbbbb000000000000000000000000000000000';
+    // lo que escribe el E2E corriendo en B: shaApp y shaGit "correctos" (declarados por entorno), HEAD medido = B
+    const r = compararHuellas(M, conBinario({ ...binario, shaApp: 'abc1234', shaGit: 'abc1234', headGit: B }));
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios).toEqual([
+      'binario: el navegador sirvió abc1234 y el HEAD medido del checkout es bbbbbbb',
+      'binario: el SHA declarado (LAB_GIT_SHA) abc1234 no es el HEAD medido del checkout bbbbbbb',
+    ]);
+    // B honesto (sin falsear GIT_SHA ni LAB_GIT_SHA): el diff se hace desde el HEAD medido y atrapa src/App.jsx
+    const honesto = compararHuellas(M, { ...conBinario({ ...binario, shaApp: 'bbbbbbb', shaGit: 'bbbbbbb', headGit: B }), cambiosGit: ['src/App.jsx'] });
+    expect(honesto.estado).toBe('CAMBIO');
+    expect(honesto.cambios).toEqual(['código cambiado después del congelamiento: src/App.jsx']);
+    // un SHA visible/declarado de menos de 7 hex no identifica al HEAD aunque sea su prefijo (GIT_SHA=8, LAB_GIT_SHA=8)
+    const uno = compararHuellas(M, conBinario({ ...binario, shaApp: 'a', shaGit: 'a' }));
+    expect(uno.estado).toBe('CAMBIO');
+    expect(uno.cambios).toEqual([
+      'binario: el navegador sirvió a y el HEAD medido del checkout es abc1234',
+      'binario: el SHA declarado (LAB_GIT_SHA) a no es el HEAD medido del checkout abc1234',
+    ]);
+    // un HEAD corto o ausente no demuestra nada: puede ser un valor declarado
+    for (const headGit of [undefined, null, 'abc1234', 'ABC1234DEF000000000000000000000000000000', 'abc1234def00000000000000000000000000000z']) {
+      const v = compararHuellas(M, conBinario({ ...binario, headGit }));
+      expect(v.estado, String(headGit)).toBe('NO_VERIFICADO');
+      expect(v.falta).toContain('HEAD de git medido en 0-binario.json (headGit)');
+    }
+  });
+  it('envGitLimpio: quita GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE… y apaga los objetos `git replace`; lo demás queda', () => {
+    const e = envGitLimpio({ PATH: '/usr/bin', HOME: '/root', GIT_DIR: '/otro/.git', GIT_WORK_TREE: '/otro', GIT_INDEX_FILE: '/tmp/i', git_dir: '/x', GIT_NO_REPLACE_OBJECTS: '0' });
+    expect(e).toEqual({ PATH: '/usr/bin', HOME: '/root', GIT_NO_REPLACE_OBJECTS: '1' });
+    expect(envGitLimpio()).toEqual({ GIT_NO_REPLACE_OBJECTS: '1' });
   });
   it('argumentosViteValidos: lista permitida (puerto, strictPort, force, memoria de node); todo lo demás no', () => {
     expect(argumentosViteValidos([])).toBe(true);

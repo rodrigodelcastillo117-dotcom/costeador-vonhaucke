@@ -1,0 +1,9 @@
+# Holdout v5.5 · pruebas nuevas S y envGitLimpio contra holdoutHuellas.js de 9013d20 (v5.4): deben fallar.
+# (C también falla: ahora exige además el motivo del HEAD medido.)
+# Comando: npx vitest run src/datos/holdoutHuellas.test.js (con src/datos/holdoutHuellas.js de 9013d20)
+   × Holdout v2 · congelamiento verificable (fail-closed) > C · binario: SHA del navegador ≠ git, sin 0-binario, o código cambiado entre el SHA congelado y el servido ⇒ no OK 12ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > S · ATAQUE: checkout B con otro HEAD, LAB_GIT_SHA y GIT_SHA = SHA congelado ⇒ CAMBIO (antes daba OK); sin HEAD medido ⇒ NO_VERIFICADO 2ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > envGitLimpio: quita GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE… y apaga los objetos `git replace`; lo demás queda 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  3 failed | 33 passed (36)

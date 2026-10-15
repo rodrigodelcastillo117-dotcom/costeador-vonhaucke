@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { compararHuellas, cierreDeImports, unirCorrida } from '../src/datos/holdoutHuellas.js';
+import { compararHuellas, cierreDeImports, unirCorrida, envGitLimpio, esShaCompleto } from '../src/datos/holdoutHuellas.js';
 
 const RAIZ = process.cwd();
 const SALIDA = 'lab/costear/holdout_intelisis/MANIFIESTO.json';
@@ -65,14 +65,16 @@ const total = crypto.createHash('sha256').update(JSON.stringify(huellas)).digest
 
 const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
 const leerJson = (f) => JSON.parse(fs.readFileSync(path.resolve(f), 'utf8'));
-const git = (...a) => { try { return execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8' }).trim(); } catch { return null; } };
+// v5.5: sin variables GIT_* del entorno ni objetos `git replace` (envGitLimpio).
+const ENV_GIT = envGitLimpio(process.env);
+const git = (...a) => { try { return execFileSync('git', a, { cwd: RAIZ, encoding: 'utf8', env: ENV_GIT }).trim(); } catch { return null; } };
 // v5: una corrida = un directorio con una carpeta por hoja (llamadas.json + 0-binario.json que escribe el E2E).
 // v5.1: también edges.json (llamadas crudas); el resumen tiene que cuadrar con ellas o no verifica.
 // v5.2: la FIXTURE de la hoja (de donde sale si el caso es costeable) se lee de GIT en el SHA que sirvió el navegador, no
 // del directorio de trabajo ni del resumen: una hoja sin commit en ese SHA no existe para el verificador.
 function fixtureEnGit(ruta, sha) {
   if (typeof ruta !== 'string' || !ruta || path.isAbsolute(ruta) || ruta.split(/[\\/]/).includes('..') || typeof sha !== 'string' || !/^[0-9a-f]{7,40}$/.test(sha)) return null;
-  let buf; try { buf = execFileSync('git', ['show', `${sha}:${ruta}`], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return null; }
+  let buf; try { buf = execFileSync('git', ['show', `${sha}:${ruta}`], { cwd: RAIZ, stdio: ['ignore', 'pipe', 'ignore'], env: ENV_GIT }); } catch { return null; }
   let datos; try { datos = JSON.parse(buf.toString('utf8')); } catch { return null; }
   return { ruta, sha256: crypto.createHash('sha256').update(buf).digest('hex'), datos };
 }
@@ -80,17 +82,19 @@ function leerCorrida(dir) {
   const hojas = fs.readdirSync(dir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => {
     const leer = (f) => { const p = path.join(dir, d.name, f); return fs.existsSync(p) ? leerJson(p) : null; };
     const auditoria = leer('llamadas.json'); const binario = leer('0-binario.json');
-    return { hoja: d.name, auditoria, binario, crudas: leer('edges.json'), fixture: fixtureEnGit(auditoria?.hoja?.ruta, binario?.shaGit) };
+    // v5.5 (P1-HO-02): la hoja se lee en el HEAD MEDIDO (headGit), no en el SHA declarado.
+    return { hoja: d.name, auditoria, binario, crudas: leer('edges.json'), fixture: fixtureEnGit(auditoria?.hoja?.ruta, binario?.headGit) };
   });
   return unirCorrida(hojas);
 }
 if (process.argv.includes('--verificar')) {
   const m = JSON.parse(fs.readFileSync(path.join(RAIZ, SALIDA), 'utf8'));
   const corrida = arg('--corrida') ? leerCorrida(arg('--corrida')) : undefined;
-  // Diferencias git entre el SHA congelado y el que sirvió el navegador (sólo si el SHA servido existe en este repo).
+  // Diferencias git entre el SHA congelado y el HEAD MEDIDO del checkout que sirvió (v5.5, P1-HO-02: antes era el SHA
+  // declarado en LAB_GIT_SHA). Sólo si ese commit existe en este repo; si no, cambiosGit queda indefinido ⇒ NO VERIFICADO.
   let cambiosGit;
   if (corrida?.binarios?.length && m.frontendSha) {
-    const shas = [...new Set(corrida.binarios.map((b) => b?.shaGit).filter(Boolean))];
+    const shas = [...new Set(corrida.binarios.map((b) => b?.headGit).filter(esShaCompleto))];
     const diffs = shas.map((s) => (git('cat-file', '-e', `${s}^{commit}`) == null ? null : git('diff', '--name-only', m.frontendSha, s)));
     cambiosGit = diffs.some((d) => d == null) ? undefined : [...new Set(diffs.flatMap((d) => (d ? d.split('\n') : [])))];
   }
