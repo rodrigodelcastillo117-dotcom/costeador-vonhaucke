@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { auditarLlamadasCorrida, costeableDeHoja, argumentosViteValidos, CONFIG_PLAYWRIGHT_CONGELADO, envGitLimpio, esShaCompleto } from '../src/datos/holdoutHuellas.js';
 import { servidorEnPuerto } from './servidorVite.js';
 import { evidenciaIntegridadGit } from '../scripts/integridadGit.mjs';
+import { evidenciaDepsEjecutadas } from '../scripts/integridadDeps.mjs';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
 const HOJA = process.env.LAB_HOJA ? JSON.parse(fs.readFileSync(process.env.LAB_HOJA, 'utf8')) : null;
@@ -83,9 +84,16 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   let headGit = null; try { headGit = git(['rev-parse', 'HEAD']); } catch (_e) {}
   // v5.6 (P1-HO-03): los bytes de cada archivo versionado son los del HEAD medido; banderas del índice que ocultan cambios.
   let integridadGit = null; try { integridadGit = evidenciaIntegridadGit(process.cwd(), process.env); } catch (_e) {}
+  // v5.7 (P1-HO-04): las dependencias que EJECUTÓ esta corrida (node_modules que sirve Vite/Playwright) frente al registro de
+  // la preparación limpia (holdout-deps.json, que escribió el runner oficial con `npm ci` del lockfile congelado).
+  let integridadDeps = null;
+  try {
+    let prep = null; try { prep = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'holdout-deps.json'), 'utf8')); } catch (_e) {}
+    integridadDeps = { prep, ejecutado: evidenciaDepsEjecutadas(process.cwd()) };
+  } catch (_e) {}
   const configPlaywright = raiz && testInfo.config.configFile ? path.relative(raiz, testInfo.config.configFile) : null;
   let servidor = null; try { servidor = raiz ? servidorEnPuerto(new URL(page.url()).port || 80, raiz) : null; } catch (_e) {}
-  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite, configPlaywright, servidor, headGit, integridadGit });
+  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite, configPlaywright, servidor, headGit, integridadGit, integridadDeps });
   if (HOJA) {
     expect(testInfo.retry, 'holdout: la evidencia sólo vale del primer intento (sin reintentos)').toBe(0);
     expect(arbolLimpio, 'holdout: el árbol de git tiene cambios sin commit').toBe(true);
@@ -97,6 +105,13 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
     expect(integridadGit?.revisados > 0 && integridadGit.headGit === headGit, 'holdout: no se pudo medir la integridad por bytes del checkout').toBe(true);
     expect(integridadGit.banderas, 'holdout: el índice de git oculta cambios (assume-unchanged/skip-worktree)').toEqual([]);
     expect(integridadGit.distintos, 'holdout: archivos versionados con bytes distintos a HEAD').toEqual([]);
+    // v5.7 (P1-HO-04): la corrida tiene que salir del entorno preparado por el runner oficial (npm ci limpio) y node_modules
+    // no puede haber cambiado entre la preparación y la corrida.
+    expect(integridadDeps?.prep?.npmCiOk === true && integridadDeps?.prep?.freshInstall === true && integridadDeps?.prep?.reutilizado === false,
+      'holdout: la corrida no salió de una preparación limpia de dependencias (usa scripts/prepararEntornoHoldout.mjs)').toBe(true);
+    expect(/^[0-9a-f]{64}$/.test(integridadDeps?.ejecutado?.nodeModulesHash || ''), 'holdout: no se pudo medir node_modules de la corrida').toBe(true);
+    expect(integridadDeps.ejecutado.nodeModulesHash, 'holdout: node_modules cambió entre la preparación y la corrida').toBe(integridadDeps.prep.nodeModulesHash);
+    expect(integridadDeps.ejecutado.lockfileSha256, 'holdout: el lockfile de la corrida no es el de la preparación').toBe(integridadDeps.prep.lockfileSha256);
     if (process.env.LAB_GIT_SHA) expect(headGit.startsWith(process.env.LAB_GIT_SHA), `holdout: LAB_GIT_SHA=${process.env.LAB_GIT_SHA} no es el HEAD del checkout (${headGit.slice(0, 7)})`).toBe(true);
   }
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);

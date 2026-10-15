@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { compararHuellas, importsRelativos, cierreDeImports, auditarLlamadasCorrida, unirCorrida, costeableDeHoja, argumentosViteValidos, envGitLimpio } from './holdoutHuellas.js';
 
+const LOCK = 'f'.repeat(64); // sha256 del package-lock.json congelado (fixture)
+const NMH = 'a'.repeat(64); // hash de node_modules de la preparación limpia (fixture)
+const depsOk = { prep: { metodo: 'npm ci', npmCiOk: true, freshInstall: true, reutilizado: false, lockfileSha256: LOCK, nodeModulesHash: NMH, archivos: 11600 }, ejecutado: { nodeModulesHash: NMH, lockfileSha256: LOCK, archivos: 11600 } };
 const M = {
-  archivos: { 'src/motor/calculo.js': 'a1' },
+  archivos: { 'src/motor/calculo.js': 'a1', 'package-lock.json': LOCK },
   baseDatos: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-10-14' },
   edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
   modelosEsperados: { 'analizar-mueble-rc': { texto: 'claude-opus-5', imagen: 'claude-opus-5-5' } },
@@ -18,7 +21,8 @@ const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localho
   entornoVite: { BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false, VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc' },
   configPlaywright: 'playwright.config.js', servidor: { mismoCheckout: true, argumentos: ['--max-old-space-size=8192', '--port', '5173', '--strictPort'] },
   headGit: 'abc1234def000000000000000000000000000000',
-  integridadGit: { headGit: 'abc1234def000000000000000000000000000000', banderas: [], nBanderas: 0, distintos: [], nDistintos: 0, revisados: 3516 } };
+  integridadGit: { headGit: 'abc1234def000000000000000000000000000000', banderas: [], nBanderas: 0, distintos: [], nDistintos: 0, revisados: 3516 },
+  integridadDeps: { prep: { metodo: 'npm ci', npmCiOk: true, freshInstall: true, reutilizado: false, lockfileSha256: 'f'.repeat(64), nodeModulesHash: 'a'.repeat(64), archivos: 11600 }, ejecutado: { nodeModulesHash: 'a'.repeat(64), lockfileSha256: 'f'.repeat(64), archivos: 11600 } } };
 // v5.2: cada hoja trae su FIXTURE leída de git en el SHA servido (ruta + sha256 + datos); el E2E declara la misma ruta y sha.
 const HOJA = { texto: 'Pata tipo "u" de 600 x 720 mm', clave_erp: 'ATPU2M' };
 const fixtureDe = (datos = HOJA, ruta = 'lab/costear/ciego_erp/hojas/ATPU2M.json') => ({ ruta, sha256: `sha-${JSON.stringify(datos).length}-${ruta.length}`, datos });
@@ -26,7 +30,7 @@ const FX = fixtureDe();
 const declaradaDe = (fx = FX) => ({ ruta: fx.ruta, sha256: fx.sha256 });
 const corridaDe = (edges, extra = {}, fx = FX) => unirCorrida([{ auditoria: auditarLlamadasCorrida(edges, { hoja: declaradaDe(fx), costeable: costeableDeHoja(fx.datos), ...extra }), binario, crudas: edges, fixture: fx }]);
 const hojaDe = (auditoria, crudas, extra = {}) => ({ auditoria: { ...auditoria, hoja: auditoria?.hoja ?? declaradaDe() }, binario, crudas, fixture: FX, ...extra });
-const hoy = { archivos: { 'src/motor/calculo.js': 'a1' }, db: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-11-01' }, edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
+const hoy = { archivos: { 'src/motor/calculo.js': 'a1', 'package-lock.json': LOCK }, db: { insumo_precios: { filas: 2, md5: 'p' }, sql: { catalogo_vigente: 'v' }, medido_en: '2026-11-01' }, edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
   modelos: [{ fn: 'analizar-mueble-rc', modo: 'texto', model_id: 'claude-opus-5', request_id: 'r1' }, { fn: 'analizar-mueble-rc', modo: 'imagen', model_id: 'claude-opus-5-5', request_id: 'r2' }],
   corrida: corridaDe(edgesHoja), cambiosGit: [] };
 
@@ -49,7 +53,7 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
     expect(compararHuellas(M, { ...hoy, edges: { 'costear-servidor-rc': { version: 16, ezbr_sha256: 'e2' } } }).cambios).toEqual(['edge costear-servidor-rc']);
   });
   it('un archivo de motor cambiado ⇒ invalida', () => {
-    expect(compararHuellas(M, { ...hoy, archivos: { 'src/motor/calculo.js': 'b2' } }).cambios).toEqual(['archivo src/motor/calculo.js']);
+    expect(compararHuellas(M, { ...hoy, archivos: { 'src/motor/calculo.js': 'b2', 'package-lock.json': LOCK } }).cambios).toEqual(['archivo src/motor/calculo.js']);
   });
   it('el orden de las llaves del JSON de la base no importa', () => {
     expect(compararHuellas(M, { ...hoy, db: { sql: { catalogo_vigente: 'v' }, insumo_precios: { md5: 'p', filas: 2 } } }).estado).toBe('OK');
@@ -362,6 +366,42 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
       expect(v.estado).toBe('NO_VERIFICADO');
       expect(v.falta).toContain('integridad por bytes del checkout en 0-binario.json (integridadGit)');
     }
+  });
+  // ---- v5.7 (P1-HO-04, auditoría de ecec624): las dependencias ejecutadas salen de un npm ci limpio del lockfile congelado ----
+  it('U · ATAQUE: node_modules contaminado (hash de la corrida ≠ hash de la preparación) ⇒ CAMBIO', () => {
+    const d = binario.integridadDeps;
+    const r = compararHuellas(M, conBinario({ ...binario, integridadDeps: { ...d, ejecutado: { ...d.ejecutado, nodeModulesHash: 'b'.repeat(64) } } }));
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios.some((c) => /node_modules cambió entre la preparación .* y la corrida/.test(c))).toBe(true);
+  });
+  it('U · preparación con otro lockfile que el congelado ⇒ CAMBIO', () => {
+    const d = binario.integridadDeps;
+    const r = compararHuellas(M, conBinario({ ...binario, integridadDeps: { prep: { ...d.prep, lockfileSha256: 'c'.repeat(64) }, ejecutado: { ...d.ejecutado, lockfileSha256: 'c'.repeat(64) } } }));
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios.some((c) => /un lockfile .* distinto al congelado/.test(c))).toBe(true);
+  });
+  it('U · el lockfile de la corrida difiere del de la preparación ⇒ CAMBIO', () => {
+    const d = binario.integridadDeps;
+    const r = compararHuellas(M, conBinario({ ...binario, integridadDeps: { ...d, ejecutado: { ...d.ejecutado, lockfileSha256: 'd'.repeat(64) } } }));
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios.some((c) => /no es el de la preparación/.test(c))).toBe(true);
+  });
+  it('U · sin preparación limpia (npm ci no demostrado, reutilizado, o sin integridadDeps) ⇒ NO_VERIFICADO', () => {
+    const d = binario.integridadDeps; const { integridadDeps, ...sinDeps } = binario;
+    for (const b of [sinDeps, { ...binario, integridadDeps: null },
+      { ...binario, integridadDeps: { ...d, prep: { ...d.prep, npmCiOk: false } } },
+      { ...binario, integridadDeps: { ...d, prep: { ...d.prep, freshInstall: false } } },
+      { ...binario, integridadDeps: { ...d, prep: { ...d.prep, reutilizado: true } } },
+      { ...binario, integridadDeps: { ...d, prep: { ...d.prep, metodo: 'copia' } } },
+      { ...binario, integridadDeps: { prep: d.prep, ejecutado: { ...d.ejecutado, nodeModulesHash: 'xyz' } } }]) {
+      const v = compararHuellas(M, conBinario(b));
+      expect(v.estado).toBe('NO_VERIFICADO');
+      expect(v.falta).toContain('atestación de dependencias (npm ci del lockfile congelado) en 0-binario.json (integridadDeps)');
+    }
+  });
+  it('U · preparación limpia + hash de corrida = hash de preparación + lockfile congelado ⇒ sin cambios de deps', () => {
+    const r = compararHuellas(M, conBinario(binario));
+    expect(r.cambios.filter((c) => /lockfile|node_modules/.test(c))).toEqual([]);
   });
   it('envGitLimpio: quita GIT_DIR, GIT_WORK_TREE, GIT_INDEX_FILE… y apaga los objetos `git replace`; lo demás queda', () => {
     const e = envGitLimpio({ PATH: '/usr/bin', HOME: '/root', GIT_DIR: '/otro/.git', GIT_WORK_TREE: '/otro', GIT_INDEX_FILE: '/tmp/i', git_dir: '/x', GIT_NO_REPLACE_OBJECTS: '0' });

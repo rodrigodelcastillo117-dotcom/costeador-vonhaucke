@@ -1,0 +1,15 @@
+# P1-HO-04 · pruebas v5.7 (U) contra el verificador de ecec624 (holdoutHuellas.js SIN regla de deps)
+# Esperado: las U fallan (el verificador viejo da OK/NO detecta node_modules contaminado ni exige la atestación).
+
+ ❯ src/datos/holdoutHuellas.test.js (42 tests | 4 failed | 37 skipped) 22ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > U · ATAQUE: node_modules contaminado (hash de la corrida ≠ hash de la preparación) ⇒ CAMBIO 16ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > U · preparación con otro lockfile que el congelado ⇒ CAMBIO 1ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > U · el lockfile de la corrida difiere del de la preparación ⇒ CAMBIO 1ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > U · sin preparación limpia (npm ci no demostrado, reutilizado, o sin integridadDeps) ⇒ NO_VERIFICADO 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/datos/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > U · ATAQUE: node_modules contaminado (hash de la corrida ≠ hash de la preparación) ⇒ CAMBIO
+ FAIL  src/datos/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > U · preparación con otro lockfile que el congelado ⇒ CAMBIO
+ FAIL  src/datos/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > U · el lockfile de la corrida difiere del de la preparación ⇒ CAMBIO
+ FAIL  src/datos/holdoutHuellas.test.js > Holdout v2 · congelamiento verificable (fail-closed) > U · sin preparación limpia (npm ci no demostrado, reutilizado, o sin integridadDeps) ⇒ NO_VERIFICADO
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed | 37 skipped (42)

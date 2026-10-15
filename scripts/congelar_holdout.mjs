@@ -33,7 +33,7 @@ const RAICES = [
   'supabase/functions/costear-servidor-rc', 'supabase/functions/analizar-mueble-rc',
   'e2e/labCostear.e2e.js', 'lab/costear/holdout_intelisis/huellas_db.sql', 'lab/costear/holdout_intelisis/modelos_observados.sql',
   'lab/costear/ciego_erp/comparar.mjs', 'lab/costear/ciego_erp/correr.sh', 'lab/costear/ciego_erp/gen_hojas.py',
-  'scripts/congelar_holdout.mjs', 'package-lock.json',
+  'scripts/congelar_holdout.mjs', 'scripts/prepararEntornoHoldout.mjs', 'package-lock.json',
   // v5.3 (auditoría binaria 14-oct, P1): el config de Playwright decide reintentos, proyectos y servidor de la corrida, y el
   // de Vite decide qué se sirve; los dos se congelan (antes sólo contaban en el git diff, y el de Playwright ni eso).
   'playwright.config.js', 'vite.config.js',

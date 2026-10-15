@@ -1,4 +1,4 @@
-// Holdout v5.1–v5.6 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
+// Holdout v5.1–v5.7 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
 // copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca (v5.3/v5.5: sólo objetos
 // git sueltos para los casos de commit cambiado).
 //   node lab/costear/holdout_intelisis/casos_falla_cerrada.mjs <corrida> <huellas_db_post> <edges_post> <modelos>
@@ -88,6 +88,11 @@ const casos = [
   ['mismo HEAD, src/App.jsx modificado y skip-worktree (git status limpio)', { binario: { ...binario, arbolLimpio: true, integridadGit: { ...binario.integridadGit, banderas: ['S src/App.jsx'], nBanderas: 1, distintos: ['src/App.jsx'], nDistintos: 1 } } }],
   ['mismo HEAD, sin banderas pero bytes distintos (mismo tamaño + mtime restaurado + core.trustctime=false)', { binario: { ...binario, arbolLimpio: true, integridadGit: { ...binario.integridadGit, distintos: ['src/App.jsx'], nDistintos: 1 } } }],
   ['0-binario.json sin `integridadGit` (E2E v5.5)', { binario: (({ integridadGit, ...b }) => b)(binario) }],
+  // v5.7 (P1-HO-04, auditoría de ecec624): la instalación ejecutada deriva de un `npm ci` limpio del lockfile congelado.
+  ['node_modules contaminado: el hash de la corrida ≠ el de la preparación limpia', { binario: { ...binario, integridadDeps: { ...binario.integridadDeps, ejecutado: { ...binario.integridadDeps?.ejecutado, nodeModulesHash: 'b'.repeat(64) } } } }],
+  ['preparación de dependencias con un lockfile distinto al congelado', { binario: { ...binario, integridadDeps: { prep: { ...binario.integridadDeps?.prep, lockfileSha256: 'c'.repeat(64) }, ejecutado: { ...binario.integridadDeps?.ejecutado, lockfileSha256: 'c'.repeat(64) } } } }],
+  ['el runner reutilizó node_modules previo (sin npm ci limpio)', { binario: { ...binario, integridadDeps: { ...binario.integridadDeps, prep: { ...binario.integridadDeps?.prep, npmCiOk: false, freshInstall: false, reutilizado: true } } } }],
+  ['0-binario.json sin `integridadDeps` (E2E v5.6)', { binario: (({ integridadDeps, ...b }) => b)(binario) }],
 ];
 const filas = [];
 for (const [i, [nombre, c]] of casos.entries()) {
