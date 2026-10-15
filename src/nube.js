@@ -532,6 +532,29 @@ export async function aprobarPrecio(precioId, nota = null) {
   return { ok: true };
 }
 
+// P1-03 (lote): Dirección aprueba en lote los precios EXACTOS indicados. Usa el RPC de producción `aprobar_precios_lote`,
+// que exige rol direccion del usuario AUTENTICADO (approved_by = su correo) y registra cada firma en el historial
+// inmutable; nunca aprueba un precio que no cumple el contrato de origen (DATA_TRUTH_V1). No se puede firmar por otro.
+export async function aprobarPreciosLote(precioIds, nota = null) {
+  const ids = [...new Set((Array.isArray(precioIds) ? precioIds : []).map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  if (!ids.length) return { ok: false, error: 'sin precio_ids válidos' };
+  const { data, error } = await nube.rpc('aprobar_precios_lote', { p_ids: ids, p_nota: nota });
+  if (error) return { ok: false, error: error.message || 'No se pudieron aprobar los precios.' };
+  const aprobados = Number(data?.aprobados ?? 0);
+  const errores = Array.isArray(data?.errores) ? data.errores : [];
+  return { ok: errores.length === 0, aprobados, errores, solicitados: ids.length };
+}
+
+// Precios VIGENTES que Dirección puede certificar en lote (contrato de origen completo), para ofrecer "aprobar todos los
+// elegibles" sin pedir uno por uno. Sólo lectura; la aprobación sigue exigiendo el click autenticado de Dirección.
+export async function preciosCertificables({ soloNoAprobados = true } = {}) {
+  let q = nube.from('insumo_precios').select('id, insumo_id, estado, contract_status').is('vigente_hasta', null).eq('contract_status', 'DATA_TRUTH_V1');
+  if (soloNoAprobados) q = q.neq('estado', 'aprobado');
+  const { data, error } = await q;
+  if (error) return { ok: false, error: error.message || 'No se pudo leer los precios.' };
+  return { ok: true, ids: (data || []).map((r) => r.id), filas: data || [] };
+}
+
 export async function costearServidor(pieza, cantidad = 1) {
   // VH-036: se manda la INTENCIÓN TÉCNICA saneada (sin margen/factores/modelo) y se
   // valida ANTES de salir con el mismo validador que espeja el servidor.
