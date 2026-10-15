@@ -4,6 +4,7 @@
 // LAB_COSTEAR_IMG + TEST_EMAIL/TEST_PASSWORD (cuenta QA). Gasta 1–2 llamadas de IA.
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs'; import path from 'node:path'; import crypto from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import { auditarLlamadasCorrida, costeableDeHoja } from '../src/datos/holdoutHuellas.js';
 // LAB_HOJA = hoja de control (lab/costear/hojas_control/*.json): fixture, respuestas CON EVIDENCIA del plano, pieza ERP a
 // mano y BOM esperado. Con hoja, el laboratorio sólo contesta lo que el plano demuestra; lo demás queda por confirmar.
@@ -43,7 +44,7 @@ async function leerResultado(page) {
   return { precios: precios.map((x) => x.trim()), margen, estado, estado3, validadores, linea, pendiente: /\bPendiente\b/.test(precios.join(' ')), porConfirmar: /Por confirmar/.test(precios.join(' ')) };
 }
 
-test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir', async ({ page }) => {
+test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guardar → reabrir', async ({ page }, testInfo) => {
   test.skip(!(EMAIL && PASS && IMG), 'Define TEST_EMAIL, TEST_PASSWORD y LAB_COSTEAR_IMG.');
   test.setTimeout(12 * 60 * 1000); fs.mkdirSync(SALIDA, { recursive: true });
   const edges = []; const rest = []; const pageErrors = [];
@@ -59,7 +60,22 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // Holdout v4 (P1-04): el SHA que sirve el navegador es el que se congeló (correr.sh exporta LAB_GIT_SHA).
   const textoVersion = await page.getByText(/^v\S+ · \S+$/).first().innerText().catch(() => '');
   const shaApp = (textoVersion.match(/ · (\S+)$/) || [])[1] || null;
-  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString() });
+  // v5.3 (P1): `reintento` queda en la evidencia y, con hoja (holdout), un reintento FALLA: la evidencia sólo puede salir del
+  // primer intento, sin importar `retries` del config, `--retries` o `CI=1`.
+  // También el árbol de git (sin cambios sin commit) y el import.meta.env que el servidor de desarrollo inyecta de verdad
+  // (cubre .env ignorados por git y variables VITE_ extra al lanzar Vite). Los valores con pinta de secreto no se guardan.
+  let arbolLimpio = null; try { arbolLimpio = execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], { encoding: 'utf8' }).trim() === ''; } catch (_e) {}
+  let entornoVite = null;
+  try {
+    const fuente = await (await page.request.get('/src/datos/conflictoGuardado.js')).text();
+    const m = fuente.match(/import\.meta\.env = (\{[^;]*\});/);
+    if (m) entornoVite = Object.fromEntries(Object.entries(JSON.parse(m[1])).map(([k, v]) => [k, /KEY|SECRET|TOKEN|PASS/i.test(k) ? '<redactado>' : v]));
+  } catch (_e) {}
+  guarda('0-binario.json', { shaApp, shaGit: process.env.LAB_GIT_SHA || null, baseURL: page.url(), fecha: new Date().toISOString(), reintento: testInfo.retry, arbolLimpio, entornoVite });
+  if (HOJA) {
+    expect(testInfo.retry, 'holdout: la evidencia sólo vale del primer intento (sin reintentos)').toBe(0);
+    expect(arbolLimpio, 'holdout: el árbol de git tiene cambios sin commit').toBe(true);
+  }
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();

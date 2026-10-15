@@ -1,5 +1,6 @@
 // Holdout v5.1/v5.2 · Q4 reproducible: copia la corrida de humo real, la altera de muchas formas y corre el verificador sobre cada
-// copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca.
+// copia. Ninguna puede dar OK (exit 0). Las copias van a un directorio temporal; el repo no se toca (v5.3: sólo objetos
+// git sueltos para el caso del config de Playwright).
 //   node lab/costear/holdout_intelisis/casos_falla_cerrada.mjs <corrida> <huellas_db_post> <edges_post> <modelos>
 import fs from 'node:fs';
 import os from 'node:os';
@@ -23,6 +24,23 @@ const eventos = JSON.parse(fs.readFileSync(modelos, 'utf8'));
 const ia = (e) => /^analizar-mueble/.test(e.fn);
 const prod = { fn: 'costear-servidor', status: 200, body: '{}' };
 
+const base = fs.mkdtempSync(path.join(os.tmpdir(), 'holdout-q4-'));
+// v5.3: commit-OBJETO local = HEAD con sólo playwright.config.js cambiado (retries 5). Índice temporal: no toca ramas, el
+// árbol de trabajo ni el remoto; sólo deja objetos sueltos en .git que nadie referencia.
+function shaConConfigCambiado() {
+  const g = (args, env = {}, input) => spawnSync('git', args, { encoding: 'utf8', env: { ...process.env, ...env }, input });
+  const env = { GIT_INDEX_FILE: path.join(base, 'index.tmp') };
+  const head = g(['rev-parse', 'HEAD']).stdout.trim();
+  g(['read-tree', head], env);
+  const cfg = g(['show', `${head}:playwright.config.js`]).stdout.replace(/retries:[^,\n]*,/, 'retries: 5,');
+  const blob = g(['hash-object', '-w', '--stdin'], {}, cfg).stdout.trim();
+  g(['update-index', '--cacheinfo', `100644,${blob},playwright.config.js`], env);
+  const tree = g(['write-tree'], env).stdout.trim();
+  const sha = g(['commit-tree', tree, '-p', head, '-m', 'holdout v5.3: ataque retries (objeto local, no se publica)']).stdout.trim();
+  if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('no se pudo crear el commit de ataque');
+  return sha;
+}
+
 const casos = [
   ['corrida real, sin alterar', {}],
   ['una llamada de IA sin request_id', { crudas: crudas.map((e) => (ia(e) ? { ...e, request_id: null } : e)) }],
@@ -41,9 +59,15 @@ const casos = [
   ['producción en el recosteo, entre llamadas RC', { crudas: (() => { const i = crudas.findIndex((e) => e.fn === 'costear-servidor-rc'); return [...crudas.slice(0, i + 1), prod, ...crudas.slice(i + 1)]; })() }],
   ['hoja declarada con otro sha256 (no es la que está en git)', { editar: (a) => ({ ...a, hoja: { ...a.hoja, sha256: '0'.repeat(64) } }) }],
   ['hoja sin declarar (E2E v5.1)', { editar: (a) => ({ ...a, hoja: null }) }],
+  // v5.3 (auditoría binaria del FINAL_SHA, P1): el arnés de la prueba también está congelado y la evidencia sólo vale del
+  // primer intento.
+  ['SHA servido = HEAD + sólo playwright.config.js con retries 5', { binario: (() => { const s = shaConConfigCambiado(); return { ...binario, shaGit: s.slice(0, 7), shaApp: s.slice(0, 7) }; })() }],
+  ['evidencia de un reintento de Playwright (reintento 1)', { binario: { ...binario, reintento: 1 } }],
+  ['0-binario.json sin `reintento` (E2E v5.2)', { binario: (({ reintento, ...b }) => b)(binario) }],
+  ['corrida servida con cambios sin commit (arbolLimpio false)', { binario: { ...binario, arbolLimpio: false } }],
+  ['entorno de Vite con una variable extra (VITE_CONTROL_OPTIMISTA, p. ej. de un .env ignorado)', { binario: { ...binario, entornoVite: { ...binario.entornoVite, VITE_CONTROL_OPTIMISTA: '1' } } }],
+  ['entorno de Vite apuntando a la Edge de producción', { binario: { ...binario, entornoVite: { ...binario.entornoVite, VITE_COSTEAR_FN: 'costear-servidor' } } }],
 ];
-
-const base = fs.mkdtempSync(path.join(os.tmpdir(), 'holdout-q4-'));
 const filas = [];
 for (const [i, [nombre, c]] of casos.entries()) {
   const dir = path.join(base, String(i), hoja); fs.mkdirSync(dir, { recursive: true });

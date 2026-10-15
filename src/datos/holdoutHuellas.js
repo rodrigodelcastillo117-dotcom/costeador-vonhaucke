@@ -102,7 +102,8 @@ export function unirCorrida(hojas = []) {
 
 // Código que viaja en el binario del navegador o en las Edge: un cambio ahí entre el SHA congelado y el servido invalida
 // aunque el archivo no esté en el cierre de imports (p. ej. App.jsx). Docs y evidencia del propio holdout no.
-const RE_CODIGO = /^(src|supabase|e2e|scripts|public|index\.html|vite\.config|package(-lock)?\.json|lab\/costear\/ciego_erp)/;
+// v5.3 (P1): playwright.config.js también: decide cuántas veces se reintenta la prueba que produce la evidencia.
+const RE_CODIGO = /^(src|supabase|e2e|scripts|public|index\.html|vite\.config|playwright\.config|package(-lock)?\.json|lab\/costear\/ciego_erp)/;
 const RE_NO_CODIGO = /^lab\/costear\/holdout_intelisis\/MANIFIESTO\.json$|\.md$/;
 
 export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corrida, cambiosGit }) {
@@ -145,6 +146,11 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
     corrida && corrida.costeo?.casosCosteableInvalido && `${corrida.costeo.casosCosteableInvalido} hoja(s) con "costeable" inválido (false exige motivo_no_costeable)`,
     corrida && corrida.costeo?.casosCosteableDistinto && `${corrida.costeo.casosCosteableDistinto} hoja(s) cuyo llamadas.json declara "costeable" distinto de su hoja congelada`,
     corrida && !binarios.length && 'evidencia del binario (0-binario.json)',
+    // v5.3 (P1): la evidencia sale del PRIMER intento. Un 0-binario sin `reintento` (E2E anterior) no lo demuestra.
+    corrida && binarios.some((b) => b && !Number.isInteger(b.reintento)) && 'intento de la prueba en 0-binario.json (reintento)',
+    corrida && binarios.some((b) => b && typeof b.arbolLimpio !== 'boolean') && 'estado del árbol de git en 0-binario.json (arbolLimpio)',
+    corrida && binarios.some((b) => b && !(b.entornoVite && typeof b.entornoVite === 'object')) && 'entorno de Vite servido en 0-binario.json (entornoVite)',
+    corrida && !(manifiesto.entornoVite && typeof manifiesto.entornoVite === 'object') && 'entorno de Vite esperado en el MANIFIESTO',
     corrida && binarios.length && !Array.isArray(cambiosGit) && 'diferencias git entre el SHA congelado y el servido'].filter(Boolean);
   // Los modelos se comparan aunque falte otra huella: un modelo distinto ya invalida.
   if (esperados && Array.isArray(modelos)) {
@@ -160,6 +166,12 @@ export function compararHuellas(manifiesto, { archivos, db, edges, modelos, corr
   // El binario: lo que sirvió el navegador es lo que se congeló (mismo SHA en navegador y git; sin código cambiado entre medio).
   for (const b of binarios) {
     if (!b?.shaApp || !b?.shaGit || !String(b.shaGit).startsWith(String(b.shaApp)) && !String(b.shaApp).startsWith(String(b.shaGit))) cambios.push(`binario: el navegador sirvió ${b?.shaApp ?? 'sin SHA'} y git era ${b?.shaGit ?? 'sin SHA'}`);
+    if (Number.isInteger(b?.reintento) && b.reintento !== 0) cambios.push(`evidencia de un reintento de Playwright (reintento ${b.reintento}): sólo vale el primer intento`);
+    if (b?.arbolLimpio === false) cambios.push('binario: la corrida se sirvió con cambios sin commit en el árbol de git');
+    if (b?.entornoVite && typeof b.entornoVite === 'object' && manifiesto.entornoVite && canon(b.entornoVite) !== canon(manifiesto.entornoVite)) {
+      const claves = [...new Set([...Object.keys(b.entornoVite), ...Object.keys(manifiesto.entornoVite)])].filter((k) => canon(b.entornoVite[k]) !== canon(manifiesto.entornoVite[k])).sort();
+      cambios.push(`entorno de Vite distinto al congelado: ${claves.join(', ')}`);
+    }
   }
   for (const f of Array.isArray(cambiosGit) ? cambiosGit : []) if (RE_CODIGO.test(f) && !RE_NO_CODIGO.test(f)) cambios.push(`código cambiado después del congelamiento: ${f}`);
   // Un cambio invalida aunque además falte alguna huella (exit 1 del script, no 2).

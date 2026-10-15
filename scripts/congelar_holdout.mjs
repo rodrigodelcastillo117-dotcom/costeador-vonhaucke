@@ -33,11 +33,20 @@ const RAICES = [
   'e2e/labCostear.e2e.js', 'lab/costear/holdout_intelisis/huellas_db.sql', 'lab/costear/holdout_intelisis/modelos_observados.sql',
   'lab/costear/ciego_erp/comparar.mjs', 'lab/costear/ciego_erp/correr.sh', 'lab/costear/ciego_erp/gen_hojas.py',
   'scripts/congelar_holdout.mjs', 'package-lock.json',
+  // v5.3 (auditoría binaria 14-oct, P1): el config de Playwright decide reintentos, proyectos y servidor de la corrida, y el
+  // de Vite decide qué se sirve; los dos se congelan (antes sólo contaban en el git diff, y el de Playwright ni eso).
+  'playwright.config.js', 'vite.config.js',
 ];
 // Modelo de IA por (fn, modo) que la corrida debe observar en ai_eventos. Medido 14-oct (ai_eventos, últimas 30 h):
 // texto → claude-opus-5; imagen y revisión → claude-opus-5-5 (cambió el 13-oct 18:44 desde claude-sonnet-5-5).
 const MODELOS_ESPERADOS = {
   'analizar-mueble-rc': { texto: 'claude-opus-5', imagen: 'claude-opus-5-5', revision: 'claude-opus-5-5' },
+};
+// v5.3: lo que el servidor de desarrollo inyecta en import.meta.env durante la corrida (lo registra el E2E en 0-binario.json).
+// Cualquier otra variable VITE_ (un .env ignorado por git, una variable extra al lanzar Vite) cambia lo que corre: CAMBIO.
+const ENTORNO_VITE_ESPERADO = {
+  BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false,
+  VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc',
 };
 const archivos = (p) => {
   const abs = path.join(RAIZ, p);
@@ -102,5 +111,6 @@ fs.writeFileSync(path.join(RAIZ, SALIDA), JSON.stringify({
   baseDatos: arg('--db') ? leerJson(arg('--db')) : (previo.baseDatos || null),
   edges: arg('--edges') ? leerJson(arg('--edges')) : (previo.edges || null),
   modelosEsperados: MODELOS_ESPERADOS,
+  entornoVite: ENTORNO_VITE_ESPERADO,
 }, null, 1) + '\n');
 console.log(`Congelado: ${lista.length} archivos · ${total.slice(0, 16)} · frontend ${git('rev-parse', '--short', 'HEAD')}`);

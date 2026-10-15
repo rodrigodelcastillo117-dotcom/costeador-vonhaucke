@@ -7,13 +7,15 @@ const M = {
   edges: { 'costear-servidor-rc': { version: 15, ezbr_sha256: 'e1' } },
   modelosEsperados: { 'analizar-mueble-rc': { texto: 'claude-opus-5', imagen: 'claude-opus-5-5' } },
   frontendSha: 'abc1234def',
+  entornoVite: { BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false, VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc' },
 };
 // v5: la corrida se describe con la auditoría de llamadas de cada hoja (E2E) + su 0-binario.json.
 const edgesHoja = [
   { fn: 'analizar-mueble-rc', body: { request_id: 'r1' } }, { fn: 'analizar-mueble-rc', body: { request_id: 'r2' } },
   { fn: 'costear-servidor-rc', body: { ok: true } },
 ];
-const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z' };
+const binario = { shaApp: 'abc1234', shaGit: 'abc1234', baseURL: 'http://localhost:5173/', fecha: '2026-11-01T10:00:00Z', reintento: 0, arbolLimpio: true,
+  entornoVite: { BASE_URL: '/', DEV: true, MODE: 'development', PROD: false, SSR: false, VITE_ANALIZAR_MUEBLE_FN: 'analizar-mueble-rc', VITE_COSTEAR_FN: 'costear-servidor-rc' } };
 // v5.2: cada hoja trae su FIXTURE leída de git en el SHA servido (ruta + sha256 + datos); el E2E declara la misma ruta y sha.
 const HOJA = { texto: 'Pata tipo "u" de 600 x 720 mm', clave_erp: 'ATPU2M' };
 const fixtureDe = (datos = HOJA, ruta = 'lab/costear/ciego_erp/hojas/ATPU2M.json') => ({ ruta, sha256: `sha-${JSON.stringify(datos).length}-${ruta.length}`, datos });
@@ -230,5 +232,45 @@ describe('Holdout v2 · congelamiento verificable (fail-closed)', () => {
       expect(r.estado).toBe('CAMBIO'); expect(r.cambios).toEqual(['costeo con Edge ajena: costear-servidor']);
     }
     expect(compararHuellas(M, { ...hoy, corrida: corridaDe([...edgesHoja, { fn: 'costear-servidor-rc2', body: {} }]) }).cambios).toEqual(['costeo con Edge ajena: costear-servidor-rc2']);
+  });
+  // ---- v5.3 (auditoría binaria del FINAL_SHA, P1): el arnés que decide si la prueba pasa también está congelado ----
+  it('M · ATAQUE: el SHA servido sólo cambia playwright.config.js (retries 0 → 5) ⇒ CAMBIO (antes daba OK)', () => {
+    const r = compararHuellas(M, { ...hoy, cambiosGit: ['playwright.config.js'] });
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios).toEqual(['código cambiado después del congelamiento: playwright.config.js']);
+    // la documentación sigue sin contar: el holdout congela lo ejecutable
+    expect(compararHuellas(M, { ...hoy, cambiosGit: ['docs/auditoria/baseline_prod.sql', 'RELEASE_9_5_GATE.md'] }).estado).toBe('OK');
+  });
+  it('N · la evidencia salió de un REINTENTO de Playwright (CI=1, --retries o config) ⇒ CAMBIO; sin `reintento` ⇒ NO_VERIFICADO', () => {
+    const conReintento = { ...binario, reintento: 1 };
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: conReintento })]) });
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios).toEqual(['evidencia de un reintento de Playwright (reintento 1): sólo vale el primer intento']);
+    const { reintento, ...sinCampo } = binario;
+    const v = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: sinCampo })]) });
+    expect(v.estado).toBe('NO_VERIFICADO');
+    expect(v.falta).toContain('intento de la prueba en 0-binario.json (reintento)');
+  });
+  it('O · la corrida se sirvió con cambios SIN COMMIT (p. ej. vite.config.js editado sin commit, mismo SHA) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO', () => {
+    const sucio = { ...binario, arbolLimpio: false };
+    const r = compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: sucio })]) });
+    expect(r.estado).toBe('CAMBIO');
+    expect(r.cambios).toEqual(['binario: la corrida se sirvió con cambios sin commit en el árbol de git']);
+    const { arbolLimpio, ...sinDato } = binario;
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: sinDato })]) }).falta)
+      .toContain('estado del árbol de git en 0-binario.json (arbolLimpio)');
+  });
+  it('P · el servidor de desarrollo sirvió OTRO entorno (un .env ignorado, VITE_CONTROL_OPTIMISTA, otra Edge) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO', () => {
+    const conExtra = { ...binario, entornoVite: { ...binario.entornoVite, VITE_CONTROL_OPTIMISTA: '1' } };
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: conExtra })]) }).cambios)
+      .toEqual(['entorno de Vite distinto al congelado: VITE_CONTROL_OPTIMISTA']);
+    const otraEdge = { ...binario, entornoVite: { ...binario.entornoVite, VITE_COSTEAR_FN: 'costear-servidor' } };
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: otraEdge })]) }).cambios)
+      .toEqual(['entorno de Vite distinto al congelado: VITE_COSTEAR_FN']);
+    const { entornoVite, ...sinDato } = binario;
+    expect(compararHuellas(M, { ...hoy, corrida: unirCorrida([hojaDe(auditarLlamadasCorrida(edgesHoja), edgesHoja, { binario: sinDato })]) }).falta)
+      .toContain('entorno de Vite servido en 0-binario.json (entornoVite)');
+    const { entornoVite: _e, ...manifiestoViejo } = M;
+    expect(compararHuellas(manifiestoViejo, hoy).falta).toContain('entorno de Vite esperado en el MANIFIESTO');
   });
 });

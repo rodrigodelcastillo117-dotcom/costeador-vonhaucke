@@ -1,0 +1,9 @@
+# Holdout v5.3 · pruebas nuevas M, N, O, P contra holdoutHuellas.js de 157d0ad (v5.2): deben fallar.
+# Comando: npx vitest run src/datos/holdoutHuellas.test.js (con src/datos/holdoutHuellas.js de 157d0ad)
+   × Holdout v2 · congelamiento verificable (fail-closed) > M · ATAQUE: el SHA servido sólo cambia playwright.config.js (retries 0 → 5) ⇒ CAMBIO (antes daba OK) 24ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > N · la evidencia salió de un REINTENTO de Playwright (CI=1, --retries o config) ⇒ CAMBIO; sin `reintento` ⇒ NO_VERIFICADO 2ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > O · la corrida se sirvió con cambios SIN COMMIT (p. ej. vite.config.js editado sin commit, mismo SHA) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO 1ms
+   × Holdout v2 · congelamiento verificable (fail-closed) > P · el servidor de desarrollo sirvió OTRO entorno (un .env ignorado, VITE_CONTROL_OPTIMISTA, otra Edge) ⇒ CAMBIO; sin dato ⇒ NO_VERIFICADO 4ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  4 failed | 27 passed (31)

@@ -7,10 +7,10 @@ es el runbook para la decisión GO/NO-GO de la ventana y para la ventana misma.
 | | |
 |---|---|
 | Rama | `claude/costing-app-architecture-psf02g` ([PR #37](https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/37)) |
-| **FINAL_SHA** | **El commit que agrega esta versión del gate.** Es el último commit del release: después de él no se agrega nada a la rama. Reemplaza a `0e19fd3` (mismo código, sólo documentos). Al verificar `0e19fd3` encontré que el paso 3 y R3 del runbook no se podían ejecutar tal como estaban escritos (§5.3 y §5.4); toda la evidencia se rehízo sobre FINAL_SHA. |
+| **FINAL_SHA** | **El commit que agrega esta versión del gate.** Es el último commit del release: después de él no se agrega nada a la rama. Toda la evidencia se rehízo sobre FINAL_SHA. Historia: <br>1. `0e19fd3`: el paso 3 y R3 del runbook no se podían ejecutar tal como estaban escritos (§5.3, §5.4). <br>2. `157d0ad`: la auditoría binaria encontró un **P1 en el verificador del holdout**: `playwright.config.js` quedaba fuera del congelamiento (§8). Este commit lo cierra con el holdout v5.3. |
 | Por qué el SHA no está escrito aquí | Un commit no puede contener su propio SHA. Todo lo que nombra a FINAL_SHA vive **fuera del repo**, en el paquete del auditor (`00_LEEME_AUDITOR.md`): CI ×3, preview de Vercel, Edge RC desplegada desde FINAL_SHA, manifiesto del holdout congelado sobre FINAL_SHA, `--verificar` y la relectura final de producción. Escribirlo aquí movería el SHA. |
-| Último cambio de código | `214786b` (§2). FINAL_SHA sólo agrega documentación: `git diff 214786b FINAL_SHA -- src supabase e2e scripts lab package.json package-lock.json vite.config.js playwright.config.js` es **vacío**. |
-| Edge RC | `costear-servidor-rc` se despliega desde FINAL_SHA con el workflow "Deploy edge functions". Desde `214786b` (mismo código): **v24** `52e4228e454c172ad488cfbbec240d6996af02f49412bd66f427688bc98d9786`. `analizar-mueble-rc` v8 `f226b792…` (sin cambios). |
+| Último cambio de código | **App y Edge:** `214786b` (§2). **Arnés del holdout:** FINAL_SHA (v5.3), en `scripts/congelar_holdout.mjs`, `src/datos/holdoutHuellas.js` (+ prueba), `e2e/labCostear.e2e.js` y `lab/costear/holdout_intelisis/casos_falla_cerrada.mjs`. `holdoutHuellas.js` sólo lo importan esos tres; nada llega al bundle ni a la Edge. Por eso `git diff 214786b FINAL_SHA -- supabase src` sólo toca `src/datos/holdoutHuellas*.js`. |
+| Edge RC | `costear-servidor-rc` se despliega desde FINAL_SHA con el workflow "Deploy edge functions". Desde `214786b` (mismo código de Edge; el holdout v5.3 no toca nada que importe la Edge): **v24** `52e4228e454c172ad488cfbbec240d6996af02f49412bd66f427688bc98d9786`. `analizar-mueble-rc` v8 `f226b792…` (sin cambios). |
 | Holdout | Se recongela sobre FINAL_SHA (§8). El manifiesto de ese congelamiento va en el paquete, por la misma razón. El `MANIFIESTO.json` versionado en el repo es el v5.2 de `7f27dc5`: **histórico**, ya no verifica (cambió código del cierre transitivo). |
 | Producción (cliente) | `c3.4-seller-safe` @ `c8dd2b3`, `dpl_Bm7FFwdPLFZJEg9cnHsEGeua7bF3`. **Sin cambios.** |
 | SQL aplicado en producción en esta ronda | **ninguno** (sólo lecturas: `docs/auditoria/baseline_prod.sql`, huellas del holdout) |
@@ -28,7 +28,7 @@ como VERIFICADO / NO VERIFICABLE / FALLÓ; aquí está el criterio y dónde se m
 | La spec es la pieza EFECTIVA del motor | **Cumple.** `spec_tecnica_origen = spec(piezaEfectiva)`, y `piezaEfectiva` es **el mismo objeto** que recibe `calcular()` (ya reconciliada). Antes salía de `intent.pieza`. La respuesta devuelve `especificacionTecnica`; la partida la transporta y `adjuntar` la re-proyecta en SQL y la compara con la huella sellada en K. | `src/datos/costeoServidor.js`; `cierre_go_traza_antes.txt` (3 fallan antes) |
 | JS = SQL | **Cumple.** 34 fixtures doradas; las 14 nuevas, escritas a mano (`toString`, `constructor`, `__proto__`, `hasOwnProperty`, `valueOf`, U+001F, `\|`, `§`, `\n`, `\t`, emoji, acentos, pares sustitutos, nulos, números como texto, renglones reordenados). Además: cambiar cualquier campo técnico cambia la huella; rotar o invertir renglones no; sin colisiones entre las 34. | `specTecnicaGolden.test.js` 39/39 |
 | Pruebas por el pipeline real | **Cumple.** Q3/Q4 llaman a `atenderCosteo`, **la misma función** que ejecuta la Edge RC después de autenticar, con un cliente de servicio sobre PGlite. Nadie arma a mano `estado`, `aprobacionHumana` ni la fila de K. **No cubren:** la verificación del JWT y el transporte HTTP (la Edge sólo autentica y responde). | `seg01cVinculoCosteo.test.js`, bloque "Q3/Q4" |
-| Holdout fail-closed | **Cumple** con la v5.2: 16/16 casos alterados fallan cerrado. Sobre FINAL_SHA: recongelamiento, corrida de humo, `--verificar` y los 16 casos otra vez. | §8; paquete |
+| Holdout fail-closed | **Cumple con la v5.3.** El P1 de la auditoría binaria quedó cerrado: el arnés que decide si la prueba pasa también está congelado. Esto incluye `playwright.config.js` y `vite.config.js`, la evidencia sólo vale del primer intento, con el árbol limpio y con el entorno Vite congelado. 4 pruebas nuevas fallan con la v5.2. Sobre FINAL_SHA: recongelamiento, corrida de humo, `--verificar` y todos los casos alterados. | §8; `docs/auditoria/holdout_v53_antes.txt`; paquete |
 | Rollback completo | **Cumple.** La cadena se aplica y se revierte en PGlite y vuelve al catálogo de producción salvo las tablas de auditoría declaradas. | `cadenaVentanaRollback.test.js` 7/7; §5.4 |
 | 0 flaky | **Causa raíz corregida** en `214786b` (riesgo 14). CI 791 sobre `214786b`: 94 passed, 12 skipped, **0 flaky**. Sobre FINAL_SHA: 3 corridas consecutivas. | §7.14; paquete |
 | CI y build verdes | CI 791 sobre `214786b`: `verify` y E2E **success**. Sobre FINAL_SHA: paquete. | GitHub Actions |
@@ -48,6 +48,7 @@ como VERIFICADO / NO VERIFICABLE / FALLÓ; aquí está el criterio y dónde se m
 | `7f27dc5`, `f693ba8`, `3c052e1` | Huellas frescas, recongelamiento con la Edge RC v23, corrida de humo, `--verificar` OK y 16/16 casos de falla cerrada. |
 | `075dadd` y siguiente | **Runbook:** prueba de la cadena completa de la ventana. Rollback completo de P1-03b (antes dejaba `precio_id`). Rollback de SEG-01c quita su comentario. §4–§5 reescritos: VH-100 en el rollback, orden inverso con dependencias, smoke de producción antes de estricto, postchecks por migración y goldens. |
 | `214786b` | **Cierre absoluto (último cambio de código).** <br>1. **P2 `horas`:** sólo propiedades propias en JS (como en SQL); `toString`, `constructor`, `__proto__`, `hasOwnProperty` y `valueOf` son centros válidos. El validador del DTO arma `horas` sin prototipo, así que ya no pierde `__proto__`. <br>2. **P2 U+001F:** la clave de orden de renglones es inyectiva: por campo, `-` si falta o `<longitud en code points>:<valor>`; se compara por code point (JS) y `COLLATE "C"` (SQL). <br>3. **Spec = pieza efectiva:** núcleo `src/datos/costeoServidor.js` (`costearConMotor` + `atenderCosteo`); la Edge RC sólo autentica, atiende `cocrear` y llama `atenderCosteo`. <br>4. **Q3/Q4** por ese núcleo con PGlite. <br>5. **`golden757Edicion`:** proyecto de Playwright que depende de `golden757` y abre exactamente su presupuesto (por id). <br>Antes: 21 (P2) y 3 (trazabilidad) pruebas fallan con el código de `2d02527`. |
+| FINAL_SHA (este commit) | **Holdout v5.3 (P1 de la auditoría binaria de `157d0ad`).** El arnés de la prueba entra al congelamiento: `playwright.config.js` y `vite.config.js`; la evidencia sólo vale del primer intento, con árbol limpio y con el entorno Vite congelado (§8). Antes: 4 pruebas fallan con la v5.2. El runbook ejecutable del paso 3 y R3 (§5.3, §5.4) ya venía de `157d0ad`. |
 
 ## 3. Producción hoy (lectura del 14-oct, 20:14 UTC, con `docs/auditoria/baseline_prod.sql`)
 
@@ -219,7 +220,7 @@ Entre los pasos 3 y 4, el cliente viejo (`c8dd2b3`) costea con la Edge nueva. `i
 
   Los imports son relativos (`../../../src/…`) y las dos carpetas están a la misma profundidad: la copia resuelve igual.
   Lo único distinto es el comentario de la línea 2.
-- **Probado el 14-oct, en local y sin desplegar:** worktree limpio de `0e19fd3` (mismo código que FINAL_SHA), la copia y `scripts/edge_boot_check.sh costear-servidor` → `OPTIONS=200 POST=500`, ARRANCA.
+- **Probado el 14-oct, en local y sin desplegar:** worktree limpio de `0e19fd3` (mismo código de Edge y `src/` de app que FINAL_SHA), la copia y `scripts/edge_boot_check.sh costear-servidor` → `OPTIONS=200 POST=500`, ARRANCA.
 - Va **después** del SQL porque registra en las tablas y columnas de SEG-01c.
 - **Se verifica:**
   - versión nueva y su `ezbr_sha256` (`list_edge_functions`), que se anotan;
@@ -349,11 +350,12 @@ El E2E final necesita dos casos reales que se puedan emitir. **Hoy no existen, y
 
 | Qué | Cómo | Resultado |
 |---|---|---|
-| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**' --exclude 'lab/qa/**'` | **352 archivos, 3,432 pruebas, 0 fallas** (local, `214786b`). Lo que vale es CI sobre FINAL_SHA (paquete). |
-| Focales | `specTecnica` (41), `specTecnicaGolden` (39), `seg01cVinculoCosteo` (110), `cadenaVentanaRollback` (7), `holdoutHuellas` (27), `cocrearServidor` (9), `composicionVh035cVh148` (21), `precioIdCatalogo` (2), `promesaComercial` (17), `promesaComercialGolden` (12) | 10 archivos, **285/285** |
+| Suite completa | `npx vitest run --exclude '.claude/**' --exclude 'node_modules/**' --exclude 'lab/qa/**'` | **352 archivos, 3,436 pruebas, 0 fallas** (local, código de FINAL_SHA; +4 del holdout v5.3). Lo que vale es CI sobre FINAL_SHA (paquete). |
+| Focales | `specTecnica` (41), `specTecnicaGolden` (39), `seg01cVinculoCosteo` (110), `cadenaVentanaRollback` (7), `holdoutHuellas` (31), `cocrearServidor` (9), `composicionVh035cVh148` (21), `precioIdCatalogo` (2), `promesaComercial` (17), `promesaComercialGolden` (12) | 10 archivos, **289/289** |
 | P2 ANTES (cierre absoluto) | `specTecnicaGolden` + `specTecnica` con las fixtures y pruebas nuevas contra `specTecnica.js`, `validarIntentCosteo.js` y el SQL de `2d02527` | **21 fallan** (`docs/auditoria/cierre_go_p2_antes.txt`): colisión por U+001F, `toString`/`constructor`/`__proto__`, orden, Unicode |
 | Trazabilidad ANTES | `seg01cVinculoCosteo -t 'Q3/Q4'` con `registroCosteo.js` y `agregarCosteo.js` de `2d02527` (spec desde `intent.pieza`) | **3 fallan** (`docs/auditoria/cierre_go_traza_antes.txt`): control (spec efectiva), reconciliación y respuesta sin spec. Las alteraciones de la partida ya fallaban cerrado antes, porque el intent era el mismo a los dos lados: no es mérito de esta ronda. |
 | P0 ANTES (rev4) | `SEG01C_MIG=supabase/tests/fixtures/seg01c_rev4_8cc0adb.sql npx vitest run supabase/tests/seg01cVinculoCosteo.test.js -t "rev 5 · spec\|Q3"` | **13 fallan** con la rev4 (multiplicidad, dimensión, horas, pintura, dificultad, duplicados, sellado, K2 no lava, defensa en la emisión, control del pipeline); con la rev5 pasan |
+| Holdout v5.3 ANTES (v5.2) | `holdoutHuellas.test.js` contra `git show 157d0ad:src/datos/holdoutHuellas.js` | **4 de 31 fallan**: M (`playwright.config.js` cambiado ⇒ daba OK), N (reintento), O (árbol sucio) y P (entorno Vite) (`docs/auditoria/holdout_v53_antes.txt`). También reproducido de punta a punta: con el verificador de `157d0ad`, un commit-objeto local con sólo `retries: 5` daba **OK (exit 0)**. |
 | Holdout ANTES (v5.1) | `holdoutHuellas.test.js` contra `git show 3583acc:src/datos/holdoutHuellas.js` (+ stub de `costeableDeHoja` con semántica v5.1) | **6 de 27 fallan**: I, I2, J, K, `costeableDeHoja` y "cada request…" (`lab/costear/holdout_intelisis/v52_pruebas_antes_v51.txt`). L ya pasaba. |
 | Runbook ANTES | `cadenaVentanaRollback.test.js` con las PROPUESTAS p103b y seg01c de `3583acc` | **falla**: `precio_id` en la vista y comentario en `cuentas_no_humanas` (`docs/auditoria/cadena_ventana_rollback_antes.txt`) |
 | Holdout v5.2 | `node scripts/congelar_holdout.mjs --verificar … --corrida lab/costear/holdout_intelisis/corrida_humo_20261014c` y `casos_falla_cerrada.mjs` | OK (exit 0); **16/16** casos alterados fallan cerrado |
@@ -407,7 +409,15 @@ El E2E final necesita dos casos reales que se puedan emitir. **Hoy no existen, y
 
 ## 8. Holdout Intelisis
 
-- **Verificador v5.2** (`holdoutHuellas.js`, `congelar_holdout.mjs`): no cambió en el cierre absoluto.
+- **Verificador v5.3** (auditoría binaria de `157d0ad`, P1). **Ataque:** congelar en FINAL_SHA y servir un commit que sólo cambia `playwright.config.js` (`retries: 5`). Un fallo intermitente se reintentaba hasta pasar, la evidencia del intento bueno quedaba en `LAB_OUT` y `--verificar` daba **OK**: el config no estaba en el congelamiento ni en la lista de código del git diff. Variante sin tocar archivos: `CI=1` ya da `retries: 1`. **Cierre (de la clase, no sólo del caso):**
+  1. `playwright.config.js` y `vite.config.js` entran al congelamiento; `playwright.config` entra a la lista de código del git diff.
+  2. El E2E del laboratorio escribe en `0-binario.json`:
+     - `reintento` (`testInfo.retry`);
+     - `arbolLimpio` (`git status --porcelain --untracked-files=no` vacío);
+     - `entornoVite`: el `import.meta.env` que el servidor de desarrollo inyecta de verdad. Cubre `.env*` ignorados por git y variables `VITE_` extra al lanzar Vite.
+  3. Con hoja, el E2E **falla** ante un reintento o un árbol sucio.
+  4. El verificador exige `reintento = 0`, `arbolLimpio = true` y `entornoVite` igual al del MANIFIESTO (las 7 variables que expone el servidor RC). Un `0-binario` sin esos campos da NO VERIFICADO.
+  5. **Pruebas:** M–P en `holdoutHuellas.test.js` (las 4 fallan con la v5.2), más 6 casos nuevos en `casos_falla_cerrada.mjs` (sobre la corrida real). Uno de ellos crea un commit-**objeto** local con sólo el config cambiado: sin rama, sin push y sin tocar el árbol de trabajo.
 - **Último congelamiento (sobre FINAL_SHA), fuera del repo.**
   - **Qué congela:** el cierre transitivo de imports (ahora incluye `src/datos/costeoServidor.js`), `package-lock.json`, la base y las definiciones SQL (huellas frescas), la Edge RC desplegada desde FINAL_SHA, `analizar-mueble-rc` v8, los modelos y `frontendSha = FINAL_SHA`.
   - **Cómo se corre:**
@@ -439,7 +449,7 @@ FALLÓ:
 - manifiesto del holdout, `--verificar` y los 16 casos;
 - línea base de producción releída sin drift.
 
-**De `214786b` (último cambio de código, mismo código que FINAL_SHA):**
+**De `214786b` (último cambio de app y Edge; FINAL_SHA sólo agrega el arnés del holdout v5.3 y documentos):**
 
 | Evidencia | Resultado |
 |---|---|
