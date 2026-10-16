@@ -52,10 +52,10 @@ test.describe('LAB · plano Torre Norte', () => {
     if (!(await gate.count())) { guarda('ERROR_lectura.txt', await page.locator('main').innerText()); throw new Error('la lectura del plano falló: ' + (await errorPlano.first().innerText())); }
     const lectura = {
       segundos: tLectura,
-      nivel: await page.getByTestId('lectura-nivel').innerText().catch(() => ''),
-      areas: await page.getByTestId('lectura-areas').innerText().catch(() => ''),
-      servidor: await page.getByTestId('lectura-servidor').innerText().catch(() => ''),
-      problemas: await page.getByTestId('lectura-problemas').innerText().catch(() => ''),
+      nivel: await page.getByTestId('lectura-nivel').innerText({ timeout: 1500 }).catch(() => ''),
+      areas: await page.getByTestId('lectura-areas').innerText({ timeout: 1500 }).catch(() => ''),
+      servidor: await page.getByTestId('lectura-servidor').innerText({ timeout: 1500 }).catch(() => ''),
+      problemas: await page.getByTestId('lectura-problemas').innerText({ timeout: 1500 }).catch(() => ''),
       gate: await gate.innerText(),
     };
     guarda('1-lectura-gate.json', lectura);
@@ -123,7 +123,7 @@ test.describe('LAB · plano Torre Norte', () => {
     guarda('4-acomodo.json', cotC.acomodo);
     const ver = page.getByTestId('veredicto-acomodo');
     const veredicto = (await ver.count()) ? { estado: await ver.getAttribute('data-estado'), texto: await ver.innerText() } : null;
-    const diag = await page.getByTestId('diagnostico-acomodo').innerText().catch(() => '');
+    const diag = await page.getByTestId('diagnostico-acomodo').innerText({ timeout: 1500 }).catch(() => '');
     guarda('4-veredicto.json', { veredicto, diagnostico: diag, main: await page.locator('main').innerText() });
     await page.screenshot({ path: path.join(SALIDA, '4-acomodo.png'), fullPage: true });
     const planta = page.getByRole('button', { name: /^Planta$/ });
