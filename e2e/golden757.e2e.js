@@ -207,7 +207,10 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     const ejecutivo = cot.acomodo.plan.colocacion.find((c) => c.id === 'p-8-1');
     expect(ejecutivo?.side, 'la silla directiva queda detrás del escritorio').toBe('BACK');
     // Las SONATA restantes: razón exacta.
-    const diag = await page.getByTestId('diagnostico-acomodo').innerText().catch(() => '');
+    // 2026-10-16: con TODO colocado el panel de diagnóstico no existe; innerText SIN timeout esperaba hasta el
+    // tope del test (180 s). Se lee con timeout corto y se exige que las 4 SONATA de la persona queden sentadas.
+    const diag = await page.getByTestId('diagnostico-acomodo').innerText({ timeout: 1500 }).catch(() => '');
+    expect(cot.acomodo.plan.colocacion.filter((c) => /^p-10-/.test(c.id)), 'las 4 SONATA de la persona quedan sentadas en la mesa').toHaveLength(4);
     console.log('[golden757] no colocadas + diagnóstico:', JSON.stringify(((await leerCot(page))?.acomodo?.plan?.unassigned || (await leerCot(page))?.acomodo?.plan?.no_cupieron || []).map((u) => [u.id, u.reason_code || u.code || u.reason || null])), '·', diag.replace(/\s+/g, ' ').slice(0, 500));
     if (colocadas < payload.piezas.length) expect(diag).toMatch(/MISSING_ANCHOR/);
     // Lo que no cupo tiene diagnóstico por pieza, sin "juntass" ni "capacidad del catálogo".
