@@ -48,7 +48,7 @@ test.describe('renders por cuarto · producción', () => {
     await expect.poll(() => respuestas.length, { timeout: 840000, intervals: [5000] }).toBeGreaterThanOrEqual(nAreas);
     await page.waitForTimeout(1500);
     const imgs = await page.locator('.escenas-grid img').count();
-    const err = await page.locator('.alerta.roja').last().innerText().catch(() => '');
+    const err = await page.locator('.alerta.roja').last().innerText({ timeout: 1500 }).catch(() => '');
     console.log('[render] resumen:', JSON.stringify({ respuestas: respuestas.length, ok: respuestas.filter((r) => r.ok).length, rechazados: respuestas.filter((r) => !r.ok).map((r) => ({ code: r.code, fallidos: r.fallidos, razones: r.razones })), imgs, err: err.slice(0, 300) }));
     if (process.env.GOLDEN_CAPTURA) await page.screenshot({ path: process.env.GOLDEN_CAPTURA, fullPage: true }).catch(() => {});
     // Contrato: ningún rechazo sin explicación; cada render aceptado llega como URL (no base64) y se ve.
