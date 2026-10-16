@@ -130,6 +130,24 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     const cantP = Math.max(1, Number(prog.cantidad) || 1);
     const parcial = !esAncla(rel) && cantP > cantN;
     if (parcial) ajustes.set(idxProg, cantP - cantN); else tomados.add(idxProg);
+    // 2026-10-16 (cotización 757): el programa puede traer el MISMO lugar repetido en otro renglón
+    // (otro modelo, misma instancia de mesa o mismo requerimiento: 4 CONCERTO y 4 SONATA para la mesa
+    // de 4 de la SALA DE CONSEJO). Si lo que eligió la persona ya cubre completo ese renglón, el
+    // repetido se va también, y queda dicho en `sustituidas`, en vez de cobrar dos veces el mismo
+    // lugar. Sólo filas del programa, del mismo rol y de la MISMA instancia/requerimiento.
+    if (!parcial) {
+      const claveDe = (e) => String((esAncla(rel) ? (e.requirement_id || e.instance_id) : (e.anchor_instance_id || e.functional_group_id)) || '');
+      const k0 = claveDe(prog);
+      if (k0) {
+        ex.forEach((e, i) => {
+          if (i === idxProg || tomados.has(i) || ajustes.has(i) || !esDelPrograma(e)) return;
+          if ((e.relation_role || inferRole(e)) !== rel || claveDe(e) !== k0) return;
+          if (Math.max(1, Number(e.cantidad) || 1) > cantN) return;
+          tomados.add(i);
+          sustituidas.push({ de: e.nombre || e.bancoId || '?', a: n.nombre || '?', rol: rel, duplicadoDelMismoRequerimiento: true });
+        });
+      }
+    }
     const capN = Number(n.user_capacity ?? n.usuarios) || null; const capP = Number(prog.user_capacity ?? prog.usuarios) || null;
     sustituidas.push({ de: prog.nombre || prog.bancoId || '?', a: n.nombre || '?', rol: rel, ...(parcial ? { parcial: true, restante: cantP - cantN } : {}), ...(esAncla(rel) && capN && capP && capN !== capP ? { capacidadDistinta: true, capacidadPrograma: capP, capacidadNueva: capN } : {}) });
     salida.push({

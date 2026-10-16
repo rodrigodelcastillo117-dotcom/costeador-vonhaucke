@@ -226,3 +226,54 @@ describe('VH-116 · anclas con cantidad > 1 frente a varias zonas', () => {
     expect(r2.partidas.map((p) => [p.id, p.cantidad, p.zone_id]).sort()).toEqual(r1.partidas.map((p) => [p.id, p.cantidad, p.zone_id]).sort());
   });
 });
+
+// ---------------------------------------------------------------------------
+//  2026-10-16 · Cotización 757 real (golden): el programa guardó DOS renglones de sillas para el
+//  MISMO lugar de la SALA DE CONSEJO (4 CONCERTO y 4 SONATA, misma instancia de mesa). La persona
+//  pidió 4 SONATA. Antes: las SONATA del programa se fusionaban con las de la persona, pero las 4
+//  CONCERTO se quedaban → 8 sillas cobradas para una mesa de 4, y como el reparto de lugares va por
+//  id, las CONCERTO del programa se sentaban y las SONATA de la persona quedaban "sin mesa".
+// ---------------------------------------------------------------------------
+describe('mismo requerimiento repetido en el programa (cotización 757)', () => {
+  const sillaProg = (modelo, precio) => ({
+    id: `juntas|MEETING_SEAT|inst:req:SALA DE CONSEJO:juntas:0:#0::silla-${modelo}`, nombre: `Silla ${modelo.toUpperCase()} (visita 4 pts)`,
+    bancoId: `silla-${modelo}`, piezaId: `silla-${modelo}`, relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING',
+    anchor_instance_id: 'inst:req:SALA DE CONSEJO:juntas:0:#0', functional_group_id: 'fg:req:SALA DE CONSEJO:juntas:0:#0',
+    cantidad: 4, precioUnitario: precio, source: 'CONFIRMADO_PROGRAMA',
+  });
+  const prog757 = [sillaProg('concerto', 5140), sillaProg('sonata', 2420)];
+  const sonata = { id: 'p-10', nombre: 'Silla · SONATA', piezaId: 'p9-silla-sonata-2420-144', cantidad: 4, precioUnitario: 2420, origen: 'banco' };
+
+  it('RED→GREEN: las 4 SONATA de la persona cubren el lugar; las 4 CONCERTO repetidas del programa se van (4 sillas, no 8)', () => {
+    const { partidas, sustituidas } = reconciliarNuevasConPrograma(prog757, [sonata]);
+    const sillas = partidas.filter((p) => p.relation_role === 'MEETING_SEAT');
+    expect(sillas.map((p) => p.id)).toEqual(['p-10']);
+    expect(sillas.reduce((n, p) => n + p.cantidad, 0)).toBe(4);
+    expect(partidas.find((p) => p.id === 'p-10').anchor_instance_id).toBe('inst:req:SALA DE CONSEJO:juntas:0:#0');
+    // queda dicho, no se borra en silencio
+    const dup = sustituidas.find((s) => s.duplicadoDelMismoRequerimiento);
+    expect(dup).toMatchObject({ de: 'Silla CONCERTO (visita 4 pts)', a: 'Silla · SONATA', rol: 'MEETING_SEAT' });
+  });
+
+  it('el precio y la cantidad de lo que eligió la persona no se tocan', () => {
+    const p10 = reconciliarNuevasConPrograma(prog757, [sonata]).partidas.find((p) => p.id === 'p-10');
+    expect([p10.cantidad, p10.precioUnitario, p10.piezaId]).toEqual([4, 2420, 'p9-silla-sonata-2420-144']);
+  });
+
+  it('si la persona pide MENOS de lo que cubre cada renglón, nada repetido se quita (sólo la parte sustituida)', () => {
+    const { partidas } = reconciliarNuevasConPrograma(prog757, [{ ...sonata, cantidad: 2 }]);
+    expect(partidas.filter((p) => p.relation_role === 'MEETING_SEAT').reduce((n, p) => n + p.cantidad, 0)).toBe(2 + 2 + 4);
+  });
+
+  it('renglones del programa de OTRA mesa (otra instancia) no se tocan', () => {
+    const otra = { ...sillaProg('concerto', 5140), id: 'otra|concerto', anchor_instance_id: 'inst:req:SALA B:juntas:1:#0', functional_group_id: 'fg:req:SALA B:juntas:1:#0' };
+    const { partidas } = reconciliarNuevasConPrograma([...prog757, otra], [{ ...sonata, anchor_instance_id: 'inst:req:SALA DE CONSEJO:juntas:0:#0' }]);
+    expect(partidas.find((p) => p.id === 'otra|concerto')).toBeTruthy();
+  });
+
+  it('idempotente: aplicar otra vez no cambia nada', () => {
+    const r1 = reconciliarNuevasConPrograma(prog757, [sonata]);
+    const r2 = reconciliarNuevasConPrograma(r1.partidas, []);
+    expect(r2.partidas).toEqual(r1.partidas);
+  });
+});

@@ -152,6 +152,10 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     expect(ps.filter((p) => /WIN/i.test(p.nombre)).reduce((n, p) => n + p.cantidad, 0)).toBe(8);
     console.log('[golden757] tras fusión:', JSON.stringify(ps.map((p) => [p.id.slice(0, 40), p.nombre.slice(0, 30), p.cantidad, p.relation_role || null, p.source || null])));
     expect(ps.filter((p) => p.source === 'CONFIRMADO_PROGRAMA' && /SONATA|CONCERTO/.test(p.nombre)).length).toBeLessThanOrEqual(1);
+    // 2026-10-16: el programa traía el MISMO lugar repetido (4 CONCERTO + 4 SONATA para la mesa de 4). Las 4 SONATA
+    // de la persona lo cubren: 4 sillas de juntas cobradas, no 8, y ninguna CONCERTO del programa.
+    expect(rol(ps, 'MEETING_SEAT').reduce((n, p) => n + p.cantidad, 0)).toBe(4);
+    expect(ps.filter((p) => p.source === 'CONFIRMADO_PROGRAMA' && /CONCERTO/.test(p.nombre))).toHaveLength(0);
     expect(ps.find((p) => p.id === 'p-8').anchor_instance_id).toBeTruthy();         // ALPHA atada al escritorio
     expect(ps.find((p) => p.id === 'p-1').precioUnitario).toBe(26145);              // precio intacto
     // "Esto entendí": ya no sobran sillas de trabajo.
