@@ -19,7 +19,9 @@ export const PROFILE_VERSION = 'PP_V1';
 export const SEAT = 600;
 
 const num = (n, d = 0) => (Number.isFinite(Number(n)) ? Number(n) : d);
-const topologiasValidas = new Set(['SINGLE_FACE', 'DOUBLE_FACE', 'MEETING_TABLE', 'DESK', 'RECEPTION']);
+// COT-P1-027c · STORAGE: ancla de guardado independiente (credenza, archivero, librero).
+// Sin asientos; su verdad espacial es el FRENTE (puertas/cajones) que necesita holgura.
+const topologiasValidas = new Set(['SINGLE_FACE', 'DOUBLE_FACE', 'MEETING_TABLE', 'DESK', 'RECEPTION', 'STORAGE']);
 
 // Precedencia de fuentes de verdad (GAP5). UNKNOWN nunca pisa nada.
 const PRECEDENCIA = { CATALOG: 5, CURATED_RULE: 4, USER_CONFIRMED: 3, INFERRED: 2, UNKNOWN: 0 };
@@ -51,7 +53,11 @@ export function perfilDeAncla(anchor = {}) {
   }
   // 2. Regla CURADA de oficio SÓLO para roles con topología inequívoca. El bench
   //    operativo NO: double vs single no se decide por rol/capacidad (GAP4).
-  const curada = { ANCHOR_MEETING: 'MEETING_TABLE', ANCHOR_DESK: 'DESK', ANCHOR_RECEPTION: 'RECEPTION' }[rol];
+  //    027c: un ANCHOR_STORAGE no tiene asientos; su topología es inequívoca por rol.
+  //    La guarda de piso SUELTA (VH-096: SUPPORT_STORAGE `standalone`, lo que emite el cliente para
+  //    credenza/archivero) es el mismo mueble: kit propio sin sillas, con FRENTE de uso.
+  const curada = { ANCHOR_MEETING: 'MEETING_TABLE', ANCHOR_DESK: 'DESK', ANCHOR_RECEPTION: 'RECEPTION', ANCHOR_STORAGE: 'STORAGE' }[rol]
+    || (rol === 'SUPPORT_STORAGE' && anchor.standalone === true ? 'STORAGE' : undefined);
   if (curada) candidatos.push({ topology: curada, provenance: 'CURATED_RULE', confidence: 0.9 });
   const res = resolvePlacementProfile(candidatos);
   if (res.topology === 'UNKNOWN') return { ...UNKNOWN_PROFILE };
@@ -127,6 +133,13 @@ export function layoutDesk(aw, ad, n, roles = null) {
   return { anchor: { dx: 0, dy: anchorDy, w: aw, d: ad }, seats, kitW: aw, kitD: ad + anchorDy + (nVis ? SEAT : 0), activeSides: [...(nExec ? ['BACK'] : []), ...(nVis ? ['FRONT'] : [])] };
 }
 
+// --- STORAGE (027c): sólo el ancla; el FRENTE (puertas/cajones) mira hacia abajo en
+// coordenadas del kit (frontFacing 'UP' = el lado de acceso es el de abajo, misma
+// convención que clearanceAcceso para sillas). Al rotar el kit, el frente gira.
+export function layoutStorage(aw, ad) {
+  return { anchor: { dx: 0, dy: 0, w: aw, d: ad, facing: 'UP' }, seats: [], kitW: aw, kitD: ad, activeSides: ['FRONT'] };
+}
+
 // Selecciona el layout de asientos según la topología del perfil. `roles`: relation_role de las
 // sillas en orden (sólo lo usa DESK para distinguir ejecutivo de visitas).
 export function layoutDeTopologia(topology, aw, ad, n, roles = null) {
@@ -134,6 +147,7 @@ export function layoutDeTopologia(topology, aw, ad, n, roles = null) {
     case 'DOUBLE_FACE': return layoutDoubleFace(aw, ad, n);
     case 'MEETING_TABLE': return layoutMeeting(aw, ad, n);
     case 'DESK': return layoutDesk(aw, ad, n, roles);
+    case 'STORAGE': return layoutStorage(aw, ad);
     case 'SINGLE_FACE':
     case 'RECEPTION':
     default: return layoutSingleFace(aw, ad, n);

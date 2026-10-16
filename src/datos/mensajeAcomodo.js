@@ -13,7 +13,13 @@ export function formatearMensajeVendedor(mv) {
 
   // El bullet lo pone el <li> de la UI; NO anteponer "• " aquí (evita "• • …").
   const queNoCupo = pendientes.map((p) => p.texto);
-  const porque = motivos.map((m) => m.texto).filter(Boolean);
+  // 027b/§7: zona destino + veredicto (demostrado / no encontrado / faltan datos) junto a la causa.
+  const porque = motivos.map((m) => {
+    if (!m.texto) return null;
+    const zona = m.zona && !String(m.texto).includes(String(m.zona)) ? `[${m.zona}] ` : '';
+    const ver = m.evidencia?.veredicto_texto ? ` ${m.evidencia.veredicto_texto}` : '';
+    return `${zona}${m.texto}${ver}`;
+  }).filter(Boolean);
   const queHacer = opciones.map((o) => o.texto).filter(Boolean).slice(0, 3);
   const sinOpcion = (!queHacer.length && mv.sin_opcion) ? mv.sin_opcion : null;
 
