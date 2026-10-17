@@ -52,7 +52,7 @@ export const rollbackDe = (archivo) => leer(archivo).split('\n').filter((l) => l
 // md5(pg_get_functiondef) leídos de producción (mtuvnbgljwbsaizjjgzs) el 2026-10-13 (mismos que
 // seguridadGateEmisionSnapshot.test.js) y el wrapper de emisión de VH-035c vigente.
 export const MD5_PROD = {
-  'private_api.evaluar_emision_cotizacion(bigint, jsonb)': '9c660b09ca099af557436ef54edbb1de',
+  'private_api.evaluar_emision_cotizacion(bigint, jsonb)': '17ec67cf8bf06b540a55279288e90025',  // gate vivo P0-01 (2026-10-17); 13-oct era 9c660b09…
   'private_api.emitir_revision_v2(bigint, jsonb)': 'fb26c9d515ac6116ae87ed44350c3615',
   'private_api.asignar_folio_oficial(bigint)': '33acd273d08c8c45f07b04954d86729e',
   'public.evaluar_emision_cotizacion(bigint, jsonb)': 'cf6ef6a30bbb68eb2b867f2bcdb7c846',
@@ -119,6 +119,8 @@ export async function baseProduccion({ conVh035c = true } = {}) {
   for (const f of ['normalizar_cost_status_partidas', 'pin_product_versions_in_partidas']) await x(defDeBaseline(f));
   await x(leer('supabase/tests/fixtures/private_api_prod_20261013.sql'));
   await x(leer('supabase/tests/fixtures/private_api_emision_prod_20261013.sql'));
+  // Producción de hoy: el gate vivo es el de P0-01 (reventa, aplicada 2026-10-16), no el del 13-oct.
+  await x(leer('supabase/tests/fixtures/private_api_emision_prod_20261017.sql'));
   for (const f of ['reglas_comerciales_vigentes', 'revisiones_autor', 'strip_seller_economics_on_revision_write',
     'evaluar_emision_cotizacion', 'emitir_revision_v2', 'hash_revision', 'verificar_aprobacion',
     'requiere_aprobacion_snapshot', 'asignar_folio_oficial', 'cotizacion_segura', 'actualizar_cotizacion_segura',

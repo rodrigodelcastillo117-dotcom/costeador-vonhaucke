@@ -1,0 +1,762 @@
+{
+ "origen": "lab/noche/p10x/cotizar/C3_sin_cotas/4-acomodo.json (rama claude/costing-app-architecture-psf02g, corrida OPERACIÓN 10/10 del 2026-10-13; edge de entonces: 19/21 PARTIAL)",
+ "areas": [
+  {
+   "nombre": "OPERATIVA",
+   "tipo": "open",
+   "nivel": "NIVEL 1",
+   "puestos": 8,
+   "x": 0,
+   "y": 0,
+   "ancho": 12140,
+   "largo": 6090,
+   "poly": [
+    [
+     0,
+     0
+    ],
+    [
+     12140,
+     0
+    ],
+    [
+     12140,
+     6090
+    ],
+    [
+     0,
+     6090
+    ]
+   ],
+   "obstaculos": [
+    {
+     "x": 5850,
+     "y": 340,
+     "w": 400,
+     "h": 400,
+     "tipo": "columna",
+     "clave": "P1"
+    },
+    {
+     "x": 5850,
+     "y": 5380,
+     "w": 400,
+     "h": 400,
+     "tipo": "columna",
+     "clave": "P3"
+    },
+    {
+     "x": 2175,
+     "y": 5175,
+     "w": 1830,
+     "h": 1830,
+     "tipo": "puerta"
+    }
+   ],
+   "puertas": [
+    {
+     "x": 3090,
+     "y": 6090,
+     "ancho": 930,
+     "tieneBarrido": true,
+     "bisagraX": 3560,
+     "bisagraY": 6090,
+     "anguloCerradaDeg": 180,
+     "sentido": "antihorario",
+     "barridoDeg": 90,
+     "confianza": "media"
+    }
+   ]
+  },
+  {
+   "nombre": "PRIVADO A",
+   "tipo": "privado",
+   "nivel": "NIVEL 1",
+   "puestos": 1,
+   "x": 12140,
+   "y": 0,
+   "ancho": 6060,
+   "largo": 3070,
+   "poly": [
+    [
+     0,
+     0
+    ],
+    [
+     6060,
+     0
+    ],
+    [
+     6060,
+     3070
+    ],
+    [
+     0,
+     3070
+    ]
+   ],
+   "obstaculos": [
+    {
+     "x": -200,
+     "y": 340,
+     "w": 400,
+     "h": 400,
+     "tipo": "columna",
+     "clave": "P2"
+    },
+    {
+     "x": 1095,
+     "y": 2155,
+     "w": 1830,
+     "h": 1830,
+     "tipo": "puerta"
+    }
+   ],
+   "puertas": [
+    {
+     "x": 2010,
+     "y": 3070,
+     "ancho": 930,
+     "tieneBarrido": true,
+     "bisagraX": 2460,
+     "bisagraY": 3070,
+     "anguloCerradaDeg": 180,
+     "sentido": "horario",
+     "barridoDeg": 90,
+     "confianza": "media"
+    }
+   ]
+  },
+  {
+   "nombre": "PRIVADO B",
+   "tipo": "privado",
+   "nivel": "NIVEL 1",
+   "puestos": 1,
+   "x": 12140,
+   "y": 3070,
+   "ancho": 6060,
+   "largo": 3020,
+   "poly": [
+    [
+     0,
+     0
+    ],
+    [
+     6060,
+     0
+    ],
+    [
+     6060,
+     3020
+    ],
+    [
+     0,
+     3020
+    ]
+   ],
+   "obstaculos": [
+    {
+     "x": -200,
+     "y": 2310,
+     "w": 400,
+     "h": 400,
+     "tipo": "columna",
+     "clave": "P4"
+    },
+    {
+     "x": 1095,
+     "y": -915,
+     "w": 1830,
+     "h": 1830,
+     "tipo": "puerta"
+    },
+    {
+     "x": 3070,
+     "y": 2070,
+     "w": 1900,
+     "h": 1900,
+     "tipo": "puerta"
+    }
+   ],
+   "puertas": [
+    {
+     "x": 2010,
+     "y": 0,
+     "ancho": 930,
+     "tieneBarrido": true,
+     "bisagraX": 2460,
+     "bisagraY": 0,
+     "anguloCerradaDeg": 180,
+     "sentido": "horario",
+     "barridoDeg": 90,
+     "confianza": "media"
+    },
+    {
+     "x": 4020,
+     "y": 3020,
+     "ancho": 1000,
+     "tieneBarrido": true,
+     "bisagraX": 4560,
+     "bisagraY": 3020,
+     "anguloCerradaDeg": 180,
+     "sentido": "horario",
+     "barridoDeg": 90,
+     "confianza": "media"
+    }
+   ]
+  },
+  {
+   "nombre": "JUNTAS",
+   "tipo": "juntas",
+   "nivel": "NIVEL 1",
+   "asientos": 6,
+   "x": 0,
+   "y": 6090,
+   "ancho": 6050,
+   "largo": 4010,
+   "poly": [
+    [
+     0,
+     0
+    ],
+    [
+     6050,
+     0
+    ],
+    [
+     6050,
+     4010
+    ],
+    [
+     0,
+     4010
+    ]
+   ],
+   "obstaculos": [
+    {
+     "x": 2175,
+     "y": -915,
+     "w": 1830,
+     "h": 1830,
+     "tipo": "puerta"
+    }
+   ],
+   "puertas": [
+    {
+     "x": 3090,
+     "y": 0,
+     "ancho": 930,
+     "tieneBarrido": true,
+     "bisagraX": 3560,
+     "bisagraY": 0,
+     "anguloCerradaDeg": 180,
+     "sentido": "antihorario",
+     "barridoDeg": 90,
+     "confianza": "media"
+    }
+   ]
+  },
+  {
+   "nombre": "RECEPCIÓN",
+   "tipo": "recepcion",
+   "nivel": "NIVEL 1",
+   "puestos": 1,
+   "x": 6050,
+   "y": 6090,
+   "ancho": 12150,
+   "largo": 4010,
+   "poly": [
+    [
+     0,
+     0
+    ],
+    [
+     12150,
+     0
+    ],
+    [
+     12150,
+     4010
+    ],
+    [
+     0,
+     4010
+    ]
+   ],
+   "obstaculos": [
+    {
+     "x": -200,
+     "y": 3340,
+     "w": 400,
+     "h": 400,
+     "tipo": "columna",
+     "clave": "P5"
+    },
+    {
+     "x": 5890,
+     "y": 3340,
+     "w": 400,
+     "h": 400,
+     "tipo": "columna",
+     "clave": "P6"
+    },
+    {
+     "x": 9160,
+     "y": -950,
+     "w": 1900,
+     "h": 1900,
+     "tipo": "puerta"
+    }
+   ],
+   "puertas": [
+    {
+     "x": 10110,
+     "y": 0,
+     "ancho": 1000,
+     "tieneBarrido": true,
+     "bisagraX": 10650,
+     "bisagraY": 0,
+     "anguloCerradaDeg": 180,
+     "sentido": "horario",
+     "barridoDeg": 90,
+     "confianza": "media"
+    },
+    {
+     "x": 6500,
+     "y": 4010,
+     "ancho": 900,
+     "tieneBarrido": true,
+     "bisagraX": 6950,
+     "bisagraY": 4010,
+     "anguloCerradaDeg": 180,
+     "sentido": "horario",
+     "barridoDeg": 90,
+     "confianza": "usuario_confirmado"
+    },
+    {
+     "x": 5600,
+     "y": 4010,
+     "ancho": 900,
+     "tieneBarrido": true,
+     "bisagraX": 5150,
+     "bisagraY": 4010,
+     "anguloCerradaDeg": 0,
+     "sentido": "antihorario",
+     "barridoDeg": 90,
+     "confianza": "usuario_confirmado"
+    }
+   ]
+  }
+ ],
+ "piezas": [
+  {
+   "id": "operativo|ANCHOR_WORKSTATION|#0::op-8u-4800x1200-cristal-1",
+   "nombre": "Módulo operativo App LT 8 usuarios (biombo cristal)",
+   "w": 4800,
+   "d": 1200,
+   "tipo": "escritorio",
+   "ruta": "vh-dest-opn",
+   "productoId": 1896,
+   "producto_version_id": 1139,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "user_capacity": 8,
+   "capacity_source": "CATALOGO",
+   "placement_profile": {
+    "topology": "DOUBLE_FACE",
+    "provenance": "USER_CONFIRMED",
+    "evidence": "regla Rodrigo confirmada: 1 operativo para 8 personas = bench doble (4+4 enfrentados)"
+   },
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "PARTIDA"
+  },
+  {
+   "id": "privado|ANCHOR_DESK|#0::dir-1800x2400-1",
+   "nombre": "Módulo directivo App LT",
+   "w": 1800,
+   "d": 2400,
+   "tipo": "escritorio",
+   "ruta": "vh-dest-prv",
+   "productoId": 1904,
+   "producto_version_id": 814,
+   "functional_group_id": "fg:req:PRIVADO A:privado:0:#0",
+   "relation_role": "ANCHOR_DESK",
+   "requirement_id": "req:PRIVADO A:privado:0",
+   "zone_id": "PRIVADO A",
+   "user_capacity": 1,
+   "capacity_source": "CATALOGO",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "PARTIDA"
+  },
+  {
+   "id": "privado|ANCHOR_DESK|#1::dir-1800x2400-1",
+   "nombre": "Módulo directivo App LT",
+   "w": 1800,
+   "d": 2400,
+   "tipo": "escritorio",
+   "ruta": "vh-dest-prv",
+   "productoId": 1904,
+   "producto_version_id": 814,
+   "functional_group_id": "fg:req:PRIVADO B:privado:1:#0",
+   "relation_role": "ANCHOR_DESK",
+   "requirement_id": "req:PRIVADO B:privado:1",
+   "zone_id": "PRIVADO B",
+   "user_capacity": 1,
+   "capacity_source": "CATALOGO",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "PARTIDA"
+  },
+  {
+   "id": "juntas|ANCHOR_MEETING|#0::mj-2400x1200-1",
+   "nombre": "Mesa de juntas App LT",
+   "w": 2400,
+   "d": 1200,
+   "tipo": "juntas",
+   "ruta": "vh-dest-mtg",
+   "productoId": 1912,
+   "producto_version_id": 1153,
+   "functional_group_id": "fg:req:JUNTAS:juntas:0:#0",
+   "relation_role": "ANCHOR_MEETING",
+   "requirement_id": "req:JUNTAS:juntas:0",
+   "zone_id": "JUNTAS",
+   "user_capacity": 8,
+   "capacity_source": "CATALOGO",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "PARTIDA"
+  },
+  {
+   "id": "recepcion|ANCHOR_RECEPTION|#0::rec-2420x830-1",
+   "nombre": "Módulo recepción 2 usuarios",
+   "w": 2420,
+   "d": 830,
+   "tipo": "recepcion",
+   "ruta": "vh-dest-rcp",
+   "productoId": 1905,
+   "producto_version_id": 644,
+   "functional_group_id": "fg:req:RECEPCIÓN:recepcion:0:#0",
+   "relation_role": "ANCHOR_RECEPTION",
+   "requirement_id": "req:RECEPCIÓN:recepcion:0",
+   "zone_id": "RECEPCIÓN",
+   "user_capacity": 2,
+   "capacity_source": "CATALOGO",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "PARTIDA"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-1",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-2",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 2,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-3",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 3,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-4",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 4,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-5",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 5,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-6",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 6,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-7",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 7,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "operativo|WORK_SEAT|inst:req:OPERATIVA:operativo:0:#0::silla-win-8",
+   "nombre": "Silla operativa WIN",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-opn",
+   "productoId": 1923,
+   "producto_version_id": 1809,
+   "functional_group_id": "fg:req:OPERATIVA:operativo:0:#0",
+   "relation_role": "WORK_SEAT",
+   "anchor_role": "ANCHOR_WORKSTATION",
+   "requirement_id": "req:OPERATIVA:operativo:0",
+   "zone_id": "OPERATIVA",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 8,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "privado|EXECUTIVE_SEAT|inst:req:PRIVADO A:privado:0:#0::silla-alpha-1",
+   "nombre": "Silla directiva ALPHA",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1926,
+   "producto_version_id": 132,
+   "functional_group_id": "fg:req:PRIVADO A:privado:0:#0",
+   "relation_role": "EXECUTIVE_SEAT",
+   "anchor_role": "ANCHOR_DESK",
+   "requirement_id": "req:PRIVADO A:privado:0",
+   "zone_id": "PRIVADO A",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "privado|EXECUTIVE_SEAT|inst:req:PRIVADO B:privado:1:#0::silla-alpha-1",
+   "nombre": "Silla directiva ALPHA",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1926,
+   "producto_version_id": 132,
+   "functional_group_id": "fg:req:PRIVADO B:privado:1:#0",
+   "relation_role": "EXECUTIVE_SEAT",
+   "anchor_role": "ANCHOR_DESK",
+   "requirement_id": "req:PRIVADO B:privado:1",
+   "zone_id": "PRIVADO B",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "juntas|MEETING_SEAT|inst:req:JUNTAS:juntas:0:#0::silla-concerto-1",
+   "nombre": "Silla CONCERTO (visita 4 pts)",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1925,
+   "producto_version_id": 1501,
+   "functional_group_id": "fg:req:JUNTAS:juntas:0:#0",
+   "relation_role": "MEETING_SEAT",
+   "anchor_role": "ANCHOR_MEETING",
+   "requirement_id": "req:JUNTAS:juntas:0",
+   "zone_id": "JUNTAS",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 1,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "juntas|MEETING_SEAT|inst:req:JUNTAS:juntas:0:#0::silla-concerto-2",
+   "nombre": "Silla CONCERTO (visita 4 pts)",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1925,
+   "producto_version_id": 1501,
+   "functional_group_id": "fg:req:JUNTAS:juntas:0:#0",
+   "relation_role": "MEETING_SEAT",
+   "anchor_role": "ANCHOR_MEETING",
+   "requirement_id": "req:JUNTAS:juntas:0",
+   "zone_id": "JUNTAS",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 2,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "juntas|MEETING_SEAT|inst:req:JUNTAS:juntas:0:#0::silla-concerto-3",
+   "nombre": "Silla CONCERTO (visita 4 pts)",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1925,
+   "producto_version_id": 1501,
+   "functional_group_id": "fg:req:JUNTAS:juntas:0:#0",
+   "relation_role": "MEETING_SEAT",
+   "anchor_role": "ANCHOR_MEETING",
+   "requirement_id": "req:JUNTAS:juntas:0",
+   "zone_id": "JUNTAS",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 3,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "juntas|MEETING_SEAT|inst:req:JUNTAS:juntas:0:#0::silla-concerto-4",
+   "nombre": "Silla CONCERTO (visita 4 pts)",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1925,
+   "producto_version_id": 1501,
+   "functional_group_id": "fg:req:JUNTAS:juntas:0:#0",
+   "relation_role": "MEETING_SEAT",
+   "anchor_role": "ANCHOR_MEETING",
+   "requirement_id": "req:JUNTAS:juntas:0",
+   "zone_id": "JUNTAS",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 4,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "juntas|MEETING_SEAT|inst:req:JUNTAS:juntas:0:#0::silla-concerto-5",
+   "nombre": "Silla CONCERTO (visita 4 pts)",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1925,
+   "producto_version_id": 1501,
+   "functional_group_id": "fg:req:JUNTAS:juntas:0:#0",
+   "relation_role": "MEETING_SEAT",
+   "anchor_role": "ANCHOR_MEETING",
+   "requirement_id": "req:JUNTAS:juntas:0",
+   "zone_id": "JUNTAS",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 5,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  },
+  {
+   "id": "juntas|MEETING_SEAT|inst:req:JUNTAS:juntas:0:#0::silla-concerto-6",
+   "nombre": "Silla CONCERTO (visita 4 pts)",
+   "w": 600,
+   "d": 600,
+   "tipo": "asiento",
+   "ruta": "vh-dest-prv",
+   "productoId": 1925,
+   "producto_version_id": 1501,
+   "functional_group_id": "fg:req:JUNTAS:juntas:0:#0",
+   "relation_role": "MEETING_SEAT",
+   "anchor_role": "ANCHOR_MEETING",
+   "requirement_id": "req:JUNTAS:juntas:0",
+   "zone_id": "JUNTAS",
+   "source": "CONFIRMADO_PROGRAMA",
+   "relation_index": 6,
+   "elegibilidad": "CONFIRMADO",
+   "huella_fuente": "ESTANDAR"
+  }
+ ]
+}

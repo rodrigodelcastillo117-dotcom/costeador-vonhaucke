@@ -25,6 +25,11 @@ const esDependiente = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'ME
 export const HARD_ACCESS_MM = 0;        // clearance ≤ 0 = inutilizable → fail
 // Objetivo de CONFORT (QualityJudge). PROVISIONAL, NO es verdad Von Haucke todavía.
 export const QUALITY_ACCESS_TARGET_MM = 600;
+// COT-P1-027c · FRENTE DE GUARDADO: un archivero o credenza con el frente a 200 mm de un muro cabe
+// como rectángulo pero NO se puede usar (un cajón o una puerta no abren). Mínimo funcional para
+// abrir y pararse enfrente. PROVISIONAL (mismo valor que el objetivo de acceso; no es todavía una
+// regla Von Haucke medida): por debajo de esto el mueble es inutilizable → no se coloca así.
+export const STORAGE_FRONT_MIN_MM = 600;
 
 // Rol de silla esperado por tipo de ancla (para KIT_FUNCTIONAL_RELATION_BROKEN).
 // VH-119: un escritorio privado recibe a su ejecutivo (lado BACK) Y a sus visitas (lado FRONT); antes sólo
@@ -47,7 +52,10 @@ function apuntaAlAncla(s, a, facing) {
 }
 // Clearance disponible en el lado de ACCESO (opuesto al facing): mínimo entre el
 // muro y el obstáculo más cercano en esa dirección dentro del ancho del asiento.
-function clearanceAcceso(s, facing, area) {
+// COT-P0-027b: exportada para que el kit-solver use EXACTAMENTE esta geometría en su
+// conjunto legal (GAP19 aplicado al acceso: el solver no puede proponer lo que el
+// juez va a tirar por inutilizable).
+export function clearanceAcceso(s, facing, area) {
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   let cMuro, limitador = 'wall';
   if (facing === 'DOWN') cMuro = s.y;                       // acceso arriba
@@ -154,6 +162,15 @@ export function juzgarSemantico(areas = [], piezas = [], colocacion = []) {
     } else if (clear < QUALITY_ACCESS_TARGET_MM) {
       add('ACTIVE_SIDE_ACCESS_TIGHT', { id: c.id, side: c.side, clear, target: QUALITY_ACCESS_TARGET_MM, severity: 'quality', provenance: 'PROVISIONAL' });
     }
+  }
+
+  // 5 · 027c · FRENTE de guardado (STORAGE): puertas/cajones necesitan holgura. Mismo
+  //     umbral duro/objetivo que las sillas. Sin `facing` (ancla vieja) → no se evalúa.
+  for (const c of colocacion) {
+    const p = byId.get(String(c.id)); if (!p || c.topology !== 'STORAGE' || !c.facing) continue;
+    const area = areas[num(c.area)] || {};
+    const { clear, limitador } = clearanceAcceso(rectDe(c, p), c.facing, area);
+    if (clear < STORAGE_FRONT_MIN_MM) add(limitador === 'obstacle' ? 'STORAGE_FRONT_BLOCKED_BY_OBSTACLE' : 'STORAGE_FRONT_BLOCKED_BY_WALL', { id: c.id, clear, target: STORAGE_FRONT_MIN_MM, severity: 'fail', provenance: 'PROVISIONAL' });
   }
 
   const hayFail = issues.some((i) => i.severity === 'fail');
