@@ -15,16 +15,18 @@ const df8 = () => [
 ];
 
 describe('P0.2c · BLOCK 5 · edge emite el GANADOR (center/PASS), no el row/FAIL', () => {
-  it('el default row FALLA semánticamente, pero el edge devuelve la colocación center PASS', () => {
+  // COT-P0-027b (Parte XI §4): "el default row FALLA" era un golden INCORRECTO (sillas al
+  // muro aceptadas como salida válida). El acceso ya está en el conjunto legal: row PASA y
+  // el edge emite el ganador con MÁS holgura (lo que gane por el juez, no una regla fija).
+  it('el default row ya no falla; el edge devuelve el ganador PASS del multi (mejor o igual que row)', () => {
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 7000, largo: 4000 }];
-    // Referencia: el solver determinista (row) por sí solo falla el juez semántico.
     const row = resolverKits(areas, df8());
-    expect(juzgarSemantico(areas, row.piezas, row.colocacion).status).toBe('FAIL');
+    expect(juzgarSemantico(areas, row.piezas, row.colocacion).status).toBe('PASS');
 
-    // El edge usa el pipeline multi → debe salir el ganador 'center' con PASS.
     const resp = construirRespuestaAcomodo(areas, df8());
-    expect(resp.seleccion.ganador_orden).toBe('center');
-    expect(resp.layoutSpec.seleccion.ganador_orden).toBe('center');
+    expect(resp.layoutSpec.seleccion.ganador_orden).toBe(resp.seleccion.ganador_orden);
+    const base = resp.seleccion.por_candidato.find((c) => c.idx === 0);
+    expect(resp.seleccion.ganador_eval.quality).toBeGreaterThanOrEqual(base.quality);
     expect(resp.layoutSpec.validation.semantic_gate.sem_status).toBe('PASS');
     expect(resp.layoutSpec.validation.semantic_gate.semFail).toBe(0);
 
@@ -46,9 +48,8 @@ describe('P0.2c · BLOCK 5 · edge emite el GANADOR (center/PASS), no el row/FAI
       ...Array.from({ length: 10 }, (_, i) => mk('s' + i, 'MEETING_SEAT', 600, 600)),
     ];
     const row = resolverKits(areas, meeting10());
-    expect(juzgarSemantico(areas, row.piezas, row.colocacion).status).toBe('FAIL');  // default contra el muro
+    expect(juzgarSemantico(areas, row.piezas, row.colocacion).status).toBe('PASS');  // 027b: ya no contra el muro
     const resp = construirRespuestaAcomodo(areas, meeting10());
-    expect(resp.seleccion.ganador_orden).toBe('center');
     expect(resp.layoutSpec.validation.semantic_gate.sem_status).toBe('PASS');
     expect(resp.render_ready).toBe(true);
     // distribución canónica 4+4+1+1 en la salida real.
@@ -80,17 +81,22 @@ describe('P0.2c · BLOCK 5 · edge emite el GANADOR (center/PASS), no el row/FAI
     expect(resp.status).toBe('NEEDS_SEMANTIC_REVIEW');
   });
 
-  it('si NINGÚN candidato logra PASS semántico, render_ready=false y status NEEDS_SEMANTIC_REVIEW', () => {
-    // Cuarto tan alto como el bench doble cara (2600 mm): cabe completo, pero ambas
-    // filas de sillas quedan contra los muros en TODA colocación → todos los candidatos
-    // quedan en FAIL semántico. El gate bloquea render_ready.
+  it('si las sillas no pueden tener acceso en NINGUNA colocación, el solver no las "coloca": ancla sola + causa ACCESS demostrada', () => {
+    // Cuarto tan alto como el bench doble cara (2600 mm): el kit completo sólo cabría
+    // con ambas filas de sillas contra los muros (inutilizables). COT-P0-027b: eso ya no
+    // es una colocación legal; el solver coloca el ancla (variante mínima) y certifica que
+    // las sillas no caben por ACCESO, imposibilidad DEMOSTRADA (no "no se encontró").
     const areas = [{ nombre: 'OP', zone_id: 'OP', tipo: 'open', ancho: 6200, largo: 2600 }];
     const resp = construirRespuestaAcomodo(areas, df8());
-    expect(resp.layoutSpec.placed).toBe(9);                    // cabe completo…
-    expect(resp.layoutSpec.validation.semantic_gate.semFail).toBeGreaterThan(0); // …pero sin acceso
-    expect(resp.seleccion.metrics.candidates_evaluated).toBe(5);  // exploró TODOS (ninguno PASS)
+    expect(resp.layoutSpec.placed).toBe(1);                    // sólo el bench
+    expect(resp.no_cupieron.length).toBe(1);
+    const cert = resp.no_cupieron[0].certificado;
+    expect(resp.no_cupieron[0].invariante).toBe('NO_SPACE_PARA_SILLAS');
+    expect(cert.partial_certificate.full_kit_cause).toBe('ACCESS');
+    expect(cert.partial_certificate.full_kit_proven).toBe(true);
+    expect(resp.seleccion.metrics.candidates_evaluated).toBe(6);  // exploró TODAS las estrategias (ninguna completa)
     expect(resp.render_ready).toBe(false);
-    expect(resp.status).toBe('NEEDS_SEMANTIC_REVIEW');
+    expect(resp.status).toBe('NEEDS_SEMANTIC_REVIEW');         // slots requeridos sin llenar → no publicable
   });
 
   it('caso limpio (escritorio privado): edge PASS, render_ready=true, corte adaptativo en #0', () => {

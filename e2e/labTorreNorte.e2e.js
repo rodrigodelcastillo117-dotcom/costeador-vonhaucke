@@ -52,10 +52,10 @@ test.describe('LAB · plano Torre Norte', () => {
     if (!(await gate.count())) { guarda('ERROR_lectura.txt', await page.locator('main').innerText()); throw new Error('la lectura del plano falló: ' + (await errorPlano.first().innerText())); }
     const lectura = {
       segundos: tLectura,
-      nivel: await page.getByTestId('lectura-nivel').innerText().catch(() => ''),
-      areas: await page.getByTestId('lectura-areas').innerText().catch(() => ''),
-      servidor: await page.getByTestId('lectura-servidor').innerText().catch(() => ''),
-      problemas: await page.getByTestId('lectura-problemas').innerText().catch(() => ''),
+      nivel: await page.getByTestId('lectura-nivel').innerText({ timeout: 1500 }).catch(() => ''),
+      areas: await page.getByTestId('lectura-areas').innerText({ timeout: 1500 }).catch(() => ''),
+      servidor: await page.getByTestId('lectura-servidor').innerText({ timeout: 1500 }).catch(() => ''),
+      problemas: await page.getByTestId('lectura-problemas').innerText({ timeout: 1500 }).catch(() => ''),
       gate: await gate.innerText(),
     };
     guarda('1-lectura-gate.json', lectura);
