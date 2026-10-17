@@ -15,6 +15,9 @@
 // ============================================================================
 
 const EPS = 1; // mm
+// 2026-10-17: misma geometría de puertas que el solver (una sola verdad): barrido real de una puerta
+// verificada y su cuadro conservador duplicado ignorado. Precedente de import: acomodoAudit.js.
+import { poligonoBarridoPuerta, bloqueaPuertaEspacial, areaSinCuadrosDuplicados } from '../../supabase/functions/acomodar-espacio-recovery/spatial-core.js';
 
 const ORDEN = { PASS: 0, REVIEW_REQUIRED: 1, PARTIAL: 2, NEEDS_REVIEW: 3, FAIL: 4 };
 const peor = (a, b) => (ORDEN[a] >= ORDEN[b] ? a : b);
@@ -109,7 +112,7 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     const id = String(c.id);
     const pieza = porId.get(id);
     const ai = Number(c.area);
-    const area = areas[ai];
+    const area = areas[ai] ? areaSinCuadrosDuplicados(areas[ai]) : areas[ai];
     if (!area) { add('AREA_INEXISTENTE', 'fail', { id, area: ai }); continue; }
     const rect = rectDe(pieza, c);
 
@@ -119,7 +122,12 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
       if (solapan(rect, rectObstaculo(o))) { add('HITS_OBSTACLE', 'fail', { id, area: ai }); break; }
     }
     for (const p of (Array.isArray(area.puertas) ? area.puertas : [])) {
-      if (solapan(rect, cajaPuerta(p))) { add('BLOCKS_DOOR', 'fail', { id, area: ai }); break; }
+      // Puerta con barrido verificado: su forma real (la misma que usa el solver). Sin barrido verificado:
+      // la caja conservadora de siempre.
+      const bloquea = poligonoBarridoPuerta(p)
+        ? bloqueaPuertaEspacial({ x: rect.x, y: rect.y, w: rect.w, d: rect.h }, p)
+        : solapan(rect, cajaPuerta(p));
+      if (bloquea) { add('BLOCKS_DOOR', 'fail', { id, area: ai }); break; }
     }
   }
 
