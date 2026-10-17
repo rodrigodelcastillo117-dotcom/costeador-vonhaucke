@@ -12,6 +12,14 @@
 --  producto_version_id. Un vendedor emite (y obtiene folio oficial) un renglón de OTRO producto contra el costo
 --  de lo que Dirección costeó.
 --
+--  REV2 (2026-10-17) · REBASE SOBRE P0-01. El 2026-10-16 se aplicó en producción P0-01 (reventa de catálogo,
+--  PROPUESTA_p0_01_reventa_emite_sin_costo.sql), que reescribió este mismo gate. La rev1 exigía el gate del 13-oct:
+--  aplicada hoy abortaba (precondición) y, forzada, borraba la reventa. La rev2 es el gate vivo (P0-01) + las mismas
+--  3 inserciones de SEG-01 (merge de tres vías, un solo conflicto en las declaraciones, se conservan ambas); su
+--  precondición exige el gate vivo y la rama de reventa, y su rollback devuelve el gate vivo, no el del 13-oct.
+--  OJO con el rollback de P0-01 (sus líneas `-- RB`): devuelve el gate del 13-oct y quitaría también SEG-01. Si hay
+--  que revertir ambos: primero este rollback (vuelve a P0-01), después el de P0-01.
+--
 --  QUÉ CAMBIA (una sola función existente, misma firma, mismos atributos y grants):
 --   · private_api.evaluar_emision_cotizacion(bigint, jsonb): cuerpo de producción BYTE A BYTE + 3 inserciones:
 --       1) declara v_campos / v_discrepancias;
@@ -102,8 +110,13 @@ begin
   end if;
   select md5(pg_get_functiondef(p.oid)), p.prosrc into v_md5, v_src
   from pg_proc p where p.oid = 'private_api.evaluar_emision_cotizacion(bigint, jsonb)'::regprocedure;
-  if v_md5 <> '9c660b09ca099af557436ef54edbb1de' and position('no_corresponde_a_lo_costeado' in v_src) = 0 then
-    raise exception 'SEG-01: private_api.evaluar_emision_cotizacion no es la de producción 2026-10-13 (md5 %); revisar drift antes de aplicar', v_md5;
+  -- rev2 (2026-10-17): la base es el gate VIVO de P0-01 (reventa, aplicada 2026-10-16), md5 17ec67cf…; la rev1 se
+  -- escribió sobre el del 13-oct (9c660b09…) y, aplicada hoy, habría borrado la rama de reventa.
+  if v_md5 <> '17ec67cf8bf06b540a55279288e90025' and position('no_corresponde_a_lo_costeado' in v_src) = 0 then
+    raise exception 'SEG-01: private_api.evaluar_emision_cotizacion no es la de producción 2026-10-17 con P0-01 (md5 %); revisar drift antes de aplicar', v_md5;
+  end if;
+  if position('v_reventa_policy' in v_src) = 0 then
+    raise exception 'SEG-01 rev2: el gate de producción no trae la rama de reventa de P0-01; esta revisión la conserva y la exige';
   end if;
 end $$;
 
@@ -148,12 +161,12 @@ revoke all on function private_api.campos_partida_no_corresponden(jsonb, jsonb) 
 --  Gate: cuerpo de producción 2026-10-13 + bloque SEG-01 (ver encabezado). Misma firma, STABLE SECURITY DEFINER,
 --  search_path 'public'. CREATE OR REPLACE conserva dueño y grants (authenticated, service_role).
 -- ----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION private_api.evaluar_emision_cotizacion(p_cotizacion_id bigint, p_snapshot jsonb)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE SECURITY DEFINER
- SET search_path TO 'public'
-AS $function$
+create or replace function private_api.evaluar_emision_cotizacion(p_cotizacion_id bigint, p_snapshot jsonb)
+ returns jsonb
+ language plpgsql
+ stable security definer
+ set search_path to 'public'
+as $function$
 declare
   v_email text := auth.jwt()->>'email';
   v_c public.cotizaciones%rowtype;
@@ -173,6 +186,8 @@ declare
   v_prod_source text; v_pv_state text;
   v_special jsonb; v_special_cost_state text; v_special_commercial_state text;
   v_desc numeric; v_expected_price numeric;
+  -- P0-01 reventa de catálogo sin costo interno:
+  v_reventa_policy boolean := false; v_reventa boolean := false; v_rev_lista numeric; v_rev_piso numeric;
   -- SEG-01: campos no comerciales del renglón que no corresponden a la fila guardada.
   v_campos text[]; v_discrepancias jsonb := '{}'::jsonb;
 begin
@@ -195,6 +210,7 @@ begin
   if v_min_margin is null then
     return jsonb_build_object('state','BLOCKED','reasons',jsonb_build_array('politica_comercial_sin_margen_minimo'));
   end if;
+  begin v_reventa_policy := coalesce((v_rules->>'reventa_emite_sin_costo')::boolean, false); exception when others then v_reventa_policy := false; end;
 
   v_count := jsonb_array_length(p_snapshot->'partidas');
   v_db_count := jsonb_array_length(coalesce(v_c.partidas,'[]'::jsonb));
@@ -232,6 +248,7 @@ begin
     v_pid_txt := coalesce(nullif(v_pt->>'producto_id',''),nullif(v_pt->>'productoId',''),nullif(v_pt->>'product_id',''));
     v_pvid_txt := coalesce(nullif(v_pt->>'producto_version_id',''),nullif(v_pt->>'productoVersionId',''),nullif(v_pt->>'product_version_id',''));
     v_cost_ref:=null; v_pvid:=null; v_pid:=null; v_cost:=null; v_prod_source:=null; v_pv_state:=null; v_special:=null;
+    v_reventa:=false; v_rev_lista:=null; v_rev_piso:=null;
 
     -- Dos mundos explícitos:
     -- 1) canónico: producto_id y producto_version_id numéricos;
@@ -299,8 +316,27 @@ begin
           end if;
         end if;
       else
-        if v_cost_ref is not null and v_cost_ref>0 then v_cost:=v_cost_ref;
-        else v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_productversion_desconocido',v_ord)); end if;
+        if v_cost_ref is not null and v_cost_ref>0 then
+          v_cost:=v_cost_ref;
+        elsif v_reventa_policy and v_prod_source in ('banco','linea') then
+          -- P0-01: reventa de catálogo SIN costo interno (política de Dirección, reversible).
+          -- Precio del pricebook; piso = tope duro; margen NO calculado. No inventa costo.
+          select lpi.precio_lista, lpi.piso_minimo into v_rev_lista, v_rev_piso
+            from public.lista_precio_items lpi
+           where lpi.producto_id = v_pid and lpi.vigencia_hasta is null
+           order by lpi.precio_lista desc nulls last limit 1;
+          if v_rev_lista is null or v_rev_lista<=0 then
+            -- Ni costo ni precio de lista vigente: no hay con qué emitir ⇒ sigue incompleto.
+            v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_productversion_desconocido',v_ord));
+          else
+            if v_rev_piso is not null and v_rev_piso>0 and v_price is not null and v_price>0 and v_price<v_rev_piso then
+              v_approval_reasons:=array_append(v_approval_reasons,format('linea_%s_precio_bajo_piso',v_ord));
+            end if;
+            v_reventa:=true;
+          end if;
+        else
+          v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_productversion_desconocido',v_ord));
+        end if;
       end if;
     else
       -- Sólo legacy sin ProductVersion: nunca se confía en el costo del snapshot recibido;
@@ -317,7 +353,10 @@ begin
       end if;
     end if;
 
-    if v_cost is null or v_cost<=0 then
+    if v_reventa then
+      -- Reventa sin costo interno: el piso ya actuó arriba; no hay margen que validar.
+      null;
+    elsif v_cost is null or v_cost<=0 then
       if not (v_pid is not null and cardinality(v_econ_reasons)>0) then
         v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_desconocido',v_ord));
       end if;
@@ -359,7 +398,8 @@ declare r record;
 begin
   select p.provolatile, p.prosecdef, p.prosrc into r
   from pg_proc p where p.oid = 'private_api.evaluar_emision_cotizacion(bigint, jsonb)'::regprocedure;
-  if r.provolatile <> 's' or not r.prosecdef or position('campos_partida_no_corresponden' in r.prosrc) = 0 then
+  if r.provolatile <> 's' or not r.prosecdef or position('campos_partida_no_corresponden' in r.prosrc) = 0
+     or position('v_reventa_policy' in r.prosrc) = 0 then
     raise exception 'SEG-01: el gate no quedó como se esperaba (volatilidad %, definer %)', r.provolatile, r.prosecdef;
   end if;
 end $$;
@@ -367,10 +407,11 @@ end $$;
 commit;
 
 -- ============================================================================
---  ROLLBACK (si se aplicó y hay que volver a producción tal cual 2026-10-13). No se ejecuta con este archivo:
+--  ROLLBACK (si se aplicó y hay que volver a producción tal cual 2026-10-17, con P0-01). No se ejecuta con este archivo:
 --  está dentro de un comentario de bloque. Para revertir: copiar lo que hay entre los marcadores y correrlo.
---    1) private_api.evaluar_emision_cotizacion vuelve al cuerpo de producción BYTE A BYTE (copiado de
---       supabase/tests/fixtures/private_api_emision_prod_20261013.sql; md5 9c660b09ca099af557436ef54edbb1de).
+--    1) private_api.evaluar_emision_cotizacion vuelve al cuerpo de producción BYTE A BYTE: el gate VIVO de P0-01
+--       (supabase/tests/fixtures/private_api_emision_prod_20261017.sql; md5 17ec67cf8bf06b540a55279288e90025).
+--       rev1 devolvía el del 13-oct (9c660b09…) y con eso borraba la reventa de P0-01.
 --    2) Borra las 3 ayudas (después de 1: ya nadie las llama).
 --    3) Datos: nada que revertir (no se escribe ninguna fila).
 --  No toca el wrapper public.evaluar_emision_cotizacion: si VH-035c está aplicada, su wrapper sigue igual.
@@ -404,6 +445,7 @@ declare
   v_prod_source text; v_pv_state text;
   v_special jsonb; v_special_cost_state text; v_special_commercial_state text;
   v_desc numeric; v_expected_price numeric;
+  v_reventa_policy boolean := false; v_reventa boolean := false; v_rev_lista numeric; v_rev_piso numeric;
 begin
   if v_email is null or not public.puede_entrar() then
     return jsonb_build_object('state','BLOCKED','reasons',jsonb_build_array('no_autorizado'));
@@ -424,6 +466,7 @@ begin
   if v_min_margin is null then
     return jsonb_build_object('state','BLOCKED','reasons',jsonb_build_array('politica_comercial_sin_margen_minimo'));
   end if;
+  begin v_reventa_policy := coalesce((v_rules->>'reventa_emite_sin_costo')::boolean, false); exception when others then v_reventa_policy := false; end;
 
   v_count := jsonb_array_length(p_snapshot->'partidas');
   v_db_count := jsonb_array_length(coalesce(v_c.partidas,'[]'::jsonb));
@@ -448,10 +491,8 @@ begin
     v_pid_txt := coalesce(nullif(v_pt->>'producto_id',''),nullif(v_pt->>'productoId',''),nullif(v_pt->>'product_id',''));
     v_pvid_txt := coalesce(nullif(v_pt->>'producto_version_id',''),nullif(v_pt->>'productoVersionId',''),nullif(v_pt->>'product_version_id',''));
     v_cost_ref:=null; v_pvid:=null; v_pid:=null; v_cost:=null; v_prod_source:=null; v_pv_state:=null; v_special:=null;
+    v_reventa:=false; v_rev_lista:=null; v_rev_piso:=null;
 
-    -- Dos mundos explícitos:
-    -- 1) canónico: producto_id y producto_version_id numéricos;
-    -- 2) legacy: clave textual sin ProductVersion, cuyo costo histórico se toma SOLO de la fila persistida.
     if v_pid_txt is not null then
       if v_pid_txt ~ '^[0-9]+$' then
         v_pid:=v_pid_txt::bigint;
@@ -515,17 +556,28 @@ begin
           end if;
         end if;
       else
-        if v_cost_ref is not null and v_cost_ref>0 then v_cost:=v_cost_ref;
-        else v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_productversion_desconocido',v_ord)); end if;
+        if v_cost_ref is not null and v_cost_ref>0 then
+          v_cost:=v_cost_ref;
+        elsif v_reventa_policy and v_prod_source in ('banco','linea') then
+          select lpi.precio_lista, lpi.piso_minimo into v_rev_lista, v_rev_piso
+            from public.lista_precio_items lpi
+           where lpi.producto_id = v_pid and lpi.vigencia_hasta is null
+           order by lpi.precio_lista desc nulls last limit 1;
+          if v_rev_lista is null or v_rev_lista<=0 then
+            v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_productversion_desconocido',v_ord));
+          else
+            if v_rev_piso is not null and v_rev_piso>0 and v_price is not null and v_price>0 and v_price<v_rev_piso then
+              v_approval_reasons:=array_append(v_approval_reasons,format('linea_%s_precio_bajo_piso',v_ord));
+            end if;
+            v_reventa:=true;
+          end if;
+        else
+          v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_productversion_desconocido',v_ord));
+        end if;
       end if;
     else
-      -- Sólo legacy sin ProductVersion: nunca se confía en el costo del snapshot recibido;
-      -- se usa exclusivamente el costo histórico persistido en la cotización.
       begin v_cost:=nullif(v_dbpt->>'costoUnitario','')::numeric; exception when others then v_cost:=null; end;
 
-      -- Las líneas nuevas del Costeador guardan el veredicto del servidor. Un costo
-      -- PRELIMINAR puede vivir en borrador, pero no convertirse en emisión definitiva.
-      -- Las cotizaciones legacy que no traen costoEstado conservan su tratamiento histórico.
       if lower(coalesce(v_dbpt->>'costoEstado','')) = 'preliminar' then
         v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_preliminar_no_certificado',v_ord));
       elsif lower(coalesce(v_dbpt->>'costoEstado','')) in ('incompleto','bloqueado') then
@@ -533,7 +585,9 @@ begin
       end if;
     end if;
 
-    if v_cost is null or v_cost<=0 then
+    if v_reventa then
+      null;
+    elsif v_cost is null or v_cost<=0 then
       if not (v_pid is not null and cardinality(v_econ_reasons)>0) then
         v_econ_reasons:=array_append(v_econ_reasons,format('linea_%s_costo_desconocido',v_ord));
       end if;

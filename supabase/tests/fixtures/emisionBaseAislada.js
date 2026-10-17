@@ -20,7 +20,7 @@ export function defDeBaseline(nombre) {
 
 // md5(pg_get_functiondef) leídos de producción (mtuvnbgljwbsaizjjgzs) el 2026-10-13.
 export const MD5_PROD = {
-  'private_api.evaluar_emision_cotizacion': '9c660b09ca099af557436ef54edbb1de',
+  'private_api.evaluar_emision_cotizacion': '17ec67cf8bf06b540a55279288e90025',  // gate vivo P0-01 (2026-10-17); 13-oct era 9c660b09…
   'private_api.emitir_revision_v2': 'fb26c9d515ac6116ae87ed44350c3615',
   'private_api.hash_revision': '6290c18df505348c1509e6dc878cf13d',
   'private_api.verificar_aprobacion': 'c9da5e92404bd24f8e7e9d7d09121a31',
@@ -87,6 +87,8 @@ export async function baseAislada() {
   await x(leer('supabase/tests/fixtures/private_api_prod_20261013.sql'));
   // Gate de emisión: cuerpos EXACTOS de producción.
   await x(leer('supabase/tests/fixtures/private_api_emision_prod_20261013.sql'));
+  // Producción de hoy: el gate vivo es el de P0-01 (reventa, aplicada 2026-10-16), no el del 13-oct.
+  await x(leer('supabase/tests/fixtures/private_api_emision_prod_20261017.sql'));
   for (const f of ['reglas_comerciales_vigentes', 'revisiones_autor', 'strip_seller_economics_on_revision_write',
     'evaluar_emision_cotizacion', 'emitir_revision_v2', 'hash_revision', 'verificar_aprobacion',
     'requiere_aprobacion_snapshot', 'asignar_folio_oficial']) await x(defDeBaseline(f));

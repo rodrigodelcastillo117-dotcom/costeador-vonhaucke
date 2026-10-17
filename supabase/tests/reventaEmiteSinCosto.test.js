@@ -28,7 +28,17 @@ function defGate() {
 
 const DIRECCION = 'rodrigo@vh.mx';
 
-async function base({ reventaPolicy }) {
+// public.jsonb_sin_economia del baseline (la usa SEG-01).
+function defJsonbSinEconomia() {
+  const sql = leer('supabase/schema/baseline/03_funciones.sql');
+  const ini = sql.indexOf('CREATE OR REPLACE FUNCTION public.jsonb_sin_economia(');
+  if (ini < 0) throw new Error('no está jsonb_sin_economia en el baseline');
+  return sql.slice(ini, sql.indexOf('\n;\n', ini)) + ';';
+}
+
+// gate: 'p0_01' = el gate de la PROPUESTA P0-01 · 'seg01' = el gate VIVO de producción (fixture 2026-10-17)
+// con PROPUESTA_seg01_emision_snapshot_fiel.sql (rev2) aplicada encima, archivo completo (precondición incluida).
+async function base({ reventaPolicy, gate = 'p0_01' }) {
   const db = new PGlite();
   const x = (s) => db.exec(s);
   await x(`
@@ -71,7 +81,14 @@ async function base({ reventaPolicy }) {
     create function public.resolver_precio_especial_proyecto(p_producto_id bigint, p_version_id bigint, p_fecha date default current_date, p_moneda text default 'MXN')
       returns jsonb language sql stable as $$ select jsonb_build_object('ok', false, 'motivo', 'no_especial') $$;
   `);
-  await x(defGate());
+  if (gate === 'seg01') {
+    await x(`create role anon nologin; create role authenticated nologin; create role service_role nologin;`);
+    await x(defJsonbSinEconomia());
+    await x(leer('supabase/tests/fixtures/private_api_emision_prod_20261017.sql'));
+    await x(leer('supabase/migrations/PROPUESTA_seg01_emision_snapshot_fiel.sql'));
+  } else {
+    await x(defGate());
+  }
   return db;
 }
 
@@ -131,6 +148,61 @@ describe('P0-01 reventa de catálogo emite a precio de lista sin costo interno',
     const g = await emitir(db, { producto_id: 2, producto_version_id: 2044, precio: 20000, nombre: 'Archivero' });
     expect(g.state).toBe('APPROVAL_REQUIRED');
     expect(JSON.stringify(g.reasons)).toMatch(/margen_bajo|precio_bajo_costo/);
+    await db.close();
+  });
+});
+
+// SEG-01 rev2 (2026-10-17): la propuesta de la ventana se rebasó sobre el gate vivo de P0-01. Aplicada encima de
+// producción de hoy, la reventa tiene que seguir emitiendo igual, y SEG-01 tiene que seguir bloqueando un renglón
+// del snapshot que no es la fila guardada (también si es reventa). La rev1 abortaba aquí (precondición del 13-oct).
+describe('SEG-01 rev2 sobre P0-01: la reventa sobrevive y SEG-01 sigue cerrando', () => {
+  it('reventa ON · catálogo sin costo · precio ≥ piso ⇒ ALLOWED (igual que sin SEG-01)', async () => {
+    const db = await base({ reventaPolicy: true, gate: 'seg01' });
+    const g = await emitir(db, { producto_id: 1, producto_version_id: 1933, precio: 45000, nombre: 'Banca App LT' });
+    expect(g.state).toBe('ALLOWED');
+    await db.close();
+  });
+
+  it('reventa ON · precio < piso ⇒ APPROVAL_REQUIRED (precio_bajo_piso)', async () => {
+    const db = await base({ reventaPolicy: true, gate: 'seg01' });
+    const g = await emitir(db, { producto_id: 1, producto_version_id: 1933, precio: 38000, nombre: 'Banca App LT' });
+    expect(g.state).toBe('APPROVAL_REQUIRED');
+    expect(JSON.stringify(g.reasons)).toContain('precio_bajo_piso');
+    await db.close();
+  });
+
+  it('reventa OFF ⇒ ECONOMICS_INCOMPLETE; producto con costo y margen bajo ⇒ APPROVAL_REQUIRED', async () => {
+    const off = await base({ reventaPolicy: false, gate: 'seg01' });
+    expect((await emitir(off, { producto_id: 1, producto_version_id: 1933, precio: 45000, nombre: 'Banca App LT' })).state).toBe('ECONOMICS_INCOMPLETE');
+    await off.close();
+    const on = await base({ reventaPolicy: true, gate: 'seg01' });
+    const g = await emitir(on, { producto_id: 2, producto_version_id: 2044, precio: 24000, nombre: 'Archivero' });
+    expect(g.state).toBe('APPROVAL_REQUIRED');
+    expect(JSON.stringify(g.reasons)).toMatch(/margen_bajo/);
+    await on.close();
+  });
+
+  it('renglón de reventa cuyo snapshot NO es la fila guardada (otra cantidad) ⇒ BLOCKED no_corresponde_a_lo_costeado', async () => {
+    const db = await base({ reventaPolicy: true, gate: 'seg01' });
+    const fila = { id: 'L1', nombre: 'Banca App LT', producto_id: 1, producto_version_id: 1933, cantidad: 1, precioUnitario: 45000 };
+    await db.exec(`set test.email='${DIRECCION}'`);
+    await db.query(`insert into public.cotizaciones(id, usuario, partidas) values (778, '${DIRECCION}', $1::jsonb)`, [JSON.stringify([fila])]);
+    const snap = { partidas: [{ ...fila, cantidad: 5 }] };
+    const r = await db.query(`select private_api.evaluar_emision_cotizacion(778, $1::jsonb) as g`, [JSON.stringify(snap)]);
+    const g = r.rows[0].g;
+    expect(g.state).toBe('BLOCKED');
+    expect(JSON.stringify(g.reasons)).toContain('linea_1_no_corresponde_a_lo_costeado');
+    expect(g.discrepancias).toEqual({ linea_1: ['cantidad'] });
+    await db.close();
+  });
+
+  it('el gate con SEG-01 es el vivo de P0-01 + SEG-01: su rollback devuelve el md5 de producción de hoy', async () => {
+    const db = await base({ reventaPolicy: true, gate: 'seg01' });
+    const sql = leer('supabase/migrations/PROPUESTA_seg01_emision_snapshot_fiel.sql');
+    const rb = sql.slice(sql.indexOf('-- >>> ROLLBACK SEG-01 INICIO'), sql.indexOf('-- <<< ROLLBACK SEG-01 FIN'));
+    await db.exec(rb);
+    const r = await db.query(`select md5(pg_get_functiondef('private_api.evaluar_emision_cotizacion(bigint, jsonb)'::regprocedure)) as m`);
+    expect(r.rows[0].m).toBe('17ec67cf8bf06b540a55279288e90025');
     await db.close();
   });
 });
