@@ -312,3 +312,24 @@ export function evaluarCalidad(areas = [], piezas = [], colocacion = [], porPiez
     breakdown,
   };
 }
+
+// ---------------------------------------------------------------------------------------------
+// 2026-10-17 · PUERTA CONTADA DOS VECES. El cliente (planoLeido) agrega, por cada puerta con barrido
+// VERIFICADO, un obstáculo cuadrado conservador de (ancho + barrido) centrado en el vano, y además manda
+// la misma puerta en `puertas` con bisagra, ángulo y sentido. El solver ya evalúa esa puerta con su
+// barrido real (poligonoBarridoPuerta), así que el cuadro sólo reservaba espacio de más a ambos lados del
+// vano: en el lab C3 dejaba fuera un escritorio directivo que con la puerta real sí cabe. Se ignora el
+// cuadro SÓLO si coincide con una puerta de barrido verificado; una puerta sin barrido verificado
+// conserva su reserva conservadora intacta.
+const TOL_CUADRO_PUERTA = 60;   // mm entre el centro del cuadro y el punto del vano
+export function cuadroDuplicaPuertaVerificada(o = {}, puertas = []) {
+  if (!o || o.tipo !== 'puerta') return false;
+  const cx = n(o.x) + n(o.w) / 2, cy = n(o.y) + n(o.h ?? o.d) / 2;
+  return (Array.isArray(puertas) ? puertas : []).some((p) => poligonoBarridoPuerta(p)
+    && Math.abs(n(p.x) - cx) <= TOL_CUADRO_PUERTA && Math.abs(n(p.y) - cy) <= TOL_CUADRO_PUERTA);
+}
+export function areaSinCuadrosDuplicados(area = {}) {
+  if (!area || !Array.isArray(area.obstaculos) || !area.obstaculos.length) return area;
+  const obstaculos = area.obstaculos.filter((o) => !cuadroDuplicaPuertaVerificada(o, area.puertas));
+  return obstaculos.length === area.obstaculos.length ? area : { ...area, obstaculos };
+}

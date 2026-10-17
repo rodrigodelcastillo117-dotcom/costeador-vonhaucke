@@ -9,7 +9,7 @@
 //    → layoutSpec / render_ready / status / mensaje_vendedor SOBRE EL GANADOR.
 // ============================================================================
 import { validarColocacion } from './acomodo-core.js';
-import { auditarPuertas } from './spatial-core.js';
+import { auditarPuertas, areaSinCuadrosDuplicados } from './spatial-core.js';
 import { CONTRATO, evaluarRecovery } from './recovery-core.js';
 import { resolverKitsMulti } from './kit-solver.js';
 import { mensajeVendedor } from './opciones.js';
@@ -23,7 +23,10 @@ function mensajeSerializable(areas, piezas, sol) {
   return { pendientes: m.pendientes, motivos: m.motivos, opciones: m.opciones.map((o) => ({ id: o.id, texto: o.texto })), sin_opcion: m.sin_opcion, hay_pendientes: m.hay_pendientes };
 }
 
-export function construirRespuestaAcomodo(areas = [], piezas = []) {
+export function construirRespuestaAcomodo(areasIn = [], piezas = []) {
+  // 2026-10-17: una puerta con barrido verificado se evalúa con su forma real; su cuadro conservador
+  // duplicado (obstáculo tipo 'puerta' del cliente) se ignora en TODO el pipeline (solver, duro, juez).
+  const areas = (Array.isArray(areasIn) ? areasIn : []).map(areaSinCuadrosDuplicados);
   // GANADOR del pipeline multi-candidato (jueces en capas HARD→SEMANTIC→COMPLETENESS→QUALITY).
   const sol = resolverKitsMulti(areas, piezas);
   const colocacion = sol.colocacion;
