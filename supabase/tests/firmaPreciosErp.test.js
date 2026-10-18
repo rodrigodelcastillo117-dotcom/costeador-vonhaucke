@@ -196,3 +196,53 @@ describe('20261018120000 es idempotente (producción ya la tiene; un db push no 
     expect(antes).toContain('p_meses > 360');
   });
 });
+
+describe('D3 · Dirección quita la marca de Compras y firma (20261018130000)', () => {
+  const MIG_D3 = 'supabase/migrations/20261018130000_firma_precios_d3_quita_marca_compras.sql';
+  const d3 = (db, email) => como(db, email, () => fila(db, 'select public.firmar_precios_marcados_compras_lote(null, 500) as r'));
+  let db;
+  beforeAll(async () => {
+    db = await baseCatalogoAislada();
+    await db.exec(`insert into public.permitidos(email, rol) values ('${QA}', 'direccion')`);
+    await db.exec(`insert into public.insumos_catalogo (id, nombre, seccion, unidad_costeo, activo, clasificacion) values
+      ('m', 'MDF 19', 'cubiertas', 'pza', true, 'curado'), ('n', 'Lámina 14', 'metal', 'pza', true, 'curado'), ('o', 'Otro', 'metal', 'pza', true, 'erp')`);
+    const ins = (id, insumo, ev, conf, marca) => `insert into public.insumo_precios (id, insumo_id, precio, estado, vigente_desde, source_document, unidad_compra, precio_compra, factor_conversion, evidence_status, confidence, requiere_validacion_compras, evidencia)
+      overriding system value values (${id}, '${insumo}', 437, 'propuesto', '2026-08-14', null, 'pza', 437, 1, ${ev ? `'${ev}'` : 'null'}, ${conf ? `'${conf}'` : 'null'}, ${marca}, 'Compras, lista 2026-08-14')`;
+    // 1: marcado, sin evidencia, confianza baja · 2: marcado, referenciada/media · 3: NO marcado (no lo toca D3).
+    await db.exec([ins(1, 'm', 'sin_evidencia', 'baja', true), ins(2, 'n', 'referenciada', 'media', true), ins(3, 'o', 'documentada', 'alta', false)].join(';'));
+    await db.exec(leer(MIG));
+  }, 60_000);
+
+  it('ANTES: con la marca de Compras el precio no se puede aprobar (regla de integridad)', async () => {
+    await expect(como(db, DIRECCION, () => db.query('select public.aprobar_precio(1)'))).rejects.toThrow(/integridad/);
+    await db.exec(leer(MIG_D3));
+  });
+
+  it('la cuenta QA y un vendedor NO pueden; anon no la ejecuta', async () => {
+    await expect(d3(db, QA)).rejects.toThrow(/no autorizado/);
+    await expect(d3(db, VENDEDOR)).rejects.toThrow(/no autorizado/);
+    expect((await fila(db, "select has_function_privilege('anon', 'public.firmar_precios_marcados_compras_lote(bigint, integer)', 'execute') as ok")).ok).toBe(false);
+  });
+
+  it('Dirección: quita la marca, declara la evidencia y firma; NO toca el precio ni los no marcados', async () => {
+    const { r } = await d3(db, DIRECCION);
+    expect(r).toMatchObject({ firmados: 2, no_firmados: 0, firmado_por: DIRECCION });
+    const ps = await filas(db, 'select id, precio, estado, approved_by, requiere_validacion_compras m, evidence_status ev, confidence c, evidencia from public.insumo_precios order by id');
+    expect(ps[0]).toMatchObject({ id: 1, estado: 'aprobado', approved_by: DIRECCION, m: false, ev: 'referenciada', c: 'media' });
+    expect(Number(ps[0].precio)).toBe(437);
+    expect(ps[0].evidencia).toMatch(/Compras, lista 2026-08-14 · Declarado por Dirección \(direccion@vh\.mx, /);
+    expect(ps[1]).toMatchObject({ id: 2, estado: 'aprobado', ev: 'referenciada', c: 'media', m: false });   // ya traía evidencia/confianza: se respetan
+    expect(ps[2]).toMatchObject({ id: 3, estado: 'propuesto', approved_by: null });                          // no estaba marcado: D3 no lo toca
+  });
+
+  it('el historial deja la política D3 y lo que había antes', async () => {
+    const h = await filas(db, 'select precio_id, politica, nota from public.aprobaciones_precio_historial order by precio_id');
+    expect(h.map((x) => x.precio_id)).toEqual([1, 2]);
+    expect(h[0].politica).toBe('D3 · Dirección quita la marca de Compras y declara la evidencia');
+    expect(h[0].nota).toMatch(/requiere_validacion_compras=true, evidencia=sin_evidencia, confianza=baja/);
+  });
+
+  it('volver a correrla no hace nada (ya no hay marcados sin firma)', async () => {
+    expect((await d3(db, DIRECCION)).r).toMatchObject({ firmados: 0, no_firmados: 0 });
+  });
+});
