@@ -5,7 +5,7 @@
 //  después de entrar, el archivo de la pantalla de Cotizar (Voni) responde 404 una vez, como tras un deploy.
 // ============================================================================
 import { test, expect } from '@playwright/test';
-import { crearNubeFalsa } from './nubeFalsa.js';
+import { crearNubeFalsa, estadoLocal, CLAVE_LOCAL } from './nubeFalsa.js';
 
 const USUARIOS = { 'rodrigo@vh.mx': 'direccion' };
 // Dev: el módulo fuente; build de producción (E2E_BUILD=1, `vite preview`): el archivo con hash, como en Vercel.
@@ -26,6 +26,9 @@ async function arrancar(browser) {
   const nube = crearNubeFalsa({ usuarios: USUARIOS });
   const context = await browser.newContext();
   await nube.instalar(context);
+  // Guía ya vista: es otra pantalla diferida y en CI aparece tarde, encima del botón de Cotizar.
+  await context.addInitScript(({ k, v }) => { if (!localStorage.getItem('__sembrado__')) { localStorage.setItem(k, JSON.stringify(v)); localStorage.setItem('__sembrado__', '1'); } },
+    { k: CLAVE_LOCAL, v: estadoLocal() });
   const page = await context.newPage();
   await entrar(page);
   return { context, page };
