@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import { registrarError } from './datos/telemetria.js';
+import { instalarRecargaPorVersion } from './datos/versionNueva.js';
 import './fuentes.css';
 import './estilos.css';
 import './demoGuardrails.css';
@@ -47,6 +48,9 @@ window.addEventListener('error', (e) => {
   registrarError(e?.error || e?.message, { origen: 'window.onerror', archivo: e?.filename, linea: e?.lineno });
   pintarFallo('Error al cargar', `${e.message}\n${e.filename}:${e.lineno}:${e.colno}\n\n${e.error?.stack || ''}`);
 });
+// Pestaña abierta desde antes de un deploy: sus archivos de pantalla ya no existen (404). Se recarga una vez
+// para traer la versión publicada, en vez de que cada pantalla caiga en "se atoró" (src/datos/versionNueva.js).
+instalarRecargaPorVersion(window);
 window.addEventListener('unhandledrejection', (e) => {
   registrarError(e?.reason, { origen: 'unhandledrejection' });
   pintarFallo('Error al cargar (promesa)', String(e.reason?.stack || e.reason));

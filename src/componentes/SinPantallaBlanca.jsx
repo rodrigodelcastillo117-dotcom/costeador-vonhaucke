@@ -12,6 +12,7 @@
 // ============================================================================
 import { Component } from 'react';
 import { registrarError } from '../datos/telemetria.js';
+import { esErrorDeVersion, recargarUnaVez } from '../datos/versionNueva.js';
 
 export default class SinPantallaBlanca extends Component {
   constructor(props) {
@@ -29,6 +30,8 @@ export default class SinPantallaBlanca extends Component {
     console.error('[Von Haucke] Error de pantalla:', error, info?.componentStack);
     // Y se CAPTURA en telemetría (anillo exportable) con la pantalla como contexto.
     registrarError(error, { pantalla: this.props.resetKey || null, origen: 'error-boundary' });
+    // Archivo de pantalla de otra versión (deploy con la app abierta): una recarga lo arregla; "Reintentar" no.
+    if (esErrorDeVersion(error)) recargarUnaVez();
   }
 
   componentDidUpdate(prev) {
@@ -50,6 +53,21 @@ export default class SinPantallaBlanca extends Component {
   render() {
     const { error } = this.state;
     if (!error) return this.props.children;
+    if (esErrorDeVersion(error)) {
+      return (
+        <div className="contenido">
+          <div className="tarjeta" data-testid="version-nueva">
+            <h2 style={{ marginTop: 0 }}>Hay una versión nueva de la app</h2>
+            <p className="ayuda columna-texto">
+              Se publicó una actualización mientras tenías la app abierta. Recarga para usarla: lo que ya está guardado no se pierde.
+            </p>
+            <div className="fila-botones" style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+              <button className="boton primario" onClick={() => window.location.reload()}>Recargar ahora</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="contenido">
         <div className="tarjeta">
