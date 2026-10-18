@@ -130,3 +130,69 @@ describe('Firma por lotes con cursor (20261014150000): no depende del statement_
     expect((await fila(db, "select has_function_privilege('anon', 'public.firmar_precios_erp_lote(integer, bigint, integer)', 'execute') as ok")).ok).toBe(false);
   });
 });
+
+describe('D1 a 360 meses y D2 sin documento (20261018120000, decisión de Dirección 18-oct)', () => {
+  const MIG_LOTE = 'supabase/migrations/20261014150000_firma_precios_erp_lote.sql';
+  const MIG_D2 = 'supabase/migrations/20261018120000_firma_precios_d1_360m_d2_sin_documento.sql';
+  const lote = (db, email, meses) => como(db, email, () => fila(db, 'select public.firmar_precios_erp_lote($1, null, 500) as r', [meses]));
+  const sinDoc = (db, email) => como(db, email, () => fila(db, 'select public.firmar_precios_sin_documento_lote(null, 500) as r'));
+  let db;
+  beforeAll(async () => {
+    db = await baseCatalogoAislada();
+    await db.exec(`insert into public.permitidos(email, rol) values ('${QA}', 'direccion')`);
+    const ids = ['a', 'b', 'c', 'd', 'e'];
+    await db.exec(`insert into public.insumos_catalogo (id, nombre, seccion, unidad_costeo, activo, clasificacion) values
+      ${ids.map((i) => `('${i}', '${i.toUpperCase()}', 'metal', 'pza', true, 'erp')`).join(', ')}`);
+    const ins = (id, insumo, desde, doc, validar = false) => `insert into public.insumo_precios (id, insumo_id, precio, estado, vigente_desde, source_document, unidad_compra, precio_compra, factor_conversion, evidence_status, confidence, requiere_validacion_compras)
+      overriding system value values (${id}, '${insumo}', 100, 'propuesto', '${desde}', ${doc ? `'ERP Intelisis · última compra'` : 'null'}, 'pza', 100, 1, 'documentada', '${validar ? 'baja' : 'alta'}', ${validar})`;
+    // 1: compra de 2009 con documento · 2: 2016 con documento · 3: sin documento · 4: sin documento y marcado por Compras · 5: reciente.
+    await db.exec([ins(1, 'a', '2009-12-03', true), ins(2, 'b', '2016-05-01', true), ins(3, 'c', '2026-08-14', false),
+      ins(4, 'd', '2026-08-14', false, true), ins(5, 'e', '2026-09-01', true)].join(';'));
+    await db.exec(leer(MIG)); await db.exec(leer(MIG_LOTE));
+  }, 60_000);
+
+  it('ANTES de la migración: 360 meses se rechaza (límite 120) y no existe la firma sin documento', async () => {
+    await expect(lote(db, DIRECCION, 360)).rejects.toThrow(/1\.\.120/);
+    await expect(sinDoc(db, DIRECCION)).rejects.toThrow(/firmar_precios_sin_documento_lote/);
+    await db.exec(leer(MIG_D2));
+  });
+
+  it('D1 a 360 meses firma las compras viejas con documento (2009, 2016) y la reciente; 361 sigue fuera de rango', async () => {
+    await expect(lote(db, DIRECCION, 361)).rejects.toThrow(/1\.\.360/);
+    const { r } = await lote(db, DIRECCION, 360);
+    expect(r).toMatchObject({ firmados: 3, no_firmados: 0, firmado_por: DIRECCION });
+    const ps = await filas(db, 'select id, estado from public.insumo_precios where id in (1, 2, 5) order by id');
+    expect(ps.every((p) => p.estado === 'aprobado')).toBe(true);
+  });
+
+  it('D2: la cuenta QA y un vendedor NO pueden; anon no la ejecuta', async () => {
+    await expect(sinDoc(db, QA)).rejects.toThrow(/no autorizado/);
+    await expect(sinDoc(db, VENDEDOR)).rejects.toThrow(/no autorizado/);
+    expect((await fila(db, "select has_function_privilege('anon', 'public.firmar_precios_sin_documento_lote(bigint, integer)', 'execute') as ok")).ok).toBe(false);
+  });
+
+  it('D2 firma el sin documento con su política propia; el marcado por Compras se reporta y no se fuerza', async () => {
+    const { r } = await sinDoc(db, DIRECCION);
+    expect(r).toMatchObject({ firmados: 1, no_firmados: 1, firmado_por: DIRECCION });
+    expect(Object.keys(r.motivos)[0]).toMatch(/integridad/);
+    expect((await fila(db, 'select estado, approved_by from public.insumo_precios where id = 3'))).toEqual({ estado: 'aprobado', approved_by: DIRECCION });
+    expect((await fila(db, 'select estado from public.insumo_precios where id = 4')).estado).toBe('propuesto');
+    const h = await filas(db, 'select precio_id, politica from public.aprobaciones_precio_historial where precio_id in (3, 4)');
+    expect(h).toEqual([{ precio_id: 3, politica: 'D2 · firma de Dirección sin documento de compra' }]);
+  });
+});
+
+describe('20261018120000 es idempotente (producción ya la tiene; un db push no debe fallar)', () => {
+  it('aplicarla dos veces deja el mismo límite y la misma función', async () => {
+    const db = await baseCatalogoAislada();
+    await db.exec(leer('supabase/migrations/20261014140000_firma_precios_erp_direccion.sql'));
+    await db.exec(leer('supabase/migrations/20261014150000_firma_precios_erp_lote.sql'));
+    const MIG_D2 = leer('supabase/migrations/20261018120000_firma_precios_d1_360m_d2_sin_documento.sql');
+    await db.exec(MIG_D2);
+    const def = async () => (await fila(db, "select pg_get_functiondef('public.firmar_precios_erp_lote(integer,bigint,integer)'::regprocedure) as d")).d;
+    const antes = await def();
+    await db.exec(MIG_D2);
+    expect(await def()).toBe(antes);
+    expect(antes).toContain('p_meses > 360');
+  });
+});
