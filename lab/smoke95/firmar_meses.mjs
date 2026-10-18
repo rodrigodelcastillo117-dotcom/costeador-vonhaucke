@@ -23,7 +23,11 @@ if (eLogin) { console.log('No se pudo iniciar sesión:', eLogin.message); proces
 
 // FIRMA_SIN_DOC=1: además firma los precios SIN documento de compra (política D2, queda así en el historial).
 const SIN_DOC = process.env.FIRMA_SIN_DOC === '1';
-const que = `los precios con documento y compra de los últimos ${MESES} meses${SIN_DOC ? ' Y los precios SIN documento de compra' : ''}`;
+// FIRMA_MARCADOS=1: SÓLO la política D3 (Dirección quita la marca de Compras, declara la evidencia y firma).
+const MARCADOS = process.env.FIRMA_MARCADOS === '1';
+const que = MARCADOS
+  ? 'los precios que Compras marcó para validar: quitas la marca, declaras la evidencia y los firmas (política D3)'
+  : `los precios con documento y compra de los últimos ${MESES} meses${SIN_DOC ? ' Y los precios SIN documento de compra' : ''}`;
 const confirma = await preguntar(`Vas a firmar como Dirección ${que}. Escribe SI para continuar: `);
 if (confirma !== 'SI') { console.log('Cancelado. No se firmó nada.'); await sb.auth.signOut(); process.exit(0); }
 
@@ -43,7 +47,10 @@ async function firmarTodo(titulo, fn, args) {
   for (const [m, n] of Object.entries(acc.motivos)) console.log(`  ${n} × ${m}`);
 }
 
-await firmarTodo(`Con documento (≤ ${MESES} meses)`, 'firmar_precios_erp_lote', { p_meses: MESES });
-if (SIN_DOC) await firmarTodo('Sin documento', 'firmar_precios_sin_documento_lote', {});
+if (MARCADOS) await firmarTodo('Marcados por Compras (D3)', 'firmar_precios_marcados_compras_lote', {});
+else {
+  await firmarTodo(`Con documento (≤ ${MESES} meses)`, 'firmar_precios_erp_lote', { p_meses: MESES });
+  if (SIN_DOC) await firmarTodo('Sin documento', 'firmar_precios_sin_documento_lote', {});
+}
 console.log('\nListo.');
 await sb.auth.signOut();
