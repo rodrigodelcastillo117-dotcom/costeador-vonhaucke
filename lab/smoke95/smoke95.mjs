@@ -36,9 +36,18 @@ let cotId = null;
 try {
   // 1) Costear un especial con la Edge de PRODUCCIÓN (insumo ERP real con precio aprobado).
   const conf = (c) => ({ ...c, material_confirmado: true });
-  const A = { nombre: 'Escritorio (lab ventana 9.5)', w: 1500, d: 700, piezas: 1, componentes: [
-    conf({ nombre: 'Cubierta', insumoId: 'erp-agme4828ga', cantidad: 1, largoMM: 1500, anchoMM: 700 }),
-    conf({ nombre: 'Lateral', insumoId: 'erp-agme4828ga', cantidad: 2, largoMM: 700, anchoMM: 680 }) ] };
+  // SMOKE_PIEZA=generico: credenza con los genéricos que tenían la marca de Compras (MDF 19, lámina cal. 14, pintura, correderas).
+  const A = process.env.SMOKE_PIEZA === 'generico'
+    ? { nombre: 'Credenza MDF y lámina (lab ventana 9.5)', w: 1800, d: 450, piezas: 1, componentes: [
+      conf({ nombre: 'Cubierta', insumoId: 'mdf', cantidad: 1, largoMM: 1800, anchoMM: 450 }),
+      conf({ nombre: 'Lateral', insumoId: 'mdf', cantidad: 2, largoMM: 700, anchoMM: 430 }),
+      conf({ nombre: 'Base metálica', insumoId: 'lamina-14', cantidad: 1, largoMM: 1700, anchoMM: 400 }),
+      // pintura-electrostatica se costea por m² (no es pintura en polvo por kg): va con medidas, 1.36 m².
+      conf({ nombre: 'Pintura de la base', insumoId: 'pintura-electrostatica', cantidad: 1, largoMM: 1700, anchoMM: 800 }),
+      conf({ nombre: 'Correderas', insumoId: 'corredera', cantidad: 2 }) ] }
+    : { nombre: 'Escritorio (lab ventana 9.5)', w: 1500, d: 700, piezas: 1, componentes: [
+      conf({ nombre: 'Cubierta', insumoId: 'erp-agme4828ga', cantidad: 1, largoMM: 1500, anchoMM: 700 }),
+      conf({ nombre: 'Lateral', insumoId: 'erp-agme4828ga', cantidad: 2, largoMM: 700, anchoMM: 680 }) ] };
   const v = validarIntentCosteo(intentDesdePieza(A, 1));
   if (!v.ok) throw new Error('intent inválido: ' + v.code);
   const t0 = Date.now();
