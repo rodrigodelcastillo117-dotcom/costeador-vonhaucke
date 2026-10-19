@@ -260,11 +260,22 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
     else vistos.set(k, c);
   }
   // (4) CANTIDADES INCOMPATIBLES con lo que dice la descripción (puertas, cajones).
-  const contar = (rol) => conRol.filter((c) => c._rol === rol && !c.excluida).reduce((s, c) => s + (Number(c.piezas) > 0 ? Number(c.piezas) : 1) * (c.largoMM ? 1 : Math.max(1, Number(c.cantidad) || 1)), 0);
-  for (const [rol, rx, nombre] of [['puerta', 'puertas?', 'puerta(s)'], ['frente_cajon', '(?:cajon(?:es)?|cajón|gavetas?)', 'cajón(es)']]) {
+  // Una CAJONERA declara sus gavetas en el nombre ("Cajonera móvil 3 gavetas"): cuenta como esas gavetas, no como una
+  // (certificación 18-oct, escritorio en L: bloqueaba "pide 3 cajón(es) y el despiece trae 1").
+  const RX_CAJONES = '(?:cajon(?:es)?|cajón|gavetas?)';
+  const unidades = (c) => (c._rol === 'gaveta' && /\bcajonera\b/i.test(c.nombre || '') ? (cuantosPide(c.nombre, RX_CAJONES) || 1) : 1);
+  const contar = (rol) => conRol.filter((c) => c._rol === rol && !c.excluida).reduce((s, c) => s + (Number(c.piezas) > 0 ? Number(c.piezas) : 1) * (c.largoMM ? 1 : Math.max(1, Number(c.cantidad) || 1)) * unidades(c), 0);
+  for (const [rol, rx, nombre] of [['puerta', 'puertas?', 'puerta(s)'], ['frente_cajon', RX_CAJONES, 'cajón(es)']]) {
     const pide = cuantosPide(descripcion, rx); const hay = rol === 'frente_cajon' ? contar('frente_cajon') + contar('gaveta') : contar(rol);
     if (pide > 0 && hay > 0 && hay !== pide) obs.push({ nivel: 'blocker', aceptable: true, regla: 'cantidad_incompatible', clave: `cantidad_incompatible:${rol}`,
       mensaje: `La descripción pide ${pide} ${nombre} y el despiece trae ${hay}. Corrige las cantidades o márcalo como revisado si la descripción estaba mal.` });
+  }
+  // (4b) LA IA SE CONTRADICE: su razonamiento declara una medida y el renglón trae otra (mapIaComps → iaIncoherencia).
+  for (const c of comps) {
+    if (c.excluida || !c.iaIncoherencia) continue;
+    const x = c.iaIncoherencia;
+    obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_incoherente:${c.nombre}`, pieza: c.nombre,
+      mensaje: `«${c.nombre}»: la IA dice ${x.dice} mm en su razonamiento pero puso ${x.puso} mm. Revisa la medida en el plano y corrígela, o márcalo como revisado si ${x.puso} mm es la correcta.` });
   }
   // (5) CANTIDADES IMPOSIBLES: piezas o cantidades ≤ 0 o absurdas.
   for (const c of comps) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areasDeLectura, revisarAreas, contornoMM, areaM2, resumenLectura, nivelesDeLectura } from './planoLeido.js';
+import { areasDeLectura, revisarAreas, contornoMM, areaM2, resumenLectura, nivelesDeLectura, areasDelNivelUsado } from './planoLeido.js';
 
 // ---------------------------------------------------------------------------
 //  El plano REAL de Rodrigo (Plano_Organico_Con_Medidas.pdf, 2026-08-16):
@@ -286,6 +286,16 @@ describe('L1 · columnas y niveles de la lectura', () => {
     const r = areasDeLectura(L);
     expect(r.areas.map((a) => a.nivel)).toEqual(['NIVEL 1', 'NIVEL 2']);
     expect(resumenLectura(L).niveles).toEqual(['NIVEL 1', 'NIVEL 2']);
+  });
+  // 2026-10-19 (certificación C4): el segundo nivel no se podía acomodar nunca (siempre el primero).
+  it('areasDelNivelUsado: un nivel a la vez, el que eligió la persona; sin elección o inválido, el primero', () => {
+    const areas = [{ nombre: 'RECEPCIÓN', nivel: 'NIVEL 1' }, { nombre: 'OPERATIVA 2', nivel: 'NIVEL 2' }, { nombre: 'DIRECCIÓN', nivel: 'NIVEL 2' }, { nombre: 'SIN NIVEL' }];
+    const niveles = ['NIVEL 1', 'NIVEL 2'];
+    const nombres = (xs) => xs.map((a) => a.nombre);
+    expect(nombres(areasDelNivelUsado(areas, niveles))).toEqual(['RECEPCIÓN', 'SIN NIVEL']);
+    expect(nombres(areasDelNivelUsado(areas, niveles, 'NIVEL 2'))).toEqual(['OPERATIVA 2', 'DIRECCIÓN', 'SIN NIVEL']);
+    expect(nombres(areasDelNivelUsado(areas, niveles, 'NIVEL 9'))).toEqual(['RECEPCIÓN', 'SIN NIVEL']);
+    expect(areasDelNivelUsado(areas, ['NIVEL 1'], 'NIVEL 2')).toHaveLength(4);     // un solo nivel declarado: todas
   });
   // ACOMODO 10 · VH-A10-01 (lab C4 "dos niveles"): las dos plantas vienen dibujadas en el MISMO sistema de
   // coordenadas (una por hoja). El anidamiento, las columnas y las puertas se calculaban contra TODOS los cuartos

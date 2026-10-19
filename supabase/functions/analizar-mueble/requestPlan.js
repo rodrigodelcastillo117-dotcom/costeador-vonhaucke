@@ -75,3 +75,31 @@ export const NOTA_TEXTO_INICIAL =
   'hojas, material_solicitado, material_match, insumoId, confianza, razonamiento breve, nota, ' +
   'semantic_role y bloqueadores. Si falta un dato indispensable, márcalo como supuesto/' +
   'pregunta (fail-closed) — NO lo inventes.';
+
+// ============================================================================
+//  Certificación 18-oct (mesa de centro, plano "TOTAL 7.17 m"): en la pasada de REVISIÓN el despiece previo se le
+//  describía a la IA como "- 2x Marcos … lineal 2800x0". Para una pieza LINEAL eso es ambiguo (¿2 piezas de 2800 mm o
+//  2.8 m en total?): la IA lo leyó como 2.8 m, "corrigió" un error que no existía y el tubular quedó en 4.4–5.2 m.
+//  Cada renglón dice ahora EXPLÍCITO cuántas piezas, de qué medida y el total que resulta.
+// ============================================================================
+const n0 = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
+const fmt = (x) => String(Math.round(n0(x) * 1000) / 1000);
+export function renglonPrevio(p = {}) {
+  const cant = n0(p.cantidad) > 0 ? n0(p.cantidad) : 1;
+  const mat = `[${p.insumoId || 'SIN MATERIAL'}]`, conf = p.confianza ? ` (${p.confianza})` : '';
+  const forma = p.forma || (n0(p.largoMM) && n0(p.anchoMM) ? 'area' : 'pieza');
+  if (forma === 'lineal') {
+    const L = n0(p.largoMM);
+    if (L > 0) return `- ${p.nombre} ${mat} LINEAL: ${fmt(cant)} pieza(s) × ${fmt(L)} mm c/u = ${fmt((cant * L) / 1000)} m en total (largoMM=${fmt(L)}, cantidad=${fmt(cant)})${conf}`;
+    return `- ${p.nombre} ${mat} LINEAL: ${fmt(cant)} m en total (sin largo por pieza)${conf}`;
+  }
+  if (forma === 'area') {
+    const L = n0(p.largoMM), A = n0(p.anchoMM);
+    const hojas = n0(p.hojas) > 0 ? `, hojas=${fmt(p.hojas)}` : '';
+    return `- ${p.nombre} ${mat} ÁREA: ${fmt(cant)} pieza(s) de ${fmt(L)} × ${fmt(A)} mm = ${fmt((cant * L * A) / 1e6)} m² en total (cantidad=${fmt(cant)}${hojas})${conf}`;
+  }
+  return `- ${p.nombre} ${mat} PIEZA: ${fmt(cant)} pieza(s)${n0(p.largoMM) ? ` de ${fmt(p.largoMM)}${n0(p.anchoMM) ? ` × ${fmt(p.anchoMM)}` : ''} mm` : ''}${conf}`;
+}
+export function despiecePrevioTexto(piezas = []) {
+  return (Array.isArray(piezas) ? piezas : []).filter((p) => p && typeof p === 'object').map(renglonPrevio).join('\n');
+}

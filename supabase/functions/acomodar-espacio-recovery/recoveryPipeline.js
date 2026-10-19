@@ -18,8 +18,8 @@ import { mensajeVendedor } from './opciones.js';
 // GAP28: las opciones se verifican con el MISMO contrato del pipeline final
 // (resolverKitsMulti → hard → semantic → quality). El verifier NO llama a
 // mensajeVendedor, así que no hay recursión.
-function mensajeSerializable(areas, piezas, sol) {
-  const m = mensajeVendedor(areas, piezas, sol, { resolver: resolverKitsMulti });
+function mensajeSerializable(areas, piezas, sol, cacheEstatico) {
+  const m = mensajeVendedor(areas, piezas, sol, { resolver: (as, ps) => resolverKitsMulti(as, ps, { cacheEstatico }) });
   return { pendientes: m.pendientes, motivos: m.motivos, opciones: m.opciones.map((o) => ({ id: o.id, texto: o.texto })), sin_opcion: m.sin_opcion, hay_pendientes: m.hay_pendientes };
 }
 
@@ -28,7 +28,10 @@ export function construirRespuestaAcomodo(areasIn = [], piezas = []) {
   // duplicado (obstáculo tipo 'puerta' del cliente) se ignora en TODO el pipeline (solver, duro, juez).
   const areas = (Array.isArray(areasIn) ? areasIn : []).map(areaSinCuadrosDuplicados);
   // GANADOR del pipeline multi-candidato (jueces en capas HARD→SEMANTIC→COMPLETENESS→QUALITY).
-  const sol = resolverKitsMulti(areas, piezas);
+  // 2026-10-19: veredicto estático por posición compartido entre el multi y las simulaciones de opciones
+  // (mismas áreas, misma petición). C2 curvo pasaba de 2 s de CPU y la edge respondía 546.
+  const cacheEstatico = new WeakMap();
+  const sol = resolverKitsMulti(areas, piezas, { cacheEstatico });
   const colocacion = sol.colocacion;
   const piezasAsign = sol.piezas;
   const sel = sol.seleccion || {};
@@ -37,7 +40,7 @@ export function construirRespuestaAcomodo(areasIn = [], piezas = []) {
   const evalFinal = evaluarRecovery(areas, piezasAsign, colocacion, { requested: piezas.length });
   const val = validarColocacion(areas, piezasAsign, colocacion, 1);
   const doors = auditarPuertas(areas);
-  const mensaje = mensajeSerializable(areas, piezasAsign, sol);
+  const mensaje = mensajeSerializable(areas, piezasAsign, sol, cacheEstatico);
 
   // GATE de publicación sobre el GANADOR (contrato FINAL, FAIL-CLOSED · GAP34):
   //   render_ready ⇔ HARD PASS (evaluarRecovery) ∧ SEMANTIC PASS (GAP18: sólo 'PASS')

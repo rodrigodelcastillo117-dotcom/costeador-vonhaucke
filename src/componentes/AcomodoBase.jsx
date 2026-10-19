@@ -40,7 +40,7 @@ import { diagnosticoNoColocadas } from '../datos/diagnosticoAcomodo.js';
 const esSilla = (p) => p?.tipo === 'asiento' || esSillaDeTrabajo(p);
 import { escenasDeAcomodo, lineasDeEscena, tipoDeEscena } from '../datos/escenas.js';
 import { LINEAS_REG } from '../datos/lineas.js';
-import { areasDeLectura, revisarAreas, resumenLectura } from '../datos/planoLeido.js';
+import { areasDeLectura, revisarAreas, resumenLectura, areasDelNivelUsado } from '../datos/planoLeido.js';
 import { abrirPdf, paginaAImagen } from '../datos/pdfImagen.js';
 import PlanoAcomodo from './PlanoAcomodo.jsx';
 import PropuestaViva from './PropuestaViva.jsx';
@@ -448,10 +448,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     if (!r.areas.length) { setNotaPlano(r.nota || 'No pude reconocer los cuartos. Sube el plano en mejor calidad o dibújalo con “Dibujar mi oficina”.'); return; }
     setLecturaPendiente(r);
   }
-  async function confirmarLectura() {
+  async function confirmarLectura(editada, { nivel } = {}) {
     const r = lecturaPendiente; if (!r) return;
     setLecturaPendiente(null);
-    const leidas = r.areas; const lec = r.lectura || {}; const floor = r.floorSpec || null;
+    // 2026-10-19: (a) las puertas que la persona confirmó en la compuerta (VH-136) llegan en `editada`; antes este
+    // camino las ignoraba. (b) Documento con varios niveles: SÓLO el nivel elegido (antes se mezclaban todos los
+    // niveles en una misma planta, cuartos encimados). Misma regla que Voni (areasDelNivelUsado).
+    const todas = (editada && Array.isArray(editada.areas)) ? editada.areas : r.areas;
+    const niveles = Array.isArray(r.resumen?.niveles) ? r.resumen.niveles : [];
+    const leidas = areasDelNivelUsado(todas, niveles, nivel); const lec = r.lectura || {}; const floor = r.floorSpec || null;
     setFloorSpec(floor);
     // MODO IA: al contrato canónico (1 mm) igual que dibujo y programa.
     // recordar() ANTES para que el undo cruce el cambio de modo (gate undo/redo).
@@ -459,7 +464,8 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     // #7: conserva el plano original para la comparación y la confianza de lectura; el veredicto
     // del servidor (`servidor`) y la hora de confirmación quedan sellados en la lectura.
     setLecturaMeta({
-      nivel: r.resumen?.nivel, m2: r.resumen?.m2, cuartos: r.resumen?.cuartos, cotas: !!lec.tieneCotas,
+      nivel: r.resumen?.nivel, m2: niveles.length > 1 ? null : r.resumen?.m2, cuartos: leidas.length, cotas: !!lec.tieneCotas,
+      ...(niveles.length > 1 ? { nivelUsado: niveles.includes(nivel) ? nivel : niveles[0], nivelesDocumento: niveles } : {}),
       floorState: floor?.validation?.state || null,
       puertasVerificadas: floor?.validation?.metrics?.doors_verified ?? null,
       puertasPendientes: floor?.validation?.metrics?.doors_unverified ?? null,

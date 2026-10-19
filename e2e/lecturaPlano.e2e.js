@@ -162,3 +162,51 @@ test('puertas sin barrido: panel por puerta, sin índices internos; confirmar de
   expect(pendientes.every((p) => p.motivo === 'BARRIDO_PUERTA_NO_VERIFICADO')).toBe(true);
   await context.close();
 });
+
+// 2026-10-19 (certificación C4, dos niveles): la persona ELIGE el nivel a acomodar en la compuerta. Antes siempre
+// se usaba el primero y el segundo nivel no se podía acomodar nunca.
+test('documento con dos niveles: se elige el nivel 2 en la compuerta y se guarda SÓLO ese nivel', async ({ browser }) => {
+  const nube = crearNubeFalsa({ usuarios: USUARIOS });
+  const r = (x, y, w, h) => [{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }];
+  const area = (nombre, tipo, pts, extra) => ({ nombre, tipo, forma: 'poligono', dentroDe: '', confianza: 'alta', circulo: { cx: 0, cy: 0, r: 0 }, puntos: pts, ...extra });
+  nube.lectura = { envolvente: { ancho: 16000, largo: 10000 }, tieneCotas: true, puertas: [], columnas: [], escala: 'cota 16.00 m', notas: [],
+    areas: [
+      area('RECEPCIÓN', 'recepcion', r(0, 0, 8000, 5000), { nivel: 'NIVEL 1', pagina: 1, puestos: 1 }),
+      area('OPERATIVA 1', 'open', r(0, 5000, 16000, 5000), { nivel: 'NIVEL 1', pagina: 1, puestos: 8 }),
+      area('OPERATIVA 2', 'open', r(0, 0, 10000, 10000), { nivel: 'NIVEL 2', pagina: 2, puestos: 12 }),
+      area('DIRECCIÓN', 'privado', r(10000, 0, 6000, 5000), { nivel: 'NIVEL 2', pagina: 2, puestos: 1 }),
+    ] };
+  const context = await browser.newContext(); await nube.instalar(context);
+  await context.addInitScript(({ k, v }) => { if (!localStorage.getItem('__s')) { localStorage.setItem(k, JSON.stringify(v)); localStorage.setItem('__s', '1'); } }, { k: CLAVE_LOCAL, v: estadoLocal() });
+  const page = await context.newPage();
+  await page.goto('/');
+  await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
+  await page.getByRole('button', { name: /^Entrar$/i }).click();
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await page.getByTestId('home-cotizar').click();
+  const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
+  writeFileSync(ruta, PNG_1x1);
+  await page.locator('input[type=file][accept*="pdf"]').first().setInputFiles(ruta);
+
+  const gate = page.getByTestId('confirmar-lectura');
+  await expect(gate).toBeVisible({ timeout: 15000 });
+  const opciones = page.getByTestId('lectura-nivel-opcion');
+  await expect(opciones).toHaveCount(2);
+  // Por omisión, el primer nivel: sólo sus cuartos.
+  await expect(page.getByTestId('lectura-areas')).toContainText('RECEPCIÓN');
+  await expect(page.getByTestId('lectura-areas')).not.toContainText('OPERATIVA 2');
+  // Elegir el nivel 2: la lista cambia a sus cuartos y sus puestos.
+  await page.locator('[data-testid="lectura-nivel-opcion"][data-nivel="NIVEL 2"]').click();
+  await expect(page.getByTestId('lectura-areas')).toContainText('OPERATIVA 2');
+  await expect(page.getByTestId('lectura-areas')).not.toContainText('RECEPCIÓN');
+  await expect(gate).toContainText('13 puestos contados');
+
+  await page.getByTestId('lectura-confirmar').click();
+  await expect(gate).toBeHidden();
+  await expect.poll(async () => (await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), CLAVE_LOCAL)).cotizacion?.acomodo?.areasM?.length).toBe(2);
+  const est = await page.evaluate((k) => JSON.parse(localStorage.getItem(k) || '{}'), CLAVE_LOCAL);
+  expect(est.cotizacion.acomodo.areasM.map((a) => a.nombre).sort()).toEqual(['DIRECCIÓN', 'OPERATIVA 2']);
+  expect(est.cotizacion.acomodo.lectura?.nivelUsado).toBe('NIVEL 2');
+  expect(est.cotizacion.acomodo.lectura?.nivelesDocumento).toEqual(['NIVEL 1', 'NIVEL 2']);
+  await context.close();
+});
