@@ -1,0 +1,52 @@
+name: Certificación (labs reales contra producción)
+
+# Corre los laboratorios reales (IA, Edge y base de PRODUCCIÓN, cuenta QA) de los tres flujos: Costear, Cocrear y Cotizar
+# (planos con acomodo, texto y manual). Sólo en PRs con la etiqueta `certificar`: cada corrida gasta llamadas de IA.
+# Un job por caso (fail-fast apagado): la evidencia de cada uno queda como artefacto `cert-<caso>`.
+on:
+  pull_request:
+    types: [labeled, synchronize]
+
+concurrency:
+  group: certificacion-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  caso:
+    if: contains(github.event.pull_request.labels.*.name, 'certificar')
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        caso: [costear-credenza, costear-escritorio_L, costear-gabinete_alto, costear-librero_5x8, costear-mesa_centro,
+               costear-mesa_juntas_texto, costear-mesa_trabajo, costear-mesa_trabajo_lote10,
+               cocrear-1, cocrear-2, cocrear-3, cocrear-4, cocrear-5, cocrear-6, cocrear-7, cocrear-8,
+               plano-C1, plano-C2, plano-C3, plano-C4, plano-C5, plano-C6, texto, manual]
+    env:
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencias
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          pip install matplotlib
+      - name: Caso ${{ matrix.caso }}
+        run: bash lab/certificacion/caso.sh ${{ matrix.caso }}
+      - name: Evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cert-${{ matrix.caso }}
+          path: lab/certificacion/ci/${{ matrix.caso }}
+          if-no-files-found: warn
+          retention-days: 14
