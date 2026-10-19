@@ -29,6 +29,7 @@ const TEXTO_AVISO = {
   NO_DOORS_DETECTED: () => 'No se detectaron puertas: el acomodo no respetará accesos.',
   DOOR_SWING_UNVERIFIED: (w) => `Una puerta${campo(w)} se detectó sin bisagra ni sentido de abatimiento verificable.`,
   ASSUMED_DOOR_GEOMETRY: (w) => `Una puerta${campo(w)} se ubicó por supuesto, no por el plano.`,
+  DOOR_WIDTH_UNKNOWN: (w) => `Una puerta${campo(w)} no tiene el ancho legible en el plano: confirma la cota antes de aprobar el acomodo.`,
 };
 
 // Problemas (FAIL): el servidor rechazó la lectura; se explica qué no cuadró.
@@ -38,6 +39,8 @@ const TEXTO_PROBLEMA = {
   GRID_ENVELOPE_MISMATCH: (i) => `Las cotas no suman la envolvente${campo(i)}: suman ${mm(i?.sum_mm)} y la envolvente mide ${mm(i?.envelope_mm)} (tolerancia ${mm(i?.tolerance_mm)}).`,
   NO_AREAS: () => 'No se reconoció ningún cuarto.',
   DUPLICATE_ZONE_NAME: () => 'Dos cuartos salieron con el mismo nombre.',
+  INVALID_COLUMN: (i) => `Una columna${campo(i)} no tiene una posición o medida válida.`,
+  COLUMN_OUTSIDE_ENVELOPE: (i) => `Una columna${campo(i)} quedó fuera del contorno del plano.`,
   MISSING_ZONE_NAME: (i) => `Un cuarto${campo(i)} quedó sin nombre.`,
   INVALID_SHAPE: (i) => `Un cuarto${campo(i)} tiene una forma que no se reconoce.`,
   UNKNOWN_PARENT_ZONE: (i) => `Un cuarto${campo(i)} dice estar dentro de "${i?.value ?? '?'}", que no existe.`,
