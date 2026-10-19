@@ -751,13 +751,40 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
   // combina dominios (encimes y pasillos entre kits). Antes cada visita re-enumeraba y re-validaba la
   // malla entera y el presupuesto se agotaba en un despacho de 3 muebles sin poder demostrar nada.
   const dominios = new Map();
+  // 2026-10-19 (C2, edge 546 por CPU): el veredicto estático de una posición depende sólo del cuarto,
+  // de la huella del kit y de sus lados de acceso, NO del orden de la estrategia. Con `opts.cacheEstatico`
+  // (WeakMap por objeto de área, vive una petición) las 6 estrategias y las simulaciones de opciones del
+  // vendedor lo calculan una vez. Mismo motivo, mismo orden de recorrido y de rechazos → misma salida.
+  const cacheEst = opts.cacheEstatico instanceof WeakMap ? opts.cacheEstatico : null;
+  const firmas = new Map();
+  const firmaKit = (k) => {
+    let f = firmas.get(k);
+    if (f == null) {
+      f = `${k.w}x${k.d}:${JSON.stringify((k.piezas || []).map((p) => [p.dx, p.dy, p.w, p.d, p.facing ?? null, p.rol ?? null, p.topology ?? null]))}`;
+      firmas.set(k, f);
+    }
+    return f;
+  };
+  const motivoEstaticoMemo = (c, area) => {
+    if (!cacheEst) return motivoEstatico(c.x, c.y, c.k, area);
+    let porArea = cacheEst.get(area);
+    if (!porArea) { porArea = new Map(); cacheEst.set(area, porArea); }
+    const f = firmaKit(c.k);
+    let porKit = porArea.get(f);
+    if (!porKit) { porKit = new Map(); porArea.set(f, porKit); }
+    const pos = `${c.x},${c.y}`;
+    if (porKit.has(pos)) return porKit.get(pos);
+    const m = motivoEstatico(c.x, c.y, c.k, area);
+    porKit.set(pos, m);
+    return m;
+  };
   const dominioDe = (idx, ai) => {
     const key = `${idx}:${ai}`;
     if (dominios.has(key)) return dominios.get(key);
     const kit = kits[idx], area = areas[ai], out = [];
     for (const c of posicionesDe(area, kit.variantesBase, opts.orden)) {
       if ((++nEstaticos & 2047) === 0 && fase1Fuera()) { fase1Agotada = true; break; }
-      const m = motivoEstatico(c.x, c.y, c.k, area);
+      const m = motivoEstaticoMemo(c, area);
       if (m) registrarRechazo(kit, m); else out.push(c);
     }
     dominios.set(key, out);
@@ -858,7 +885,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
         // GAP35.A: checar deadline DENTRO del barrido (no sólo al entrar a intentarKit),
         // para que una malla grande no exceda el presupuesto. Cada 512 nodos (barato).
         if (deadline && (nodos % 512 === 0) && Date.now() >= deadline) { budgetExhausted = true; return pos >= pendientes.length; }
-        const motivo = kitCabe(c.x, c.y, k, area, ocupadosPorArea.get(ai));
+        const motivo = motivoEstaticoMemo(c, area) || motivoDinamico(c.x, c.y, k, ocupadosPorArea.get(ai));   // = kitCabe
         if (motivo) {
           // GAP17: histograma de rechazos (SÓLO registra; no altera el flujo).
           registrarRechazo(kit, motivo);
@@ -902,7 +929,7 @@ export function resolverKits(areas = [], piezas = [], opts = {}) {
     if (!conDuda.length) return null;
     const areasCF = areas.map((a, ai) => (conDuda.includes(ai) ? { ...a, puertas: (a.puertas || []).filter((p) => !dudosa(p)) } : a));
     const ids = new Set(c.lista.flatMap((i) => kits[i].base.piezas.map((p) => String(p.id))));
-    const cf = resolverKits(areasCF, piezas.filter((p) => ids.has(String(p.id))), { orden: opts.orden, certificados: false, deadline, _sinContrafactual: true });
+    const cf = resolverKits(areasCF, piezas.filter((p) => ids.has(String(p.id))), { orden: opts.orden, certificados: false, deadline, _sinContrafactual: true, cacheEstatico: cacheEst || undefined });
     return { zonas: conDuda.map((ai) => areas[ai].zone_id ?? areas[ai].nombre ?? `area_${ai}`), cabe_sin_reserva: cf.unplaced.length === 0 && cf.unassigned.length === 0 };
   };
   const certCtx = { budgetExhausted, nodos, deadline, busqueda, puertaCF };
@@ -1048,6 +1075,7 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
   const total = piezas.length;
   const cands = [];
   const memo = new Map();   // imposibilidades DEMOSTRADAS, compartidas entre estrategias (no dependen del orden)
+  const cacheEstatico = opts.cacheEstatico instanceof WeakMap ? opts.cacheEstatico : new WeakMap();   // veredicto estático por posición, compartido
   let ganador = null;
   let budgetExhaustedMulti = false;
 
@@ -1057,7 +1085,7 @@ export function resolverKitsMulti(areas = [], piezas = [], opts = {}) {
     if (i > 0 && Date.now() >= deadline) { budgetExhaustedMulti = true; break; }
     const orden = estrategias[i];
     // GAP35.C: exploración SIN certificados causales (costosos); se certifica sólo al ganador.
-    const sol = resolverKits(areas, piezas, { orden, deadline, certificados: false, memo });
+    const sol = resolverKits(areas, piezas, { orden, deadline, certificados: false, memo, cacheEstatico });
     const cand = { idx: i, orden: orden ?? 'row', ordenRaw: orden, sol, eval: evaluarCandidato(areas, piezas, sol) };
     cands.push(cand);
     ganador = ganador ? mejorCandidato(ganador, cand) : cand;
