@@ -275,7 +275,16 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
     if (c.excluida || !c.iaIncoherencia) continue;
     const x = c.iaIncoherencia;
     obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_incoherente:${c.nombre}`, pieza: c.nombre,
-      mensaje: `«${c.nombre}»: la IA dice ${x.dice} mm en su razonamiento pero puso ${x.puso} mm. Revisa la medida en el plano y corrígela, o márcalo como revisado si ${x.puso} mm es la correcta.` });
+      mensaje: x.campo === 'largoTotal'
+        ? `«${c.nombre}»: la IA dice "largo total ${x.dice} mm" pero el renglón suma ${x.puso} mm (revisa largo × cantidad). Corrígelo, o márcalo como revisado si ${x.puso} mm es lo correcto.`
+        : `«${c.nombre}»: la IA dice ${x.dice} mm en su razonamiento pero puso ${x.puso} mm. Revisa la medida en el plano y corrígela, o márcalo como revisado si ${x.puso} mm es la correcta.` });
+  }
+  // (4c) EL TOTAL DECLARADO NO CUADRA: la IA escribe "TOTAL 7.17 m" de un material lineal y sus renglones suman otra cosa.
+  for (const c of comps) {
+    if (c.excluida || !c.iaTotalIncoherente) continue;
+    const x = c.iaTotalIncoherente;
+    obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_total_incoherente:${x.material}`, pieza: c.nombre,
+      mensaje: `La IA declara un total de ${x.dice} m de ${c.material_solicitado || x.material}, pero sus ${x.renglones} renglón(es) suman ${x.puso} m. Revisa cantidades y largos (p. ej. «${c.nombre}»), o márcalo como revisado si ${x.puso} m es lo correcto.` });
   }
   // (5) CANTIDADES IMPOSIBLES: piezas o cantidades ≤ 0 o absurdas.
   for (const c of comps) {

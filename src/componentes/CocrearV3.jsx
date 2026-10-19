@@ -19,7 +19,7 @@ import {NIVELES_DIFICULTAD} from '../datos/dificultadNiveles.js';
 import {DIFICULTAD} from '../motor/dificultad.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import {parametrosEfectivos} from './Costeador.jsx';
-import {precioSugeridoCocreado} from '../datos/precio.js';
+import {precioSugeridoCocreado, costoOficialServidor} from '../datos/precio.js';
 import {compileRenderPrompt,renderStale} from '../datos/renderPrompt.js';
 import {visualRevisionHash,visualesSincronizados} from '../datos/visualRevision.js';
 import {modeloTecnico3DDesdeSpec} from '../datos/productModel3D.js';
@@ -466,7 +466,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  const costoOficial=Number(costoRaw),costoConocido=costoRaw!=null&&Number.isFinite(costoOficial)&&costoOficial>=0;
  const precioLocal=useMemo(()=>veCostos?precioSugeridoCocreado(costoConocido?costoOficial:null,{par}):null,[veCostos,costoConocido,costoOficial,par]);
  // Lo oficial: la respuesta del servidor para ESTA revisión.
- const costoServidor=servidorVigente&&Number.isFinite(Number(servidor?.costo?.costoUnitario))?Number(servidor.costo.costoUnitario):null;
+ const costoServidor=servidorVigente?costoOficialServidor(servidor):null;   // null/0 ≠ $0.00: es "incompleto"
  const precioServidor=servidorVigente&&Number(servidor?.precioSugerido)>0?Number(servidor.precioSugerido):null;
   const listaParaCotizar=pipeline?.lineaCotizacion?.listaParaCotizar===true;
   const bloqueosCocrear=pipeline?.blockers||[];
