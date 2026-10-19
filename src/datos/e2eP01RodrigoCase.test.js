@@ -53,8 +53,9 @@ describe('E2E P0.1 · caso Rodrigo (audit #20)', () => {
     expect(bench).toHaveLength(1);
     expect(bench[0].bancoId).toBe('op-10u-6000x1200-cristal');
     expect(bench[0].w).toBe(6000);
-    expect(sum(propuesta.partidas, 'WORK_SEAT')).toBe(10);
-    expect(propuesta.partidas.find((p) => p.relation_role === 'WORK_SEAT').bancoId).toBe('silla-win');
+    const delBench = propuesta.partidas.filter((p) => p.relation_role === 'WORK_SEAT' && p.anchor_role === 'ANCHOR_WORKSTATION');
+    expect(delBench.reduce((s, p) => s + p.cantidad, 0)).toBe(10);
+    expect(delBench[0].bancoId).toBe('silla-win');   // pidió WIN: el modelo pedido manda sobre el default GAMMA-E
     expect(sum(propuesta.partidas, 'UNDERDESK_STORAGE')).toBe(10);
 
     const mesa = propuesta.partidas.find((p) => p.relation_role === 'ANCHOR_MEETING');
@@ -64,15 +65,20 @@ describe('E2E P0.1 · caso Rodrigo (audit #20)', () => {
 
     const rec = propuesta.partidas.find((p) => p.relation_role === 'ANCHOR_RECEPTION');
     expect(String(rec.bancoId)).toMatch(/^rec-/);
-    expect(propuesta.partidas.some((p) => p.anchor_role === 'ANCHOR_RECEPTION')).toBe(false);
+    // Dirección 19-oct: el mostrador lleva la silla operativa de quien atiende (GAMMA-E, 1 por usuario del módulo);
+    // sin sillas de espera no pedidas.
+    const deRecepcion = propuesta.partidas.filter((p) => p.anchor_role === 'ANCHOR_RECEPTION');
+    expect(deRecepcion.map((p) => [p.relation_role, p.bancoId, p.cantidad])).toEqual([['WORK_SEAT', 'silla-gamma-e', Math.max(1, Number(rec.usuarios) || 1)]]);
   });
 
   it('CERO sug-*, cero $0 inventado, seats ligados a la instancia del ancla', () => {
     expect(propuesta.partidas.every((p) => p.bancoId && !String(p.bancoId).startsWith('sug-'))).toBe(true);
     expect(propuesta.partidas.every((p) => Number(p.precio_lista_snapshot) > 0)).toBe(true);
     const bench = propuesta.partidas.find((p) => p.relation_role === 'ANCHOR_WORKSTATION');
-    const seats = propuesta.partidas.filter((p) => p.relation_role === 'WORK_SEAT');
+    const seats = propuesta.partidas.filter((p) => p.relation_role === 'WORK_SEAT' && p.anchor_role === 'ANCHOR_WORKSTATION');
     expect(seats.every((s) => s.anchor_instance_id === bench.instance_id)).toBe(true);
+    const rec = propuesta.partidas.find((p) => p.relation_role === 'ANCHOR_RECEPTION');
+    expect(propuesta.partidas.filter((p) => p.anchor_role === 'ANCHOR_RECEPTION').every((s) => s.anchor_instance_id === rec.instance_id)).toBe(true);
   });
 
   it('APLICAR escribe exactamente lo confirmado; coherencia ok; solver input == confirmado; idempotente', () => {

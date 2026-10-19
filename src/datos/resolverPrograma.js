@@ -361,8 +361,12 @@ export function expandirDependientes(ancla, { capacidad = null, storageRequested
   } else if (ancla.rol === 'juntas') {
     const cap = Math.max(1, Math.floor(Number(capacidad) || ancla.usuarios || 0));
     push(asientoDependiente(ancla, { relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING', cantidad: cap, inclusion: 'mandatory_by_rule', requestedModel: seatModels.meeting }));
+  } else if (ancla.rol === 'recepcion') {
+    // Dirección 2026-10-19 (Rodrigo): el mostrador lleva la silla OPERATIVA de cada persona que atiende (GAMMA-E por
+    // defecto; un modelo pedido manda). Sigue SIN sillas de espera no pedidas (#11): ésas son recomendación.
+    const U = Math.max(1, Math.floor(Number(ancla.usuarios) || 1));
+    push(asientoDependiente(ancla, { relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', cantidad: U, inclusion: 'mandatory_by_rule', requestedModel: seatModels.work }));
   }
-  // recepción: sin dependientes por defecto (#11).
   return out;
 }
 
@@ -376,7 +380,6 @@ export const REGLAS_RECOMENDACION = {
     { relation_role: 'SUPPORT_STORAGE', anchor_role: 'ANCHOR_MEETING', cantidad: 1, regla: 'Credenza en sala de juntas: café, guardado y equipo.', minCapacidad: 6 },
   ],
   recepcion: [
-    { relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', cantidad: 1, regla: 'El mostrador siempre lleva su silla operativa.' },
     { relation_role: 'VISITOR_SEAT', anchor_role: 'ANCHOR_RECEPTION', cantidad: 2, regla: 'Sillas de espera para visitas en recepción.' },
   ],
 };
@@ -462,7 +465,7 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
     const reqId = requirementId(zone_id, 'recepcion', 0);
     requerimientos.push({ requirement_id: reqId, zone_id, evidence: brief.recepcionEvidence || null, rol: 'recepcion', anchor_role: 'ANCHOR_RECEPTION', capacidad: 1, preferred_line: linea });
     const r = resolverRecepcion({ requirement_id: reqId, zone_id, evidence: brief.recepcionEvidence || null });
-    integrarAncla(r, {}, 'RECEPCION_NO_RESUELTO');
+    integrarAncla(r, { seatModels: { work: brief.recepcionSeatModel || null } }, 'RECEPCION_NO_RESUELTO');
   }
 
   // partidas comerciales = anclas + dependientes NO opcionales (mandatory/requested).

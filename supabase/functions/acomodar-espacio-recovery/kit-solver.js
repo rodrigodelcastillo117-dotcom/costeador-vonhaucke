@@ -106,7 +106,7 @@ export function asignarDuenos(piezas = []) {
   // con su propia huella (abajo, `standalone`). Visita sólo junto a un escritorio privado,
   // igual que el validador semántico del cliente.
   const anclaDe = (rolDep) => ({
-    WORK_SEAT: ['ANCHOR_WORKSTATION'], EXECUTIVE_SEAT: ['ANCHOR_DESK'], VISITOR_SEAT: ['ANCHOR_DESK', 'ANCHOR_RECEPTION'],
+    WORK_SEAT: ['ANCHOR_WORKSTATION', 'ANCHOR_RECEPTION'], EXECUTIVE_SEAT: ['ANCHOR_DESK'], VISITOR_SEAT: ['ANCHOR_DESK', 'ANCHOR_RECEPTION'],
     MEETING_SEAT: ['ANCHOR_MEETING'], UNDERDESK_STORAGE: ['ANCHOR_WORKSTATION', 'ANCHOR_DESK'],
   })[rolDep] || [];
 
