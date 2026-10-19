@@ -42,3 +42,28 @@ describe('pieza de lámina/tablero mandada como "lineal" con largo y ancho → s
     expect(pieza({ nombre: 'Copete', insumoId: 'mdf', forma: 'lineal', largoMM: 1800, anchoMM: 100, cantidad: 2 })).toMatchObject({ forma: 'area', largoMM: 1800, anchoMM: 100, piezas: 2 });
   });
 });
+
+// Auditoría 2026-10-19 (certificación total, mesa de trabajo): la IA mandó el faldón como forma "pieza" con 1400 × 300.
+// En producción lamina-18 se costea POR HOJA ($571.54): "pieza ×1" cobraba UNA HOJA ENTERA por una pieza de 0.42 m².
+// Y en el laboratorio ciego ERP, piezas de lámina doblada con "cantidad" 1.3 / 2.8 (kg, no piezas) eran 1.3 / 2.8 hojas.
+describe('pieza de lámina/tablero mandada como "pieza" con largo y ancho → se costea por área', () => {
+  it('faldón "pieza" 1400 × 300 ×1 de lámina-18: área, 1 pieza de 1400 × 300', () => {
+    const c = pieza({ nombre: 'Faldón lámina cal.18 1400x300', insumoId: 'lamina-18', forma: 'pieza', largoMM: 1400, anchoMM: 300, cantidad: 1 });
+    expect(c.forma).toBe('area');
+    expect([c.largoMM, c.anchoMM, c.piezas, c.cantidad]).toEqual([1400, 300, 1, 1]);
+    expect(c.iaIncoherencia).toBeUndefined();
+  });
+  it('2 placas "pieza" 120 × 100 ×2 de lámina-10: área, 2 piezas', () => {
+    const c = pieza({ nombre: 'Placa de fijación', insumoId: 'lamina-10', forma: 'pieza', largoMM: 120, anchoMM: 100, cantidad: 2 });
+    expect(c).toMatchObject({ forma: 'area', largoMM: 120, anchoMM: 100, piezas: 2 });
+  });
+  it('omega "pieza" 850 × 100 ×1.3 (no es un número de piezas): área de 1 pieza y queda marcado para revisión', () => {
+    const c = pieza({ nombre: 'Perfil omega lámina doblada 850 × 100 × 17 mm', insumoId: 'lamina-18', forma: 'pieza', largoMM: 850, anchoMM: 100, cantidad: 1.3 });
+    expect(c).toMatchObject({ forma: 'area', largoMM: 850, anchoMM: 100, piezas: 1 });
+    expect(c.iaIncoherencia).toMatchObject({ campo: 'cantidadPiezas', dice: 1.3, puso: 1 });
+  });
+  it('una "pieza" de herraje (no de hoja) con medidas sigue siendo pieza', () => {
+    const c = pieza({ nombre: 'Jaladera 300 mm', insumoId: 'jaladera', forma: 'pieza', largoMM: 300, anchoMM: 20, cantidad: 3 });
+    expect(c.forma).toBe('pieza');
+  });
+});

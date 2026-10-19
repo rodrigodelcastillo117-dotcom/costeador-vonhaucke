@@ -84,8 +84,11 @@ export function mapIaComps(p, insumos = {}) {
     // Certificación 19-oct (faldón del lote 10): la IA mandó una pieza de LÁMINA 1400 × 300 como "lineal" y se costeaba
     // como 1.4 m de un material que se vende por hoja. Si el material es de hoja (lámina/tablero) y trae largo Y ancho, es
     // una pieza de área. Un perfil (PTR, tubo, tapacanto) con ancho sigue siendo lineal. Sin catálogo no se adivina.
-    if (base.forma === 'lineal' && Number(z.largoMM) > 0 && Number(z.anchoMM) > 0 && esMaterialDeHoja(resolver(z.insumoId || base.insumoId))) {
-      base.forma = 'area'; base.formaIa = 'lineal';
+    // Auditoría 19-oct (mesa de trabajo): también llega como forma "pieza" ("pieza ×1" de una lámina que se costea POR
+    // HOJA = una hoja entera por una pieza de 0.42 m²). Lineal o pieza: con largo y ancho de material de hoja, es área.
+    const formaIa = base.forma;
+    if ((formaIa === 'lineal' || formaIa === 'pieza') && Number(z.largoMM) > 0 && Number(z.anchoMM) > 0 && esMaterialDeHoja(resolver(z.insumoId || base.insumoId))) {
+      base.forma = 'area'; base.formaIa = formaIa;
     }
     // VONI Ingeniería: procedencia de la IA por pieza (OBSERVADO/INFERIDO/SUPUESTO/DESCONOCIDO) + su evidencia, para que
     // una suposición nunca se confunda con un dato. No viaja al servidor (validarIntentCosteo la ignora al sanear).
@@ -110,6 +113,11 @@ export function mapIaComps(p, insumos = {}) {
     }
     if (base.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
+      // Una "pieza" convertida a área con cantidad NO entera (1.3, 2.8: kg o fracción, no piezas) no se adivina:
+      // 1 pieza de largo × ancho y queda marcada para que la persona confirme cuántas lleva.
+      if (base.formaIa === 'pieza' && !Number.isInteger(Number(z.cantidad)) && Number(z.cantidad) > 0) {
+        base.piezas = 1; base.iaIncoherencia = { campo: 'cantidadPiezas', dice: Number(z.cantidad), puso: 1 };
+      }
       if (z.hojas > 0) {
         base.iaHojas = z.hojas;
         const ins = base.insumoId ? resolver(base.insumoId) : null;
