@@ -331,7 +331,11 @@ function huecoEnfrentado(a, b) {
 // Se separa en dos mitades para que la búsqueda completa calcule UNA vez, por kit y cuarto, qué
 // posiciones admite el cuarto (muros, contorno, columnas, puertas, acceso) y sólo combine ésas.
 // kitCabe = estático || dinámico: mismo orden de comprobación y mismo resultado que antes.
+// Contador de evaluaciones estáticas REALES (sin caché): mide el trabajo de forma determinista para las pruebas de
+// rendimiento (un tope en ms es frágil en CI/Vercel con pruebas en paralelo). Sólo se incrementa; no altera nada.
+export const metricasSolver = { estaticos: 0 };
 function motivoEstatico(x, y, k, area) {
+  metricasSolver.estaticos++;
   const kw = k.w, kh = k.d;
   const W = num(area.ancho) || num(area.width_mm), H = num(area.largo) || num(area.depth_mm);
   if (x < 0 || y < 0 || x + kw > W + 1 || y + kh > H + 1) return 'OUT_OF_BOUNDS';

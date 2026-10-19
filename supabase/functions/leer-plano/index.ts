@@ -1,5 +1,6 @@
 // ============================================================================
-// leer-plano · WRAPPER SEGURO de producción.
+// leer-plano · WRAPPER SEGURO de producción. (2026-10-19: promovido desde leer-plano-rc v3 — Bloque L1: niveles,
+// columnas, vano sin ancho = aviso. Certificado con el corpus C1–C6.)
 // Auth + permisos + límites + observabilidad + validación determinista FloorSpec.
 // La visión vive en `leer-plano-core`; este archivo nunca confía ciegamente en IA.
 // ============================================================================
@@ -177,9 +178,9 @@ Deno.serve(async (req: Request) => {
 
   const areas = Array.isArray(l?.areas) ? l.areas : [];
   if (!areas.length) issues.push({ field: "areas", code: "NO_AREAS" });
-  const nameList = areas.map((a: any) => String(a?.nombre || "").trim()).filter(Boolean);
-  const names = new Set(nameList);
-  if (names.size !== nameList.length) issues.push({ field: "areas", code: "DUPLICATE_ZONE_NAME" });
+  const nameList = areas.map((a: any) => `${String(a?.nivel || "").trim()}::${String(a?.nombre || "").trim()}`).filter((x: string) => !x.endsWith("::"));
+  const names = new Set(areas.map((a: any) => String(a?.nombre || "").trim()).filter(Boolean));
+  if (new Set(nameList).size !== nameList.length) issues.push({ field: "areas", code: "DUPLICATE_ZONE_NAME" });
   let topArea = 0;
   const normalizedZones: any[] = [];
 
@@ -229,7 +230,17 @@ Deno.serve(async (req: Request) => {
   }
 
   const envArea = finite(W) && finite(H) ? (W * H / 1_000_000) : 0;
-  if (envArea > 0 && topArea > envArea * 1.08) issues.push({ field: "areas", code: "TOP_LEVEL_AREA_EXCEEDS_ENVELOPE", top_level_m2: Math.round(topArea*100)/100, envelope_m2: Math.round(envArea*100)/100 });
+  // L1 · NIVELES: la suma de cuartos raíz se compara contra la envolvente POR NIVEL (un documento con dos
+  // plantas trae el doble de m²; antes se rechazaba entero con TOP_LEVEL_AREA_EXCEEDS_ENVELOPE).
+  const porNivel = new Map<string, number>();
+  for (let i = 0; i < areas.length; i++) {
+    const a = areas[i] || {};
+    if (String(a.dentroDe || "").trim()) continue;
+    const k = String(a.nivel || "").trim() || "";
+    porNivel.set(k, (porNivel.get(k) || 0) + areaOf(a) / 1_000_000);
+  }
+  const topPorNivel = Math.max(0, ...porNivel.values());
+  if (envArea > 0 && topPorNivel > envArea * 1.08) issues.push({ field: "areas", code: "TOP_LEVEL_AREA_EXCEEDS_ENVELOPE", top_level_m2: Math.round(topPorNivel*100)/100, envelope_m2: Math.round(envArea*100)/100 });
 
   // Puertas: x/y/ancho siguen siendo hard geometry. El barrido incompleto NO se
   // inventa: baja el FloorSpec a REVIEW_REQUIRED y bloquea liberación automática.
@@ -241,7 +252,10 @@ Deno.serve(async (req: Request) => {
     const dEvidence = evidenceMeta(d);
     const x = num(d.x), y = num(d.y), w = num(d.ancho);
     if (dEvidence.provenance === "ASSUMED") warnings.push({ field: `puertas[${i}]`, code: "ASSUMED_DOOR_GEOMETRY", message: "Puerta basada en supuesto; requiere confirmación." });
-    if (![x,y,w].every(finite) || w <= 0) issues.push({ field: `puertas[${i}]`, code: "INVALID_DOOR" });
+    // L1: un vano con posición válida pero SIN ancho legible no tira la lectura entera: queda como aviso y el
+    // cliente lo trata como puerta pendiente (ANCHO_PUERTA_DESCONOCIDO). Sólo una puerta sin posición es inválida.
+    if (![x,y].every(finite)) issues.push({ field: `puertas[${i}]`, code: "INVALID_DOOR" });
+    else if (!finite(w) || w <= 0) warnings.push({ field: `puertas[${i}]`, code: "DOOR_WIDTH_UNKNOWN", message: "Vano sin ancho legible: confirma la cota antes de aprobar el acomodo." });
     else if (finite(W) && finite(H) && (x < 0 || y < 0 || x > W || y > H || w > Math.max(W,H))) issues.push({ field: `puertas[${i}]`, code: "DOOR_OUTSIDE_ENVELOPE" });
 
     if (d.tieneBarrido === true) {
@@ -259,6 +273,18 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // L1 · COLUMNAS/OBSTÁCULOS estructurales: geometría dura (centro + lado); nunca son muebles.
+  const columnas = Array.isArray(l?.columnas) ? l.columnas : [];
+  for (let i = 0; i < columnas.length; i++) {
+    const c = columnas[i] || {};
+    const x = num(c.x), y = num(c.y), lado = num(c.lado);
+    if (![x, y, lado].every(finite) || lado <= 0 || lado > 3000) issues.push({ field: `columnas[${i}]`, code: "INVALID_COLUMN" });
+    else if (finite(W) && finite(H) && (x < 0 || y < 0 || x > W || y > H)) issues.push({ field: `columnas[${i}]`, code: "COLUMN_OUTSIDE_ENVELOPE" });
+  }
+  // L1 · NIVELES: si el documento trae varias plantas, cada área declara su nivel; el cliente no las suma.
+  const niveles = [...new Set(areas.map((a: any) => String(a?.nivel || "").trim()).filter(Boolean))];
+  if (niveles.length > 1) warnings.push({ field: "areas", code: "MULTI_LEVEL_DOCUMENT", message: `El documento trae ${niveles.length} niveles: ${niveles.join(" · ")}. Las áreas no se suman entre niveles.`, niveles });
+
   const validationState = issues.length ? "FAIL" : warnings.length ? "REVIEW_REQUIRED" : "PASS";
   const floorSpec = {
     version: "FLOOR_SPEC_V2",
@@ -266,6 +292,8 @@ Deno.serve(async (req: Request) => {
     grid_mm: { horizontal: gh, vertical: gv },
     zones: normalizedZones,
     doors_mm: doors.map((d: any) => ({ ...d, evidence_meta: evidenceMeta(d) })),
+    columns_mm: columnas,
+    levels: niveles,
     source: {
       scale_evidence: l?.escala || "",
       has_dimensions: !!l?.tieneCotas,
@@ -280,6 +308,8 @@ Deno.serve(async (req: Request) => {
         zones: areas.length, doors: doors.length,
         doors_verified: verifiedDoors,
         doors_unverified: Math.max(0, doors.length - verifiedDoors),
+        columns: columnas.length,
+        levels: niveles.length,
       },
     },
   };
