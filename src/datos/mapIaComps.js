@@ -70,6 +70,8 @@ function marcarTotalLinealIncoherente(comps, piezas) {
   return comps;
 }
 
+const esMaterialDeHoja = (ins) => !!ins && (ins.unidad === 'hoja' || ['lamina', 'tablero'].includes(ins.formato?.tipo));
+
 export function mapIaComps(p, insumos = {}) {
   const resolver = (id) => insumos[id];
   const catalogo = Object.values(insumos || {});
@@ -79,6 +81,12 @@ export function mapIaComps(p, insumos = {}) {
   const comps = piezas.map((z) => {
     const base = espejoP012(aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, resolver, catalogo));
     base.forma = z.forma || (z.largoMM && z.anchoMM ? 'area' : 'pieza');
+    // Certificación 19-oct (faldón del lote 10): la IA mandó una pieza de LÁMINA 1400 × 300 como "lineal" y se costeaba
+    // como 1.4 m de un material que se vende por hoja. Si el material es de hoja (lámina/tablero) y trae largo Y ancho, es
+    // una pieza de área. Un perfil (PTR, tubo, tapacanto) con ancho sigue siendo lineal. Sin catálogo no se adivina.
+    if (base.forma === 'lineal' && Number(z.largoMM) > 0 && Number(z.anchoMM) > 0 && esMaterialDeHoja(resolver(z.insumoId || base.insumoId))) {
+      base.forma = 'area'; base.formaIa = 'lineal';
+    }
     // VONI Ingeniería: procedencia de la IA por pieza (OBSERVADO/INFERIDO/SUPUESTO/DESCONOCIDO) + su evidencia, para que
     // una suposición nunca se confunda con un dato. No viaja al servidor (validarIntentCosteo la ignora al sanear).
     base.procedencia = procedenciaCanonica(z.procedencia);
