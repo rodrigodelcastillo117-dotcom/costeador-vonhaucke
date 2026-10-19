@@ -153,18 +153,19 @@ export default function Voni({
     if (!r.areas.length) { if (r.nota) setNotaPlano(r.nota); return; }   // nada reconocido: que lo intente de nuevo
     setLecturaPendiente(r);
   }
-  function confirmarLectura(editada) {
+  function confirmarLectura(editada, { nivel } = {}) {
     // VH-136: la compuerta puede entregar las áreas con puertas ya confirmadas por la persona.
     const r = (editada && Array.isArray(editada.areas)) ? editada : lecturaPendiente; if (!r) return;
     // Si la persona confirmó las puertas pendientes en la compuerta, los avisos de puerta ya no aplican.
     const puertasConfirmadas = !!(editada && Array.isArray(editada.areas));
     const problemas = (r.resumen?.problemas || []).filter((t) => !(puertasConfirmadas && /puerta/i.test(t)));
-    // L1: documento con varias plantas → se usa la primera (las áreas de otros niveles no se mezclan en la misma planta).
+    // L1: documento con varias plantas → se usa el nivel que eligió la persona (los otros no se mezclan en la misma planta).
     const niveles = Array.isArray(r.resumen?.niveles) ? r.resumen.niveles : [];
-    const areasUsadas = areasDelNivelUsado(r.areas, niveles);
+    const areasUsadas = areasDelNivelUsado(r.areas, niveles, nivel);
+    const nivelUsado = niveles.length > 1 ? (niveles.includes(nivel) ? nivel : niveles[0]) : null;
     const confirmada = { en: new Date().toISOString(), nivel: r.resumen?.nivel || null, m2: r.resumen?.m2 ?? null,
       cuartos: areasUsadas.length, cotas: r.resumen?.cotas ?? null, problemas,
-      ...(niveles.length > 1 ? { nivelUsado: niveles[0], nivelesDocumento: niveles } : {}),
+      ...(niveles.length > 1 ? { nivelUsado, nivelesDocumento: niveles } : {}),
       ...(r.resumen?.columnas ? { columnas: r.resumen.columnas } : {}),
       ...(puertasConfirmadas ? { puertasConfirmadasPorPersona: true } : {}),
       servidor: r.resumen?.servidor || null };   // VH-064: veredicto determinista del servidor
