@@ -28,3 +28,11 @@ describe('VONI Council · Claude dentro del presupuesto y error legible', () => 
     expect(f).not.toMatch(/error: error\.message \|\| String\(error\)/);
   });
 });
+
+describe('VONI Council · modelo de Claude rápido (decisión de Dirección 2026-10-19)', () => {
+  it('usa Claude Sonnet 5.5 por defecto, configurable sólo para el council', () => {
+    const s = fs.readFileSync('supabase/functions/voni-council/index.ts', 'utf8');
+    expect(s).toMatch(/Deno\.env\.get\('COUNCIL_ANTHROPIC_MODEL'\)\|\|'claude-sonnet-5-5'/);
+    expect(s).not.toMatch(/'claude-opus-5'/);
+  });
+});
