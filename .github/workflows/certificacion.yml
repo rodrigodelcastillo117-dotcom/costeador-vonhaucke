@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       # La IA tiene un límite de 40 análisis por hora por usuario (analizar-mueble): pocos casos a la vez.
-      max-parallel: 3
+      max-parallel: 2
       matrix:
         caso: ${{ fromJSON(needs.plan.outputs.casos) }}
     env:
