@@ -10,7 +10,9 @@
 
 // Rol semántico de una pieza a partir de su nombre (heurística de taller, es-MX).
 const ROLES = [
-  ['herraje', /\b(herraje|tornill\w*|bisagras?|correderas?|niveladores?|jaladeras?|cerraduras?)\b/i],
+  // Auditoría 2026-10-19: accesorios que se pegan/apoyan a otra pieza ("bumpers de apoyo del cristal") son herraje, no la
+  // pieza que apoyan (antes la palabra "cristal" los volvía pieza de cristal y el silicón salía como material equivocado).
+  ['herraje', /\b(herraje|tornill\w*|bisagras?|correderas?|niveladores?|jaladeras?|cerraduras?|separador(es)?|bumpers?|topes?|tacones?|pads?|regatones?|antiderrapantes?|protectores?)\b/i],
   ['frente_cajon', /\bfrentes?\b/i],
   ['cubierta', /\b(cubierta|tapa|top|sobre|superficie)\b/i],
   ['faldon', /\bfald[oó]n\b/i],
@@ -275,7 +277,9 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
     if (c.excluida || !c.iaIncoherencia) continue;
     const x = c.iaIncoherencia;
     obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_incoherente:${c.nombre}`, pieza: c.nombre,
-      mensaje: x.campo === 'largoTotal'
+      mensaje: x.campo === 'cantidadPiezas'
+        ? `«${c.nombre}»: la IA puso ${x.dice} como cantidad de una pieza de lámina/tablero (no es un número de piezas). Se costea 1 pieza de ${c.largoMM} × ${c.anchoMM} mm: confirma cuántas piezas lleva, o márcalo como revisado si es 1.`
+        : x.campo === 'largoTotal'
         ? `«${c.nombre}»: la IA dice "largo total ${x.dice} mm" pero el renglón suma ${x.puso} mm (revisa largo × cantidad). Corrígelo, o márcalo como revisado si ${x.puso} mm es lo correcto.`
         : `«${c.nombre}»: la IA dice ${x.dice} mm en su razonamiento pero puso ${x.puso} mm. Revisa la medida en el plano y corrígela, o márcalo como revisado si ${x.puso} mm es la correcta.` });
   }
