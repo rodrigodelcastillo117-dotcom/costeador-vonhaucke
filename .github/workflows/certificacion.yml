@@ -12,18 +12,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  caso:
+  # La lista de casos vive en lab/certificacion/casos.json (para medir sólo lo necesario en cada corrida).
+  # Casos posibles: costear-<hoja>, cocrear-<1..8>, plano-<C1..C6>, planorc-<C1..C6>, texto, manual.
+  plan:
     if: contains(github.event.pull_request.labels.*.name, 'certificar')
+    runs-on: ubuntu-latest
+    outputs:
+      casos: ${{ steps.leer.outputs.casos }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: leer
+        run: echo "casos=$(tr -d '\n' < lab/certificacion/casos.json)" >> "$GITHUB_OUTPUT"
+  caso:
+    needs: plan
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      max-parallel: 6
+      # La IA tiene un límite de 40 análisis por hora por usuario (analizar-mueble): pocos casos a la vez.
+      max-parallel: 3
       matrix:
-        caso: [costear-credenza, costear-escritorio_L, costear-gabinete_alto, costear-librero_5x8, costear-mesa_centro,
-               costear-mesa_juntas_texto, costear-mesa_trabajo, costear-mesa_trabajo_lote10,
-               cocrear-1, cocrear-2, cocrear-3, cocrear-4, cocrear-5, cocrear-6, cocrear-7, cocrear-8,
-               plano-C1, plano-C2, plano-C3, plano-C4, plano-C5, plano-C6, texto, manual]
+        caso: ${{ fromJSON(needs.plan.outputs.casos) }}
     env:
       TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}

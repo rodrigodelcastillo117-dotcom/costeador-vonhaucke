@@ -6,6 +6,7 @@
 #                    completa hasta el servidor, guardar y reabrir
 #   cocrear-<n>      labCocrear, proyecto n de lab/noche/cocrear10/correr.sh
 #   plano-<Cn>       labTorreNorte con el plano sintético Cn de lab/planos/gen_corpus.py (lectura → acomodo → PDF → reabrir)
+#   planorc-<Cn>     igual, con el lector de planos RC (VITE_LEER_PLANO_FN=leer-plano-rc)
 #   texto | manual   labCotizarFlujo (Voni por texto / banco de precios)
 set -u
 cd "$(dirname "$0")/../.."
@@ -25,8 +26,9 @@ case "$CASO" in
     n="${CASO#cocrear-}"
     LAB_SUFIJO=_ci LAB_COC_BAJAR_BOM=1 bash lab/noche/cocrear10/correr.sh "$n"; rc=$?
     cp -R lab/noche/cocrear10/*_ci "$OUT/" 2>/dev/null; exit $rc ;;
-  plano-*)
-    c="${CASO#plano-}"
+  plano-*|planorc-*)
+    # planorc-<Cn>: el MISMO plano leído con el lector RC (leer-plano-rc → leer-plano-core-rc), para medir antes de promoverlo.
+    if [ "${CASO#planorc-}" != "$CASO" ]; then export VITE_LEER_PLANO_FN=leer-plano-rc; c="${CASO#planorc-}"; else c="${CASO#plano-}"; fi
     (cd lab/planos && python3 gen_corpus.py > "$OUT/corpus.log" 2>&1) || { echo "gen_corpus falló"; cat "$OUT/corpus.log"; exit 3; }
     d=$(ls -d lab/planos/${c}_* | head -1)
     [ -f "$d/plano.pdf" ] || { echo "no hay $c"; exit 3; }
