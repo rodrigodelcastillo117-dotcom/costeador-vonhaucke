@@ -15,19 +15,27 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
   // copia de las áreas leídas; "Sí, así es" entrega ESA copia. Nada se usa antes de confirmar.
   const [areasEditadas, setAreasEditadas] = useState(null);
   const [confirmadas, setConfirmadas] = useState(0);
+  // 2026-10-19 (C4, dos niveles): la persona ELIGE qué nivel se acomoda; antes siempre el primero y el
+  // segundo nivel no se podía acomodar nunca. Sólo se enseñan (y se piden puertas de) las áreas de ese nivel.
+  const [nivelElegido, setNivelElegido] = useState(null);
   if (!lectura) return null;
   const { resumen = {}, imagen = '', nota = '' } = lectura;
   const areas = areasEditadas || lectura.areas || [];
+  const niveles = Array.isArray(resumen.niveles) ? resumen.niveles : [];
+  const multinivel = niveles.length > 1;
+  const nivel = multinivel ? (niveles.includes(nivelElegido) ? nivelElegido : niveles[0]) : null;
+  const enNivel = (a) => !multinivel || !a?.nivel || a.nivel === nivel;
+  const visibles = areas.map((a, i) => ({ a, i })).filter(({ a }) => enNivel(a));
   const confirmarPuerta = (areaIdx, idx, d) => {
     const next = areas.map((a, i) => (i === areaIdx ? confirmarPuertaEnArea(a, idx, d) : a));
     setAreasEditadas(next); setConfirmadas((n) => n + 1);
   };
-  const sinConfirmar = puertasSinConfirmar(areas);
+  const sinConfirmar = puertasSinConfirmar(areas).filter((q) => enNivel(areas[q.areaIdx]));
   const nivelTxt = { alta: '✓ Lectura confiable', media: '◑ Lectura con dudas', baja: '⚠ Lectura poco confiable', nula: '✗ No reconocí cuartos' }[resumen.nivel] || '';
-  const puestos = areas.reduce((s, a) => s + (Number.isFinite(a.puestos) ? a.puestos : 0), 0);
-  const puertasPendientes = areas.flatMap((a) => (a.puertasPendientes || []).map((pp) => ({ area: a.nombre || 'Área', x: Number(pp.x) || 0, y: Number(pp.y) || 0, ancho: Number(pp.ancho) || null, motivo: pp.motivo })));
+  const puestos = visibles.reduce((s, { a }) => s + (Number.isFinite(a.puestos) ? a.puestos : 0), 0);
+  const puertasPendientes = visibles.map(({ a }) => a).flatMap((a) => (a.puertasPendientes || []).map((pp) => ({ area: a.nombre || 'Área', x: Number(pp.x) || 0, y: Number(pp.y) || 0, ancho: Number(pp.ancho) || null, motivo: pp.motivo })));
   const problemasVisibles = confirmadas ? (resumen.problemas || []).filter((t) => !/puerta/i.test(t)) : (resumen.problemas || []);
-  const puedeConfirmar = areas.length > 0;
+  const puedeConfirmar = visibles.length > 0;
   return (
     <div className="tarjeta" style={{ marginTop: 12 }} data-testid="confirmar-lectura">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -49,9 +57,9 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
           </div>
         )}
         <div>
-          <div className="ayuda" style={{ marginBottom: 4 }}>Lo que entendí ({areas.length} área{areas.length === 1 ? '' : 's'}{puestos ? `, ${puestos} puestos contados` : ''})</div>
+          <div className="ayuda" style={{ marginBottom: 4 }}>Lo que entendí{multinivel ? ` en ${nivel}` : ''} ({visibles.length} área{visibles.length === 1 ? '' : 's'}{puestos ? `, ${puestos} puestos contados` : ''})</div>
           <div style={{ display: 'grid', gap: 2 }} data-testid="lectura-areas">
-            {areas.map((a, i) => (
+            {visibles.map(({ a, i }) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 13, padding: '3px 0', borderBottom: '1px solid var(--linea)' }}>
                 <span>{a.nombre || `Área ${i + 1}`}{a.tipo ? <span className="ayuda" style={{ display: 'inline' }}> · {a.tipo}</span> : null}{Number.isFinite(a.puestos) ? <span className="ayuda" style={{ display: 'inline' }}> · {a.puestos} puestos</span> : null}</span>
                 <b style={{ fontVariantNumeric: 'tabular-nums' }}>{Number(a.ancho).toFixed(2)}×{Number(a.largo).toFixed(2)} m</b>
@@ -63,7 +71,18 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
       {(resumen.columnas > 0 || (resumen.niveles || []).length > 1) && (
         <div className="ayuda" style={{ marginTop: 6 }} data-testid="lectura-estructura">
           {resumen.columnas > 0 && <span>{resumen.columnas} columna{resumen.columnas === 1 ? '' : 's'} estructural{resumen.columnas === 1 ? '' : 'es'} leída{resumen.columnas === 1 ? '' : 's'} (no son muebles; el acomodo las respeta). </span>}
-          {(resumen.niveles || []).length > 1 && <span>El documento trae {resumen.niveles.length} niveles ({resumen.niveles.join(' · ')}): por ahora se usa <strong>{resumen.niveles[0]}</strong>; los demás niveles se cotizan como otro proyecto.</span>}
+          {multinivel && <span>El documento trae {niveles.length} niveles. Se acomoda <strong>uno a la vez</strong>; el otro nivel se cotiza como otro proyecto (sube el mismo plano y elige ese nivel).</span>}
+        </div>
+      )}
+      {multinivel && (
+        <div className="fila-botones" style={{ gap: 6, marginTop: 6, flexWrap: 'wrap' }} role="radiogroup" aria-label="Nivel a acomodar" data-testid="lectura-niveles">
+          <span className="ayuda" style={{ display: 'inline', alignSelf: 'center' }}>Nivel a acomodar:</span>
+          {niveles.map((n) => (
+            <button key={n} type="button" role="radio" aria-checked={n === nivel} className={n === nivel ? 'boton primario' : 'boton'}
+              style={{ minHeight: 40 }} onClick={() => setNivelElegido(n)} data-testid="lectura-nivel-opcion" data-nivel={n}>
+              {n} · {areas.filter((a) => a?.nivel === n).length} área(s)
+            </button>
+          ))}
         </div>
       )}
       {problemasVisibles.length > 0 && (
@@ -91,7 +110,7 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
       {!resumen.problemas?.length && nota && <div className="ayuda" style={{ marginTop: 8 }}>{nota}</div>}
       <div className="fila-botones" style={{ gap: 8, marginTop: 12 }}>
         {puedeConfirmar && (
-          <button className="boton primario" style={{ minHeight: 44 }} onClick={() => onConfirmar(areasEditadas ? { ...lectura, areas: areasEditadas } : undefined)} data-testid="lectura-confirmar">
+          <button className="boton primario" style={{ minHeight: 44 }} onClick={() => onConfirmar(areasEditadas ? { ...lectura, areas: areasEditadas } : undefined, { nivel })} data-testid="lectura-confirmar">
             Sí, así es: usar esta lectura
           </button>
         )}

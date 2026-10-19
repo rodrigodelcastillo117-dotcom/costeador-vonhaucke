@@ -132,6 +132,16 @@ function segmentosCruzan(a, b, c, d) {
 
 export function rectIntersecaPoligono(rect, poly = []) {
   if (!rect || !Array.isArray(poly) || poly.length < 3) return false;
+  // 2026-10-19 (C2, edge 546 por CPU): si las cajas envolventes quedan separadas por más que la
+  // tolerancia, ninguna de las tres pruebas de abajo puede dar true (esquina dentro, vértice dentro,
+  // cruce/toque con EPS). Mismo resultado, sin recorrer el polígono para cada posición de la malla.
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const [px, py] of poly) {
+    if (px < minX) minX = px; if (px > maxX) maxX = px;
+    if (py < minY) minY = py; if (py > maxY) maxY = py;
+  }
+  const m = EPS + 1;
+  if (rect.x > maxX + m || rect.x + rect.w < minX - m || rect.y > maxY + m || rect.y + rect.d < minY - m) return false;
   const rc = [
     [rect.x, rect.y], [rect.x + rect.w, rect.y],
     [rect.x + rect.w, rect.y + rect.d], [rect.x, rect.y + rect.d],

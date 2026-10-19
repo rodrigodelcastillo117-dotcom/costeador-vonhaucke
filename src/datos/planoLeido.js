@@ -221,11 +221,15 @@ export function nivelesDeLectura(lectura) {
   return [...new Set((lectura?.areas || []).map((a) => String(a?.nivel || '').trim()).filter(Boolean))];
 }
 
-/** L1: documento con varias plantas → se acomoda la PRIMERA (las áreas de otros niveles no se mezclan en la
- *  misma planta; se cotizan como otro proyecto). Sin niveles declarados, todas. Única regla (Voni + pruebas). */
-export function areasDelNivelUsado(areas = [], niveles = []) {
+/** L1: documento con varias plantas → se acomoda UN nivel a la vez (las áreas de otros niveles no se mezclan
+ *  en la misma planta; se cotizan como otro proyecto). `nivel` = el que eligió la persona en la compuerta
+ *  (2026-10-19, C4: antes siempre el primero y el segundo nivel no se podía acomodar nunca); sin elección o
+ *  con uno que no existe, el primero. Sin niveles declarados, todas. Única regla (Voni, Acomodo y pruebas). */
+export function areasDelNivelUsado(areas = [], niveles = [], nivel = null) {
   const lista = Array.isArray(areas) ? areas : [];
-  return Array.isArray(niveles) && niveles.length > 1 ? lista.filter((a) => !a.nivel || a.nivel === niveles[0]) : lista;
+  if (!(Array.isArray(niveles) && niveles.length > 1)) return lista;
+  const elegido = niveles.includes(nivel) ? nivel : niveles[0];
+  return lista.filter((a) => !a.nivel || a.nivel === elegido);
 }
 
 // ---------------------------------------------------------------------------

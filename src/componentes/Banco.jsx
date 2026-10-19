@@ -3,7 +3,7 @@
 //  precio ya cotizado. Pensado para armar proyectos grandes rápido.
 // ============================================================================
 import { useState, useMemo } from 'react';
-import { BANCO_CATEGORIAS, BANCO_FUENTES, BANCO_LINEAS, bancoUnico } from '../datos/banco.js';
+import { BANCO_CATEGORIAS, BANCO_FUENTES, BANCO_LINEAS, bancoUnico, categoriasEnOrden } from '../datos/banco.js';
 import { CATALOGO_INDEX, CATALOGO_LINEAS } from '../datos/catalogoIndex.js';
 import { pesos, coincide, ordenarPorRelevancia } from '../util.js';
 import { fotoSilla } from '../datos/imagenesSilleria.js';
@@ -93,7 +93,7 @@ export default function Banco({ onAgregar, onIr }) {
         </span></div>
       )}
 
-      {BANCO_CATEGORIAS.filter((c) => porCat[c]?.length).map((c) => (
+      {categoriasEnOrden(lista, q).map((c) => (
         <div className="tarjeta" key={c}>
           <h3>{c}</h3>
           {porCat[c].map((p) => (

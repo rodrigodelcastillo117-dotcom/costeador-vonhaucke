@@ -31,15 +31,62 @@ export function propuestaConPiezas(p) {
   return Array.isArray(p?.piezas) && p.piezas.some((z) => z && typeof z === 'object' && !Array.isArray(z));
 }
 
+// Totales que la IA DECLARA en sus textos ("TOTAL 7.17 m", "total con marcos = 7.17 m"), en metros. No cuentan los
+// tramos de compra ni los totales con merma: ésos no son lo que suma el despiece.
+const RE_TOTAL_M = /\btotal\b([^0-9\n]{0,25}?)(\d+(?:[.,]\d+)?)\s*m(?![m²2a-záéíóúñ])/gi;
+function totalesDeclaradosM(z) {
+  const t = [z.nota, z.razonamiento, z.evidencia].filter(Boolean).join(' · ');
+  const out = [];
+  for (const m of t.matchAll(RE_TOTAL_M)) {
+    if (/merma|tramo|desperd|compra|comercial/i.test(m[1])) continue;
+    const v = Number(m[2].replace(',', '.'));
+    if (v > 0) out.push(v);
+  }
+  return out;
+}
+
+// Certificación 19-oct (mesa de centro): la IA escribe "TOTAL 7.17 m" de tubo y su despiece suma 4.368 m. Por material
+// lineal: si declara un total y NINGUNO cuadra (−5 %…+15 %) con la suma de sus renglones, se marca el primero del grupo; el
+// validador estructural lo bloquea (aceptable). No se corrige solo: no se elige por la persona cuál número vale.
+function marcarTotalLinealIncoherente(comps, piezas) {
+  const grupos = new Map();
+  comps.forEach((c, i) => {
+    // Mismo material = el insumo que PIDIÓ la IA (la política puede dejarlo sin insumo resuelto hasta confirmar).
+    const k = piezas[i]?.insumoId || c.insumoId;
+    if (c.forma !== 'lineal' || !k || !(Number(c.cantidad) > 0)) return;
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(i);
+  });
+  for (const [insumoId, idx] of grupos) {
+    const declarados = idx.flatMap((i) => totalesDeclaradosM(piezas[i]));
+    if (!declarados.length) continue;
+    const suma = Math.round(idx.reduce((s, i) => s + Number(comps[i].cantidad), 0) * 1000) / 1000;
+    // Cuadra si la suma queda entre −5 % y +15 % del total declarado: redondear hacia arriba por desperdicio
+    // ("total ~6.6 m, ~7 m con desperdicio") es legítimo; quedarse CORTO no (falta material).
+    if (declarados.some((v) => suma >= v * 0.95 && suma <= v * 1.15)) continue;
+    const dice = Math.max(...declarados);
+    comps[idx[0]].iaTotalIncoherente = { material: insumoId, dice, puso: suma, renglones: idx.length };
+  }
+  return comps;
+}
+
+const esMaterialDeHoja = (ins) => !!ins && (ins.unidad === 'hoja' || ['lamina', 'tablero'].includes(ins.formato?.tipo));
+
 export function mapIaComps(p, insumos = {}) {
   const resolver = (id) => insumos[id];
   const catalogo = Object.values(insumos || {});
   // R-03: `piezas` que no es lista (la IA la mandó como texto) o renglones que no son objeto se ignoran
   // en vez de reventar con "….map is not a function".
   const piezas = Array.isArray(p?.piezas) ? p.piezas.filter((z) => z && typeof z === 'object' && !Array.isArray(z)) : [];
-  return piezas.map((z) => {
+  const comps = piezas.map((z) => {
     const base = espejoP012(aplicarPoliticaMaterial({ ...z, material_solicitado: z.material_solicitado || z.nombre }, resolver, catalogo));
     base.forma = z.forma || (z.largoMM && z.anchoMM ? 'area' : 'pieza');
+    // Certificación 19-oct (faldón del lote 10): la IA mandó una pieza de LÁMINA 1400 × 300 como "lineal" y se costeaba
+    // como 1.4 m de un material que se vende por hoja. Si el material es de hoja (lámina/tablero) y trae largo Y ancho, es
+    // una pieza de área. Un perfil (PTR, tubo, tapacanto) con ancho sigue siendo lineal. Sin catálogo no se adivina.
+    if (base.forma === 'lineal' && Number(z.largoMM) > 0 && Number(z.anchoMM) > 0 && esMaterialDeHoja(resolver(z.insumoId || base.insumoId))) {
+      base.forma = 'area'; base.formaIa = 'lineal';
+    }
     // VONI Ingeniería: procedencia de la IA por pieza (OBSERVADO/INFERIDO/SUPUESTO/DESCONOCIDO) + su evidencia, para que
     // una suposición nunca se confunda con un dato. No viaja al servidor (validarIntentCosteo la ignora al sanear).
     base.procedencia = procedenciaCanonica(z.procedencia);
@@ -52,6 +99,14 @@ export function mapIaComps(p, insumos = {}) {
       const m1 = Number(z.largoMM) / 1000, n = Number(z.cantidad) > 0 ? Number(z.cantidad) : 1;
       base.cantidad = Math.abs(n - m1) <= 0.05 ? n : Math.round(m1 * n * 1000) / 1000;
       base.largoLinealMM = Number(z.largoMM); base.piezasLineales = Math.abs(n - m1) <= 0.05 ? 1 : n;
+      // Certificación 18-oct (mesa de centro): la IA razonó "perímetro 2800 mm" y escribió largoMM 1800. Si su propio
+      // razonamiento declara el perímetro de la pieza y no coincide (±5 %) con el largo que puso, se marca: el validador
+      // estructural lo bloquea para que la persona lo corrija. No se corrige solo: no se elige por ella cuál número vale.
+      const per = String(z.razonamiento || '').match(/per[ií]metro\s*(?:de\s*)?(\d{3,6})\s*mm/i);
+      if (per) { const dice = Number(per[1]), puso = Number(z.largoMM); if (Math.abs(dice - puso) / dice > 0.05) base.iaIncoherencia = { campo: 'largoMM', dice, puso }; }
+      // Certificación 19-oct: la 2ª pasada "corrigió" 2 × 2800 a 1 × 2800 escribiendo "largo total 5600 mm" en su nota.
+      const lt = `${z.nota || ''} ${z.razonamiento || ''}`.match(/largo\s+total\s*(?:de\s*)?(\d{3,6})\s*mm/i);
+      if (!base.iaIncoherencia && lt) { const dice = Number(lt[1]), puso = Math.round(base.cantidad * 1000); if (Math.abs(dice - puso) / dice > 0.05) base.iaIncoherencia = { campo: 'largoTotal', dice, puso }; }
     }
     if (base.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
@@ -72,4 +127,5 @@ export function mapIaComps(p, insumos = {}) {
     }
     return base;
   });
+  return marcarTotalLinealIncoherente(comps, piezas);
 }

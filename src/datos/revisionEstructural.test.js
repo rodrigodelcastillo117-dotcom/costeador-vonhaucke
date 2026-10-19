@@ -94,3 +94,26 @@ describe('VH-163b · soportes en plural (falso bloqueo en mesa de trabajo V5)', 
     expect(r.observaciones.filter((o) => o.nivel === 'blocker').map((o) => o.regla)).toEqual(['sin_soporte']);
   });
 });
+
+// Certificación 18-oct (escritorio en L, plano real): "CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)" con la descripción
+// "cajonera de 3 cajones" bloqueaba el costo: "La descripción pide 3 cajón(es) y el despiece trae 1". Una cajonera
+// declara sus gavetas en el nombre: cuenta como esas gavetas, no como una.
+describe('cajonera con N gavetas cuenta como N cajones', () => {
+  const comps = (nombreCajonera) => [
+    { nombre: 'Cubierta principal', insumoId: 'melamina-19', largoMM: 1600, anchoMM: 700 },
+    { nombre: nombreCajonera, piezas: 1, cantidad: 1 },
+  ];
+  const bloqueoCajones = (r) => r.observaciones.find((o) => o.regla === 'cantidad_incompatible' && /caj/.test(o.clave));
+  it('"Cajonera móvil 3 gavetas" con la descripción "cajonera de 3 cajones": sin bloqueo', () => {
+    const r = revisarEstructura({ componentes: comps('Cajonera móvil 3 gavetas'), descripcion: 'Escritorio en L con cajonera móvil de 3 cajones' });
+    expect(bloqueoCajones(r)).toBeUndefined();
+  });
+  it('si la cajonera trae 2 gavetas y se pidieron 3, sí bloquea', () => {
+    const r = revisarEstructura({ componentes: comps('Cajonera móvil 2 gavetas'), descripcion: 'Escritorio con 3 cajones' });
+    expect(bloqueoCajones(r)?.mensaje).toMatch(/pide 3 .* trae 2/);
+  });
+  it('una gaveta suelta sigue contando como 1', () => {
+    const r = revisarEstructura({ componentes: comps('Gaveta lápicera'), descripcion: 'Escritorio con 3 cajones' });
+    expect(bloqueoCajones(r)?.mensaje).toMatch(/pide 3 .* trae 1/);
+  });
+});
