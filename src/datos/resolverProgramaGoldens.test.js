@@ -47,12 +47,16 @@ describe('golden juntas (P0.1 · #10): 4 personas → mesa REAL + 4 sillas', () 
   });
 });
 
-describe('golden recepción (P0.1 · #11): mostrador REAL, SIN sillas de espera no pedidas', () => {
-  it('recepción → 1 ancla recepción real y CERO dependientes por defecto', () => {
+describe('golden recepción (P0.1 · #11 + Dirección 19-oct): mostrador REAL + su silla operativa, SIN sillas de espera no pedidas', () => {
+  it('recepción → 1 ancla real + 1 silla operativa GAMMA-E por persona que atiende; cero sillas de espera', () => {
     const r = resolverPrograma({ recepcion: true }, { linea: 'App LT' });
     const rec = r.resoluciones.find((x) => x.relation_role === 'ANCHOR_RECEPTION');
     expect(esReal(rec)).toBe(true);
     expect(String(rec.bancoId)).toMatch(/^rec-/);
-    expect(r.dependientes).toHaveLength(0);
+    const sillas = r.partidas.filter((p) => p.relation_role === 'WORK_SEAT' && p.anchor_role === 'ANCHOR_RECEPTION');
+    expect(sillas.map((s) => s.bancoId)).toEqual(['silla-gamma-e']);
+    expect(sillas[0].cantidad).toBe(Math.max(1, Number(rec.usuarios) || 1));
+    expect(r.partidas.some((p) => p.relation_role === 'VISITOR_SEAT')).toBe(false);
+    expect(r.dependientes.every((d) => d.relation_role === 'WORK_SEAT')).toBe(true);
   });
 });
