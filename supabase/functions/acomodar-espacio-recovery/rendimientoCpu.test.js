@@ -66,13 +66,18 @@ describe('acomodo · CPU de la edge (C2 curvo, 546)', () => {
     }
   });
 
-  it('C2 completo (multi + opciones del vendedor) en mucho menos de 2 s; antes 1.75 s en local', () => {
-    construirRespuestaAcomodo(C2.areas, C2.piezas);              // calienta el JIT
-    const t = Date.now();
+  // Medida RELATIVA en la misma máquina (en CI los archivos corren en paralelo y un tope fijo en ms es frágil):
+  // el pipeline completo (multi de 6 estrategias + 3 simulaciones de opciones ≈ 16 búsquedas) contra 6 búsquedas
+  // SIN caché. Antes del arreglo la razón era ≈ 3 (1.75 s vs 0.6 s); con el arreglo ≈ 0.3.
+  it('C2 completo (multi + opciones del vendedor) cuesta menos que 6 búsquedas sin caché; antes ≈ 3 veces más', () => {
+    const seisSinCache = () => { for (const orden of [undefined, 'center', 'reverse', 'col', 'colReverse', 'access']) resolverKits(C2.areas, C2.piezas, { orden, certificados: false }); };
+    construirRespuestaAcomodo(C2.areas, C2.piezas); seisSinCache();   // calienta el JIT
+    let t = performance.now();
     const r = construirRespuestaAcomodo(C2.areas, C2.piezas);
-    const ms = Date.now() - t;
+    const pipeline = performance.now() - t;
+    t = performance.now(); seisSinCache(); const base = performance.now() - t;
     expect(r.layoutSpec.placed).toBe(28);                         // la sala de consejo no cabe completa (sin cambio)
     expect(r.layoutSpec.mensaje_vendedor.opciones.map((o) => o.id)).toEqual(['mesa_mas_chica', 'quitar_no_colocadas']);
-    expect(ms).toBeLessThan(900);
+    expect(pipeline / base).toBeLessThan(1);
   });
 });
