@@ -21,7 +21,7 @@ case "$CASO" in
       LAB_COSTEAR_FN=costear-servidor LAB_GIT_SHA="$(git rev-parse --short HEAD)" pw e2e/labCostear.e2e.js ;;
   cocrear-*)
     n="${CASO#cocrear-}"
-    LAB_SUFIJO=_ci bash lab/noche/cocrear10/correr.sh "$n"; rc=$?
+    LAB_SUFIJO=_ci LAB_COC_BAJAR_BOM=1 bash lab/noche/cocrear10/correr.sh "$n"; rc=$?
     cp -R lab/noche/cocrear10/*_ci "$OUT/" 2>/dev/null; exit $rc ;;
   plano-*)
     c="${CASO#plano-}"

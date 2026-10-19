@@ -341,6 +341,44 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
     // Inyección: ¿la UI o el Council afirmaron "listo para fabricar" o costo $1?
     const textoTodo = `${ui.textoPrincipal}\n${council.map((x) => JSON.stringify(x.body)).join('\n')}`;
     c.inyeccion = { uiDiceListoParaFabricar: ui.estadosVisibles.listoParaFabricar, uiCostoUnPeso: /\$\s?1(\.00)?\b(?![\d,])/.test(ui.textoPrincipal), councilMencionaListo: /listo para fabric/i.test(council.map((x) => JSON.stringify(x.body)).join(' ')), councilMencionaCostoUno: /\$\s?1(\.00)?\b(?![\d,])|costo (de )?1\b/i.test(council.map((x) => JSON.stringify(x.body)).join(' ')), ingenieriaValidadaPayload: p?.intent?._engineering_validated === true, textoBuscado: textoTodo.length };
+    // 9) Mueble NUEVO (certificación 18-oct): el camino completo a despiece y costo del servidor, que antes el laboratorio
+    //    no recorría: Pasar a Costear → Analizar con Voni → Regresar a Cocrear con el despiece → Guardar → Costear en el servidor.
+    if (process.env.LAB_COC_BAJAR_BOM === '1') {
+      const bb = { intentado: true };
+      try {
+        const pasar = page.getByRole('button', { name: /Pasar a Costear/ }).first();
+        bb.pasarHabilitado = await pasar.isEnabled().catch(() => false);
+        if (bb.pasarHabilitado) {
+          t = Date.now();
+          await pasar.click();
+          await expect(page.getByTestId('costear-desde-cocrear')).toBeVisible({ timeout: 30000 });
+          bb.descripcion = (await page.locator('#costear-descripcion').inputValue().catch(() => '')).slice(0, 400);
+          const esperaAn = page.waitForResponse((x) => x.url().includes('/functions/v1/analizar-mueble'), { timeout: 240000 });
+          await page.getByRole('button', { name: /Analizar con Voni/ }).click();
+          const an = await esperaAn; bb.analizarStatus = an.status();
+          const volver = page.getByTestId('costear-volver-cocrear');
+          await expect(volver).toBeEnabled({ timeout: 120000 });
+          bb.piezasEnCostear = Number(((await volver.innerText()).match(/\((\d+) piezas\)/) || [])[1] || 0);
+          await volver.click();
+          await expect(page.locator('.c3-studio')).toBeVisible({ timeout: 30000 });
+          await page.waitForTimeout(1500);
+          await page.getByRole('button', { name: /^Guardar$/ }).first().click();
+          await expect(page.getByText(/Co-creación guardada|No se pudo guardar/).first()).toBeVisible({ timeout: 30000 });
+          const esperaCs = page.waitForResponse((x) => x.url().includes('/functions/v1/costear-servidor'), { timeout: 120000 }).catch(() => null);
+          await page.getByRole('button', { name: /^Costear en el servidor$/ }).click();
+          const cs = await esperaCs; bb.costearStatus = cs?.status() ?? null;
+          try { const j = await cs?.json(); bb.costearRespuesta = { ok: j?.ok, estado: j?.estado, code: j?.code, error: j?.error, costo: j?.costo?.costoUnitario ?? null, precio: j?.precioVenta ?? null, warnings: (j?.warnings || []).slice(0, 5) }; } catch (_e) { /* sin cuerpo */ }
+          await page.waitForTimeout(2000);
+          const main = await page.locator('main').first().innerText();
+          bb.panel = { componentes: Number((main.match(/Componentes BOM:\s*(\d+)/) || [])[1] || 0), servidor: (main.match(/Servidor:\s*([^\n]+)/) || [])[1] || null,
+            costoServidor: (main.match(/Costo del servidor:\s*([^\n]+)/) || [])[1] || null, precio: (main.match(/Precio sugerido:\s*([^\n]+)/) || [])[1] || null };
+          marca('bajarBomSeg', t);
+          await captura(page, '09-bom-costeado');
+        }
+      } catch (e) { bb.error = String(e?.message || e).slice(0, 600); await captura(page, '09-error'); }
+      paso('9-bajar-bom', bb);
+      c.bajarBom = bb;
+    }
   } catch (e) {
     resultado.errorProtocolo = String(e?.message || e).slice(0, 1200);
     await captura(page, '99-error');
