@@ -150,8 +150,10 @@ export function asientoPara(relationRole, requestedModel = null) {
     return found[0] || null;      // null → NEEDS_CONFIRMATION en el llamador
   }
   switch (relationRole) {
-    case 'WORK_SEAT':      return porId(SILLAS, 'silla-win')      || SILLAS[0] || null;
-    case 'EXECUTIVE_SEAT': return porId(SILLAS, 'silla-alpha')    || porId(SILLAS, 'silla-win') || null;
+    // Dirección 2026-10-19 (Rodrigo): "Alpha es una silla cara, directiva, sólo para directores y privados; para lo
+    // demás, GAMMA-E". Puestos operativos y recepción → GAMMA-E; dirección y oficinas privadas → ALPHA.
+    case 'WORK_SEAT':      return porId(SILLAS, 'silla-gamma-e')  || porId(SILLAS, 'silla-win') || SILLAS[0] || null;
+    case 'EXECUTIVE_SEAT': return porId(SILLAS, 'silla-alpha')    || porId(SILLAS, 'silla-gamma-e') || null;
     case 'MEETING_SEAT':   return porId(SILLAS, 'silla-concerto') || porId(SILLAS, 'silla-sonata') || null;
     case 'VISITOR_SEAT':   return porId(SILLAS, 'silla-sonata')   || porId(SILLAS, 'silla-concerto') || null;
     default:               return null;

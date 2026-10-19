@@ -34,7 +34,9 @@ export const STORAGE_FRONT_MIN_MM = 600;
 // Rol de silla esperado por tipo de ancla (para KIT_FUNCTIONAL_RELATION_BROKEN).
 // VH-119: un escritorio privado recibe a su ejecutivo (lado BACK) Y a sus visitas (lado FRONT); antes sólo
 // admitía EXECUTIVE_SEAT y toda silla de visita se marcaba KIT_FUNCTIONAL_RELATION_BROKEN.
-const SEAT_ROL_DE_ANCLA = { ANCHOR_WORKSTATION: ['WORK_SEAT'], ANCHOR_MEETING: ['MEETING_SEAT'], ANCHOR_DESK: ['EXECUTIVE_SEAT', 'VISITOR_SEAT'], ANCHOR_RECEPTION: ['VISITOR_SEAT'] };
+// Dirección 2026-10-19: el mostrador de recepción lleva la silla OPERATIVA de quien atiende (GAMMA-E), además de
+// las visitas que se pidan. Antes sólo VISITOR_SEAT → la silla operativa de recepción salía KIT_FUNCTIONAL_RELATION_BROKEN.
+const SEAT_ROL_DE_ANCLA = { ANCHOR_WORKSTATION: ['WORK_SEAT'], ANCHOR_MEETING: ['MEETING_SEAT'], ANCHOR_DESK: ['EXECUTIVE_SEAT', 'VISITOR_SEAT'], ANCHOR_RECEPTION: ['VISITOR_SEAT', 'WORK_SEAT'] };
 const LADO_DE_ROL_EN_ESCRITORIO = { EXECUTIVE_SEAT: 'BACK', VISITOR_SEAT: 'FRONT' };
 
 function rectDe(c, p) {
