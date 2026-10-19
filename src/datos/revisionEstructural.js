@@ -270,6 +270,13 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
     if (pide > 0 && hay > 0 && hay !== pide) obs.push({ nivel: 'blocker', aceptable: true, regla: 'cantidad_incompatible', clave: `cantidad_incompatible:${rol}`,
       mensaje: `La descripción pide ${pide} ${nombre} y el despiece trae ${hay}. Corrige las cantidades o márcalo como revisado si la descripción estaba mal.` });
   }
+  // (4b) LA IA SE CONTRADICE: su razonamiento declara una medida y el renglón trae otra (mapIaComps → iaIncoherencia).
+  for (const c of comps) {
+    if (c.excluida || !c.iaIncoherencia) continue;
+    const x = c.iaIncoherencia;
+    obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_incoherente:${c.nombre}`, pieza: c.nombre,
+      mensaje: `«${c.nombre}»: la IA dice ${x.dice} mm en su razonamiento pero puso ${x.puso} mm. Revisa la medida en el plano y corrígela, o márcalo como revisado si ${x.puso} mm es la correcta.` });
+  }
   // (5) CANTIDADES IMPOSIBLES: piezas o cantidades ≤ 0 o absurdas.
   for (const c of comps) {
     if (c.excluida) continue;

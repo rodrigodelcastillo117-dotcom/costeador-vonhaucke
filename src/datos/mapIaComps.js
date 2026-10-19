@@ -52,6 +52,11 @@ export function mapIaComps(p, insumos = {}) {
       const m1 = Number(z.largoMM) / 1000, n = Number(z.cantidad) > 0 ? Number(z.cantidad) : 1;
       base.cantidad = Math.abs(n - m1) <= 0.05 ? n : Math.round(m1 * n * 1000) / 1000;
       base.largoLinealMM = Number(z.largoMM); base.piezasLineales = Math.abs(n - m1) <= 0.05 ? 1 : n;
+      // Certificación 18-oct (mesa de centro): la IA razonó "perímetro 2800 mm" y escribió largoMM 1800. Si su propio
+      // razonamiento declara el perímetro de la pieza y no coincide (±5 %) con el largo que puso, se marca: el validador
+      // estructural lo bloquea para que la persona lo corrija. No se corrige solo: no se elige por ella cuál número vale.
+      const per = String(z.razonamiento || '').match(/per[ií]metro\s*(?:de\s*)?(\d{3,6})\s*mm/i);
+      if (per) { const dice = Number(per[1]), puso = Number(z.largoMM); if (Math.abs(dice - puso) / dice > 0.05) base.iaIncoherencia = { campo: 'largoMM', dice, puso }; }
     }
     if (base.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
