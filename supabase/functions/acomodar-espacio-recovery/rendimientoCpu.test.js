@@ -9,7 +9,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { rectIntersecaPoligono, poligonoBarridoPuerta, puntoEnPoligono } from './spatial-core.js';
-import { resolverKits } from './kit-solver.js';
+import { resolverKits, metricasSolver } from './kit-solver.js';
 import { construirRespuestaAcomodo } from './recoveryPipeline.js';
 
 const C2 = JSON.parse(readFileSync(new URL('../../../bench/acomodo-calidad/fixtures/c2-curvo-request.json', import.meta.url), 'utf8'));
@@ -66,18 +66,20 @@ describe('acomodo · CPU de la edge (C2 curvo, 546)', () => {
     }
   });
 
-  // Medida RELATIVA en la misma máquina (en CI los archivos corren en paralelo y un tope fijo en ms es frágil):
-  // el pipeline completo (multi de 6 estrategias + 3 simulaciones de opciones ≈ 16 búsquedas) contra 6 búsquedas
-  // SIN caché. Antes del arreglo la razón era ≈ 3 (1.75 s vs 0.6 s); con el arreglo ≈ 0.3.
-  it('C2 completo (multi + opciones del vendedor) cuesta menos que 6 búsquedas sin caché; antes ≈ 3 veces más', () => {
-    const seisSinCache = () => { for (const orden of [undefined, 'center', 'reverse', 'col', 'colReverse', 'access']) resolverKits(C2.areas, C2.piezas, { orden, certificados: false }); };
-    construirRespuestaAcomodo(C2.areas, C2.piezas); seisSinCache();   // calienta el JIT
-    let t = performance.now();
+  // Medida DETERMINISTA del trabajo (no del reloj: en CI y en el build de Vercel las pruebas corren en paralelo y
+  // tanto un tope en ms como una razón de tiempos salieron frágiles). Se cuentan las evaluaciones estáticas reales
+  // (muros, contorno, puertas, acceso: el 93 % del CPU medido). El pipeline completo (multi de 6 estrategias + 3
+  // simulaciones de opciones) debe hacer MENOS que 6 búsquedas sin caché; sin el arreglo hacía ≈ 2.7 veces más.
+  it('C2 completo (multi + opciones del vendedor) evalúa menos posiciones que 6 búsquedas sin caché', () => {
+    metricasSolver.estaticos = 0;
     const r = construirRespuestaAcomodo(C2.areas, C2.piezas);
-    const pipeline = performance.now() - t;
-    t = performance.now(); seisSinCache(); const base = performance.now() - t;
+    const pipeline = metricasSolver.estaticos;
+    metricasSolver.estaticos = 0;
+    for (const orden of [undefined, 'center', 'reverse', 'col', 'colReverse', 'access']) resolverKits(C2.areas, C2.piezas, { orden, certificados: false });
+    const base = metricasSolver.estaticos;
     expect(r.layoutSpec.placed).toBe(28);                         // la sala de consejo no cabe completa (sin cambio)
     expect(r.layoutSpec.mensaje_vendedor.opciones.map((o) => o.id)).toEqual(['mesa_mas_chica', 'quitar_no_colocadas']);
-    expect(pipeline / base).toBeLessThan(1);
+    expect(base).toBeGreaterThan(0);
+    expect(pipeline).toBeLessThan(base);
   });
 });
