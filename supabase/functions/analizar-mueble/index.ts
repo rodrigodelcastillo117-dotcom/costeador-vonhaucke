@@ -10,7 +10,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 // P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
-import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
+import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL, despiecePrevioTexto } from "./requestPlan.js";
 // P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
 import { resolverModelo, resolverModeloVisual } from "./modelConfig.js";
 import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor } from "./telemetria.js";
@@ -332,9 +332,8 @@ Deno.serve(async (req) => {
     textoTarea += `\n\nINTENCION DEL USUARIO (texto, prioriza como intención; la imagen es evidencia geométrica):\n"${desc}"`;
   }
   if (esRevision) {
-    const previo = (revisar.piezas || []).map((p: any) =>
-      `- ${p.cantidad}x ${p.nombre} [${p.insumoId || 'SIN MATERIAL'}] ${p.forma} ${p.largoMM || 0}x${p.anchoMM || 0} hojas=${p.hojas ?? 0} (${p.confianza})`
-    ).join("\n");
+    // Certificación 18-oct: renglones sin ambigüedad (piezas × medida = total). Antes "2x … lineal 2800x0" se leía como 2.8 m.
+    const previo = despiecePrevioTexto(revisar.piezas || []);
     textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}\n\n` +
       "⛔ VERIFICACIÓN SILENCIOSA: 'preguntas' DEBE ser []. NO abras una ronda nueva de confirmaciones. Puedes corregir cantidades, detectar inconsistencias, bajar 'confianza' y dejar supuestos; si algo queda sin resolver, DÉJALO como supuesto (confianza baja) y NO preguntes. Solo excepción: un BLOQUEADOR DURO nuevo que impida calcular — máx 1, con question_key nuevo.";
   }
