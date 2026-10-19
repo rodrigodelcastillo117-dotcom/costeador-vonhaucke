@@ -54,7 +54,7 @@ describe('E2E P0.1 · caso Rodrigo (audit #20)', () => {
     expect(bench[0].bancoId).toBe('op-10u-6000x1200-cristal');
     expect(bench[0].w).toBe(6000);
     expect(sum(propuesta.partidas, 'WORK_SEAT')).toBe(10);
-    expect(propuesta.partidas.find((p) => p.relation_role === 'WORK_SEAT').bancoId).toBe('silla-win');
+    expect(propuesta.partidas.find((p) => p.relation_role === 'WORK_SEAT').bancoId).toBe('silla-win');   // pidió WIN: el modelo pedido manda sobre el default GAMMA-E
     expect(sum(propuesta.partidas, 'UNDERDESK_STORAGE')).toBe(10);
 
     const mesa = propuesta.partidas.find((p) => p.relation_role === 'ANCHOR_MEETING');
