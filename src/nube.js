@@ -856,7 +856,13 @@ export function resolverAprobacionServidor(id, estado, motivo = null) {
 export async function voniCouncil(payload) {
   try {
     const { data, error } = await nube.functions.invoke('voni-council', { body: payload });
-    if (error) return { ok: false, error: error.message || String(error) };
+    // Auditoría 2026-10-19: un 502 del council = NINGUNA IA respondió dentro de su presupuesto de 20 s (NO_PROVIDER).
+    // Antes la pantalla mostraba "Edge Function returned a non-2xx status code". No se cambió nada del diseño.
+    if (error) {
+      const status = Number(error.context?.status) || null;
+      if (status === 502) return { ok: false, error: 'VONI no alcanzó a responder a tiempo. Tu diseño no cambió: puedes seguir trabajando y volver a pedirle su opinión en un momento.' };
+      return { ok: false, error: mensajeErrorEdge(error, 'VONI no pudo responder. Tu diseño no cambió; vuelve a intentar.') };
+    }
     return data || { ok: false, error: 'sin respuesta del council' };
   } catch (e) { return { ok: false, error: String(e?.message || e) }; }
 }
