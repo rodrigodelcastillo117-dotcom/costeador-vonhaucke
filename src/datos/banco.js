@@ -488,3 +488,13 @@ export function bancoUnico(lista = BANCO) {
   }
   return out;
 }
+
+// Orden de los grupos (tipo de mueble) en la pantalla del banco. Sin búsqueda: el orden fijo de BANCO_CATEGORIAS.
+// Con búsqueda: el de la lista ya ordenada por relevancia (cada grupo entra donde aparece su mejor resultado). Antes
+// se pintaba SIEMPRE en orden fijo y eso deshacía la relevancia: "archivero" ponía arriba un escritorio gerencial
+// (su descripción menciona la palabra) y "Agregar" metía ese escritorio a la cotización (certificación 18-oct, M1).
+export function categoriasEnOrden(listaOrdenada, consulta) {
+  const presentes = [...new Set(listaOrdenada.map((p) => p.categoria))];
+  if (String(consulta || '').trim()) return presentes;
+  return BANCO_CATEGORIAS.filter((c) => presentes.includes(c));
+}
