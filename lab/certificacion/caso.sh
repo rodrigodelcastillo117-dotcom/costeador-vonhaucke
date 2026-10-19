@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # CERTIFICACIÓN · un caso real contra PRODUCCIÓN (Edge y base reales) con la cuenta QA del CI (TEST_EMAIL/TEST_PASSWORD).
 # Lo corre .github/workflows/certificacion.yml (un job por caso). Evidencia en lab/certificacion/ci/<caso>/.
-#   costear-<hoja>   labCostear con la hoja de control lab/costear/hojas_control/<hoja>.json, desde un entorno holdout limpio
+#   costear-<hoja>   labCostear con la hoja de control lab/costear/hojas_control/<hoja>.json, desde un entorno holdout limpio;
+#                    acepta las diferencias de material como lo haría Diseño (LAB_ACEPTAR_DIFERENCIAS=1) para medir la cadena
+#                    completa hasta el servidor, guardar y reabrir
 #   cocrear-<n>      labCocrear, proyecto n de lab/noche/cocrear10/correr.sh
 #   plano-<Cn>       labTorreNorte con el plano sintético Cn de lab/planos/gen_corpus.py (lectura → acomodo → PDF → reabrir)
 #   texto | manual   labCotizarFlujo (Voni por texto / banco de precios)
@@ -18,7 +20,7 @@ case "$CASO" in
     node scripts/prepararEntornoHoldout.mjs ../env > "$OUT/prep.log" 2>&1 || { echo "preparación holdout falló"; tail -20 "$OUT/prep.log"; exit 3; }
     cd ../env
     LAB_HOJA="lab/costear/hojas_control/$h.json" LAB_OUT="$OUT" LAB_COSTEAR_NOMBRE="LAB CI $h $(date +%m%d-%H%M)" \
-      LAB_COSTEAR_FN=costear-servidor LAB_GIT_SHA="$(git rev-parse --short HEAD)" pw e2e/labCostear.e2e.js ;;
+      LAB_COSTEAR_FN=costear-servidor LAB_GIT_SHA="$(git rev-parse --short HEAD)" LAB_ACEPTAR_DIFERENCIAS=1 pw e2e/labCostear.e2e.js ;;
   cocrear-*)
     n="${CASO#cocrear-}"
     LAB_SUFIJO=_ci LAB_COC_BAJAR_BOM=1 bash lab/noche/cocrear10/correr.sh "$n"; rc=$?
