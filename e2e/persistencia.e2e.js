@@ -14,7 +14,7 @@ import { test, expect } from '@playwright/test';
 import { readFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { crearNubeFalsa, estadoLocal, CLAVE_LOCAL } from './nubeFalsa.js';
+import { crearNubeFalsa, estadoLocal, CLAVE_LOCAL, HOST } from './nubeFalsa.js';
 
 const USUARIOS = { 'ventas@vh.mx': 'vendedor', 'ventas2@vh.mx': 'vendedor', 'rodrigo@vh.mx': 'direccion', 'diseno@vh.mx': 'diseno' };
 const PASS = 'prueba-123';
@@ -252,5 +252,113 @@ test.describe('Bloque 1 · persistencia certificable', () => {
     await esperarGuardado(nube, (n) => n.filas.get(id)?.cliente === 'Oxxo Centro');
     expect(nube.filas.size).toBe(1);   // misma cotización, no otra
     await c2.close();
+  });
+});
+
+// ============================================================================
+//  PERSISTENCIA CON RED (auditoría externa 2026-10-19): "fallo guardado → No guardada → trabajo local intacto →
+//  vuelve red → mismo id llega a nube → UI En línea". Textos reales de la cabecera (App.jsx · nube-estado):
+//  "Guardando…" / "En línea" / "Sin conexión" (la red falló) / "No guardada" (la nube respondió y RECHAZÓ).
+// ============================================================================
+test.describe('Persistencia con red: falla, se conserva y llega a la nube con la MISMA identidad', () => {
+  test('primer guardado sin red → "Sin conexión", lo local intacto con su clave; vuelve la red SIN editar → UNA fila con esa clave, ese id en local, "En línea"', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const context = await browser.newContext(); await nube.instalar(context);
+    // La creación no llega al servidor (corte de red justo en el guardado) hasta que la red vuelve.
+    let sinRed = true;
+    const claves = [];
+    await context.route(`${HOST}/rest/v1/rpc/crear_cotizacion_segura`, (route) => {
+      claves.push(route.request().postDataJSON()?.p_payload?._idempotency_key ?? null);
+      return sinRed ? route.abort('internetdisconnected') : route.fallback();
+    });
+    await sembrarLocal(context, estadoLocal({ cotizacion: { cliente: 'Sin Red SA', partidas: [PARTIDA_SIN_ECONOMIA] } }));
+    const page = await context.newPage();
+    await entrar(page, 'ventas@vh.mx');
+
+    // 1) El guardado falla: se DICE (punto + texto + aviso) y nada llegó a la nube.
+    await expect(estadoNube(page)).toHaveAttribute('data-estado', 'sin-conexion', { timeout: 15000 });
+    await expect(estadoNube(page)).toContainText('Sin conexión');
+    await expect(page.locator('.toast')).toContainText(/No se pudo guardar la cotización en la nube/i, { timeout: 10000 });
+    expect(nube.filas.size).toBe(0);
+    const local1 = (await leerLocal(page)).cotizacion;
+    expect(local1.id ?? null).toBeNull();
+    const clave = local1.claveCreacion;
+    expect(clave, 'la identidad de la cotización (clave de creación) ya vive en la computadora').toMatch(/^[a-zA-Z0-9_-]{10,100}$/);
+    expect(claves.length).toBeGreaterThan(0);
+
+    // 2) Sin red de verdad, la persona sigue trabajando en su cotización: todo queda en ESTA computadora.
+    //    (La pantalla se abre ANTES de cortar: abrir sin red una pantalla nunca descargada es otro caso,
+    //    e2e/versionNueva.e2e.js · "sin internet, una pantalla que aún no se descargó…".)
+    await irACotizacion(page);
+    await context.setOffline(true);
+    await inputCliente(page).fill('Sin Red SA Planta 2');
+    await esperar(2500);
+    expect(nube.filas.size).toBe(0);
+    const local2 = (await leerLocal(page)).cotizacion;
+    expect(local2.cliente).toBe('Sin Red SA Planta 2');
+    expect(local2.partidas).toHaveLength(1);
+    expect(local2.claveCreacion).toBe(clave);
+    await expect(estadoNube(page)).toHaveAttribute('data-estado', 'sin-conexion');
+
+    // 3) Vuelve la red (evento 'online'), la persona NO edita nada: se guarda solo, con LA MISMA clave
+    //    y SIN recargar la página (lo hace el reintento de App.jsx, no una recarga).
+    let recargas = 0;
+    page.on('framenavigated', (f) => { if (f === page.mainFrame()) recargas += 1; });
+    sinRed = false;
+    await context.setOffline(false);
+    await expect.poll(() => nube.filas.size, { timeout: 20000 }).toBe(1);
+    const fila = [...nube.filas.values()][0];
+    expect(fila.cliente).toBe('Sin Red SA Planta 2');
+    expect(nube.creates).toBe(1);
+    expect(new Set(claves.filter(Boolean)), 'todos los intentos con la misma clave (idempotencia)').toEqual(new Set([clave]));
+    await expect.poll(async () => (await leerLocal(page)).cotizacion?.id).toBe(fila.id);
+    await expect(estadoNube(page)).toHaveAttribute('data-estado', 'conectado', { timeout: 10000 });
+    await expect(estadoNube(page)).toContainText('En línea');
+    await expect(page.locator('.toast')).toContainText(/Conexión recuperada/i, { timeout: 10000 });
+    expect(recargas, 'se guardó sin recargar la página').toBe(0);
+    // Y de ahí en adelante, la misma fila (no otra).
+    await inputCliente(page).fill('Sin Red SA Planta 3');
+    await esperarGuardado(nube, (n) => n.filas.get(fila.id)?.cliente === 'Sin Red SA Planta 3');
+    expect(nube.filas.size).toBe(1);
+    expect(nube.creates).toBe(1);
+    await context.close();
+  });
+
+  test('la nube RECHAZA el guardado → "No guardada", lo local intacto; al aceptar, el siguiente guardado va a LA MISMA fila y vuelve "En línea"', async ({ browser }) => {
+    test.setTimeout(90_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Rechazo SA', partidas: [PARTIDA_SIN_ECONOMIA], total: 55680, piezas: 1 });
+    const context = await browser.newContext(); await nube.instalar(context);
+    let rechazar = false; let rechazos = 0;
+    await context.route(`${HOST}/rest/v1/rpc/actualizar_cotizacion_segura`, (route) => {
+      if (!rechazar) return route.fallback();
+      rechazos += 1;
+      return route.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ code: 'P0001', message: 'acomodo invalido', details: null, hint: null }) });
+    });
+    await sembrarLocal(context, estadoLocal());
+    const page = await context.newPage();
+    await entrar(page, 'ventas@vh.mx');
+    await abrirPrimeraDelArchivo(page);
+    await expect(estadoNube(page)).toContainText('En línea');
+
+    rechazar = true;
+    await inputCliente(page).fill('Rechazo SA Norte');
+    await expect(estadoNube(page)).toHaveAttribute('data-estado', 'rechazado', { timeout: 10000 });
+    await expect(estadoNube(page)).toContainText('No guardada');
+    await expect(page.locator('.toast')).toContainText(/La nube no aceptó la cotización \(acomodo invalido\)/, { timeout: 10000 });
+    expect(rechazos).toBeGreaterThan(0);
+    expect(nube.filas.get(id).cliente).toBe('Rechazo SA');                          // la nube NO lo tiene…
+    expect((await leerLocal(page)).cotizacion.cliente).toBe('Rechazo SA Norte');   // …la computadora sí
+    expect((await leerLocal(page)).cotizacion.id).toBe(id);                         // y no soltó la identidad
+
+    rechazar = false;
+    await inputCliente(page).fill('Rechazo SA Norte 2');
+    await esperarGuardado(nube, (n) => n.filas.get(id)?.cliente === 'Rechazo SA Norte 2');
+    expect(nube.filas.size).toBe(1);
+    expect(nube.creates).toBe(0);
+    await expect(estadoNube(page)).toHaveAttribute('data-estado', 'conectado');
+    await expect(estadoNube(page)).toContainText('En línea');
+    await context.close();
   });
 });

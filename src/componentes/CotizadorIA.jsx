@@ -26,6 +26,7 @@ const resumenCorto = (t) => {
   return s.length > 90 ? s.slice(0, 90) + '…' : s;
 };
 import Cargando from './Cargando.jsx';
+import { leerBorradorPedido, guardarBorradorPedido } from '../datos/borradorPedido.js';
 
 // Un botón que dice "Ejemplo 1" no le dice nada a nadie: se nombran por el
 // tipo de proyecto, para que el vendedor reconozca el suyo.
@@ -46,7 +47,9 @@ export default function CotizadorIA({
   estado, onAgregarItems, onIr, verCotizacion = false, conPrograma = false,
   pantalla = 'todo', onListo, soloVentas = false,
 }) {
-  const [texto, setTexto] = useState('');
+  // El pedido a medio escribir sobrevive cambiar de paso, "‹ Atrás" y recargar (datos/borradorPedido.js).
+  const [texto, setTexto] = useState(() => leerBorradorPedido());
+  useEffect(() => { guardarBorradorPedido(texto); }, [texto]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [resultado, setResultado] = useState(null);
