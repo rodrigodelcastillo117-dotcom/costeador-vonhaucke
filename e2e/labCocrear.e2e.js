@@ -89,7 +89,16 @@ async function resolverMateriales(page) {
     if (!(await sel.count())) continue;
     const val = await sel.inputValue().catch(() => '');
     let alerta = await alertasDe(f);
-    if (val && !PENDIENTE.test(alerta)) continue;          // ya costeable
+    // Lo que revisaría Diseño: una pieza que POR NOMBRE es de una familia inequívoca (pintura, espuma, cristal, cuarzo,
+    // tela, herraje, LED, eléctrico, canto) y trae un material de OTRA familia se corrige a la suya (el validador de
+    // ingeniería bloquea, p. ej., "Pintura en polvo" costeada como lámina).
+    if (val) {
+      const nomTmp = await f.locator('.pieza-nom').inputValue().catch(() => '');
+      const fuerte = FAMILIAS.slice(0, 13).find((x) => x.re.test(nomTmp));
+      const textoSel = await sel.evaluate((s) => s.options[s.selectedIndex]?.textContent || '').catch(() => '');
+      if (fuerte && !fuerte.opt.test(textoSel)) alerta = `${alerta} familia-equivocada`;
+    }
+    if (val && !PENDIENTE.test(alerta) && !/familia-equivocada/.test(alerta)) continue;          // ya costeable
     const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');
     const fam = FAMILIAS.find((x) => x.re.test(`${nombre} ${alerta}`));
     if (!fam) { out.bloqueados.push({ pieza: nombre, motivo: 'familia de material no reconocible: no se elige nada a ciegas' }); continue; }
@@ -460,7 +469,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
           const esperaCs = page.waitForResponse((x) => x.url().includes('/functions/v1/costear-servidor'), { timeout: 120000 }).catch(() => null);
           await page.getByRole('button', { name: /^Costear en el servidor$/ }).click();
           const cs = await esperaCs; bb.costearStatus = cs?.status() ?? null;
-          try { const j = await cs?.json(); bb.costearRespuesta = { ok: j?.ok, estado: j?.estado, code: j?.code, error: j?.error, costo: j?.costo?.costoUnitario ?? null, precio: j?.precioVenta ?? null, warnings: (j?.warnings || []).slice(0, 5) }; } catch (_e) { /* sin cuerpo */ }
+          try { const j = await cs?.json(); bb.costearRespuesta = { ok: j?.ok, estado: j?.estado, code: j?.code, error: j?.error, costo: j?.costo?.costoUnitario ?? null, precio: j?.precioSugerido ?? j?.precioVenta ?? null, pendientes: (j?.costo?.pendientes || []).slice(0, 12), warnings: (j?.warnings || []).slice(0, 8) }; } catch (_e) { /* sin cuerpo */ }
           await page.waitForTimeout(2000);
           const main = await page.locator('main').first().innerText();
           bb.panel = { componentes: Number((main.match(/Componentes BOM:\s*(\d+)/) || [])[1] || 0), servidor: (main.match(/Servidor:\s*([^\n]+)/) || [])[1] || null,
@@ -493,8 +502,12 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
       c.clasificacion = adversarial
         ? (!economia && !c.inyeccion?.uiDiceListoParaFabricar && !c.inyeccion?.uiCostoUnPeso ? 'PASS_EXPECTED_BLOCK' : 'FAIL')
         : economia ? (bb.reabiertoIgual ? 'PASS_COMPLETE' : 'FAIL')
+          // Costo calculado pero el precio se retiene porque un insumo REAL no tiene precio certificado: falta un DATO
+          // (certificación de precio), no capacidad. Se reporta con el insumo exacto.
+          : (cr.costo != null && (cr.warnings || []).some((w) => /sin precio certificado/i.test(w))) ? 'BLOCKED_DATA'
           : ((bb.materiales?.bloqueados || []).length ? 'BLOCKED_DATA' : 'FAIL');
-      c.clasificacionDetalle = { estado: cr.estado ?? null, costo: cr.costo ?? null, precio: cr.precio ?? null, reabiertoIgual: bb.reabiertoIgual ?? null, faltan: bb.materiales?.bloqueados || [], warnings: cr.warnings || [] };
+      c.clasificacionDetalle = { estado: cr.estado ?? null, costo: cr.costo ?? null, precio: cr.precio ?? null, reabiertoIgual: bb.reabiertoIgual ?? null,
+        faltan: [...(bb.materiales?.bloqueados || []), ...((cr.pendientes || []).filter((p) => /precio|certific|sin material/i.test(String(p))).map((p) => ({ dato: String(p).slice(0, 200) })))], warnings: cr.warnings || [] };
     }
   } catch (e) {
     resultado.errorProtocolo = String(e?.message || e).slice(0, 1200);
