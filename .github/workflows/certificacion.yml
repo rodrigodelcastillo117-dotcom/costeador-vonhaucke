@@ -51,6 +51,20 @@ jobs:
           pip install matplotlib
       - name: Caso ${{ matrix.caso }}
         run: bash lab/certificacion/caso.sh ${{ matrix.caso }}
+      # Seguridad (19-oct): nada de la evidencia lleva la contraseña/correo de la cuenta QA (error-context de Playwright).
+      - name: Tachar secretos de la evidencia
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, pathlib
+          secretos = [s for s in (os.environ.get('TEST_PASSWORD'), os.environ.get('TEST_EMAIL')) if s and len(s) >= 4]
+          for p in pathlib.Path('lab/certificacion/ci').rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in ('.md', '.txt', '.json', '.log', '.html', '.yml'):
+                  continue
+              t = p.read_text(errors='ignore'); n = t
+              for s in secretos: n = n.replace(s, '•••')
+              if n != t: p.write_text(n)
+          PY
       - name: Evidencia
         if: always()
         uses: actions/upload-artifact@v4
