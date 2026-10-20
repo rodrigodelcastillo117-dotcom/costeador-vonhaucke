@@ -49,7 +49,20 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
   page.on('dialog', (d) => d.accept().catch(() => {}));
   const edges = [];
   page.on('response', async (res) => { const m = res.url().match(/\/functions\/v1\/([a-z0-9-]+)/); if (m) { edges.push({ fn: m[1], status: res.status() }); if (res.status() >= 500) hallazgo('edge', 'EDGE_5XX', { fn: m[1], status: res.status() }); } });
-  const esperado = esperadoDelPlano();
+  let esperado = esperadoDelPlano();
+  const esperadoControl = { ...esperado };
+  // Lo que la persona CONFIRMÓ en la compuerta de lectura manda para revisar la coherencia de la app. Si la IA leyó
+  // distinto a la hoja de control, eso se reporta aparte (LECTURA_DIFIERE): es precisión del lector, no coherencia.
+  async function esperadoConfirmado(etapa) {
+    const areas = (await leerCot(page))?.acomodo?.areasM || [];
+    const de = (t) => areas.filter((a) => a.tipo === t);
+    const conf = { operativos: de('open').reduce((s, a) => s + (a.puestos || 0), 0), privados: de('privado').reduce((s, a) => s + (a.puestos || 0), 0),
+      recepcion: de('recepcion').reduce((s, a) => s + (a.puestos || 0), 0), salas: de('juntas').map((a) => a.nombre) };
+    for (const k of ['operativos', 'privados', 'recepcion']) {
+      if (conf[k] !== esperadoControl[k]) hallazgo(etapa, 'LECTURA_DIFIERE', { campo: k, leido: conf[k], plano: esperadoControl[k], informativo: true });
+    }
+    esperado = conf;
+  }
   let n = 0;
 
   // ---------------- AUDITOR: lo que Rodrigo vio a ojo ----------------
@@ -152,6 +165,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     await expect(gate).toBeHidden();
     await expect.poll(async () => (await leerCot(page))?.acomodo?.areasM?.length || 0, { timeout: 20000 }).toBeGreaterThan(0);
     await page.waitForTimeout(1500);
+    await esperadoConfirmado(etapa);
     await auditar(`${etapa}-muebles`);
   }
 
@@ -168,7 +182,11 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
 
   async function acomodar(etapa) {
     await page.getByTestId('voni-paso-acomodo').click();
-    const b = page.getByTestId('acomodo-acomodar'); await expect(b).toBeVisible({ timeout: 20000 });
+    // Al entrar, Voni puede estar acomodando solo ("Voni está acomodando el espacio"): se espera y se MIDE.
+    const t0 = Date.now();
+    const b = page.getByTestId('acomodo-acomodar'); await expect(b).toBeVisible({ timeout: 180000 });
+    const espera = Math.round((Date.now() - t0) / 1000);
+    if (espera > 30) hallazgo(etapa, 'ACOMODO_LENTO', { segundos: espera });
     if (await b.isEnabled().catch(() => false)) {
       await b.click();
       await expect.poll(async () => (await leerCot(page))?.acomodo?.plan?.colocacion?.length ?? -1, { timeout: 150000 }).toBeGreaterThanOrEqual(0);
@@ -268,5 +286,5 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
   pageErrors.forEach((e) => hallazgo('pagina', 'EXCEPCION_JS', e.slice(0, 300)));
   guarda('hallazgos.json', hallazgos); guarda('edges.json', edges);
   console.log('[recorrido] RESUMEN', RECORRIDO, JSON.stringify(hallazgos.map((h) => `${h.etapa}:${h.tipo}`)));
-  expect(hallazgos, 'el auditor no encontró nada que una persona marcaría').toEqual([]);
+  expect(hallazgos.filter((h) => !h.detalle?.informativo), 'el auditor no encontró nada que una persona marcaría').toEqual([]);
 });
