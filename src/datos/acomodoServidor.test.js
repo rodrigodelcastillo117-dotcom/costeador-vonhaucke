@@ -22,7 +22,7 @@ describe('interpretarAcomodoServidor', () => {
     const i = interpretarAcomodoServidor(r, PIEZAS);
     expect(i.ok).toBe(false); expect(i.estado).toBe('FAIL');
     expect(i.error).toMatch(/no pudo colocar ningún mueble/);
-    expect(i.error).toMatch(/Encimado entre «b» y «c»/);
+    expect(i.error).toMatch(/Encimado entre «Silla 1» y «Archivero»/);   // lab 19-oct: nombres, nunca ids
     expect(i.error).toMatch(/Escritorio 1: fuera del cuarto/);
     expect(i.plan).toBeUndefined();
   });
@@ -42,8 +42,9 @@ describe('interpretarAcomodoServidor', () => {
       layoutSpec: { status: 'REVIEW_REQUIRED', validation: { issues: [], reviews: [{ code: 'SEMANTIC_ROLE_REVIEW', id: 'c' }, { code: 'CODIGO_NUEVO', id: 'a' }] } } });
     const i = interpretarAcomodoServidor(r, PIEZAS);
     expect(i.ok).toBe(true);
-    expect(i.avisos.some((a) => /«c»/.test(a))).toBe(true);
-    expect(i.avisos.some((a) => /CODIGO_NUEVO/.test(a))).toBe(true);   // desconocido: se enseña
+    expect(i.avisos.some((a) => /«Archivero»/.test(a))).toBe(true);
+    // Desconocido: se enseña, en palabras (lab 19-oct: nunca el código crudo en pantalla).
+    expect(i.avisos.some((a) => /codigo nuevo/.test(a) && /«Escritorio 1»/.test(a))).toBe(true);
     expect(i.avisos.some((a) => /barrido/.test(a))).toBe(true);
     expect(i.plan.auditoria.find((a) => a.check === 'Puertas verificadas')).toMatchObject({ ok: false, detalle: '1 de 2' });
   });
