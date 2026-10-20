@@ -64,7 +64,8 @@ const FAMILIAS = [
   { re: /rodaja|(?<!silla de )\bruedas?\b/i, opt: /rodaja|rueda/i, erp: 'rodaja' },   // "silla de ruedas" (ADA) NO es rodaja
   { re: /pasacable|grommet/i, opt: /pasacable|grommet/i, erp: 'pasacables' },
   { re: /chicote|cablead|\bcable\b/i, opt: /chicote|cablead|\bcable\b/i, erp: 'chicote' },   // ojo: "Pasacables" NO es cable
-  { re: /tornill|minifix|taquete/i, opt: /tornill|minifix|taquete/i, erp: 'tornillo' },   // "herraje" solo es ambiguo (placas de lámina, tapas App LT)
+  { re: /tornill|minifix|taquete/i, opt: /^(?!.*nivelador).*(tornill|minifix|taquete)/i, erp: 'tornillo' },   // "Tornillo nivelador" es nivelador   // "herraje" solo es ambiguo (placas de lámina, tapas App LT)
+  { re: /^\s*perfil\b.*alumin|alumin.*perfil/i, opt: /alumin/i, erp: 'aluminio' },   // "Perfil de aluminio para LED" es perfil, no LED
   { re: /\bled\b|ilumin/i, opt: /\bled\b/i, erp: 'LED' },
   { re: /contacto|usb|caja el[eé]ctrica|m[oó]dulo el[eé]ctrico|byrne|acometida/i, opt: /contacto|el[eé]ctric|byrne/i, erp: 'contacto' },
   { re: /\bptr\b|tubular|tubo\b|perfil met|soldadura|microalambre/i, opt: /\bptr\b|tubular|tubo|perfil|soldadura|microalambre/i, erp: 'PTR' },
@@ -141,7 +142,11 @@ async function resolverMateriales(page) {
       .filter((o) => o.v && o.v !== val && fam.opt.test(o.t) && (fam.erp === 'canto' || !/canto/i.test(o.t)));
     // Mismo tono que pide la pieza primero (pintura NEGRA → no la blanca si hay negra).
     const tonoPieza = TONOS.find((t) => t.re.test(`${pedido} ${nombre}`));
-    if (tonoPieza) opciones.sort((a, b) => Number(tonoPieza.opt.test(b.t)) - Number(tonoPieza.opt.test(a.t)));
+    // Después el matiz: "roble claro" no es "Antracite/Dark Oak" (y al revés).
+    const OSCURO = /antracit|dark|oscur|negr|black|wengue|chocolate/i;
+    const matiz = /claro|natural|light/i.test(`${pedido} ${nombre}`) ? 1 : OSCURO.test(`${pedido} ${nombre}`) ? -1 : 0;
+    const puntos = (t) => (tonoPieza && tonoPieza.opt.test(t) ? 2 : 0) + (matiz && (matiz > 0) !== OSCURO.test(t) ? 1 : 0);
+    if (tonoPieza || matiz) opciones.sort((a, b) => puntos(b.t) - puntos(a.t));
     let listo = null;
     for (const op of opciones.slice(0, 6)) {
       await sel.selectOption(op.v); await page.waitForTimeout(700);

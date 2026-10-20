@@ -14,7 +14,19 @@ cd "$(dirname "$0")/../.."
 CASO="$1"; RAIZ=$(pwd); OUT="$RAIZ/lab/certificacion/ci/$CASO"; mkdir -p "$OUT"
 # Cierre ChatGPT (P1-REL-01): "<caso>~preview" corre el MISMO caso contra la Vercel PREVIEW del FINAL_SHA
 # (lab/certificacion/preview_url.txt) en vez de un vite local.
-if [ "${CASO%~preview}" != "$CASO" ]; then export E2E_BASE_URL="$(cat lab/certificacion/preview_url.txt)"; CASO="${CASO%~preview}"; echo "contra la preview: $E2E_BASE_URL"; fi
+if [ "${CASO%~preview}" != "$CASO" ]; then
+  export E2E_BASE_URL="$(cat lab/certificacion/preview_url.txt)"; CASO="${CASO%~preview}"
+  # La URL es el alias de la rama; el caso sólo corre si ESA preview sirve EXACTAMENTE este commit (__BUILD_SHA__ del
+  # bundle = git HEAD). Espera hasta 15 min a que Vercel termine el build del FINAL_SHA; si no, falla (no certifica otro).
+  SHA7="$(git rev-parse --short=7 HEAD)"; ok=0
+  for i in $(seq 1 90); do
+    js="$(curl -s "$E2E_BASE_URL/" | grep -o 'src="/assets/index-[^"]*\.js"' | head -1 | cut -d'"' -f2)"
+    if [ -n "$js" ] && curl -s "$E2E_BASE_URL$js" | grep -q "$SHA7\""; then ok=1; break; fi
+    sleep 10
+  done
+  [ "$ok" = 1 ] || { echo "la preview $E2E_BASE_URL NO sirve $SHA7: no se certifica otro commit"; exit 4; }
+  echo "contra la preview: $E2E_BASE_URL (sirve $SHA7)"
+fi
 export PW_EXECUTABLE="$(node -e "console.log(require('playwright').chromium.executablePath())")"
 export LAB_GIT_SHA="$(git rev-parse --short HEAD)"
 pw() { npx playwright test "$@" --workers=1 --retries=0 --reporter=line --output="$OUT/pw"; }   # un lab no se reintenta solo: 10 min y doble gasto de IA
