@@ -455,6 +455,13 @@ export function guardarRespaldoConflicto(storage, id, respaldo) {
   try {
     if (!storage) return false;
     const previo = leerRespaldoConflicto(storage, id);
+    // Cierre v3 (lab A–L contra la preview, carrera real): recargar mientras "Ver la versión del servidor" todavía cargaba
+    // volvía a respaldar EL MISMO documento, encima y SIN base → "Recuperar" lo trataba todo como choque y pisaba lo de la
+    // otra persona; el primer respaldo quedaba huérfano. El mismo documento no se apila: se conserva el previo (con su base).
+    if (previo && JSON.stringify(camposMezcla(previo.cotizacion)) === JSON.stringify(camposMezcla(respaldo?.cotizacion))) {
+      storage.setItem(claveRespaldoConflicto(id), JSON.stringify({ ...previo, ...(previo.base ? {} : respaldo?.base ? { base: respaldo.base } : {}) }));
+      return true;
+    }
     storage.setItem(claveRespaldoConflicto(id), JSON.stringify(apilarRespaldo(previo, respaldo)));
     return true;
   } catch {

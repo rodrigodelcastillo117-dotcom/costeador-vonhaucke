@@ -571,10 +571,18 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
           : (cr.costo != null && (cr.warnings || []).some((w) => /sin precio certificado/i.test(w))) ? 'BLOCKED_DATA'
           // BLOCKED_DATA sólo si TODO lo que falta es un DATO real (insumo/tarifa con precio inexistente). Piezas que no caben,
           // errores de ingeniería o familias que el laboratorio no reconoce son FAIL (capacidad), no dato.
-          : (((bb.materiales?.bloqueados || []).length && (bb.materiales.bloqueados).every((b) => b.dato)
-              && !(cr.pendientes || []).some((p) => /no caben|Ingenier[ií]a:|Estructura:|es una pieza|es un acabado/i.test(String(p)))) ? 'BLOCKED_DATA' : 'FAIL');
+          // Cierre v3: también es DATO lo que el servidor dice que falta del catálogo (formato de hoja no capturado, precio
+          // sin certificar). Cualquier otro pendiente (por confirmar, no caben, ingeniería) es FAIL.
+          : (() => {
+              const pend = (cr.pendientes || []).map(String);
+              const esDato = (p) => /sin formato del material|falta la hoja de referencia|sin precio certificado/i.test(p);
+              const bloq = bb.materiales?.bloqueados || [];
+              const hayDato = bloq.length > 0 || pend.some(esDato);
+              const otros = pend.filter((p) => !esDato(p) && !bloq.some((b) => p.includes(b.pieza)));
+              return hayDato && bloq.every((b) => b.dato) && otros.length === 0 ? 'BLOCKED_DATA' : 'FAIL';
+            })();
       c.clasificacionDetalle = { estado: cr.estado ?? null, costo: cr.costo ?? null, precio: cr.precio ?? null, reabiertoIgual: bb.reabiertoIgual ?? null,
-        faltan: [...(bb.materiales?.bloqueados || []), ...((cr.pendientes || []).filter((p) => /precio|certific|sin material/i.test(String(p))).map((p) => ({ dato: String(p).slice(0, 200) })))], warnings: cr.warnings || [] };
+        faltan: [...(bb.materiales?.bloqueados || []), ...((cr.pendientes || []).filter((p) => /precio|certific|sin material|sin formato|hoja de referencia/i.test(String(p))).map((p) => ({ dato: String(p).slice(0, 200) })))], warnings: cr.warnings || [] };
     }
   } catch (e) {
     resultado.errorProtocolo = String(e?.message || e).slice(0, 1200);

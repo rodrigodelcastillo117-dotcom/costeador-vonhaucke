@@ -254,6 +254,11 @@ export function familiaDeMaterial(texto) {
   // la nota sólo cuenta si el artículo solo no dice nada. Antes salía 'acrilico' y la confirmación de Diseño se rechazaba.
   const corte = t.indexOf(' · ');
   if (corte > 0) { const cabeza = familiaDeMaterial(t.slice(0, corte)); if (cabeza) return cabeza; }
+  // Cierre v3 (cocrear-7): "MDF 19 mm (sustrato de refuerzo BAJO piedra)" es MDF; lo que va después de bajo/debajo de/
+  // sobre/encima de es CONTEXTO (dónde va), no el material. Antes la tabla ponía piedra antes que MDF y la confirmación de
+  // Diseño se rechazaba como cruce de familia. Si el texto sin contexto no dice nada, se usa el texto completo.
+  const sinContexto = t.replace(/\b(?:bajo|debajo\s+de|sobre|encima\s+de)\b[^,;()]*/gi, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  if (sinContexto && sinContexto !== t) { const f = familiaDeMaterial(sinContexto); if (f) return f; }
   let primera = '';
   for (const [fam, re] of FAMILIAS) {
     if (re.test(t)) { primera = fam; break; }

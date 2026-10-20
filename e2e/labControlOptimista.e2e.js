@@ -76,7 +76,25 @@ test('VH-148 contra el deployment: A–L', async ({ browser }) => {
   test.skip(!(EMAIL && PASS), 'Define TEST_EMAIL y TEST_PASSWORD.');
   test.setTimeout(20 * 60 * 1000); fs.mkdirSync(SALIDA, { recursive: true });
   const res = {}; const nota = {};
-  const punto = async (k, f) => { try { await f(); res[k] = 'PASS'; } catch (e) { res[k] = 'FAIL'; nota[k] = String(e?.message || e).split('\n')[0].slice(0, 300); console.log(`[lab-conc-opt] ${k} FAIL`, nota[k]); } };
+  // Diagnóstico por punto: en un FAIL se guardan las dos pantallas, la fila del servidor, el respaldo de B y los
+  // guardados de B (status + versión esperada), para no adivinar la causa contra Supabase real.
+  const diag = {};
+  const punto = async (k, f) => {
+    try { await f(); res[k] = 'PASS'; } catch (e) {
+      res[k] = 'FAIL'; nota[k] = String(e?.message || e).replace(/\u001b\[[0-9;]*m/g, '').split('\n').slice(0, 4).join(' | ').slice(0, 600);
+      console.log(`[lab-conc-opt] ${k} FAIL`, nota[k]);
+      try {
+        const idx = (await leerCot(A.page))?.id;
+        diag[k] = {
+          servidor: idx ? await A.servidor(idx) : null,
+          localB: await leerCot(B.page), respaldoB: idx ? await leerRespaldo(B.page, idx) : null,
+          guardadosB: B.red.guardados.slice(-6).map((g) => ({ status: g.status, esperado: (g.body.match(/"p_actualizado_esperado":"([^"]*)"/) || [])[1] || null })),
+        };
+        await A.page.screenshot({ path: path.join(SALIDA, `fail-${k}-A.png`), fullPage: true }).catch(() => {});
+        await B.page.screenshot({ path: path.join(SALIDA, `fail-${k}-B.png`), fullPage: true }).catch(() => {});
+      } catch (_e) { /* el diagnóstico nunca tumba el lab */ }
+    }
+  };
   const A = await pestana(browser, { sembrar: true });
   // A crea la cotización de laboratorio (autosave → nube).
   await expect.poll(async () => (await leerCot(A.page))?.id || null, { timeout: 30000 }).not.toBeNull();
@@ -215,7 +233,7 @@ test('VH-148 contra el deployment: A–L', async ({ browser }) => {
     expect(g?.body || '').toMatch(/p_revision_esperada/);
     expect(g?.status).toBe(409);
   });
-  const resumen = { id, cliente: NOMBRE, baseURL: process.env.E2E_BASE_URL || null, banderaLocalStorage: bandera, resultado: res, notas: nota };
+  const resumen = { id, cliente: NOMBRE, baseURL: process.env.E2E_BASE_URL || null, banderaLocalStorage: bandera, resultado: res, notas: nota, diagnostico: diag };
   fs.writeFileSync(path.join(SALIDA, 'resultado.json'), JSON.stringify(resumen, null, 2));
   console.log('[lab-conc-opt]', JSON.stringify(resumen));
   await A.context.close(); await B.context.close();

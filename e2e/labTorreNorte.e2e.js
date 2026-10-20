@@ -50,7 +50,9 @@ test.describe('LAB · plano Torre Norte', () => {
     const t0 = Date.now();
     await page.getByTestId('cotizar-plano').setInputFiles(PLANO);
     const gate = page.getByTestId('confirmar-lectura');
-    const errorPlano = page.locator('text=/No se pudo procesar|no pude leer|Para que la lectura sea estable/i');
+    // Cierre v3: el rechazo de la validación geométrica determinista (incluso tras el reintento automático) es un
+    // resultado explícito, no un tiempo agotado: se reconoce y el caso reprueba con ese motivo.
+    const errorPlano = page.locator('text=/No se pudo procesar|no pude leer|Para que la lectura sea estable|no pasó la validación geométrica/i');
     await expect(gate.or(errorPlano).first()).toBeVisible({ timeout: 120000 });
     const tLectura = (Date.now() - t0) / 1000;
     if (!(await gate.count())) { guarda('ERROR_lectura.txt', await page.locator('main').innerText()); throw new Error('la lectura del plano falló: ' + (await errorPlano.first().innerText())); }

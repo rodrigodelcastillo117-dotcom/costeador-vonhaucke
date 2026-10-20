@@ -511,7 +511,9 @@ export default function App() {
   // P1-REL-02: el conflicto abierto se marca en esta computadora para que sobreviva a recargar (ver efecto de abajo).
   const fijarConflicto = (c, id = idCotizacion.current) => {
     conflictoRef.current = c; setConflicto(c);
-    if (controlOptimistaActivo()) marcarConflictoAbierto(typeof localStorage === 'undefined' ? null : localStorage, id ?? null, c);
+    // La marca lleva la BASE de la fusión (lo que esta pestaña sabía del servidor): si se recarga a media resolución, el
+    // respaldo que se haga después sigue sabiendo qué cambió la persona (sin base, todo sería "choque").
+    if (controlOptimistaActivo()) marcarConflictoAbierto(typeof localStorage === 'undefined' ? null : localStorage, id ?? null, c ? { ...c, base: baseNube.current } : null);
   };
   // VH-148 · BASE de la fusión de tres vías: lo que esta pestaña sabe que está en el servidor (campos
   // comparables de la cotización al abrirla, al cargar la versión del servidor y tras cada guardado
@@ -767,6 +769,7 @@ export default function App() {
     try { pendiente = leerConflictoAbierto(localStorage, id); } catch { pendiente = null; }
     if (!pendiente) return;
     conflictoRecargaHecho.current = true;
+    if (!baseNube.current && pendiente.base) baseNube.current = pendiente.base;   // la base sobrevive a la recarga
     if (!conflictoRef.current) { conflictoRef.current = pendiente; setConflicto(pendiente); }
     verVersionDelServidor().then(() => {
       if (!conflictoRef.current) mostrarAviso('Recargaste con un conflicto sin resolver: en pantalla está la versión del servidor y tus cambios quedaron respaldados en esta computadora.', 9000);

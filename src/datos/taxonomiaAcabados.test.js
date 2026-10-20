@@ -98,3 +98,14 @@ describe('familia del artículo ERP y del accesorio nombrado primero', () => {
     expect([r1.material_match, r2.material_match]).toEqual(['USER_CONFIRMED', 'USER_CONFIRMED']);
   });
 });
+
+describe('cierre v3 · lo que va "bajo/sobre" es contexto, no el material', () => {
+  it.each([
+    ['MDF 19 mm (sustrato de refuerzo bajo piedra)', 'mdf'],
+    ['Chapa de nogal sobre MDF', 'chapa_madera'],
+    ['Laca negra sobre MDF', 'acabado_liquido'],
+    ['Barniz de acabado sobre chapa', 'acabado_liquido'],
+    ['Melamina sobre estructura metálica', 'melamina'],
+    ['Cubierta de piedra sobre base de MDF', 'marmol_piedra'],
+  ])('%s → %s', (t, fam) => expect(familiaDeMaterial(t)).toBe(fam));
+});
