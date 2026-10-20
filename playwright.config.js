@@ -29,7 +29,8 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: `http://localhost:${PUERTO}`,
+    // Cierre ChatGPT (P1-REL-01): E2E_BASE_URL = la Vercel PREVIEW del FINAL_SHA; entonces no se levanta vite local.
+    baseURL: process.env.E2E_BASE_URL || `http://localhost:${PUERTO}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -42,10 +43,10 @@ export default defineConfig({
     { name: 'golden757', testMatch: /golden757\.e2e\.js$/, use: NAVEGADOR },
     { name: 'golden757-edicion', testMatch: /golden757Edicion\.e2e\.js$/, dependencies: ['golden757'], use: NAVEGADOR },
   ],
-  webServer: {
+  ...(process.env.E2E_BASE_URL ? {} : { webServer: {
     command: PUERTO === 5173 ? 'npm run dev' : `npm run dev -- --port ${PUERTO} --strictPort`,
     url: `http://localhost:${PUERTO}`,
     reuseExistingServer: true,
     timeout: 60_000,
-  },
+  } }),
 });
