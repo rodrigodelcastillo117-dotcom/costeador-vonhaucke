@@ -529,11 +529,11 @@
   "sel": {
    "modelo": "cajones120izq"
   },
-  "fuente": "226060050",
-  "venta": 9460.2,
+  "fuente": "2610022 (×0.95)",
+  "venta": 8132,
   "costoFabricacionModelo": 1622.34,
   "costoTotalModelo": 1622.34,
-  "margenSobreFabricacion": 82.9,
+  "margenSobreFabricacion": 80,
   "estadoCosto": "completo",
   "pendientes": 0,
   "modelo": "clasico",
@@ -551,11 +551,11 @@
   "sel": {
    "modelo": "cajones120der"
   },
-  "fuente": "226060050",
-  "venta": 9460.2,
+  "fuente": "2610022 (×0.95)",
+  "venta": 8132,
   "costoFabricacionModelo": 1622.34,
   "costoTotalModelo": 1622.34,
-  "margenSobreFabricacion": 82.9,
+  "margenSobreFabricacion": 80,
   "estadoCosto": "completo",
   "pendientes": 0,
   "modelo": "clasico",
