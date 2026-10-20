@@ -6,7 +6,7 @@ import { renglonPrevio, despiecePrevioTexto } from './requestPlan.js';
 describe('despiece previo para la pasada de revisión', () => {
   it('lineal: 2 piezas × 2800 mm = 5.6 m en total', () => {
     const t = renglonPrevio({ nombre: 'Marcos rectangulares base', insumoId: 'tubular-redondo-34', forma: 'lineal', largoMM: 2800, cantidad: 2, confianza: 'alta' });
-    expect(t).toBe('- Marcos rectangulares base [tubular-redondo-34] LINEAL: 2 pieza(s) × 2800 mm c/u = 5.6 m en total (largoMM=2800, cantidad=2) (alta)');
+    expect(t).toBe('- Marcos rectangulares base [tubular-redondo-34] LINEAL: 2 pieza(s) × 2800 mm c/u = 5.6 m en total (largoMM=2800, cantidad=2, metrosTotales=5.6) (alta)');
     expect(t).not.toMatch(/2800x0/);
   });
   it('postes: 4 × 392 mm = 1.568 m; con los marcos suma los 7.17 m del plano', () => {

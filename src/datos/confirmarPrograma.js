@@ -62,6 +62,10 @@ export function rolFromRel(rel) {
 // Rol funcional de un item existente: explícito, o inferido del nombre (legacy).
 export function inferRole(item) {
   if (item.relation_role) return item.relation_role;
+  // VH-AUD-202 + recorrido texto→plano: el DESTINO declarado (anchor_role o la nota "para la sala de juntas") manda
+  // sobre el modelo; una CONCERTO de juntas no es "visita" sólo porque el catálogo la llame así.
+  const porDestino = relDeDestino(item);
+  if (porDestino) return porDestino;
   const porId = rolPorId(bancoDe(item));          // #3: identidad de catálogo primero
   if (porId) return porId;
   const t = norm(`${item.nombre || ''} ${item.nota || ''}`);
@@ -165,13 +169,46 @@ function tieneHuellaPropia(raw = {}) {
   return RE_DOS_MEDIDAS.test(String(raw.nombre || ''));
 }
 
-export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [] } = {}) {
+// VH-AUD-202: modelos de asiento cuyo USO depende del destino (una CONCERTO es silla de juntas o de visita).
+const ROLES_FLEX = ['MEETING_SEAT', 'VISITOR_SEAT'];
+const esAsientoFlexible = (e) => /concerto/.test(norm(`${e?.nombre || ''} ${bancoDe(e || {}) || ''}`));
+// Rol que se desprende del DESTINO declarado de una silla (su anchor_role), antes que de su modelo.
+function relDeDestino(e) {
+  const t = norm(`${e?.nombre || ''} ${bancoDe(e || {}) || ''}`);
+  if (!/silla|asiento|concerto|sonata/.test(t)) return null;
+  if (e.anchor_role === 'ANCHOR_MEETING') return 'MEETING_SEAT';
+  if (e.anchor_role === 'ANCHOR_DESK' && /concerto|visit|delta|confident/.test(t)) return 'VISITOR_SEAT';
+  // Silla cuyo uso depende del destino: lo que dice su nota/zona (cotizar por texto: "Modelo de casa para salas de
+  // juntas/consejo"). Juntas primero; visita sólo si la nota habla de visitas/privados.
+  if (esAsientoFlexible(e)) {
+    const d = norm(`${e?.nota || ''} ${e?.zone_id || ''} ${e?.zonaSugerida || ''}`);
+    if (/sala(?:s)? de junta|\bjunta(?:s)?\b|consejo|reunion|meeting|boardroom/.test(d)) return 'MEETING_SEAT';
+    if (/visita|privad|direccion|oficina/.test(d)) return 'VISITOR_SEAT';
+  }
+  return null;
+}
+// VH-AUD-203: firma canónica de un reparto (renglón, rol, requerimientos y cuántas piezas van a cada mueble).
+// El orden no importa; cualquier cambio de anclas, cantidades o requerimiento cambia la firma.
+export function firmaReparto(filaId, deps) {
+  const rel = deps[0]?.dep?.relation_role ?? null;
+  const reqs = [...new Set(deps.map((x) => String(x.dep.requirement_id ?? '')))].sort();
+  const porAncla = new Map();
+  for (const x of deps) { const k = String(x.dep.anchor_instance_id ?? ''); porAncla.set(k, (porAncla.get(k) || 0) + x.n); }
+  const destinos = [...porAncla.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  return JSON.stringify({ v: 1, fila: String(filaId), rel, reqs, destinos });
+}
+
+export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [], roles = {} } = {}) {
   const sustituirSet = new Set((Array.isArray(sustituir) ? sustituir : []).map(String));
   // Prueba de Rodrigo 19-oct: ids de renglones que la persona decidió REPARTIR entre varios muebles del mismo tipo
   // (16 WIN para dos bancos de 8). Sin esta decisión, partir un renglón sigue siendo SPLIT_REQUIRED.
   const repartirSet = new Set((Array.isArray(repartir) ? repartir : []).map(String));
-  // La decisión queda guardada en el renglón (`repartido_entre`): al volver a leer el plano no se vuelve a preguntar.
-  for (const e of existentes) if (e && e.id != null && Number(e.repartido_entre) > 0) repartirSet.add(String(e.id));
+  // VH-AUD-203: la decisión guardada en el renglón (`reparto_firma`) sólo se reutiliza si el reparto de hoy tiene
+  // EXACTAMENTE la misma firma; si cambió algo (anclas, cantidades, requerimiento) se vuelve a preguntar.
+  const firmasGuardadas = new Map();
+  for (const e of existentes) if (e && e.id != null && typeof e.reparto_firma === 'string' && e.reparto_firma) firmasGuardadas.set(String(e.id), e.reparto_firma);
+  // VH-AUD-202: decisión explícita de la persona sobre el uso de una silla ambigua ({ id: 'MEETING_SEAT' | 'VISITOR_SEAT' }).
+  const rolesDecididos = roles && typeof roles === 'object' ? roles : {};
   const ambosSet = new Set((Array.isArray(mantenerAmbos) ? mantenerAmbos : []).map(String));
   const reemplazados = [];                        // ids de existentes sustituidos por decisión explícita
   const partidas = (propuesta && Array.isArray(propuesta.partidas)) ? propuesta.partidas : [];
@@ -184,10 +221,29 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   const enriquecidos = [];                         // {id, patch} para existentes reutilizados (#4)
   const usados = new Set();                       // índices de existentes consumidos
 
-  const ex = existentes.map((e, i) => ({
-    _i: i, raw: e, rol: rolDe(e), rel: e.relation_role || inferRole(e),
-    banco: bancoDe(e), cantidad: Math.max(1, Number(e.cantidad) || 1),
-  }));
+  const ex = existentes.map((e, i) => {
+    const decidido = e?.id != null && ROLES_FLEX.includes(rolesDecididos[String(e.id)]) ? rolesDecididos[String(e.id)] : null;
+    const porDestino = relDeDestino(e);
+    const flex = !decidido && !e.relation_role && !porDestino && esAsientoFlexible(e);
+    return {
+      _i: i, raw: e, rol: rolDe(e), rel: decidido || e.relation_role || porDestino || inferRole(e), flex, decidido,
+      banco: bancoDe(e), cantidad: Math.max(1, Number(e.cantidad) || 1),
+    };
+  });
+  // VH-AUD-202: una silla cuyo uso depende del destino y no lo declara toma el ÚNICO uso que el programa le pide
+  // (juntas o visita). Si el programa pide los dos, no se adivina: ROL_AMBIGUO y esas sillas no se agregan a ciegas.
+  const rolesRetenidos = new Set();
+  const excluidos = new Set();
+  const usosDep = new Set(partidas.filter((p) => !esAncla(p.relation_role)).map((p) => p.relation_role).filter((r) => ROLES_FLEX.includes(r)));
+  for (const e of ex) {
+    if (!e.flex) continue;
+    const usos = [...usosDep].sort();
+    if (usos.length === 1) e.rel = usos[0];
+    else if (usos.length > 1) {
+      excluidos.add(e._i);
+      usos.forEach((u) => rolesRetenidos.add(u));
+    }
+  }
 
   // --- ANCLAS: identidad (requirement_id) PRIMERO, luego posición legacy (#9). ---
   const anchorSlot = (rol, rel, ord) => `${rol}|${rel}|#${ord}`;
@@ -222,7 +278,11 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
         sinCambio.push(aItemConfirmado({ ...prev.raw, ...estructuraDe(a), bancoId: prev.banco, relation_role: a.relation_role, rol: a.rol || rolFromRel(a.relation_role) }, { slot, estado: 'EXISTENTE_EQUIVALENTE' }));
         // VH-112: si la persona declaró la capacidad (explícita o en el nombre, "8 usuarios"), esa manda sobre
         // la del módulo del programa (un módulo de 12 no convierte su banca de 8 en una de 12).
-        const capExplicita = Number(prev.raw?.user_capacity ?? prev.raw?.usuarios) > 0 ? Number(prev.raw.user_capacity ?? prev.raw.usuarios) : null;
+        // Lab de recorridos 19-oct (C1): la ficha del banco del producto que eligió la persona (Ergonova 4 · Recepción:
+        // usuarios 1) también es SU capacidad; antes heredaba los 2 usuarios del módulo propuesto (2 sillas en recepción).
+        const fichaPersona = [prev.raw?.piezaId, prev.raw?.bancoId, prev.raw?.source_ref].map((k) => (k != null ? BANCO.find((b) => b.id === String(k)) : null)).find(Boolean);
+        const capExplicita = Number(prev.raw?.user_capacity ?? prev.raw?.usuarios) > 0 ? Number(prev.raw.user_capacity ?? prev.raw.usuarios)
+          : (Number(fichaPersona?.usuarios) > 0 ? Number(fichaPersona.usuarios) : null);
         const capPersona = capExplicita ?? capacidadDeNombre(prev.raw?.nombre, { w: prev.raw?.w ?? a.w, rol: a.relation_role });
         // VH-120: la leída del nombre viaja marcada como INFERIDA (evidencia más débil); la explícita conserva su fuente.
         if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: { ...estructuraDe(a), relation_role: a.relation_role, ...(capPersona ? { user_capacity: capPersona, ...(capExplicita ? {} : { user_capacity_inferida: true }) } : {}), ...(prev.raw.w == null && a.w != null && !tieneHuellaPropia(prev.raw) ? { w: a.w } : {}), ...(prev.raw.d == null && a.d != null && !tieneHuellaPropia(prev.raw) ? { d: a.d } : {}) } });
@@ -256,11 +316,15 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   // --- DEPENDIENTES por PRODUCTO+ROL con CANTIDAD, POR ANCLA (#8). Cada fila
   //     existente se enriquece hacia SU ancla; si una fila tendría que PARTIRSE
   //     entre dos anclas → SPLIT_REQUIRED (NEEDS_REVIEW), nunca cross-link silencioso. ---
+  for (const idx of excluidos) {
+    const e = ex[idx];
+    conflictos.push({ code: 'ROL_AMBIGUO', slot: `rol|${e.raw.id ?? idx}`, fila_id: e.raw.id ?? null, fila_nombre: e.raw.nombre ?? null, cantidad: e.cantidad, opciones: [...usosDep].sort() });
+  }
   const poolDep = new Map();                      // `${rel}|${banco}` -> [{idx, rem}]
   // Una sola entrada por renglón (compartida con poolRol): lo que queda de un renglón repartido se lleva en un solo lugar.
   const entradaDe = new Map();                    // idx -> {idx, rem, programa, ancla}
   for (const e of ex) {
-    if (e.rel && !esAncla(e.rel)) {
+    if (e.rel && !esAncla(e.rel) && !excluidos.has(e._i)) {
       const k = `${e.rel}|${e.banco}`;
       if (!poolDep.has(k)) poolDep.set(k, []);
       const en = { idx: e._i, rem: e.cantidad, programa: esDelPrograma(e.raw), ancla: e.raw.anchor_instance_id || null };
@@ -271,18 +335,19 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   // Renglón repartido por decisión: se reutiliza UNA vez y su patch lleva sólo la estructura COMÚN de los
   // dependientes que cubre (rol, tipo de ancla, zona/grupo si coinciden), nunca la instancia de un solo mueble.
   const repartidos = new Map();                   // idx -> { deps: [] }
-  const repartirEn = (en, dep, n) => {
+  const repartirEn = (en, dep, n, slot) => {
     const raw = ex[en.idx].raw;
     if (!repartidos.has(en.idx)) {
-      repartidos.set(en.idx, { deps: [] });
+      const item = aItemConfirmado(raw, { slot: null, estado: 'EXISTENTE' });
+      repartidos.set(en.idx, { deps: [], item, rem0: en.rem });
       usados.add(en.idx);
-      sinCambio.push(aItemConfirmado(raw, { slot: null, estado: 'EXISTENTE' }));
+      sinCambio.push(item);
     }
-    repartidos.get(en.idx).deps.push(dep);
+    repartidos.get(en.idx).deps.push({ dep, n, slot });
     en.rem -= n;
   };
   const consumir = (en, dep) => {              // reutiliza fila completa + enriquece a su ancla
-    if (repartidos.has(en.idx)) { repartirEn(en, dep, en.rem); return; }   // lo que queda de un renglón ya repartido
+    if (repartidos.has(en.idx)) { repartirEn(en, dep, en.rem, null); return; }   // lo que queda de un renglón ya repartido
     usados.add(en.idx);
     sinCambio.push(aItemConfirmado(ex[en.idx].raw, { slot: null, estado: 'EXISTENTE' }));
     if (ex[en.idx].raw.id != null) enriquecidos.push({ id: ex[en.idx].raw.id, patch: estructuraDe(dep) });
@@ -295,7 +360,7 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   // sustituir la mesa, las sillas ya confirmadas de esa sala no se vuelven a agregar.
   const poolRol = new Map();
   for (const e of ex) {
-    if (e.rel && !esAncla(e.rel)) {
+    if (e.rel && !esAncla(e.rel) && !excluidos.has(e._i)) {
       if (!poolRol.has(e.rel)) poolRol.set(e.rel, []);
       poolRol.get(e.rel).push(entradaDe.get(e._i));
     }
@@ -304,7 +369,9 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   // si la fila existente declara a qué mueble va (anchor_role, zona o nota) y no es el del dependiente, no se usa.
   const destinoFila = (raw) => rolFromRel(raw?.anchor_role) || (/\brecepci/i.test(`${raw?.zone_id || ''} ${raw?.nota || ''}`) ? 'recepcion' : null);
   const destinoDep = (dep) => rolFromRel(dep.anchor_role) || null;
-  const mismoDestino = (e, dep) => { const a = destinoFila(ex[e.idx]?.raw), b = destinoDep(dep); return !a || !b || a === b || (b !== 'recepcion' && a !== 'recepcion'); };
+  // VH-AUD-204: si los DOS destinos son explícitos tienen que ser el mismo (privado ≠ juntas ≠ operativo ≠ recepción).
+  // Sólo una fila SIN destino declarado puede servir a cualquiera (fallback controlado: tamaño exacto o SPLIT_REQUIRED).
+  const mismoDestino = (e, dep) => { const a = destinoFila(ex[e.idx]?.raw), b = destinoDep(dep); return !a || !b || a === b; };
   for (const dep of depsProp) {
     const slot = `${dep.rol || rolFromRel(dep.relation_role)}|${dep.relation_role}|${dep.anchor_instance_id || ''}`;
     const k = `${dep.relation_role}|${dep.bancoId}`;
@@ -322,21 +389,38 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
     if (need > 0) {
       const mayor = entries.find((e) => e.rem > need);
       const filaId = mayor ? (ex[mayor.idx].raw.id ?? null) : null;
-      if (mayor && filaId != null && repartirSet.has(String(filaId))) { repartirEn(mayor, dep, need); need = 0; }
+      if (mayor && filaId != null && (repartirSet.has(String(filaId)) || firmasGuardadas.has(String(filaId)))) { repartirEn(mayor, dep, need, slot); need = 0; }
       else if (mayor) {
         const fila = ex[mayor.idx].raw;
         conflictos.push({ code: 'SPLIT_REQUIRED', slot, relation_role: dep.relation_role, bancoId: dep.bancoId, fila_cantidad: mayor.rem, requerido: need,
           fila_id: filaId, fila_nombre: fila.nombre ?? null, anchor_role: dep.anchor_role ?? null, rol: dep.rol || rolFromRel(dep.relation_role) });
         need = 0;
-      } else confirmadas.push(aItemConfirmado({ ...dep, cantidad: need }, { slot, estado: 'CONFIRMADO' }));
+      } else if (!rolesRetenidos.has(dep.relation_role)) confirmadas.push(aItemConfirmado({ ...dep, cantidad: need }, { slot, estado: 'CONFIRMADO' }));
     }
   }
-  for (const [idx, { deps }] of repartidos) {
+  for (const [idx, { deps: asignados, item, rem0 }] of repartidos) {
     const raw = ex[idx].raw;
     if (raw.id == null) continue;
-    const comun = (k) => { const v = deps[0]?.[k] ?? null; return deps.every((d) => (d[k] ?? null) === v) ? v : null; };
-    enriquecidos.push({ id: raw.id, patch: { relation_role: comun('relation_role'), anchor_role: comun('anchor_role'), anchor_instance_id: deps.length === 1 ? (deps[0].anchor_instance_id ?? null) : null,
-      functional_group_id: comun('functional_group_id'), zone_id: comun('zone_id'), repartido_entre: deps.length } });
+    const firma = firmaReparto(raw.id, asignados);
+    const explicita = repartirSet.has(String(raw.id));
+    if (!explicita && firma !== firmasGuardadas.get(String(raw.id))) {
+      // El reparto de hoy no es el que la persona aprobó: se deshace y se vuelve a preguntar (SPLIT_REQUIRED).
+      usados.delete(idx);
+      const k = sinCambio.indexOf(item); if (k >= 0) sinCambio.splice(k, 1);
+      for (const { dep, n, slot } of asignados) {
+        conflictos.push({ code: 'SPLIT_REQUIRED', slot: slot || `${dep.rol || rolFromRel(dep.relation_role)}|${dep.relation_role}|${dep.anchor_instance_id || ''}`, relation_role: dep.relation_role, bancoId: dep.bancoId,
+          fila_cantidad: rem0, requerido: n, fila_id: raw.id, fila_nombre: raw.nombre ?? null, anchor_role: dep.anchor_role ?? null, rol: dep.rol || rolFromRel(dep.relation_role) });
+      }
+      continue;
+    }
+    const deps = asignados.map((x) => x.dep);
+    // Lab de recorridos 19-oct: si el reparto NO usa todo el renglón (1 de 13 para la recepción), lo que sobra no es de
+    // ese mueble: no se amarra el renglón a su destino (antes las 13 quedaban "de recepción").
+    const sobra = rem0 - asignados.reduce((s, x) => s + x.n, 0) > 0;
+    const comun = (k) => { if (sobra) return null; const v = deps[0]?.[k] ?? null; return deps.every((d) => (d[k] ?? null) === v) ? v : null; };
+    enriquecidos.push({ id: raw.id, patch: { relation_role: deps.every((d) => d.relation_role === deps[0]?.relation_role) ? (deps[0]?.relation_role ?? null) : null,
+      anchor_role: comun('anchor_role'), anchor_instance_id: !sobra && deps.length === 1 ? (deps[0].anchor_instance_id ?? null) : null,
+      functional_group_id: comun('functional_group_id'), zone_id: comun('zone_id'), repartido_entre: new Set(deps.map((d) => d.anchor_instance_id)).size, reparto_firma: firma } });
   }
 
   // existentes que el programa no tocó: intactos (normaliza bancoId desde piezaId

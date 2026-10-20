@@ -82,6 +82,7 @@ import { normalizarRol, veCostosCosteo } from './datos/roles.js';
 import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerBorradorCosteo, guardarBorradorCosteo, borrarBorradorCosteo } from './datos/borradorCosteo.js';
+import { borrarBorradorPedido } from './datos/borradorPedido.js';
 import { crearSeguroDobleClic, firmaAgregado } from './datos/dobleClic.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot, CARRIL_RC } from './nube.js';
 import { modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
@@ -258,6 +259,7 @@ export default function App() {
         descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
       },
     }));
+    borrarBorradorPedido();       // el pedido a Voni de la cotización anterior no se arrastra a la nueva
     mostrarAviso('Listo: empezaste una cotización nueva, desde cero.');
   };
 
@@ -832,6 +834,7 @@ export default function App() {
   async function hacerLogout() {
     await salir();
     borrarBorradorCosteo(localStorage);   // R-05: el borrador técnico no se queda en una computadora sin sesión
+    borrarBorradorPedido();               // el pedido a Voni a medio escribir tampoco (datos/borradorPedido.js)
     setPestania('inicio');
     // Al salir se borra de esta computadora todo lo de Direccion.
     setEstado((e) => limpiarSensibles(e));
@@ -1013,6 +1016,7 @@ export default function App() {
     const sustituir = Array.isArray(opts.sustituir) ? opts.sustituir : [];
     const mantenerAmbos = Array.isArray(opts.mantenerAmbos) ? opts.mantenerAmbos : [];
     const repartir = Array.isArray(opts.repartir) ? opts.repartir : [];
+    const roles = opts.roles && typeof opts.roles === 'object' ? opts.roles : {};
     const decisiones = opts.decisiones && typeof opts.decisiones === 'object' ? opts.decisiones : {};
     // Piloto automático: `opts.sinNuevas` = sólo fusiona duplicados y vincula lo ya descrito; NO agrega
     // productos nuevos al proyecto (agregar renglones comerciales sigue siendo decisión de la persona).
@@ -1020,14 +1024,14 @@ export default function App() {
     // P1: recomendaciones de casa agregadas por línea (claves); nunca entran solas.
     const incluir = Array.isArray(opts.incluir) ? opts.incluir : [];
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
-    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos, repartir, incluir });
+    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos, repartir, roles, incluir });
     if (aplicandoProgramaRef.current) {
       return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
     }
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
       const existentes0 = prev.cotizacion?.partidas || [];
-      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir, mantenerAmbos, repartir, incluir });
+      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir, mantenerAmbos, repartir, roles, incluir });
       // VH-091: los sustituidos por decisión explícita salen del proyecto.
       const fuera = new Set((confirmacion.reemplazados || []).map(String));
       const existentes = fuera.size ? existentes0.filter((p) => !fuera.has(String(p.id))) : existentes0;

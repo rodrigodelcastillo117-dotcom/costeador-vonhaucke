@@ -115,10 +115,26 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
     if (!anclasLibres.has(tipo)) anclasLibres.set(tipo, []);
     anclasLibres.get(tipo).push(pz);
   }
+  // Recorrido texto→plano (lab 19-oct): si la NOTA o el nombre de la partida nombra una sala ("Sala creativa resuelta
+  // con…", "Mesa de consejo … para 10 lugares"), esa ancla va a ESA sala; sólo las que no dicen nada se reparten por tamaño.
+  const normTxt = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const VACIAS = new Set(['sala', 'salas', 'de', 'del', 'la', 'las', 'el', 'los', 'y', 'oficina', 'area', 'zona', 'nivel', 'n1', 'n2']);
+  const clavesArea = (a) => normTxt(a?.nombre).split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !VACIAS.has(w));
+  const textoPartida = new Map(reales.map((p) => [String(p.id), normTxt(`${p.nota || ''} ${p.nombre || ''}`)]));
+  const textoDe = (pz) => textoPartida.get(String(pz.id).replace(/-\d+$/, '')) || '';
   for (const [tipo, anclas] of anclasLibres) {
     const salas = areasDeTipo(tipo).slice().sort((x, y) => { const [ax, mx] = cupoArea(x), [ay, my] = cupoArea(y); return (ay - ax) || (my - mx); });
-    anclas.slice().sort((x, y) => ((Number(y.w) || 0) * (Number(y.d) || 0) - (Number(x.w) || 0) * (Number(x.d) || 0)) || (String(x.id) < String(y.id) ? -1 : 1))
-      .forEach((pz, i) => { const a = salas[i % salas.length]; pz.zone_id = a.zone_id ?? a.nombre; });
+    const usadas = new Set();
+    const sinNombre = [];
+    for (const pz of anclas) {
+      const t = textoDe(pz);
+      const nombradas = salas.filter((a) => { const k = clavesArea(a); return k.length && k.every((w) => new RegExp(`\\b${w}\\b`).test(t)); });
+      if (nombradas.length === 1) { pz.zone_id = nombradas[0].zone_id ?? nombradas[0].nombre; usadas.add(nombradas[0]); } else sinNombre.push(pz);
+    }
+    const libres = salas.filter((a) => !usadas.has(a));
+    const destino = libres.length ? libres : salas;
+    sinNombre.sort((x, y) => ((Number(y.w) || 0) * (Number(y.d) || 0) - (Number(x.w) || 0) * (Number(x.d) || 0)) || (String(x.id) < String(y.id) ? -1 : 1))
+      .forEach((pz, i) => { const a = destino[i % destino.length]; pz.zone_id = a.zone_id ?? a.nombre; });
   }
   for (const pz of piezas) {
     if (pz.zone_id != null) continue;

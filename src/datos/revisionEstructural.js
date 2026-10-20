@@ -277,7 +277,11 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
     if (c.excluida || !c.iaIncoherencia) continue;
     const x = c.iaIncoherencia;
     obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_incoherente:${c.nombre}`, pieza: c.nombre,
-      mensaje: x.campo === 'cantidadPiezas'
+      mensaje: x.campo === 'cantidadLineal'
+        ? `«${c.nombre}»: no queda claro si ${x.dice} son piezas o metros. Se costea como ${x.piezas} pieza(s) de ${x.largoMM} mm = ${x.puso} m. Confirma cuántas piezas lleva y de qué largo, o márcalo como revisado si ${x.puso} m es lo correcto.`
+        : x.campo === 'metrosTotales'
+        ? `«${c.nombre}»: la IA declara ${x.dice} m en total, pero ${x.piezas} pieza(s) de ${x.largoMM} mm suman ${x.puso} m. Corrige piezas o largo, o márcalo como revisado si ${x.puso} m es lo correcto.`
+        : x.campo === 'cantidadPiezas'
         ? `«${c.nombre}»: la IA puso ${x.dice} como cantidad de una pieza de lámina/tablero (no es un número de piezas). Se costea 1 pieza de ${c.largoMM} × ${c.anchoMM} mm: confirma cuántas piezas lleva, o márcalo como revisado si es 1.`
         : x.campo === 'largoTotal'
         ? `«${c.nombre}»: la IA dice "largo total ${x.dice} mm" pero el renglón suma ${x.puso} mm (revisa largo × cantidad). Corrígelo, o márcalo como revisado si ${x.puso} mm es lo correcto.`

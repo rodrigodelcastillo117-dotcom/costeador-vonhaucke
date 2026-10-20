@@ -30,8 +30,17 @@ function storagePorOmision() {
   try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch { return null; }
 }
 
-/** Recarga la página si no se recargó por esta causa en la ventana. Devuelve true si recargó. */
-export function recargarUnaVez({ storage = storagePorOmision(), recargar = () => window.location.reload(), ahora = Date.now() } = {}) {
+// SIN INTERNET (2026-10-19, e2e/versionNueva.e2e.js): el MISMO error ("Failed to fetch dynamically imported module")
+// sale al abrir sin red una pantalla que aún no se había descargado. Recargar ahí cambia la app por la página de
+// error del navegador ("Sin conexión a Internet") justo cuando la cabecera promete "sigue en esta computadora".
+// Sin red NO se recarga (ni se gasta el candado): la red de seguridad lo dice y se recarga sola al volver la red.
+export function sinRed(nav = typeof navigator !== 'undefined' ? navigator : null) {
+  return nav?.onLine === false;
+}
+
+/** Recarga la página si no se recargó por esta causa en la ventana (y hay red). Devuelve true si recargó. */
+export function recargarUnaVez({ storage = storagePorOmision(), recargar = () => window.location.reload(), ahora = Date.now(), offline = sinRed() } = {}) {
+  if (offline) return false;
   if (!storage) return false;
   try {
     const previa = Number(storage.getItem(CLAVE_RECARGA_VERSION)) || 0;

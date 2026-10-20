@@ -1,0 +1,5 @@
+[
+ {"id": "lab-win", "piezaId": "p9-silla-operativa-win-5210", "nombre": "Silla operativa · WIN", "cantidad": 16, "precioUnitario": 5210, "nota": "Modelo indicado por el cliente."},
+ {"id": "lab-gam", "piezaId": "p9-silla-operativa-gamma-e-3990", "nombre": "Silla operativa · GAMMA-E", "cantidad": 1, "precioUnitario": 3990, "nota": "1 silla para quien atiende la recepción.", "relation_role": "WORK_SEAT", "anchor_role": "ANCHOR_RECEPTION"},
+ {"id": "lab-ergo", "piezaId": "p9-ergonova-4-recepcion-16585", "nombre": "Ergonova 4 · Recepción", "cantidad": 1, "precioUnitario": 16585}
+]
