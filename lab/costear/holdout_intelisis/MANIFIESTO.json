@@ -1,8 +1,8 @@
 {
- "congeladoEn": "2026-10-20T10:06:06.949Z",
- "huellaTotal": "99035e3184be80aeed90d7892fdab7cdb5dbbd21fa013f01abdda28fec0902e3",
+ "congeladoEn": "2026-10-20T14:11:45.391Z",
+ "huellaTotal": "cd9f4f1654d08f02ebb0c3e9bfa05556a21f65838b60b0e664f2d9698ea8bc9f",
  "nArchivos": 117,
- "frontendSha": "57999261ff991742074d0a70911d3da57a7b663e",
+ "frontendSha": "ec4e75305c78e42ddb019a2d1d11ed8d8266dba7",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
   "e2e/labCostear.e2e.js": "69f5a680bd58d18941afd35b5ad99d1643ebef167500f0713eb085a5dff41464",
@@ -13,7 +13,7 @@
   "lab/costear/holdout_intelisis/huellas_db.sql": "51b15d0c49be718c3d7df76903d099364309e76af534c65cd4438e1598951e15",
   "lab/costear/holdout_intelisis/modelos_observados.sql": "28346b5355dbd8cd6e1cc1c936b0958ced9b85687ab23fa33433e070d844023a",
   "package-lock.json": "00ed53de0e7b3b35e68b9b23a83cff0c4d2728ddbf9046594a6446ba3f72086f",
-  "playwright.config.js": "c0caaaf8a1494b2f467fcc26a412da5ba5ed777b38974cb3184685c3ea9ed6c1",
+  "playwright.config.js": "746ac9f5d7381ab268ce0d86a5c48c29da112fa3d41d7c350906de7b506d1c87",
   "scripts/congelar_holdout.mjs": "4d769f53b96641f249d24c439c4abc048110e0e860fe167a3e6e02fd1c770d49",
   "scripts/integridadDeps.mjs": "b0c61cc83824e992d0aa6efd0105998fd2f70c6cfcfcc257141370b75b192ded",
   "scripts/integridadGit.mjs": "35a07755ac8fe98ba8b31f5b020d4bfe5ab528b41735e517386ad9868fdde611",
@@ -37,9 +37,9 @@
   "src/datos/cocrearServidor.js": "b71a2d931cf67dbe973c39ce1bbe653fc6ba3900a4cbaa9e337be9c11d633192",
   "src/datos/colorMelamina.js": "fa17f1f750b131e2181b959fc9a7add26c113e3d585642616237c03c0712beb1",
   "src/datos/confirmarPrograma.js": "bb42e8d66310eed05b59c9d27fc440d99497a84d830838a66774b70a5b0c1ece",
-  "src/datos/conflictoGuardado.js": "b06950eb93ee1d1747da15691b2da59ec2525fa2328567dcd027102262a928b4",
+  "src/datos/conflictoGuardado.js": "1ee11b1bd21d56b21a36403034c0adf8e83fe26831dbb72240487a954b752f6d",
   "src/datos/conservarConfirmados.js": "7d58989e985dca783ff055c02607b2436dfcba00b39a834c86c192858c97096b",
-  "src/datos/costeoServidor.js": "2b383c4e0ea51a0a125d2099fad3804a574199cc2e967fe32fee46bdba5fe013",
+  "src/datos/costeoServidor.js": "913161e76437801ca90d0eb612570051c6d3ac9bef6f4d9d4f9ad105c90fa614",
   "src/datos/crm.js": "8875df37f0475dc387ed04dd4c1c05d05a116932e57229ad4298cbdbb8799cea",
   "src/datos/desarrolloProducto.js": "2dd592fe1eb712aad05754a506f4524c3ad9c296c9b843fff4a58c2ad7d60e43",
   "src/datos/destinoAcomodo.js": "63c997ed795013cdbd52c7bc1b68452c4edbbeb1f6a7a42796771f5410c152be",
@@ -64,7 +64,7 @@
   "src/datos/lineas.js": "6394f8025d5bf8c2e407f51a16063f30223f7754659e1d61d9113808143a9e41",
   "src/datos/luna.js": "39ca466fa7b802776340796a1366a7d00a27741f492025f7c396ab1e5608c8e3",
   "src/datos/materialKnowledge.js": "00e4151c351ed4343d205483c6a830048256cfa8c76ff547258b3b5681b0d38c",
-  "src/datos/materialMatch.js": "592657443706ed4a03985f2c360bdb728399801844f183efe84bbfdc5b8800cb",
+  "src/datos/materialMatch.js": "efa5bcec591acd06334961250bab24dc08843c64332fc5c5b86dedb289734c9f",
   "src/datos/metricasHoldout.js": "f9622c43347b1ddfe3d09755eb2ed6108948f4f24f94c3a54fb6bceda7178d21",
   "src/datos/modulor.js": "58da0a06edf9509d2638c479d6bba13e7583aa4b477892bef589eb8b0ef168dd",
   "src/datos/mox.js": "3fef43a42c064dd4a6f8e58a6cf3a5fe6c494c05c9831b2bc493d5e6a981b720",
@@ -83,7 +83,7 @@
   "src/datos/renderPartida.js": "9f0a2fa53c9e1e7595fd3872efd34727a054e3a5d0288de1b8f898b3e4e94b94",
   "src/datos/renderRespuesta.js": "8c596eb1e136c36c44667bda2e885d149d6cd2e1b3731d33b581a54e3904bf67",
   "src/datos/resolverArticulo.js": "dcc68c65a8ce659d5e62ab5bcb88ab77c24a18b301e5f5aef763b4b3b0159d09",
-  "src/datos/revisionEstructural.js": "27f453bb256b86411400624534f547a8c7d90898b9ab36831a318a525280a44a",
+  "src/datos/revisionEstructural.js": "8d324c89b99cb053b55bb9dd7f4afa23331bdff1c879ff89e4ddf4804c9870bd",
   "src/datos/rio.js": "8ab2b1896d96af85a3f89f31489747a7f036f2e6680a231a418cf75f2cad5f0b",
   "src/datos/roles.js": "7ae31932cade05a01d1aeab1bed81ce3098505114a7d3c0819e20678857740b3",
   "src/datos/specTecnica.js": "ab6123c8e36af010078c99f76983dcf5eb79a2fbbd9d6803ced703411632e267",
@@ -91,7 +91,7 @@
   "src/datos/teamspace2.js": "793e1fcb05a6084621c8cbb87ad7ffd4d7c1ce4b726910038257a30eac1d1075",
   "src/datos/tetris.js": "4c4a1b485e2d76297b244c255fb82490b498989ca27a67f52d2d2074ca40a2b8",
   "src/datos/topeEstadoCosteo.js": "775dc2e09012f8776fea3e0b38ca182c872b5456027d56209c21d8b10d4d7aa4",
-  "src/datos/validarIntentCosteo.js": "ca180ff20956c1b4a930a86235d623f7d4d451e4194cfb8ec5ac1bc0a0755c71",
+  "src/datos/validarIntentCosteo.js": "b5c4855ca2378979c07c4f7ceace326c4daa107b28d93c0f666054ff82a798cb",
   "src/datos/via.js": "393791fd00ef2e427bacc0ece8bc06f5f1ab8c56754a9d8357cac3fc29f9c461",
   "src/datos/visualRevision.js": "5cab36524071e1d367ca61ab1d5c71de7ce2fe2bb9655605324ea69b9d892154",
   "src/datos/worklounge.js": "51acd9520171383e4809bb9c97c0582860ae33aa6d9a141463c157b594e7003d",
@@ -105,7 +105,7 @@
   "src/motor/formulaAlba.js": "feaf687b3bf225fc5997b9b148ce259e0a449598ebaed68da9d647acafcc375f",
   "src/motor/optimizacionCorte.js": "4069d9f7c51e5fae61a025069e8d9a77ba47954bd81d3b53e348ff66039e7954",
   "src/motor/politicaMerma.js": "39e479509338b0239c466866d6abad882522f68f9c4c1e8fccc8bb8229e35a45",
-  "src/nube.js": "6b6af49866ce3017f9a0114e12926de11b828964d38138fde2d67f10a1d2f1cb",
+  "src/nube.js": "5da64d3ff07ea861feb70ffdcefe014e7b99306b73b4720cbe97eb612c7df3d2",
   "src/voni/conocimiento.js": "ff5b8d53d4605829b4216f2f626744e928d7cac6908a81c210b442587759779e",
   "src/voni/especialidades.js": "928345a190cc50f1997bad8313ec1892a8b3ece9eb5d7a46744c3dd47b2338b4",
   "src/voni/lentes.js": "93b209659f69febfc09c2c9354b5ea57180ed61b66f7dbda58a5bd3a7cec868c",
@@ -130,7 +130,7 @@
    "private_api.catalogo_motor": "fe81d391dc205365bc712441376eefa0",
    "public.buscar_insumos_motor": "5b9b9afad0a486bf2ddfc66948c3946e"
   },
-  "medido_en": "2026-10-20T10:05:32.412987+00:00",
+  "medido_en": "2026-10-20T14:11:26.69658+00:00",
   "insumo_precios": {
    "md5": "49b5c77d2443fc680f759da7df5bc872",
    "filas": 11849
@@ -143,8 +143,8 @@
  },
  "edges": {
   "costear-servidor-rc": {
-   "version": 25,
-   "ezbr_sha256": "13eff4bc4a0922895f99a55d7789cdd89510ef38e3ebb644ebd4b066c40d046b"
+   "version": 26,
+   "ezbr_sha256": "825e7883de79aea5e6e4f5d03f8a049ce7092621f1bebabe925ade493907e31a"
   },
   "analizar-mueble-rc": {
    "version": 8,
