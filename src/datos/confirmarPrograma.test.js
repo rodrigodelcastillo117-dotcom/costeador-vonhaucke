@@ -104,6 +104,23 @@ describe('confirmarPrograma · Propuesta → Confirmación (P0.1 · #3/#4)', () 
     const r = confirmarPrograma(propuesta, { existentes });
     expect(r.conflictos.some((c) => c.code === 'SPLIT_REQUIRED')).toBe(true);
     expect(r.enriquecidos.some((e) => e.id === 'w18')).toBe(false);
+    const c = r.conflictos.find((x) => x.code === 'SPLIT_REQUIRED');
+    expect(c.fila_id).toBe('w18');
+  });
+
+  it('Prueba de Rodrigo 19-oct: con la decisión "repartir", las 18 WIN cubren los dos bancos (10 + 8) sin conflicto ni sillas nuevas', () => {
+    const bench = (iid, banco) => ({ rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', bancoId: banco, instance_id: iid, cantidad: 1, nombre: banco, w: 6000, d: 1200, precio_lista_snapshot: 1, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    const seat = (iid, n) => ({ rol: 'operativo', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', bancoId: 'silla-win', anchor_instance_id: iid, zone_id: 'OPERATIVA', cantidad: n, nombre: 'WIN', precio_lista_snapshot: 1, product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY' });
+    for (const orden of [[seat('A', 10), seat('B', 8)], [seat('B', 8), seat('A', 10)]]) {
+      const propuesta = { partidas: [bench('A', 'op-10u-6000x1200-cristal'), bench('B', 'op-8u-4800x1200-cristal'), ...orden] };
+      const existentes = [{ id: 'w18', piezaId: 'silla-win', nombre: 'WIN', cantidad: 18 }];
+      const r = confirmarPrograma(propuesta, { existentes, repartir: ['w18'] });
+      expect(r.conflictos).toEqual([]);
+      expect(r.confirmadas.filter((i) => i.relation_role === 'WORK_SEAT')).toEqual([]);
+      const patches = r.enriquecidos.filter((e) => e.id === 'w18');
+      expect(patches).toHaveLength(1);
+      expect(patches[0].patch).toMatchObject({ relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', anchor_instance_id: null, zone_id: 'OPERATIVA', repartido_entre: 2 });
+    }
   });
 
   it('conserva intactas las partidas existentes que el programa no toca', () => {

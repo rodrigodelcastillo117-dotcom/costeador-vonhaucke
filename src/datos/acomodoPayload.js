@@ -96,10 +96,35 @@ export function construirPayloadAcomodo({ partidas = [], areasM = [], piezasExtr
   // texto de la partida o, si no dice nada, de su rol. Así una credenza directiva no cae en sanitarios.
   const tipoPorDestino = { privado: 'privado', juntas: 'juntas', open: 'open', operativo: 'open', recepcion: 'recepcion' };
   const areaPorTipo = (tipo) => areasCanon.find((a) => String(a?.tipo || '').toLowerCase() === tipo);
+  const areasDeTipo = (tipo) => areasCanon.filter((a) => String(a?.tipo || '').toLowerCase() === tipo);
+  const tipoDePieza = (pz) => {
+    const destino = destinoMarcado(pz) || rolFromRel(pz.relation_role) || ({ SUPPORT_STORAGE: 'privado', VISITOR_SEAT: 'privado' })[pz.relation_role] || null;
+    return destino ? (tipoPorDestino[destino] || destino) : null;
+  };
+  // Prueba de Rodrigo 2026-10-19 (cotización 3354): con VARIAS áreas del mismo tipo (sala de consejo + sala creativa),
+  // "la primera" metía las dos mesas en la misma sala. Las ANCLAS sin sala se reparten una por área de su tipo: la más
+  // grande en el área con más lugares (asientos/puestos) y, a igualdad, más m². Sus sillas/gavetas NO se amarran a un
+  // área: siguen a su mueble (el solver las adopta). Con una sola área del tipo, todo como antes.
+  const ROL_ANCLA = /^ANCHOR_/;
+  const SIGUE_A_SU_ANCLA = new Set(['MEETING_SEAT', 'WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'UNDERDESK_STORAGE']);
+  const cupoArea = (a) => [Number(a?.asientos) || Number(a?.puestos) || 0, (Number(a?.ancho) || 0) * (Number(a?.largo) || 0)];
+  const anclasLibres = new Map();
+  for (const pz of piezas) {
+    if (pz.zone_id != null || !ROL_ANCLA.test(String(pz.relation_role || ''))) continue;
+    const tipo = tipoDePieza(pz); if (!tipo || areasDeTipo(tipo).length < 2) continue;
+    if (!anclasLibres.has(tipo)) anclasLibres.set(tipo, []);
+    anclasLibres.get(tipo).push(pz);
+  }
+  for (const [tipo, anclas] of anclasLibres) {
+    const salas = areasDeTipo(tipo).slice().sort((x, y) => { const [ax, mx] = cupoArea(x), [ay, my] = cupoArea(y); return (ay - ax) || (my - mx); });
+    anclas.slice().sort((x, y) => ((Number(y.w) || 0) * (Number(y.d) || 0) - (Number(x.w) || 0) * (Number(x.d) || 0)) || (String(x.id) < String(y.id) ? -1 : 1))
+      .forEach((pz, i) => { const a = salas[i % salas.length]; pz.zone_id = a.zone_id ?? a.nombre; });
+  }
   for (const pz of piezas) {
     if (pz.zone_id != null) continue;
-    const destino = destinoMarcado(pz) || rolFromRel(pz.relation_role) || ({ SUPPORT_STORAGE: 'privado', VISITOR_SEAT: 'privado' })[pz.relation_role] || null;
-    const area = destino ? areaPorTipo(tipoPorDestino[destino] || destino) : null;
+    const tipo = tipoDePieza(pz);
+    if (tipo && SIGUE_A_SU_ANCLA.has(pz.relation_role) && areasDeTipo(tipo).length > 1) continue;
+    const area = tipo ? areaPorTipo(tipo) : null;
     if (area) pz.zone_id = area.zone_id ?? area.nombre;
   }
   // VH-092: una REFERENCIA (sin identidad de catálogo NI precio) sí se acomoda para que la

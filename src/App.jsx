@@ -1012,6 +1012,7 @@ export default function App() {
     // VH-091: `opts.sustituir` = slots cuyo conflicto la persona resolvió a favor del propuesto.
     const sustituir = Array.isArray(opts.sustituir) ? opts.sustituir : [];
     const mantenerAmbos = Array.isArray(opts.mantenerAmbos) ? opts.mantenerAmbos : [];
+    const repartir = Array.isArray(opts.repartir) ? opts.repartir : [];
     const decisiones = opts.decisiones && typeof opts.decisiones === 'object' ? opts.decisiones : {};
     // Piloto automático: `opts.sinNuevas` = sólo fusiona duplicados y vincula lo ya descrito; NO agrega
     // productos nuevos al proyecto (agregar renglones comerciales sigue siendo decisión de la persona).
@@ -1019,14 +1020,14 @@ export default function App() {
     // P1: recomendaciones de casa agregadas por línea (claves); nunca entran solas.
     const incluir = Array.isArray(opts.incluir) ? opts.incluir : [];
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
-    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos, incluir });
+    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos, repartir, incluir });
     if (aplicandoProgramaRef.current) {
       return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
     }
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
       const existentes0 = prev.cotizacion?.partidas || [];
-      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir, mantenerAmbos, incluir });
+      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir, mantenerAmbos, repartir, incluir });
       // VH-091: los sustituidos por decisión explícita salen del proyecto.
       const fuera = new Set((confirmacion.reemplazados || []).map(String));
       const existentes = fuera.size ? existentes0.filter((p) => !fuera.has(String(p.id))) : existentes0;
