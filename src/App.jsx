@@ -85,6 +85,7 @@ import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './al
 import { leerBorradorCosteo, guardarBorradorCosteo, borrarBorradorCosteo } from './datos/borradorCosteo.js';
 import { borrarBorradorPedido } from './datos/borradorPedido.js';
 import { crearSeguroDobleClic, firmaAgregado } from './datos/dobleClic.js';
+import { insumosCompartibles } from './datos/insumosCompartibles.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot, CARRIL_RC } from './nube.js';
 import { modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
 import { idNuevo } from './util.js';
@@ -162,7 +163,8 @@ function compartidoSeguro(estado) {
   const p = { ...estado.parametros };
   for (const f of PARAMS_SENSIBLES) delete p[f];
   return {
-    insumos: estado.insumos,
+    // Cierre v3: los insumos ERP elegidos a mano se quedan en ESTA computadora; no se escriben en la config de todos.
+    insumos: insumosCompartibles(estado.insumos),
     piezas: estado.piezas,
     parametros: p,
   };
