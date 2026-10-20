@@ -4,6 +4,7 @@
 import { tipoDe, vaBajoEscritorio } from './espacio.js';
 import { esSillaDeVisita } from './planner.js';
 import { puestosDe } from './porCuarto.js';
+import { inferRole } from './confirmarPrograma.js';
 
 const sinAcento = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const esBench = (pt) => /banca|bench/.test(sinAcento(pt.nombre)) || puestosDe(pt.nombre) > 1;
@@ -20,13 +21,19 @@ const GRUPOS = [
   { clave: 'puestos', titulo: 'Puestos de trabajo', unidad: 'personas',
     es: (pt) => tipoDe(pt) === 'escritorio', cuenta: (pt) => puestosDe(pt.nombre, pt.cantidad) },
   { clave: 'juntas', titulo: 'Mesas de juntas', unidad: 'mesas', es: (pt) => tipoDe(pt) === 'juntas' },
+  // Recorrido texto→plano (lab 19-oct): el mostrador de recepción es un PUESTO (quien atiende tiene su silla de
+  // trabajo). Antes caía en "Lo demás" / guardado y salía "18 sillas de trabajo para 17 puestos: sobran 1".
+  { clave: 'recepcion', titulo: 'Recepción', unidad: 'personas',
+    es: (pt) => !esAsiento(pt) && /recepci|mostrador/.test(sinAcento(pt.nombre)),
+    cuenta: (pt) => (Number(pt.user_capacity ?? pt.usuarios) > 0 ? Number(pt.user_capacity ?? pt.usuarios) : 1) * (pt.cantidad || 1) },
   { clave: 'guardas', titulo: 'Guardado de piso', unidad: 'muebles',
     es: (pt) => tipoDe(pt) === 'guarda' && !vaBajoEscritorio(pt) },
   { clave: 'gavetas', titulo: 'Gavetas bajo la cubierta', unidad: 'gavetas', es: (pt) => vaBajoEscritorio(pt) },
   { clave: 'sillas', titulo: 'Sillas de trabajo', unidad: 'sillas',
     es: (pt) => esAsiento(pt) && esSillaPuesto(pt) && !esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) },
   { clave: 'visita', titulo: 'Sillas de visita', unidad: 'sillas',
-    es: (pt) => esAsiento(pt) && esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) },
+    // Una CONCERTO "de visita" en el catálogo que la nota manda a la sala de juntas es de REUNIÓN.
+    es: (pt) => esAsiento(pt) && esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) && inferRole(pt) !== 'MEETING_SEAT' },
   { clave: 'reunion', titulo: 'Sillas de reunión / otras', unidad: 'sillas', es: (pt) => esAsiento(pt) },
   { clave: 'mamparas', titulo: 'Mamparas y muros', unidad: 'piezas', es: (pt) => tipoDe(pt) === 'mampara' },
   { clave: 'otros', titulo: 'Lo demás', unidad: 'piezas', es: () => true },
@@ -43,7 +50,7 @@ export function loQueEntendi(partidas = [], areasM = []) {
   }
   const vivos = grupos.filter((g) => g.renglones.length).map(({ es, cuenta, ...g }) => g);
   const de = (clave) => vivos.find((g) => g.clave === clave)?.cuentaTotal || 0;
-  const puestos = de('puestos');
+  const puestos = de('puestos') + de('recepcion');
   const sillas = de('sillas');
   const visitas = de('visita');
   const reunion = de('reunion');

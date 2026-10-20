@@ -38,9 +38,10 @@ const SCHEMA = {
           material_solicitado: { type: "string", description: "El MATERIAL que realmente pidio el usuario, en palabras (p.ej. 'superficie solida azul', 'acero inoxidable 304', 'MDF 19 mm'). SIEMPRE llenalo con lo que el texto/imagen indica, aunque el catalogo no lo tenga. Es lo que permite detectar sustituciones indebidas." },
           material_match: { type: "string", enum: ["EXACT", "NOT_AVAILABLE", "SUBSTITUTE_SUGGESTED"], description: "EXACT: el insumoId es de la MISMA familia que material_solicitado. NOT_AVAILABLE: el catalogo no tiene esa familia (insumoId=''). SUBSTITUTE_SUGGESTED: hay un material de otra familia que PODRIA servir pero NO lo aplicaste al id (insumoId='' y lo explicas en nota) — requiere confirmacion humana." },
           forma: { type: "string", enum: ["area", "lineal", "pieza"] },
-          largoMM: { type: "number" },
+          largoMM: { type: "number", description: "Largo de UNA pieza en mm (en 'lineal': el largo de cada tramo, no el total)." },
           anchoMM: { type: "number" },
-          cantidad: { type: "number" },
+          cantidad: { type: "number", description: "NÚMERO DE PIEZAS (entero). En 'lineal' NUNCA pongas aquí los metros: van en metrosTotales." },
+          metrosTotales: { type: "number", description: "Sólo forma='lineal': metros TOTALES = largoMM/1000 × cantidad (p. ej. 2 tramos de 2000 mm = 4). 0 si no aplica." },
           hojas: { type: "number", description: "Para forma='area' (tableros/laminas/acrilicos): FRACCION DE HOJA estandar que consume el TOTAL de esta pieza x cantidad (1 = una hoja entera 1.22x2.44 de tablero, o 3x10 de lamina). Es lo que el motor usa para costear; estimala conservadora a partir de las cotas. 0 si no aplica (lineal/pieza)." },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string" },
@@ -301,7 +302,7 @@ Deno.serve(async (req) => {
     "  · UNA PREGUNTA = UN SOLO DATO con su 'question_key' estable. NUNCA juntes dos cantidades: '¿cuántos cajones y cuántas puertas?' está MAL; son dos (cantidad_cajones, cantidad_puertas).\n" +
     "  · DETECTA TODAS las confirmaciones críticas EN ESTA PRIMERA PASADA y devuélvelas JUNTAS. No las vayas soltando de a poco en pasadas siguientes.\n" +
     "  · NO repitas una pregunta cuyo question_key ya venga en RESPUESTAS CONFIRMADAS.\n" +
-    "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n" +
+    "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' con largoMM = largo de CADA tramo, cantidad = NÚMERO de tramos (entero) y metrosTotales = largoMM/1000 × cantidad (2 tramos de 2000 mm → largoMM 2000, cantidad 2, metrosTotales 4); herrajes/comprados forma='pieza'.\n" +
     "FRACCION DE HOJA (clave para que el costo cuadre): en cada pieza forma='area' da ADEMAS 'hojas' = la fraccion de hoja estandar que consume el TOTAL (pieza x cantidad). El motor cuesta hojas x precio_de_hoja; si solo mandas area, el costo oscila. Piensa cuantas piezas caben en una hoja 1.22x2.44 (tablero) o 3x10 ft (lamina) y saca la fraccion. SE CONSERVADOR: no infles; ante la duda, menos hojas, no mas.\n" +
     "RETAIL / EXHIBIDORES: si es un exhibidor/mueble de tienda, mapea a los materiales retail del catalogo cuando existan (kit LED 5000K, MDF Walnut 16/25 mm, laminado Walnut, acrilico cristal/traslucido, perfil de canto ABS, logotipo acrilico, impresion en estireno). El KIT LED y los graficos/logos/impresiones son COMPRADOS ya hechos (seccion 'graficos'): van forma='pieza', NO llevan hojas.\n\n" +
     "CATALOGO DE MATERIALES (id — nombre [seccion, unidad]):\n" + cat +

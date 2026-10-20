@@ -277,3 +277,22 @@ describe('mismo requerimiento repetido en el programa (cotización 757)', () => 
     expect(r2.partidas).toEqual(r1.partidas);
   });
 });
+
+// Barrido de botones 19-oct (qa/botones-red): una WIN de la persona sin zona y el programa con sólo la GAMMA-E de
+// RECEPCIÓN → "WIN sustituye a GAMMA-E" (10 sillas operativas tomaban el lugar de la de recepción). Destinos distintos.
+describe('fusión de duplicados respeta el destino (VH-AUD-204)', () => {
+  it('silla operativa WIN (open) no sustituye a la silla de RECEPCIÓN del programa', () => {
+    const programa = [{ id: 'g', source: 'CONFIRMADO_PROGRAMA', nombre: 'Silla operativa · GAMMA-E', bancoId: 'silla-gamma-e', cantidad: 2,
+      relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', zone_id: 'RECEPCIÓN', requirement_id: 'req:RECEPCIÓN' }];
+    const persona = [{ id: 'w', nombre: 'Silla operativa · WIN', piezaId: 'p9-silla-operativa-win-5210', cantidad: 10 }];
+    const r = reconciliarNuevasConPrograma(programa, persona);
+    expect(r.sustituidas).toEqual([]);
+    expect(r.partidas.find((p) => p.id === 'g')).toBeTruthy();
+  });
+  it('una silla de recepción declarada sí concilia con la de recepción del programa', () => {
+    const programa = [{ id: 'g', source: 'CONFIRMADO_PROGRAMA', nombre: 'Silla operativa · GAMMA-E', bancoId: 'silla-gamma-e', cantidad: 1,
+      relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', zone_id: 'RECEPCIÓN', requirement_id: 'req:RECEPCIÓN' }];
+    const persona = [{ id: 'w', nombre: 'Silla operativa · WIN', piezaId: 'p9-silla-operativa-win-5210', cantidad: 1, nota: 'para quien atiende la recepción' }];
+    expect(reconciliarNuevasConPrograma(programa, persona).sustituidas.length).toBe(1);
+  });
+});
