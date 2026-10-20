@@ -631,7 +631,10 @@ export async function subirRender(dataUrl, path) {
     const mime = (cab.match(/data:(.*?);/) || [])[1] || 'image/png';
     const bin = atob(b64); const u8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: true });
+    // Cierre ChatGPT v3 (renders): el bucket 'renders' sólo tiene política de INSERT para authenticated; `upsert: true`
+    // exige además SELECT/UPDATE y el upload fallaba con "new row violates row-level security policy" (la imagen de
+    // referencia de Cocrear no se conservaba). Todas las rutas llevan Date.now(): son nuevas, no hace falta sobrescribir.
+    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: false });
     if (error) return { ok: false, error: error.message };
     const { data } = nube.storage.from('renders').getPublicUrl(path);
     return { ok: true, path, url: data?.publicUrl || null };
