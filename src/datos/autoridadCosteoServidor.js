@@ -28,7 +28,7 @@ export const ROLES_APROBADORES_PRECIO = Object.freeze(['direccion']);
 
 const lista = (x) => (Array.isArray(x) ? x : []);
 
-export function estadoBaseServidor({ emision = {}, bloqueosIng = [], noCertificados = [], usados = [], requierenValidacion = [], costoUnitario = undefined } = {}) {
+export function estadoBaseServidor({ emision = {}, bloqueosIng = [], noCertificados = [], usados = [], requierenValidacion = [], costoUnitario = undefined, nombreDe = null } = {}) {
   const b = emision.bloqueos || {};
   const faltantes = [
     ...lista(b.datos_faltantes).map((x) => `Sin material o precio: ${x}`),
@@ -48,7 +48,9 @@ export function estadoBaseServidor({ emision = {}, bloqueosIng = [], noCertifica
   const warnings = [];
   const porConfirmar = lista(b.materiales_por_confirmar);
   for (const m of porConfirmar) warnings.push(`Material propuesto sin confirmar: ${m}`);
-  if (noCertificados.length) warnings.push(`Costo preliminar — ${noCertificados.length} de ${usados.length} insumo(s) sin precio certificado.`);
+  // Cierre ChatGPT (2026-10-20): se dice CUÁL insumo no tiene precio certificado (antes sólo "1 de 8").
+  const nombres = typeof nombreDe === 'function' ? [...new Set(noCertificados.map((id) => nombreDe(id) || id))].slice(0, 4) : [];
+  if (noCertificados.length) warnings.push(`Costo preliminar — ${noCertificados.length} de ${usados.length} insumo(s) sin precio certificado${nombres.length ? `: ${nombres.join(', ')}` : ''}.`);
   if (requierenValidacion.length) warnings.push(`${requierenValidacion.length} insumo(s) requieren validación de Compras.`);
   if (warnings.length) return { estado: 'preliminar', warnings };
   return { estado: 'certificado', warnings: [] };

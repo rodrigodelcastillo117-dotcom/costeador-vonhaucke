@@ -48,28 +48,32 @@ const limpio = (o, n = 600) => JSON.parse(JSON.stringify(o ?? null, (k, v) => (t
 // MISMA familia que pide (select curado; si no, buscador ERP). Si no existe ninguno de esa familia → BLOCKED_DATA con el
 // dato exacto que falta. Nunca elige "el primero que salga" de otra familia.
 const FAMILIAS = [
-  // Orden: lo específico primero (una "cubierta de cuarzo" es cuarzo, no tablero).
-  { re: /cuarzo|solid surface|superficie s[oó]lida|corian/i, opt: /cuarzo|solid|superficie/i, erp: 'cuarzo' },
+  // Cierre ChatGPT (sin inventar equivalencias): la familia sale del MATERIAL PEDIDO (alerta "Pediste «…»") y, si no lo
+  // hay, del nombre de la pieza; cada familia sólo acepta insumos de ESA familia (cuarzo ≠ superficie sólida).
+  { re: /cuarzo/i, opt: /cuarzo/i, erp: 'cuarzo' },
+  { re: /solid surface|superficie s[oó]lida|corian|krion/i, opt: /solid|superficie s[oó]lida|corian|krion/i, erp: 'superficie sólida' },
   { re: /cristal|vidrio/i, opt: /cristal|vidrio/i, erp: 'cristal' },
-  { re: /vinil|tela|tapiz|piel/i, opt: /vinil|tela|tapiz|piel/i, erp: 'vinil' },
+  { re: /vinil|tela\b|tapiz|piel/i, opt: /vinil|tela|tapiz|piel/i, erp: 'vinil' },
   { re: /espuma|hule|poliuretano/i, opt: /espuma|hule|poliuretano/i, erp: 'espuma' },
-  { re: /\bcanto\b|cubrecanto/i, opt: /canto/i, erp: 'canto' },
+  { re: /\bcanto\b|cubrecanto|tapacanto/i, opt: /canto/i, erp: 'canto' },
   { re: /pintura|electrost/i, opt: /pintura/i, erp: 'pintura' },
   { re: /bisagra/i, opt: /bisagra/i, erp: 'bisagra' },
   { re: /corredera|riel/i, opt: /corredera|riel/i, erp: 'corredera' },
   { re: /jaladera|tirador/i, opt: /jaladera|tirador/i, erp: 'jaladera' },
   { re: /nivelador|regat/i, opt: /nivelador|regat/i, erp: 'nivelador' },
-  { re: /tornill|minifix|taquete|herraje|ensamble/i, opt: /tornill|herraje|minifix/i, erp: 'tornillo' },
+  { re: /rodaja|rueda|rodaj/i, opt: /rodaja|rueda/i, erp: 'rodaja' },
+  { re: /pasacable|grommet/i, opt: /pasacable|grommet/i, erp: 'pasacables' },
+  { re: /tornill|minifix|taquete|herraje/i, opt: /tornill|herraje|minifix/i, erp: 'tornillo' },
   { re: /\bled\b|ilumin/i, opt: /\bled\b/i, erp: 'LED' },
-  { re: /el[eé]ctric|acometida|byrne|contacto|portacables/i, opt: /el[eé]ctric|contacto|byrne|portacable/i, erp: 'eléctrico' },
-  { re: /\bptr\b|tubular|tubo|perfil|estructura met|marco met|bastidor|travesa|patas? (de )?(acero|metal)|soldadura|microalambre/i, opt: /\bptr\b|tubular|tubo|perfil/i, erp: 'PTR' },
-  { re: /l[aá]mina|placa|cal\.?\s?1[0-8]\b|charola/i, opt: /l[aá]mina|placa/i, erp: 'lámina' },
+  { re: /contacto|usb|caja el[eé]ctrica|m[oó]dulo el[eé]ctrico|byrne|acometida/i, opt: /contacto|el[eé]ctric|byrne/i, erp: 'contacto' },
+  { re: /\bptr\b|tubular|tubo\b|perfil met|soldadura|microalambre/i, opt: /\bptr\b|tubular|tubo|perfil|soldadura|microalambre/i, erp: 'PTR' },
+  { re: /\bl[aá]mina\b|placa met|charola|cal\.?\s?1[0-8]\b/i, opt: /\bl[aá]mina\b|placa/i, erp: 'lámina' },
   { re: /melamin/i, opt: /melamin/i, erp: 'melamina' },
   { re: /\bchapa\b/i, opt: /chapa/i, erp: 'chapa' },
-  // Tablero estructural (lateral, cubierta, entrepaño, costado, fondo, respaldo, puerta, faldón, división, piso, nogal/roble):
-  // la base de fabricación es MDF; el acabado (chapa) va como pieza propia cuando el despiece la trae.
-  { re: /\bmdf\b|aglomerad|tablero|triplay|nogal|roble|encino|madera|lateral|cubierta|entrepa|costado|fondo|respaldo|piso|divisi|divisor|puerta|fald[oó]n|panel|duela|tapa|zoclo|cuerpo|m[oó]dulo|frente|caj[oó]n|gaveta|repisa/i, opt: /\bmdf\b|triplay|tablero/i, erp: 'MDF' },
+  { re: /\bmdf\b|aglomerad|tablero|triplay/i, opt: /\bmdf\b|triplay|tablero/i, erp: 'MDF' },
 ];
+// Mano de obra / procesos no son material: no se les asigna insumo (se reporta).
+const NO_MATERIAL = /trabajo|mano de obra|proceso|instalaci[oó]n|formado|curvatura|maquila/i;
 async function resolverMateriales(page) {
   const out = { confirmados: 0, diferenciasAceptadas: 0, elegidos: [], bloqueados: [] };
   const PENDIENTE = /sin precio certificado|Material pendiente|Costo pendiente|Varios materiales posibles|Sustituci[oó]n requiere/i;
@@ -94,13 +98,15 @@ async function resolverMateriales(page) {
     // ingeniería bloquea, p. ej., "Pintura en polvo" costeada como lámina).
     if (val) {
       const nomTmp = await f.locator('.pieza-nom').inputValue().catch(() => '');
-      const fuerte = FAMILIAS.slice(0, 13).find((x) => x.re.test(nomTmp));
+      const fuerte = FAMILIAS.slice(0, 16).find((x) => x.re.test(nomTmp));
       const textoSel = await sel.evaluate((s) => s.options[s.selectedIndex]?.textContent || '').catch(() => '');
       if (fuerte && !fuerte.opt.test(textoSel)) alerta = `${alerta} familia-equivocada`;
     }
     if (val && !PENDIENTE.test(alerta) && !/familia-equivocada/.test(alerta)) continue;          // ya costeable
     const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');
-    const fam = FAMILIAS.find((x) => x.re.test(`${nombre} ${alerta}`));
+    if (NO_MATERIAL.test(nombre)) { out.bloqueados.push({ pieza: nombre, motivo: 'es mano de obra/proceso, no material: va en mano de obra o se excluye (decisión de Diseño)' }); continue; }
+    const pedido = (alerta.match(/Pediste «([^»]+)»/) || [])[1] || '';
+    const fam = (pedido && FAMILIAS.find((x) => x.re.test(pedido))) || FAMILIAS.find((x) => x.re.test(nombre));
     if (!fam) { out.bloqueados.push({ pieza: nombre, motivo: 'familia de material no reconocible: no se elige nada a ciegas' }); continue; }
     // 1) Opciones del catálogo curado de la MISMA familia, distintas de la actual; se verifica que la alerta se vaya.
     const opciones = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
@@ -484,7 +490,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
           await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
           await page.getByTestId('home-cocrear').click();
           const tj = page.getByRole('button', { name: new RegExp(escRe(ETIQUETA)) }).first();
-          if (await tj.isVisible({ timeout: 20000 }).catch(() => false)) {
+          if (await tj.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false)) {
             await tj.click(); await expect(page.locator('.c3-studio')).toBeVisible({ timeout: 30000 }); await page.waitForTimeout(2500);
             const m2 = await page.locator('main').first().innerText();
             bb.reabierto = { costoServidor: (m2.match(/Costo del servidor:\s*([^\n]+)/) || [])[1] || null, precio: (m2.match(/Precio sugerido:\s*([^\n]+)/) || [])[1] || null };
@@ -500,7 +506,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
       const cr = bb.costearRespuesta || {};
       const economia = cr.costo != null && cr.precio != null;
       c.clasificacion = adversarial
-        ? (!economia && !c.inyeccion?.uiDiceListoParaFabricar && !c.inyeccion?.uiCostoUnPeso ? 'PASS_EXPECTED_BLOCK' : 'FAIL')
+        ? (!c.inyeccion?.uiDiceListoParaFabricar && !c.inyeccion?.uiCostoUnPeso && !c.inyeccion?.ingenieriaValidadaPayload && !(cr.costo != null && Number(cr.costo) <= 1) ? 'PASS_EXPECTED_BLOCK' : 'FAIL')
         : economia ? (bb.reabiertoIgual ? 'PASS_COMPLETE' : 'FAIL')
           // Costo calculado pero el precio se retiene porque un insumo REAL no tiene precio certificado: falta un DATO
           // (certificación de precio), no capacidad. Se reporta con el insumo exacto.
