@@ -80,3 +80,15 @@ describe('3 · "Esto entendí": la recepción es un puesto; las CONCERTO de junt
     expect(e.reunion).toBe(16);
   });
 });
+
+describe('4 · una mesa que no alcanza para las personas de su sala se avisa (no se deja pasar)', () => {
+  it('Eclipse modular 1.80 m "para 10 lugares" → aviso; App LT 2.40 "para 6 lugares" → sin aviso', () => {
+    const e = loQueEntendi([
+      { id: 'ecl', nombre: 'Eclipse Mesa de consejo modular recta 1.80 m', cantidad: 1, nota: 'Mesa de consejo corrida/modular armada para 10 lugares; el motor ajusta módulos según largo requerido.' },
+      { id: 'app', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 1, nota: 'Sala creativa resuelta con mesa de juntas App LT de 2.40 m para 6 lugares.' },
+    ], []);
+    const t = e.avisos.map((a) => a.texto).join(' | ');
+    expect(t).toMatch(/Eclipse Mesa de consejo modular recta 1\.80 m.*6 lugares.*10/);
+    expect(t).not.toMatch(/APP LT 2\.40/);
+  });
+});

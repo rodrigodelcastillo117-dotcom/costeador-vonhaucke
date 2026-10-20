@@ -85,6 +85,20 @@ export function loQueEntendi(partidas = [], areasM = []) {
   if (gavetas > puestos && puestos > 0) {
     avisos.push({ tono: 'ambar', texto: `Hay ${gavetas} gavetas para ${puestos} puestos: sobran ${gavetas - puestos}.` });
   }
+  // Recorrido texto→plano (lab 19-oct): "Eclipse Mesa de consejo modular recta 1.80 m … para 10 lugares" pasaba sin
+  // aviso (y el acomodo la dejaba en 6). Si la nota pide N lugares y la mesa da menos (ficha del banco o ≈ una silla
+  // cada 0.60 m por lado), se dice. No se cambia la mesa sola: la persona decide (otra mesa o más módulos).
+  for (const pt of partidas) {
+    if (tipoDe(pt) !== 'juntas') continue;
+    const pide = Number((sinAcento(pt.nota).match(/para\s+(\d+)\s*(?:lugares|personas|plazas|usuarios|sillas)/) || [])[1]) || 0;
+    if (!pide) continue;
+    const mL = sinAcento(pt.nombre).match(/(\d+(?:\.\d+)?)\s*(?:m\b|x|×)/);
+    const largo = Number(pt.w) > 0 ? Number(pt.w) : (mL ? (Number(mL[1]) < 20 ? Number(mL[1]) * 1000 : Number(mL[1])) : 0);
+    const cap = (Number(pt.user_capacity ?? pt.usuarios) > 0 ? Number(pt.user_capacity ?? pt.usuarios) : (largo ? 2 * Math.floor(largo / 600) : 0)) * (pt.cantidad || 1);
+    if (cap > 0 && cap < pide) {
+      avisos.push({ tono: 'ambar', texto: `La mesa «${pt.nombre}» da para unos ${cap} lugares y la nota pide ${pide}. Cambia a una mesa más grande o agrega módulos.` });
+    }
+  }
   if (espacio.privados > 0) {
     const individuales = partidas.filter((pt) => tipoDe(pt) === 'escritorio' && !esBench(pt)).reduce((s, pt) => s + (pt.cantidad || 0), 0);
     if (individuales < espacio.privados) {
