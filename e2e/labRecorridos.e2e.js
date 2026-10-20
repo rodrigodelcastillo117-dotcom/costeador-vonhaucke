@@ -14,6 +14,9 @@ import { test, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 
+// Ningún clic espera para siempre: un botón que no aparece es un hallazgo, no un cuelgue de 22 minutos.
+test.use({ actionTimeout: 20000 });
+
 const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
 const RECORRIDO = process.env.LAB_RECORRIDO || 'texto-plano';
 const PLANO = process.env.LAB_PLANO;
@@ -73,6 +76,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     await page.screenshot({ path: path.join(SALIDA, `${pre}.png`), fullPage: true });
     const texto = await page.locator('main').innerText({ timeout: 5000 }).catch(() => '');
     guarda(`${pre}.txt`, texto);
+    avisoPlanVsCotizacion = /El plano cuenta \d+ puestos/.test(texto);
     const codigos = texto.match(/«?p-\d{6,}[^\s»]*»?|inst:req:[^\s)]*|\b(ANCHOR_[A-Z]+|WORK_SEAT|MEETING_SEAT|SPLIT_REQUIRED|SLOT_OCUPADO[A-Z_]*|OUT_OF_BOUNDS)\b/g);
     if (codigos) hallazgo(etapa, 'CODIGO_INTERNO_EN_PANTALLA', [...new Set(codigos)].slice(0, 8));
     // "sobran N" justo después de describir por texto un proyecto con plano ya aplicado es el estado ANTES de fusionar:
@@ -111,7 +115,9 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     }
   }
 
-  // Sillas del proyecto contra los puestos del plano.
+  // Sillas del proyecto contra los puestos del plano. Si el plano y lo cotizado difieren (el texto pidió otra cosa) y la
+  // app LO DICE en pantalla ("El plano cuenta N puestos…"), no es una inconsistencia escondida: queda informativo.
+  let avisoPlanVsCotizacion = false;
   function auditarSillas(etapa, partidas) {
     const sum = (re, no) => partidas.filter((p) => re.test(norm(p.nombre)) && !(no && no.test(norm(p.nombre))) && !p.noCobrar).reduce((s, p) => s + (Number(p.cantidad) || 0), 0);
     const trabajo = sum(/silla/, /junta|consejo|concerto|sonata|visita|delta|alpha|directiv|ejecutiv/);
@@ -119,7 +125,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     const esperadas = esperado.operativos + esperado.recepcion;
     const r = { trabajo, esperadas, alpha, privados: esperado.privados };
     guarda(`sillas-${etapa}.json`, { ...r, partidas: partidas.map((p) => [p.nombre, p.cantidad, p.relation_role || null, p.anchor_role || null]) });
-    if (trabajo !== esperadas) hallazgo(etapa, 'SILLAS_DE_TRABAJO_NO_CUADRAN', r);
+    if (trabajo !== esperadas) hallazgo(etapa, 'SILLAS_DE_TRABAJO_NO_CUADRAN', { ...r, informativo: avisoPlanVsCotizacion });
     if (alpha > esperado.privados) hallazgo(etapa, 'ALPHA_DE_MAS', r);
     return r;
   }
@@ -132,15 +138,22 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
       const rep = page.getByTestId('reparto-programa');
       if (!(await rep.count())) break;
       const antes = await rep.count(); const t = await rep.first().innerText();
-      await rep.first().getByRole('button', { name: /^Repartir/ }).click(); await page.waitForTimeout(1500);
+      await rep.first().getByRole('button', { name: /^(Repartir|Usar \d+ para)/ }).click({ timeout: 10000 }); await page.waitForTimeout(1500);
       if ((await page.getByTestId('reparto-programa').count()) >= antes) { hallazgo(etapa, 'BOTON_SIN_EFECTO', { boton: 'Repartir', tarjeta: t.replace(/\s+/g, ' ').slice(0, 300) }); break; }
+    }
+    for (let i = 0; i < 4; i++) {
+      const amb = page.getByTestId('rol-ambiguo-programa');
+      if (!(await amb.count())) break;
+      const antes = await amb.count();
+      await amb.first().getByRole('button', { name: /^Son de/ }).first().click({ timeout: 10000 }); await page.waitForTimeout(1500);
+      if ((await page.getByTestId('rol-ambiguo-programa').count()) >= antes) { hallazgo(etapa, 'BOTON_SIN_EFECTO', { boton: 'Son de…' }); break; }
     }
     for (let i = 0; i < 6; i++) {
       const c = page.getByTestId('conflicto-programa');
       if (!(await c.count())) break;
       const antes = await c.count(); const t = await c.first().innerText();
       // Lo que haría una persona con la recepción/escritorio que eligió: conservar el suyo.
-      await c.first().getByRole('button', { name: /Conservar el mío/ }).click(); await page.waitForTimeout(800);
+      await c.first().getByRole('button', { name: /Conservar el mío/ }).click({ timeout: 10000 }); await page.waitForTimeout(800);
       if ((await page.getByTestId('conflicto-programa').count()) >= antes) { hallazgo(etapa, 'BOTON_SIN_EFECTO', { boton: 'Conservar el mío', tarjeta: t.replace(/\s+/g, ' ').slice(0, 300) }); break; }
     }
     await auditar(`${etapa}-programa`);
