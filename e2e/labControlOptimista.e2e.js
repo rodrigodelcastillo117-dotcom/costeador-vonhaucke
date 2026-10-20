@@ -49,8 +49,13 @@ async function pestana(browser, { sembrar = false } = {}) {
   }, [red.origen, red.apikey, id]);
   return { context, page, red, servidor };
 }
+// "Inicio" sólo existe DENTRO de un flujo; en la pantalla de inicio no hay botón (un click sin él se colgaba 20 min).
+async function irAInicio(page) {
+  const b = page.getByRole('button', { name: /^Inicio$/ }).first();
+  if (await b.isVisible().catch(() => false)) await b.click();
+}
 async function abrirDeLaLista(P) {
-  await P.page.getByRole('button', { name: /^Inicio$/ }).click().catch(() => {});
+  await irAInicio(P.page);
   P.page.removeAllListeners('dialog'); P.page.once('dialog', (d) => d.accept());
   await P.page.getByText('Presupuestos anteriores', { exact: false }).first().click();
   const t = P.page.locator('.tarjeta:has(> .fila-botones)', { hasText: NOMBRE }).first();
@@ -64,6 +69,8 @@ function dialogos(page) {
   page.on('dialog', async (d) => { vistos.push(d.message()); if (r(d.message())) await d.accept(); else await d.dismiss(); });
   return { vistos, responder(f) { r = f; } };
 }
+
+test.use({ actionTimeout: 20000 });   // un click que no encuentra su botón falla en 20 s, no a los 20 min
 
 test('VH-148 contra el deployment: A–L', async ({ browser }) => {
   test.skip(!(EMAIL && PASS), 'Define TEST_EMAIL y TEST_PASSWORD.');
@@ -185,14 +192,14 @@ test('VH-148 contra el deployment: A–L', async ({ browser }) => {
     await esperar(3000);
     const nuevos = B.red.guardados.slice(n).filter((x) => x.status === 200 || x.status === 204);
     expect(nuevos.length, 'un solo guardado exitoso').toBe(1);
-    await B.page.getByRole('button', { name: /^Inicio$/ }).click().catch(() => {});
+    await irAInicio(B.page);
     await B.page.getByText('Presupuestos anteriores', { exact: false }).first().click();
     await expect(B.page.locator('.tarjeta:has(> .fila-botones)', { hasText: NOMBRE })).toHaveCount(1, { timeout: 15000 });
   });
   // J · Cocrear concurrente: dos pestañas reabren la MISMA co-creación; A guarda; B guarda con su revisión vieja → 409.
   await punto('J_cocrear_revision_esperada', async () => {
     for (const P of [A, B]) {
-      await P.page.getByRole('button', { name: /^Inicio$/ }).click().catch(() => {});
+      await irAInicio(P.page);
       await P.page.getByTestId('home-cocrear').click();
       await expect(P.page.getByText('¿Qué quieres crear?')).toBeVisible({ timeout: 20000 });
       await P.page.locator('.coc3 button').filter({ hasText: 'reabrir' }).first().click();

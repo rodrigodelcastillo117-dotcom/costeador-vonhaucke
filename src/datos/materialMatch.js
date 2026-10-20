@@ -249,9 +249,25 @@ const FAMILIAS = [
 export function familiaDeMaterial(texto) {
   const t = String(texto || '').trim();
   if (!t) return '';
+  // Cierre ChatGPT v3 (cocrear-7): el catálogo del servidor arma el nombre ERP como "<artículo> · <nota/clasificación>"
+  // ("HOJA DE ECOMARMOL SILESTONE … · ACRILICO, ECOMARMOL MARQUINA"). La familia es la del ARTÍCULO (antes del " · ");
+  // la nota sólo cuenta si el artículo solo no dice nada. Antes salía 'acrilico' y la confirmación de Diseño se rechazaba.
+  const corte = t.indexOf(' · ');
+  if (corte > 0) { const cabeza = familiaDeMaterial(t.slice(0, corte)); if (cabeza) return cabeza; }
   let primera = '';
   for (const [fam, re] of FAMILIAS) {
     if (re.test(t)) { primera = fam; break; }
+  }
+  // Cierre v3: entre accesorios/consumibles manda el que se NOMBRA PRIMERO ("Tornillería y silicón estructural" es
+  // tornillería, no adhesivo). Antes ganaba el orden de la tabla.
+  if (primera && FAMILIAS_HERRAJE.has(primera)) {
+    let mejor = { fam: primera, pos: posicionFamilia(t, primera) };
+    for (const [fam, re] of FAMILIAS) {
+      if (!FAMILIAS_HERRAJE.has(fam)) continue;
+      const m = re.exec(t);
+      if (m && m.index < mejor.pos) mejor = { fam, pos: m.index };
+    }
+    primera = mejor.fam;
   }
   // VH-176 (librero 5×8, Operación 10/10): "Melamina 16 mm Walnut, una pieza atornillada" se auto-asignaba a
   // TORNILLERÍA porque los herrajes/consumibles van antes en la tabla (para que "jaladera de acero" sea

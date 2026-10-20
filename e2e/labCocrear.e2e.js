@@ -57,6 +57,8 @@ const FAMILIAS = [
   { re: /cristal|vidrio/i, opt: /cristal|vidrio/i, erp: 'cristal' },
   { re: /vinil|tela\b|tapiz|piel/i, opt: /vinil|tela|tapiz|piel/i, erp: 'vinil' },
   { re: /espuma|hule|poliuretano/i, opt: /espuma|hule|poliuretano/i, erp: 'espuma' },
+  // "Canto MACIZO de nogal" es madera sólida, no cinta ABS (cierre v3: el lab lo cambiaba por "Perfil de canto ABS").
+  { re: /\bmaciz[oa]\b|madera s[oó]lida/i, opt: /maciz|madera s[oó]lida|tzalam/i, erp: 'madera solida', erps: ['madera solida', 'macizo', 'tzalam'] },
   { re: /\bcanto\b|cubrecanto|tapacanto/i, opt: /canto/i, erp: 'canto' },
   { re: /pintura|electrost/i, opt: /pintura/i, erp: 'pintura' },
   // LAB-COC-08 / P1-MAT-02: un renglón que EMPIEZA por un acabado líquido es el acabado ("Barniz … sobre chapa" ≠ chapa).
@@ -157,8 +159,11 @@ async function resolverMateriales(page) {
     // Después el matiz: "roble claro" no es "Antracite/Dark Oak" (y al revés).
     const OSCURO = /antracit|dark|oscur|negr|black|wengue|chocolate/i;
     const matiz = /claro|natural|light/i.test(`${pedido} ${nombre}`) ? 1 : OSCURO.test(`${pedido} ${nombre}`) ? -1 : 0;
-    const puntos = (t) => (tonoPieza && tonoPieza.opt.test(t) ? 2 : 0) + (matiz && (matiz > 0) !== OSCURO.test(t) ? 1 : 0);
-    if (tonoPieza || matiz) opciones.sort((a, b) => puntos(b.t) - puntos(a.t));
+    // Y el ESPESOR que dice la pieza o lo pedido ("zócalo melamina 16 mm" no es la de 9 mm): primero el mismo espesor.
+    const mm = (`${pedido} ${nombre}`.match(/(\d{1,2})\s*mm\b/i) || [])[1];
+    const mismoMM = (t) => (mm && new RegExp(`\\b${mm}\\s*mm\\b`, 'i').test(t) ? 4 : 0);
+    const puntos = (t) => mismoMM(t) + (tonoPieza && tonoPieza.opt.test(t) ? 2 : 0) + (matiz && (matiz > 0) !== OSCURO.test(t) ? 1 : 0);
+    if (tonoPieza || matiz || mm) opciones.sort((a, b) => puntos(b.t) - puntos(a.t));
     let listo = null;
     for (const op of opciones.slice(0, 6)) {
       await sel.selectOption(op.v); await page.waitForTimeout(700);

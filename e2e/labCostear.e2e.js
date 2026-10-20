@@ -352,6 +352,12 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
         const nSrv = edges.filter((e) => e.fn.startsWith('costear-servidor')).length;
         await btnAdd.first().click();
         await expect.poll(() => edges.filter((e) => e.fn.startsWith('costear-servidor')).length, { timeout: 60000 }).toBeGreaterThan(nSrv).catch(() => {});
+        // Cierre v3: con costo CERTIFICADO, "Agregar" verifica el costo autoritativo (varias llamadas) antes de agregar la
+        // partida; antes se esperaban 3 s fijos y la verificación llegaba DESPUÉS de la auditoría final. Se espera a que la
+        // partida aparezca (o a que el botón deje de decir "Verificando…") y a que la red quede en reposo.
+        await expect.poll(async () => ((await leerCot(page))?.partidas || []).length, { timeout: 60000 }).toBeGreaterThan(antes).catch(() => {});
+        await expect(page.getByRole('button', { name: /Verificando costo/ })).toHaveCount(0, { timeout: 60000 }).catch(() => {});
+        await page.waitForLoadState('networkidle').catch(() => {});
         await page.waitForTimeout(3000);
         const srv2 = edges.filter((e) => e.fn.startsWith('costear-servidor')).pop();
         const cot = await leerCot(page); const partidas = cot?.partidas || [];

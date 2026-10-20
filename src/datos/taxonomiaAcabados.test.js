@@ -74,3 +74,27 @@ describe('regresión cocrear-3: barniz sobre chapa', () => {
     expect(r.insumoId).not.toBe('chapa-madera');
   });
 });
+
+// Cierre v3 (cocrear-7): nombre ERP "<artículo> · <nota>" y accesorio nombrado primero.
+describe('familia del artículo ERP y del accesorio nombrado primero', () => {
+  it('Silestone del ERP con nota "· ACRILICO" es piedra (no acrílico)', () => {
+    expect(familiaDeMaterial('HOJA DE ECOMARMOL SILESTONE DE 3220 X 1580 X 12 mm - "SILESTONE321512" · ACRILICO, ECOMARMOL MARQUINA')).toBe('marmol_piedra');
+  });
+  it('una nota sin familia no estorba y un artículo sin familia toma la de la nota', () => {
+    expect(familiaDeMaterial('Melamina 16 mm · Walnut')).toBe('melamina');
+    expect(familiaDeMaterial('HOJA 3220 X 1580 · MELAMINA BLANCA')).toBe('melamina');
+  });
+  it('"Tornillería y silicón estructural" es tornillería; "Silicón y tornillería" es adhesivo', () => {
+    expect(familiaDeMaterial('Tornillería y silicón estructural')).toBe('tornilleria');
+    expect(familiaDeMaterial('Silicón y tornillería')).toBe('adhesivo');
+  });
+  it('la confirmación de Diseño del Silestone y de la tornillería se honran en el servidor', () => {
+    const c2 = {
+      'erp-silestone321512-y19': { id: 'erp-silestone321512-y19', nombre: 'HOJA DE ECOMARMOL SILESTONE DE 3220 X 1580 X 12 mm - "SILESTONE321512" · ACRILICO, ECOMARMOL MARQUINA', unidad: 'hoja', precio: 24283.09 },
+      tornilleria: { id: 'tornilleria', nombre: 'Tornilleria', unidad: 'jgo', precio: 45 },
+    };
+    const r1 = reconciliarMaterialServidor({ nombre: 'Cubierta de cuarzo 1800x600', insumoId: 'erp-silestone321512-y19', material_solicitado: 'Cuarzo (aglomerado de cuarzo tipo Silestone) 20 mm', material_confirmado: true, cantidad: 1 }, (id) => c2[id], Object.values(c2), { puedeConfirmar: true });
+    const r2 = reconciliarMaterialServidor({ nombre: 'Tornillería de ensamble cubierta-base', insumoId: 'tornilleria', material_solicitado: 'Tornillería y silicón estructural', material_confirmado: true, cantidad: 1 }, (id) => c2[id], Object.values(c2), { puedeConfirmar: true });
+    expect([r1.material_match, r2.material_match]).toEqual(['USER_CONFIRMED', 'USER_CONFIRMED']);
+  });
+});

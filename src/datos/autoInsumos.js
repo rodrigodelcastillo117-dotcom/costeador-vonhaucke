@@ -77,14 +77,19 @@ export function conAcompanantes(componentes = [], insumos = null) {
   const cosZ = conRol().find((x) => x.rol === 'lateral');
   const altoCostado = cosZ ? Math.max(Number(cosZ.c.largoMM) || 0, Number(cosZ.c.anchoMM) || 0) : 0;
   const esBajo = altoCostado > 0 && altoCostado <= REGLAS_TALLER.zoclo.gabineteBajoMaxMM;
-  if (esGabinete && esBajo && !hayRol('pata') && !hayRol('zoclo') && !comps.some((c) => c && c._regla === 'zoclo')) {
+  // Cierre v3 (cocrear-5, escritorio en L): un escritorio/mesa (lleva FALDÓN) con cajonera integrada no es un gabinete bajo:
+  // no lleva zoclo (antes recibía uno de 6000 mm que no cabía en ninguna hoja y bloqueaba el costo).
+  if (esGabinete && esBajo && !hayRol('faldon') && !hayRol('pata') && !hayRol('zoclo') && !comps.some((c) => c && c._regla === 'zoclo')) {
     const cub = conRol().filter((x) => x.rol === 'cubierta' && x.c.largoMM > 0);
     const horiz = cub.length ? cub : conRol().filter((x) => /\b(piso|techo|base de cuerpo|fondo inferior)\b/i.test(x.c.nombre || '') && x.c.largoMM > 0);
     const cos = cosZ;
     const largo = cub.length ? cub.reduce((s, x) => s + Number(x.c.largoMM) * Math.max(1, Number(x.c.piezas) || 1), 0) : horiz.length ? Math.max(...horiz.map((x) => Number(x.c.largoMM))) : 0;
     if (largo > 0 && cos) {
-      comps.push(pieza({ nombre: 'Zoclo (regla de casa)', material_solicitado: nombreMaterial(cos.c, insumos), largoMM: largo, anchoMM: REGLAS_TALLER.zoclo.altoMM, piezas: 1, cantidad: 1, forma: 'area' }, insumos, 'zoclo',
-        `Regla de casa: gabinete bajo sin base → zoclo de ${REGLAS_TALLER.zoclo.altoMM} mm (durabilidad y vista), ${largo} mm de largo, mismo material que los costados. Bórralo si no aplica.`));
+      // Más largo que la hoja → tramos iguales (el motor ya no lo marca "no cabe en el formato de compra").
+      const tramos = Math.max(1, Math.ceil(largo / REGLAS_TALLER.zoclo.tramoMaxMM));
+      const largoTramo = Math.round(largo / tramos);
+      comps.push(pieza({ nombre: 'Zoclo (regla de casa)', material_solicitado: nombreMaterial(cos.c, insumos), largoMM: largoTramo, anchoMM: REGLAS_TALLER.zoclo.altoMM, piezas: tramos, cantidad: 1, forma: 'area' }, insumos, 'zoclo',
+        `Regla de casa: gabinete bajo sin base → zoclo de ${REGLAS_TALLER.zoclo.altoMM} mm (durabilidad y vista), ${largo} mm de largo${tramos > 1 ? ` en ${tramos} tramos de ${largoTramo} mm (no cabe entero en la hoja)` : ''}, mismo material que los costados. Bórralo si no aplica.`));
     }
   }
   // 3) Niveladores: 4 por módulo cuando hay base/patas/zoclo.
