@@ -13,7 +13,7 @@ cd "$(dirname "$0")/../.."
 CASO="$1"; RAIZ=$(pwd); OUT="$RAIZ/lab/certificacion/ci/$CASO"; mkdir -p "$OUT"
 export PW_EXECUTABLE="$(node -e "console.log(require('playwright').chromium.executablePath())")"
 export LAB_GIT_SHA="$(git rev-parse --short HEAD)"
-pw() { npx playwright test "$@" --workers=1 --reporter=line --output="$OUT/pw"; }
+pw() { npx playwright test "$@" --workers=1 --retries=0 --reporter=line --output="$OUT/pw"; }   # un lab no se reintenta solo: 10 min y doble gasto de IA
 
 case "$CASO" in
   costear-*)
@@ -47,6 +47,8 @@ case "$CASO" in
     r="${CASO#recorrido-}"; c="C7"; case "$r" in *@*) c="${r#*@}"; r="${r%@*}";; esac
     (cd lab/planos && python3 gen_corpus.py > "$OUT/corpus.log" 2>&1) || { echo "gen_corpus falló"; cat "$OUT/corpus.log"; exit 3; }
     d=$(ls -d lab/planos/${c}_* | head -1); cp "$d/control.json" "$OUT/control.json"
+    # El texto describe la MISMA oficina que el plano (si no, el auditor marca con razón que no cuadran).
+    if [ "$c" = "C1" ]; then export LAB_TEXTO="Oficina con 12 puestos operativos, una recepción para 1 persona con su silla, una oficina de dirección con escritorio y su silla y una sala de juntas para 8 personas."; fi
     LAB_RECORRIDO="$r" LAB_PLANO="$d/plano.pdf" LAB_CONTROL="$d/control.json" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI $CASO $(date +%m%d-%H%M)" \
       pw e2e/labRecorridos.e2e.js ;;
   texto)

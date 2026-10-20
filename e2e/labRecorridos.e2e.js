@@ -62,7 +62,10 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     guarda(`${pre}.txt`, texto);
     const codigos = texto.match(/«?p-\d{6,}[^\s»]*»?|inst:req:[^\s)]*|\b(ANCHOR_[A-Z]+|WORK_SEAT|MEETING_SEAT|SPLIT_REQUIRED|SLOT_OCUPADO[A-Z_]*|OUT_OF_BOUNDS)\b/g);
     if (codigos) hallazgo(etapa, 'CODIGO_INTERNO_EN_PANTALLA', [...new Set(codigos)].slice(0, 8));
-    for (const [re, tipo] of [[/se sale de su cuarto/i, 'SE_SALE_DEL_CUARTO'], [/sobran? \d+/i, 'SOBRAN'], [/se atoró/i, 'PANTALLA_ATORADA'], [/undefined|NaN|\[object Object\]/, 'VALOR_ROTO']]) {
+    // "sobran N" justo después de describir por texto un proyecto con plano ya aplicado es el estado ANTES de fusionar:
+    // la app lo dice y ofrece "Fusionar N duplicado(s)". Sólo es hallazgo si NO ofrece cómo resolverlo.
+    const ofreceFusion = await page.getByRole('button', { name: /Fusionar \d+ duplicado/ }).count();
+    for (const [re, tipo] of [[/se sale de su cuarto/i, 'SE_SALE_DEL_CUARTO'], [ofreceFusion ? /(?!)/ : /sobran? \d+/i, 'SOBRAN'], [/se atoró/i, 'PANTALLA_ATORADA'], [/undefined|NaN|\[object Object\]/, 'VALOR_ROTO']]) {
       const m = texto.match(re); if (m) hallazgo(etapa, tipo, texto.slice(Math.max(0, m.index - 160), m.index + 200).replace(/\s+/g, ' '));
     }
     // Contraste WCAG (texto que se ve en pantalla, contra el primer fondo opaco de sus ancestros).
