@@ -30,6 +30,15 @@ begin
   end if;
 end $$;
 
+-- Respaldo en la propia base (rollback en un paso): el cuerpo vivo de hoy, antes de reemplazarlo.
+create table if not exists private_api.respaldo_funciones (
+  id bigint generated always as identity primary key, funcion text not null, md5 text not null,
+  definicion text not null, motivo text, creado timestamptz not null default now());
+revoke all on private_api.respaldo_funciones from public, anon, authenticated;
+insert into private_api.respaldo_funciones(funcion, md5, definicion, motivo)
+select 'private_api.evaluar_emision_cotizacion', md5(pg_get_functiondef('private_api.evaluar_emision_cotizacion'::regproc)),
+       pg_get_functiondef('private_api.evaluar_emision_cotizacion'::regproc), 'VH-AUD-205 antes de aplicar';
+
 create unique index if not exists uq_lista_precio_items_version_vigente
   on public.lista_precio_items (producto_version_id) where vigencia_hasta is null;
 
@@ -296,5 +305,7 @@ $function$;
 
 commit;
 
--- ROLLBACK (manual): restaurar el cuerpo vivo desde supabase/migrations/PROPUESTA_seg01_emision_snapshot_fiel.sql
--- (bloque principal, md5 700003d1…) y: drop index if exists public.uq_lista_precio_items_version_vigente;
+-- ROLLBACK (un paso, en el SQL Editor):
+--   do $$ begin execute (select definicion from private_api.respaldo_funciones
+--     where funcion = 'private_api.evaluar_emision_cotizacion' and motivo = 'VH-AUD-205 antes de aplicar' order by id desc limit 1); end $$;
+--   drop index if exists public.uq_lista_precio_items_version_vigente;
