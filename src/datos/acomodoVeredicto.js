@@ -95,7 +95,9 @@ const TEXTO_INVARIANTE = {
 const textoInvariante = (i, nombreDe = null) => {
   const code = String(i?.code || '');
   const base = TEXTO_INVARIANTE[code] || code.toLowerCase().replace(/_/g, ' ');
-  const nom = (id) => (nombreDe && nombreDe.get(String(id))) || id;
+  // Lab de recorridos 19-oct: un par encimado viaja como "a|b"; cada id se nombra (nunca el id en pantalla).
+  const uno = (id) => (nombreDe && nombreDe.get(String(id))) || (/^p-\d{6,}/.test(String(id)) ? 'un mueble' : String(id));
+  const nom = (id) => String(id).split('|').map(uno).join('» y «');
   const n = Array.isArray(i?.ids) && i.ids.length ? ` (${i.ids.slice(0, 3).map(nom).join(', ')}${i.ids.length > 3 ? '…' : ''})` : (i?.id != null ? ` («${nom(i.id)}»)` : '');
   return `${base}${n}`;
 };

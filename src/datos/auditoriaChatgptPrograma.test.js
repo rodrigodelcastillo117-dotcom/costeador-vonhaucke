@@ -91,3 +91,20 @@ describe('VH-AUD-203 · el reparto aprobado vale sólo para ESE reparto', () => 
   it('cambia el requerimiento → pregunta', () => { expect(pregunta(prop([['A', 8], ['B', 8]], 'req:OTRO'), aprobar(base))).toBe(true); });
   it('la fila aprobada guarda la firma de la decisión', () => { expect(aprobar(base).reparto_firma).toMatch(/A.*8.*B.*8/); });
 });
+
+// Lab de recorridos (C1): 13 GAMMA-E en un renglón (12 operativos + 1 recepción); el plano sólo pedía 1 para la
+// recepción desde ese renglón. "Repartir" amarraba el renglón ENTERO a la recepción (2 sillas acabaron allá).
+describe('reparto parcial: lo que sobra no queda amarrado al único mueble', () => {
+  const R2 = { product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY', precio_lista_snapshot: 1 };
+  const rec = { ...R2, rol: 'recepcion', relation_role: 'ANCHOR_RECEPTION', bancoId: 'rec', instance_id: 'RC', requirement_id: 'req:REC', zone_id: 'RECEPCIÓN', cantidad: 1, nombre: 'Recepción', w: 2000, d: 800 };
+  const silla = { ...R2, rol: 'recepcion', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', bancoId: 'silla-gamma-e', anchor_instance_id: 'RC', requirement_id: 'req:REC', zone_id: 'RECEPCIÓN', cantidad: 1, nombre: 'GAMMA-E' };
+  const g13 = { id: 'g', piezaId: 'p9-silla-operativa-gamma-e-3990', nombre: 'Silla operativa · GAMMA-E', cantidad: 13 };
+  it('Repartir 1 de 13 a la recepción: el renglón no queda marcado como "de recepción"', () => {
+    const r = confirmarPrograma({ partidas: [rec, silla] }, { existentes: [g13], repartir: ['g'] });
+    const p = r.enriquecidos.find((e) => e.id === 'g').patch;
+    expect(p.relation_role).toBe('WORK_SEAT');
+    expect(p.anchor_role).toBeNull();
+    expect(p.zone_id).toBeNull();
+    expect(p.anchor_instance_id).toBeNull();
+  });
+});

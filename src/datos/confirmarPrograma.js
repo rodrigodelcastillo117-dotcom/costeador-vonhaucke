@@ -410,8 +410,12 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
       continue;
     }
     const deps = asignados.map((x) => x.dep);
-    const comun = (k) => { const v = deps[0]?.[k] ?? null; return deps.every((d) => (d[k] ?? null) === v) ? v : null; };
-    enriquecidos.push({ id: raw.id, patch: { relation_role: comun('relation_role'), anchor_role: comun('anchor_role'), anchor_instance_id: deps.length === 1 ? (deps[0].anchor_instance_id ?? null) : null,
+    // Lab de recorridos 19-oct: si el reparto NO usa todo el renglón (1 de 13 para la recepción), lo que sobra no es de
+    // ese mueble: no se amarra el renglón a su destino (antes las 13 quedaban "de recepción").
+    const sobra = rem0 - asignados.reduce((s, x) => s + x.n, 0) > 0;
+    const comun = (k) => { if (sobra) return null; const v = deps[0]?.[k] ?? null; return deps.every((d) => (d[k] ?? null) === v) ? v : null; };
+    enriquecidos.push({ id: raw.id, patch: { relation_role: deps.every((d) => d.relation_role === deps[0]?.relation_role) ? (deps[0]?.relation_role ?? null) : null,
+      anchor_role: comun('anchor_role'), anchor_instance_id: !sobra && deps.length === 1 ? (deps[0].anchor_instance_id ?? null) : null,
       functional_group_id: comun('functional_group_id'), zone_id: comun('zone_id'), repartido_entre: new Set(deps.map((d) => d.anchor_instance_id)).size, reparto_firma: firma } });
   }
 

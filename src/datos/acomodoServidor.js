@@ -24,12 +24,18 @@ export function estadoAcomodo(r) {
   return ESTADOS.includes(s) ? s : 'SIN_VALIDACION';
 }
 
-const id = (x) => (x?.id != null ? ` «${x.id}»` : '');
+// Lab de recorridos 19-oct: los avisos del servidor nombran el MUEBLE (nunca su id) y van en palabras.
+const esIdInterno = (pid) => /^p-\d{6,}/.test(String(pid));
+let NOMBRE = (pid) => (pid == null || esIdInterno(pid) ? null : String(pid));
+const id = (x) => { const n = x?.id != null ? NOMBRE(x.id) : null; return n ? ` «${n}»` : ''; };
+const nm = (pid) => NOMBRE(pid) || (pid == null ? '?' : 'un mueble');
 const TEXTO = {
   OUTSIDE_ZONE: (i) => `Pieza${id(i)} fuera de su cuarto.`,
-  OVERLAP: (i) => `Encimado entre «${i?.a ?? '?'}» y «${i?.b ?? '?'}».`,
+  OVERLAP: (i) => `Encimado entre «${nm(i?.a)}» y «${nm(i?.b)}».`,
   BLOCKS_DOOR: (i) => `Pieza${id(i)} tapa una puerta.`,
-  FUNCTIONAL_CLEARANCE: (i) => `Pieza${id(i)} sin espacio de uso (choca con ${i?.with_id ? `«${i.with_id}»` : i?.collision || 'otro elemento'}).`,
+  FUNCTIONAL_CLEARANCE: (i) => `Pieza${id(i)} sin espacio de uso (choca con ${i?.with_id ? `«${nm(i.with_id)}»` : 'otro elemento'}).`,
+  FUNCTIONAL_GROUP_SPLIT: (i) => `Pieza${id(i)} quedó separada de su grupo (lejos de su mueble).`,
+  WRONG_GROUP_ANCHOR: (i) => `Pieza${id(i)} quedó junto a un mueble que no es el suyo.`,
   WRONG_EXPLICIT_ZONE: (i) => `Pieza${id(i)} quedó en «${i?.zone ?? '?'}» y se pidió «${i?.expected_zone ?? '?'}».`,
   INVALID_AREA_INDEX: (i) => `Pieza${id(i)} apunta a un cuarto que no existe.`,
   INVALID_COORDINATES: (i) => `Pieza${id(i)} con coordenadas inválidas.`,
@@ -43,13 +49,25 @@ const TEXTO = {
   TECHNICAL_STORAGE_ZONE_REVIEW: (i) => `Guarda técnica${id(i)} fuera de site/servicio: revisar.`,
   SEMANTIC_ROLE_REVIEW: (i) => `Pieza${id(i)}: el servidor no pudo confirmar que la zona la admite.`,
 };
-const traducir = (lista) => (Array.isArray(lista) ? lista : []).map((x) => {
+const traducir1 = (x) => {
   const code = String(x?.code || '').trim();
   if (TEXTO[code]) return TEXTO[code](x);
   const m = /^([A-Z_]+)_WRONG_ZONE$/.exec(code);
   if (m) return `Pieza${id(x)} (${m[1].toLowerCase().replace(/_/g, ' ')}) en una zona que no le corresponde.`;
-  return `Aviso del servidor: ${code || 'SIN_CÓDIGO'}${id(x)}`;
-});
+  return `Aviso del acomodo (${code ? code.toLowerCase().replace(/_/g, ' ') : 'sin detalle'})${id(x)}.`;
+};
+// Muchos avisos iguales (13 sillas "separadas de su grupo") se dicen UNA vez con cuántas y cuáles.
+const traducir = (lista) => {
+  const porCodigo = new Map();
+  for (const x of (Array.isArray(lista) ? lista : [])) { const k = String(x?.code || ''); if (!porCodigo.has(k)) porCodigo.set(k, []); porCodigo.get(k).push(x); }
+  const out = [];
+  for (const [, xs] of porCodigo) {
+    if (xs.length <= 2 || !xs[0]?.id) { xs.forEach((x) => out.push(traducir1(x))); continue; }
+    const nombres = [...new Set(xs.map((x) => NOMBRE(x.id)).filter(Boolean))];
+    out.push(`${traducir1({ ...xs[0], id: null }).replace(/^Pieza/, `${xs.length} piezas`)}${nombres.length ? ` (${nombres.slice(0, 3).join(', ')}${nombres.length > 3 ? '…' : ''})` : ''}`);
+  }
+  return out;
+};
 
 export const TEXTO_ESTADO = TEXTO_ESTADO_SERVIDOR;
 
@@ -62,6 +80,7 @@ export function interpretarAcomodoServidor(r, piezas = []) {
   if (!r || !r.ok) return { ok: false, error: r?.error || 'No se pudo acomodar. Vuelve a intentar.', estado: 'ERROR', avisos: [] };
   const estado = estadoAcomodo(r);
   const val = r.layoutSpec?.validation || {};
+  NOMBRE = (pid) => piezas.find((p) => String(p.id) === String(pid))?.nombre || (pid == null || esIdInterno(pid) ? null : String(pid));
   const problemas = traducir(val.issues);
   const revisiones = traducir(val.reviews);
   const colocacion = Array.isArray(r.plan?.colocacion) ? r.plan.colocacion : [];
