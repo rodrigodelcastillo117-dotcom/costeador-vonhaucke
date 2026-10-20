@@ -231,7 +231,8 @@ export function programaDelPlano(areas, opts = {}) {
       operativo: (islasA[0] || abiertos[0]) ? { nombre: (islasA[0] || abiertos[0]).nombre, id: (islasA[0] || abiertos[0]).id || null } : null,
       privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null })),
       juntas: salasA.map((a) => ({ nombre: a.nombre, id: a.id || null })),
-      recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null } : null; })(),
+      // Prueba de Rodrigo 19-oct: los puestos de la recepción del plano (quienes atienden) deciden cuántas sillas lleva.
+      recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null, puestos: Number(a.puestos) > 0 ? Number(a.puestos) : null } : null; })(),
     },
     islas: islasA.length,
     porIsla,

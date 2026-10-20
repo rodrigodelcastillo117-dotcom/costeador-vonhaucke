@@ -169,6 +169,7 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
   const briefBase = { ...(programa.brief || {}), ...(brief || {}) };
   if (z.operativo) briefBase.operativoZoneId = briefBase.operativoZoneId || z.operativo.id || z.operativo.nombre;
   if (z.recepcion) briefBase.recepcionZoneId = briefBase.recepcionZoneId || z.recepcion.id || z.recepcion.nombre;
+  if (z.recepcion?.puestos && !(Number(briefBase.recepcionPuestos) > 0)) briefBase.recepcionPuestos = z.recepcion.puestos;
   const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(arr[i] || {}) }));
   briefBase.privados = mezclarZona(briefBase.privados, z.privados || []);
   briefBase.juntas = mezclarZona(briefBase.juntas, z.juntas || []);
@@ -186,14 +187,14 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
 /** Clave estable de una recomendación (rol + instancia del ancla) para agregarla por línea. */
 export const claveRecomendacion = (r) => `${r.relation_role}|${r.anchor_instance_id || r.instance_id || r.bancoId}`;
 
-export function aplicarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], incluir = [] } = {}) {
+export function aplicarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [], incluir = [] } = {}) {
   // P1: `incluir` = claves de recomendaciones de casa que la persona agrega (por línea). Pasan a la propuesta
   // comercial como 'requested'; las demás recomendaciones siguen fuera.
   const inc = new Set((Array.isArray(incluir) ? incluir : []).map(String));
   const propuestaEf = inc.size && Array.isArray(propuesta?.recomendaciones)
     ? { ...propuesta, partidas: [...(propuesta.partidas || []), ...propuesta.recomendaciones.filter((r) => inc.has(claveRecomendacion(r))).map((r) => ({ ...r, inclusion: 'requested' }))] }
     : propuesta;
-  const confirmacion = confirmarPrograma(propuestaEf, { existentes, sustituir, mantenerAmbos });
+  const confirmacion = confirmarPrograma(propuestaEf, { existentes, sustituir, mantenerAmbos, repartir });
   return {
     confirmacion,
     partidas: partidasParaAcomodo(confirmacion),

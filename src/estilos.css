@@ -98,6 +98,11 @@ h3 { font-size: 17px; font-weight: 700; }
 .nota-clara h1,
 .nota-clara h2,
 .nota-clara h3 { color: #1E1B1A; }
+/* Prueba de Rodrigo 2026-10-19: dentro de una tarjeta de fondo CLARO, el botón fantasma heredaba el texto blanco del tema
+   oscuro y no se veía ("Conservar el mío", "Mantener ambos", "Agregar"). */
+.nota-clara .boton.fantasma { color: #1E1B1A; border-color: #b9b2a8; background: #fff; }
+.nota-clara .boton.fantasma:hover { border-color: #1E1B1A; background: #f6f3ee; }
+.nota-clara .boton.fantasma:disabled { color: #8a837c; }
 
 /* Mismas "notas de papel" que ya existían por CLASE (fondo claro hardcodeado) y
    que el tema oscuro dejó con texto claro heredado. Se les fija texto oscuro aquí

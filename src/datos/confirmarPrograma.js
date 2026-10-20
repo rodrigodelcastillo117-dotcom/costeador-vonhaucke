@@ -153,9 +153,25 @@ function aItemConfirmado(part, { slot = null, estado }) {
 // del usuario gana al producto genérico del programa). Sólo programa-vs-programa es
 // conflicto real (p. ej. cambió el brief y el slot ya tiene otra mesa).
 const esDelPrograma = (raw) => raw && raw.source === 'CONFIRMADO_PROGRAMA';
+// Prueba de Rodrigo 19-oct: ¿el producto que eligió la persona ya trae SU huella (ficha del banco o medidas en el
+// nombre)? Entonces el injerto VH-090 no le pone la del mueble propuesto (la Ergonova 4 de 1815 × 834 se guardaba
+// con los 2420 mm del mostrador genérico y "se salía de su cuarto" en el acomodo).
+const RE_DOS_MEDIDAS = /\d+(?:\.\d+)?\s*(?:mm|cm|m)?\s*[x×X]\s*\d+(?:\.\d+)?/;
+function tieneHuellaPropia(raw = {}) {
+  for (const k of [raw.piezaId, raw.bancoId, raw.source_ref]) {
+    const b = k != null ? BANCO.find((x) => x.id === String(k)) : null;
+    if (b && RE_DOS_MEDIDAS.test(String(b.medidas || ''))) return true;
+  }
+  return RE_DOS_MEDIDAS.test(String(raw.nombre || ''));
+}
 
-export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [] } = {}) {
+export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [] } = {}) {
   const sustituirSet = new Set((Array.isArray(sustituir) ? sustituir : []).map(String));
+  // Prueba de Rodrigo 19-oct: ids de renglones que la persona decidió REPARTIR entre varios muebles del mismo tipo
+  // (16 WIN para dos bancos de 8). Sin esta decisión, partir un renglón sigue siendo SPLIT_REQUIRED.
+  const repartirSet = new Set((Array.isArray(repartir) ? repartir : []).map(String));
+  // La decisión queda guardada en el renglón (`repartido_entre`): al volver a leer el plano no se vuelve a preguntar.
+  for (const e of existentes) if (e && e.id != null && Number(e.repartido_entre) > 0) repartirSet.add(String(e.id));
   const ambosSet = new Set((Array.isArray(mantenerAmbos) ? mantenerAmbos : []).map(String));
   const reemplazados = [];                        // ids de existentes sustituidos por decisión explícita
   const partidas = (propuesta && Array.isArray(propuesta.partidas)) ? propuesta.partidas : [];
@@ -209,7 +225,7 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
         const capExplicita = Number(prev.raw?.user_capacity ?? prev.raw?.usuarios) > 0 ? Number(prev.raw.user_capacity ?? prev.raw.usuarios) : null;
         const capPersona = capExplicita ?? capacidadDeNombre(prev.raw?.nombre, { w: prev.raw?.w ?? a.w, rol: a.relation_role });
         // VH-120: la leída del nombre viaja marcada como INFERIDA (evidencia más débil); la explícita conserva su fuente.
-        if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: { ...estructuraDe(a), relation_role: a.relation_role, ...(capPersona ? { user_capacity: capPersona, ...(capExplicita ? {} : { user_capacity_inferida: true }) } : {}), ...(prev.raw.w == null && a.w != null ? { w: a.w } : {}), ...(prev.raw.d == null && a.d != null ? { d: a.d } : {}) } });
+        if (prev.raw && prev.raw.id != null) enriquecidos.push({ id: prev.raw.id, patch: { ...estructuraDe(a), relation_role: a.relation_role, ...(capPersona ? { user_capacity: capPersona, ...(capExplicita ? {} : { user_capacity_inferida: true }) } : {}), ...(prev.raw.w == null && a.w != null && !tieneHuellaPropia(prev.raw) ? { w: a.w } : {}), ...(prev.raw.d == null && a.d != null && !tieneHuellaPropia(prev.raw) ? { d: a.d } : {}) } });
       } else if (sustituirSet.has(slot)) {
         // Decisión explícita de la persona: el propuesto SUSTITUYE al existente del programa.
         usados.add(prev._i);
@@ -241,14 +257,32 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   //     existente se enriquece hacia SU ancla; si una fila tendría que PARTIRSE
   //     entre dos anclas → SPLIT_REQUIRED (NEEDS_REVIEW), nunca cross-link silencioso. ---
   const poolDep = new Map();                      // `${rel}|${banco}` -> [{idx, rem}]
+  // Una sola entrada por renglón (compartida con poolRol): lo que queda de un renglón repartido se lleva en un solo lugar.
+  const entradaDe = new Map();                    // idx -> {idx, rem, programa, ancla}
   for (const e of ex) {
     if (e.rel && !esAncla(e.rel)) {
       const k = `${e.rel}|${e.banco}`;
       if (!poolDep.has(k)) poolDep.set(k, []);
-      poolDep.get(k).push({ idx: e._i, rem: e.cantidad });
+      const en = { idx: e._i, rem: e.cantidad, programa: esDelPrograma(e.raw), ancla: e.raw.anchor_instance_id || null };
+      entradaDe.set(e._i, en);
+      poolDep.get(k).push(en);
     }
   }
+  // Renglón repartido por decisión: se reutiliza UNA vez y su patch lleva sólo la estructura COMÚN de los
+  // dependientes que cubre (rol, tipo de ancla, zona/grupo si coinciden), nunca la instancia de un solo mueble.
+  const repartidos = new Map();                   // idx -> { deps: [] }
+  const repartirEn = (en, dep, n) => {
+    const raw = ex[en.idx].raw;
+    if (!repartidos.has(en.idx)) {
+      repartidos.set(en.idx, { deps: [] });
+      usados.add(en.idx);
+      sinCambio.push(aItemConfirmado(raw, { slot: null, estado: 'EXISTENTE' }));
+    }
+    repartidos.get(en.idx).deps.push(dep);
+    en.rem -= n;
+  };
   const consumir = (en, dep) => {              // reutiliza fila completa + enriquece a su ancla
+    if (repartidos.has(en.idx)) { repartirEn(en, dep, en.rem); return; }   // lo que queda de un renglón ya repartido
     usados.add(en.idx);
     sinCambio.push(aItemConfirmado(ex[en.idx].raw, { slot: null, estado: 'EXISTENTE' }));
     if (ex[en.idx].raw.id != null) enriquecidos.push({ id: ex[en.idx].raw.id, patch: estructuraDe(dep) });
@@ -263,15 +297,20 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   for (const e of ex) {
     if (e.rel && !esAncla(e.rel)) {
       if (!poolRol.has(e.rel)) poolRol.set(e.rel, []);
-      poolRol.get(e.rel).push({ idx: e._i, rem: e.cantidad, programa: esDelPrograma(e.raw), ancla: e.raw.anchor_instance_id || null });
+      poolRol.get(e.rel).push(entradaDe.get(e._i));
     }
   }
+  // Prueba de Rodrigo 19-oct: una silla de RECEPCIÓN no se cubre con las WIN de los puestos operativos (ni al revés):
+  // si la fila existente declara a qué mueble va (anchor_role, zona o nota) y no es el del dependiente, no se usa.
+  const destinoFila = (raw) => rolFromRel(raw?.anchor_role) || (/\brecepci/i.test(`${raw?.zone_id || ''} ${raw?.nota || ''}`) ? 'recepcion' : null);
+  const destinoDep = (dep) => rolFromRel(dep.anchor_role) || null;
+  const mismoDestino = (e, dep) => { const a = destinoFila(ex[e.idx]?.raw), b = destinoDep(dep); return !a || !b || a === b || (b !== 'recepcion' && a !== 'recepcion'); };
   for (const dep of depsProp) {
     const slot = `${dep.rol || rolFromRel(dep.relation_role)}|${dep.relation_role}|${dep.anchor_instance_id || ''}`;
     const k = `${dep.relation_role}|${dep.bancoId}`;
     let need = Math.max(1, Number(dep.cantidad) || 1);
-    const exactas = poolDep.get(k) || [];
-    const porRol = (poolRol.get(dep.relation_role) || []).filter((e) => !exactas.includes(e) && !usados.has(e.idx)
+    const exactas = (poolDep.get(k) || []).filter((e) => e.rem > 0 && mismoDestino(e, dep));
+    const porRol = (poolRol.get(dep.relation_role) || []).filter((e) => !exactas.includes(e) && (!usados.has(e.idx) || (repartidos.has(e.idx) && e.rem > 0)) && mismoDestino(e, dep)
       && (!e.programa || (e.ancla && dep.anchor_instance_id && String(e.ancla) === String(dep.anchor_instance_id))));
     const entries = [...exactas, ...porRol];
     // 1) EXACTO primero (estable bajo reorden: cada ancla toma la fila de su tamaño).
@@ -282,9 +321,22 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
     // 3) si aún falta y hay una fila MAYOR, partirla sería asignación ambigua → NEEDS_REVIEW.
     if (need > 0) {
       const mayor = entries.find((e) => e.rem > need);
-      if (mayor) { conflictos.push({ code: 'SPLIT_REQUIRED', slot, relation_role: dep.relation_role, bancoId: dep.bancoId, fila_cantidad: mayor.rem, requerido: need }); need = 0; }
-      else confirmadas.push(aItemConfirmado({ ...dep, cantidad: need }, { slot, estado: 'CONFIRMADO' }));
+      const filaId = mayor ? (ex[mayor.idx].raw.id ?? null) : null;
+      if (mayor && filaId != null && repartirSet.has(String(filaId))) { repartirEn(mayor, dep, need); need = 0; }
+      else if (mayor) {
+        const fila = ex[mayor.idx].raw;
+        conflictos.push({ code: 'SPLIT_REQUIRED', slot, relation_role: dep.relation_role, bancoId: dep.bancoId, fila_cantidad: mayor.rem, requerido: need,
+          fila_id: filaId, fila_nombre: fila.nombre ?? null, anchor_role: dep.anchor_role ?? null, rol: dep.rol || rolFromRel(dep.relation_role) });
+        need = 0;
+      } else confirmadas.push(aItemConfirmado({ ...dep, cantidad: need }, { slot, estado: 'CONFIRMADO' }));
     }
+  }
+  for (const [idx, { deps }] of repartidos) {
+    const raw = ex[idx].raw;
+    if (raw.id == null) continue;
+    const comun = (k) => { const v = deps[0]?.[k] ?? null; return deps.every((d) => (d[k] ?? null) === v) ? v : null; };
+    enriquecidos.push({ id: raw.id, patch: { relation_role: comun('relation_role'), anchor_role: comun('anchor_role'), anchor_instance_id: deps.length === 1 ? (deps[0].anchor_instance_id ?? null) : null,
+      functional_group_id: comun('functional_group_id'), zone_id: comun('zone_id'), repartido_entre: deps.length } });
   }
 
   // existentes que el programa no tocó: intactos (normaliza bancoId desde piezaId

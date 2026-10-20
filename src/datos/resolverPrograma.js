@@ -364,7 +364,8 @@ export function expandirDependientes(ancla, { capacidad = null, storageRequested
   } else if (ancla.rol === 'recepcion') {
     // Dirección 2026-10-19 (Rodrigo): el mostrador lleva la silla OPERATIVA de cada persona que atiende (GAMMA-E por
     // defecto; un modelo pedido manda). Sigue SIN sillas de espera no pedidas (#11): ésas son recomendación.
-    const U = Math.max(1, Math.floor(Number(ancla.usuarios) || 1));
+    // Prueba de Rodrigo 19-oct: manda lo que dice el PLANO (puestos de la recepción); sin dato, los lugares del módulo.
+    const U = Math.max(1, Math.floor(Number(capacidad) > 0 ? Number(capacidad) : (Number(ancla.usuarios) || 1)));
     push(asientoDependiente(ancla, { relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', cantidad: U, inclusion: 'mandatory_by_rule', requestedModel: seatModels.work }));
   }
   return out;
@@ -463,9 +464,9 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
   if (programa.recepcion) {
     const zone_id = brief.recepcionZoneId || null;
     const reqId = requirementId(zone_id, 'recepcion', 0);
-    requerimientos.push({ requirement_id: reqId, zone_id, evidence: brief.recepcionEvidence || null, rol: 'recepcion', anchor_role: 'ANCHOR_RECEPTION', capacidad: 1, preferred_line: linea });
+    requerimientos.push({ requirement_id: reqId, zone_id, evidence: brief.recepcionEvidence || null, rol: 'recepcion', anchor_role: 'ANCHOR_RECEPTION', capacidad: Number(brief.recepcionPuestos) > 0 ? Number(brief.recepcionPuestos) : 1, preferred_line: linea });
     const r = resolverRecepcion({ requirement_id: reqId, zone_id, evidence: brief.recepcionEvidence || null });
-    integrarAncla(r, { seatModels: { work: brief.recepcionSeatModel || null } }, 'RECEPCION_NO_RESUELTO');
+    integrarAncla(r, { capacidad: Number(brief.recepcionPuestos) > 0 ? Number(brief.recepcionPuestos) : null, seatModels: { work: brief.recepcionSeatModel || null } }, 'RECEPCION_NO_RESUELTO');
   }
 
   // partidas comerciales = anclas + dependientes NO opcionales (mandatory/requested).

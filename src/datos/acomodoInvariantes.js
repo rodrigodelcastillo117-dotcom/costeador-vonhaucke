@@ -52,7 +52,9 @@ function dentroDelArea(rect, area) {
   const W = Number(area?.ancho) || 0, H = Number(area?.largo) || 0;
   if (rect.x < -EPS || rect.y < -EPS || rect.x + rect.w > W + EPS || rect.y + rect.h > H + EPS) return false;
   if (Array.isArray(area?.poly) && area.poly.length >= 3) {
-    const esquinas = [[rect.x, rect.y], [rect.x + rect.w, rect.y], [rect.x, rect.y + rect.h], [rect.x + rect.w, rect.y + rect.h]];
+    // Prueba de Rodrigo 19-oct: una pieza PEGADA al muro tiene esquinas exactamente sobre el contorno y el rayo las
+    // contaba "fuera". Esquinas 1 mm hacia adentro, como el servidor (spatial-core.rectDentroPoligono).
+    const esquinas = [[rect.x + EPS, rect.y + EPS], [rect.x + rect.w - EPS, rect.y + EPS], [rect.x + EPS, rect.y + rect.h - EPS], [rect.x + rect.w - EPS, rect.y + rect.h - EPS]];
     if (!esquinas.every(([x, y]) => puntoEnPoligono(x, y, area.poly))) return false;
   }
   return true;
