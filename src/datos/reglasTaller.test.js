@@ -379,3 +379,26 @@ describe('VH-174 · las reglas de casa se re-aplican después del amarre ERP (id
     expect(conAcompanantes(r2, insumos)).toEqual(r2);   // idempotente
   });
 });
+
+// Cierre ChatGPT v3 (cocrear-5, run 39449677625): el escritorio en L con cajonera FABRICADA y faldón recibía un
+// "Zoclo (regla de casa)" de 6000 × 100 mm (suma de cubiertas) en UNA pieza: no cabe en ninguna hoja y el costo quedaba
+// bloqueado ("una o más piezas no caben en el formato de compra").
+describe('cierre v3 · zoclo: no en escritorios con faldón; en tramos si excede la hoja', () => {
+  const p = (nombre, l, a, piezas = 1) => ({ nombre, insumoId: 'melamina-19-color', largoMM: l, anchoMM: a, piezas, cantidad: 1, forma: 'area' });
+  it('escritorio en L real (faldón + cajonera fabricada): sin zoclo', () => {
+    const escritorioL = [p('Cubierta principal', 2000, 700), p('Faldón frontal principal', 1900, 300), p('Faldón frontal retorno', 950, 300),
+      p('Panel lateral / costado estructural', 700, 730, 2), p('Cuerpo de cajonera (laterales, fondo, tapa, base)', 600, 550, 5), p('Frentes de cajón', 400, 200, 3)];
+    expect(conAcompanantes(escritorioL, insumos).some((c) => c._regla === 'zoclo')).toBe(false);
+  });
+  it('credenza baja de cubierta larga: el zoclo sale en tramos que caben en la hoja', () => {
+    const credenzaLarga = [p('Cubierta', 3000, 450), p('Costado', 750, 450, 2), p('Puertas', 700, 500, 4)];
+    const z = conAcompanantes(credenzaLarga, insumos).find((c) => c._regla === 'zoclo');
+    expect(z).toBeTruthy();
+    expect(z.piezas).toBe(2); expect(z.largoMM).toBe(1500);
+    expect(z.largoMM).toBeLessThanOrEqual(REGLAS_TALLER.zoclo.tramoMaxMM);
+  });
+  it('una credenza normal sigue con UN zoclo del largo de la cubierta', () => {
+    const z = conAcompanantes([p('Cubierta', 1800, 450), p('Costado', 750, 450, 2), p('Puertas', 700, 450, 4)], insumos).find((c) => c._regla === 'zoclo');
+    expect(z.piezas).toBe(1); expect(z.largoMM).toBe(1800);
+  });
+});

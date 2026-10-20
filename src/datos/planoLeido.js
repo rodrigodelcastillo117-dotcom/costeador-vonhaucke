@@ -194,7 +194,11 @@ export function areasDeLectura(lectura) {
     return {
       nombre: a.nombre || 'Área',
       ...(a.tipo ? { tipo: a.tipo } : {}),
-      ...(Number.isFinite(a.puestos) && a.puestos > 0 ? { puestos: a.puestos } : {}),
+      // Cierre ChatGPT P1-ARQ-01: escritorio físico ≠ silla física ≠ puesto. Si el lector declara ESCRITORIOS, ésos son
+      // los puestos (nunca se reducen porque haya menos sillas dibujadas); lector viejo sin el campo: `puestos` como antes.
+      ...((Number(a.escritorios) > 0 ? Number(a.escritorios) : Number(a.puestos)) > 0 ? { puestos: Number(a.escritorios) > 0 ? Number(a.escritorios) : Number(a.puestos) } : {}),
+      ...(Number(a.escritorios) > 0 ? { escritorios: Number(a.escritorios) } : {}),
+      ...(Number.isFinite(Number(a.sillas)) && Number(a.sillas) > 0 ? { sillasDibujadas: Number(a.sillas) } : {}),
       ...(Number.isFinite(Number(a.asientos)) && Number(a.asientos) > 0 ? { asientos: Number(a.asientos) } : {}),
       ...(a.confianza ? { confianza: a.confianza } : {}),
       ...(a.procedencia ? { procedencia: a.procedencia } : {}),
@@ -268,6 +272,11 @@ export function revisarAreas(lectura) {
 
   // 0) Escala: cota general vs. ejes (determinista, antes que todo lo demás).
   problemas.push(...validarEscala(lectura));
+  // 0b) P1-ARQ-01: escritorios y sillas dibujados que no coinciden → se dice (los puestos son los escritorios).
+  for (const { a } of crudas) {
+    const e = Number(a.escritorios), s = Number(a.sillas);
+    if (e > 0 && s > 0 && e !== s) problemas.push(`«${a.nombre}»: ${e} escritorios observados y ${s} sillas observadas. Tomé ${e} puestos (los escritorios); capacidad por confirmar.`);
+  }
 
   // 1) Todo dentro del envolvente.
   if (env?.ancho > 0 && env?.largo > 0) {

@@ -67,3 +67,14 @@ describe('recepción que eligió la persona: conserva SU huella al vincularse al
     expect(patch?.w).toBeGreaterThan(0);
   });
 });
+
+// Lab de recorridos (C1, run 39365994346): la Ergonova 4 (ficha: 1 usuario) heredaba "2 usuarios" del módulo de
+// recepción propuesto → el acomodo le sentaba 2 sillas en una recepción de 1 puesto.
+describe('la recepción que eligió la persona conserva la capacidad de SU ficha', () => {
+  it('Ergonova 4 (usuarios 1 en el banco) no hereda los 2 usuarios del módulo propuesto', () => {
+    const r = proponerProgramaDelPlano(areas, { linea: 'App LT' });
+    const ergo = { id: 'ergo', piezaId: 'p9-ergonova-4-recepcion-16585', nombre: 'Ergonova 4 · Recepción', cantidad: 1 };
+    const patch = confirmarPrograma(r.propuesta, { existentes: [ergo] }).enriquecidos.find((e) => e.id === 'ergo').patch;
+    expect(patch.user_capacity).toBe(1);
+  });
+});

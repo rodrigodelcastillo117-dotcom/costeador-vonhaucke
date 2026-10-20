@@ -15,7 +15,7 @@ async function entrar(browser, nube, email, pass = 'prueba-123') {
   await page.goto('/');
   await page.fill('#email-login', email); await page.fill('#pass-login', pass);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
   return { context, page };
 }

@@ -4,6 +4,7 @@
 //  renglon. Cuando alguien lo actualiza, a todos se les propaga en vivo.
 //  Si no hay internet, la app sigue con lo local (ver almacen.js).
 // ============================================================================
+import { lecturaConReintento } from './datos/lecturaConReintento.js';
 import { leerRespuestaRender } from './datos/renderRespuesta.js';
 import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCosteo.js';
 import { validarSolicitudCocrear } from './datos/cocrearServidor.js';
@@ -429,6 +430,10 @@ const FN_COSTEAR = CARRIL_RC ? 'costear-servidor-rc' : (() => { const v = envFn(
 // (RC: acomodar-espacio-recovery-rc, sólo para medir) debe quedarse dentro del carril o se ignora.
 const FN_ACOMODAR = (() => { const v = envFn('VITE_ACOMODAR_FN', 'acomodar-espacio-recovery'); return v.startsWith('acomodar-espacio-recovery') ? v : 'acomodar-espacio-recovery'; })();
 export async function leerPlano(image, mediaType, refMM) {
+  // Cierre v3: una lectura rechazada por la validación geométrica determinista se repite UNA vez (lecturaConReintento.js).
+  return lecturaConReintento(() => leerPlanoUnaVez(image, mediaType, refMM));
+}
+async function leerPlanoUnaVez(image, mediaType, refMM) {
   const { data, error } = await nube.functions.invoke(FN_LEER_PLANO, {
     body: { image, mediaType, refMM },
   });
@@ -631,7 +636,10 @@ export async function subirRender(dataUrl, path) {
     const mime = (cab.match(/data:(.*?);/) || [])[1] || 'image/png';
     const bin = atob(b64); const u8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: true });
+    // Cierre ChatGPT v3 (renders): el bucket 'renders' sólo tiene política de INSERT para authenticated; `upsert: true`
+    // exige además SELECT/UPDATE y el upload fallaba con "new row violates row-level security policy" (la imagen de
+    // referencia de Cocrear no se conservaba). Todas las rutas llevan Date.now(): son nuevas, no hace falta sobrescribir.
+    const { error } = await nube.storage.from('renders').upload(path, u8, { contentType: mime, upsert: false });
     if (error) return { ok: false, error: error.message };
     const { data } = nube.storage.from('renders').getPublicUrl(path);
     return { ok: true, path, url: data?.publicUrl || null };

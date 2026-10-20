@@ -14,7 +14,8 @@
 //  grupo, zona, ancla, capacidad) para que el acomodo siga sabiendo qué es. Nunca
 //  se tocan precio/costo. Puro y determinista.
 // ============================================================================
-import { inferRole, esAncla, estructuraDe } from './confirmarPrograma.js';
+import { inferRole, esAncla, estructuraDe, rolFromRel } from './confirmarPrograma.js';
+import { inferirDestinoPartida } from './destinoAcomodo.js';
 import { capacidadDeNombre } from './capacidadDeclarada.js';
 
 const esDelPrograma = (p) => !!p && p.source === 'CONFIRMADO_PROGRAMA';
@@ -48,7 +49,13 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     // Idempotente: una fila que YA sustituyó a una del programa no vuelve a consumir otra
     // (p. ej. SONATA ya conciliada no se come también a CONCERTO en la segunda aplicación).
     if (!rel || n.sustituyePrograma) { salida.push(n); continue; }
-    let candidatos = ex.map((e, i) => ({ e, i })).filter(({ e, i }) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel);
+    // VH-AUD-204: si los dos destinos se conocen tienen que ser el mismo (una WIN de puestos operativos no sustituye a
+    // la silla de RECEPCIÓN del programa). El de la fila del programa sale de su ancla; el de la persona, de su texto.
+    const destN = n.anchor_role ? rolFromRel(n.anchor_role) : (inferirDestinoPartida(n) || null);
+    const destE = (e) => rolFromRel(e.anchor_role) || null;
+    const igual = (a, b) => (a === 'open' ? 'operativo' : a) === (b === 'open' ? 'operativo' : b);
+    let candidatos = ex.map((e, i) => ({ e, i })).filter(({ e, i }) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel
+      && (!destN || !destE(e) || igual(destN, destE(e))));
     if (!candidatos.length) { salida.push(n); continue; }
     // 1) Identidad del requerimiento manda; 2) decisión explícita de la persona; 3) misma zona.
     const decision = decisiones && n.id != null ? decisiones[String(n.id)] : null;
@@ -95,6 +102,16 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     if (n.requirement_id) candidatos = candidatos.filter(({ e }) => String(e.requirement_id || '') === String(n.requirement_id));
     else if (decision != null && decision !== 'repartir') candidatos = candidatos.filter(({ e }) => String(e.id) === String(decision));
     else if (zonaDe(n) && decision !== 'repartir') candidatos = candidatos.filter(({ e }) => zonaDe(e) === zonaDe(n));
+    else if (decision == null) {
+      // Recorrido plano→texto (lab 19-oct): la NOTA o el nombre de la partida nombra la sala ("Sala creativa resuelta…",
+      // "Mesa de consejo … para 10 lugares"). Si nombra exactamente UNA de las zonas candidatas, ésa es la evidencia.
+      const t = norm(`${n.nota || ''} ${n.nombre || ''}`);
+      const VACIAS = new Set(['sala', 'salas', 'de', 'del', 'la', 'las', 'el', 'los', 'y', 'oficina', 'area', 'zona', 'nivel']);
+      const claves = (z) => String(z || '').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !VACIAS.has(w));
+      const zonas = [...new Set(candidatos.map(({ e }) => zonaDe(e)).filter(Boolean))];
+      const nombradas = zonas.filter((z) => { const k = claves(z); return k.length && k.every((w) => new RegExp(`\\b${w}\\b`).test(t)); });
+      if (nombradas.length === 1) candidatos = candidatos.filter(({ e }) => zonaDe(e) === nombradas[0]);
+    }
     if (!candidatos.length) { salida.push(n); continue; }
     // Sin evidencia de zona ni decisión: si los candidatos viven en zonas/anclas distintas, es
     // ambiguo → NEEDS_REVIEW (la persona decide), no se sustituye nada.

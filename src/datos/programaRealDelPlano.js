@@ -187,14 +187,14 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
 /** Clave estable de una recomendación (rol + instancia del ancla) para agregarla por línea. */
 export const claveRecomendacion = (r) => `${r.relation_role}|${r.anchor_instance_id || r.instance_id || r.bancoId}`;
 
-export function aplicarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [], incluir = [] } = {}) {
+export function aplicarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [], roles = {}, destinos = {}, incluir = [] } = {}) {
   // P1: `incluir` = claves de recomendaciones de casa que la persona agrega (por línea). Pasan a la propuesta
   // comercial como 'requested'; las demás recomendaciones siguen fuera.
   const inc = new Set((Array.isArray(incluir) ? incluir : []).map(String));
   const propuestaEf = inc.size && Array.isArray(propuesta?.recomendaciones)
     ? { ...propuesta, partidas: [...(propuesta.partidas || []), ...propuesta.recomendaciones.filter((r) => inc.has(claveRecomendacion(r))).map((r) => ({ ...r, inclusion: 'requested' }))] }
     : propuesta;
-  const confirmacion = confirmarPrograma(propuestaEf, { existentes, sustituir, mantenerAmbos, repartir });
+  const confirmacion = confirmarPrograma(propuestaEf, { existentes, sustituir, mantenerAmbos, repartir, roles, destinos });
   return {
     confirmacion,
     partidas: partidasParaAcomodo(confirmacion),

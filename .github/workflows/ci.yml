@@ -24,6 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -43,9 +46,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      # Cada corrida deja SU presupuesto golden con nombre propio: dos CI en paralelo con la misma cuenta ya no se pisan
+      # (19-oct: golden757Edicion buscaba "Torre Sur (golden)" y encontró el de la otra corrida).
+      GOLDEN_CLIENTE: Torre Sur (golden) ${{ github.run_id }}-${{ github.run_attempt }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -66,6 +75,21 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: E2E público + auth condicional
         run: npm run e2e
+      # Seguridad (19-oct): el error-context de Playwright incluye el VALOR de los campos de texto; si el login falla,
+      # la contraseña de la cuenta QA quedaba en el artefacto. Se tacha cualquier aparición de los secretos antes de subir.
+      - name: Tachar secretos de la evidencia
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, pathlib
+          secretos = [s for s in (os.environ.get('TEST_PASSWORD'), os.environ.get('TEST_EMAIL')) if s and len(s) >= 4]
+          for p in pathlib.Path('test-results').rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in ('.md', '.txt', '.json', '.log', '.html', '.yml'):
+                  continue
+              t = p.read_text(errors='ignore'); n = t
+              for s in secretos: n = n.replace(s, '•••')
+              if n != t: p.write_text(n)
+          PY
       - name: Guardar capturas/artefactos de Playwright
         if: always()
         uses: actions/upload-artifact@v4

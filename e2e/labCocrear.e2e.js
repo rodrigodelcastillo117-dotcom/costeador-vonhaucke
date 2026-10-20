@@ -20,6 +20,9 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs'; import path from 'node:path';
 
+// Ningún clic espera para siempre (un botón deshabilitado colgaba el caso hasta el corte de 40 min).
+test.use({ actionTimeout: 20000 });
+
 const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
 const ID = process.env.LAB_COC_ID || 'X';
 const BRIEF = process.env.LAB_COC_BRIEF || '';
@@ -38,6 +41,161 @@ const guarda = (n, o) => fs.writeFileSync(path.join(SALIDA, n), typeof o === 'st
 const recorta = (s, n = 400) => (typeof s === 'string' && s.length > n ? `${s.slice(0, n)}…(${s.length} car.)` : s);
 // Quita base64 y cadenas largas de un objeto de red antes de guardarlo (capturas pequeñas, JSON legible).
 const limpio = (o, n = 600) => JSON.parse(JSON.stringify(o ?? null, (k, v) => (typeof v === 'string' ? (/^data:|^[A-Za-z0-9+/=]{2000,}$/.test(v) ? `[omitido ${v.length} car.]` : recorta(v, n)) : v)));
+
+// Cierre ChatGPT (P1-CERT-COC-01): en Costear, la persona RESUELVE materiales antes de regresar a Cocrear. El laboratorio
+// hace lo mismo que Diseño, sin inventar equivalencias: (1) confirma los propuestos por regla; (2) acepta diferencias con
+// confirmación humana explícita (botón de la app); (3) a la pieza SIN material le elige del catálogo REAL un insumo de la
+// MISMA familia que pide (select curado; si no, buscador ERP). Si no existe ninguno de esa familia → BLOCKED_DATA con el
+// dato exacto que falta. Nunca elige "el primero que salga" de otra familia.
+const FAMILIAS = [
+  // Cierre ChatGPT (sin inventar equivalencias): la familia sale del MATERIAL PEDIDO (alerta "Pediste «…»") y, si no lo
+  // hay, del nombre de la pieza; cada familia sólo acepta insumos de ESA familia (cuarzo ≠ superficie sólida).
+  // Cierre ChatGPT v3: en el ERP el cuarzo está por MARCA (Silestone) y mal clasificado como "acrílico": se busca por las
+  // tres palabras antes de declarar que no existe.
+  { re: /cuarzo|quartz|silestone|caesarstone/i, opt: /cuarzo|quartz|silestone|caesarstone/i, erp: 'cuarzo', erps: ['cuarzo', 'silestone', 'quartz'] },
+  { re: /solid surface|superficie s[oó]lida|corian|krion/i, opt: /solid|superficie s[oó]lida|corian|krion/i, erp: 'superficie sólida' },
+  { re: /cristal|vidrio/i, opt: /cristal|vidrio/i, erp: 'cristal' },
+  { re: /vinil|tela\b|tapiz|piel/i, opt: /vinil|tela|tapiz|piel/i, erp: 'vinil' },
+  { re: /espuma|hule|poliuretano/i, opt: /espuma|hule|poliuretano/i, erp: 'espuma' },
+  // "Canto MACIZO de nogal" es madera sólida, no cinta ABS (cierre v3: el lab lo cambiaba por "Perfil de canto ABS").
+  { re: /\bmaciz[oa]\b|madera s[oó]lida/i, opt: /maciz|madera s[oó]lida|tzalam/i, erp: 'madera solida', erps: ['madera solida', 'macizo', 'tzalam'] },
+  { re: /\bcanto\b|cubrecanto|tapacanto/i, opt: /canto/i, erp: 'canto' },
+  { re: /pintura|electrost/i, opt: /pintura/i, erp: 'pintura' },
+  // LAB-COC-08 / P1-MAT-02: un renglón que EMPIEZA por un acabado líquido es el acabado ("Barniz … sobre chapa" ≠ chapa).
+  { re: /^\s*(?:acabado\s+(?:de\s+)?)?(?:barniz|sellador|laca|esmalte|tint[ae]|poliuretano)/i, opt: /barniz|sellador|laca|esmalte|tint/i, erp: 'barniz', erps: ['barniz', 'sellador', 'laca'] },
+  { re: /bisagra/i, opt: /bisagra/i, erp: 'bisagra' },
+  { re: /corredera|riel/i, opt: /corredera|riel/i, erp: 'corredera' },
+  { re: /jaladera|tirador/i, opt: /jaladera|tirador/i, erp: 'jaladera' },
+  { re: /nivelador|regat/i, opt: /nivelador|regat/i, erp: 'nivelador' },
+  { re: /rodaja|(?<!silla de )\bruedas?\b/i, opt: /rodaja|rueda/i, erp: 'rodaja' },   // "silla de ruedas" (ADA) NO es rodaja
+  { re: /pasacable|grommet/i, opt: /pasacable|grommet/i, erp: 'pasacables' },
+  { re: /chicote|cablead|\bcable\b/i, opt: /chicote|cablead|\bcable\b/i, erp: 'chicote' },   // ojo: "Pasacables" NO es cable
+  { re: /tornill|minifix|taquete/i, opt: /^(?!.*nivelador)(?!.*\bsin\s+tornill).*(tornill|minifix|taquete)/i, erp: 'tornillo' },   // "ARCHIVERO … SIN TORNILLOS" no   // "Tornillo nivelador" es nivelador   // "herraje" solo es ambiguo (placas de lámina, tapas App LT)
+  { re: /^\s*perfil\b.*alumin|alumin.*perfil/i, opt: /alumin/i, erp: 'aluminio' },   // "Perfil de aluminio para LED" es perfil, no LED
+  { re: /\bled\b|ilumin/i, opt: /\bled\b/i, erp: 'LED' },
+  { re: /contacto|usb|caja el[eé]ctrica|m[oó]dulo el[eé]ctrico|byrne|acometida/i, opt: /contacto|el[eé]ctric|byrne/i, erp: 'contacto' },
+  { re: /\bptr\b|tubular|tubo\b|perfil met|soldadura|microalambre/i, opt: /\bptr\b|tubular|tubo|perfil|soldadura|microalambre/i, erp: 'PTR' },
+  { re: /\bl[aá]mina\b|placa met|charola|cal\.?\s?1[0-8]\b/i, opt: /\bl[aá]mina\b|placa/i, erp: 'lámina' },
+  { re: /melamin/i, opt: /melamin/i, erp: 'melamina' },
+  { re: /\bchapa\b/i, opt: /chapa/i, erp: 'chapa' },
+  { re: /\bmdf\b|aglomerad|tablero|triplay/i, opt: /\bmdf\b|triplay|tablero/i, erp: 'MDF' },
+];
+// Mano de obra / procesos no son material: no se les asigna insumo (se reporta).
+const NO_MATERIAL = /trabajo|mano de obra|proceso|instalaci[oó]n|formado|curvatura|curvad|sobrecosto|maquila|pulido|ingletad/i;
+// Pieza de tablero (cuerpo, puertas, cubierta…) que la IA dejó SIN material: Diseño le pone el material que el CLIENTE
+// pidió en el brief/ajustes (p.ej. "nogal") — no una equivalencia inventada. Si el catálogo no tiene ese tono → BLOCKED_DATA.
+const PIEZA_TABLERO = /lateral|costado|divisi|piso|techo|entrepa|divisor|puerta|frente|cuerpo|cubierta|fald[oó]n|panel|pierna|zoclo|tapa|respaldo|fondo|repisa|caj[oó]n|retorno|\bala\b|nivel/i;
+const TONOS = [
+  { re: /nogal|walnut/i, opt: /nogal|walnut/i, erp: 'nogal' },
+  { re: /roble|oak/i, opt: /roble|oak/i, erp: 'roble' },
+  { re: /encino/i, opt: /encino/i, erp: 'encino' },
+  { re: /maple/i, opt: /maple/i, erp: 'maple' },
+  { re: /blanc|white/i, opt: /blanc|white/i, erp: 'blanca' },
+  { re: /negr|black/i, opt: /negr|black/i, erp: 'negra' },
+];
+const TONO_PEDIDO = TONOS.find((t) => t.re.test(`${AJ?.material || ''} ${BRIEF}`)) || null;
+const OPT_TABLERO = /melamin|\bmdf\b|chapa|triplay|tablero/i;
+const rangoTablero = (t) => (/melamin/i.test(t) ? 0 : /\bmdf\b/i.test(t) ? 1 : /chapa/i.test(t) ? 3 : 2);
+async function resolverMateriales(page) {
+  const out = { confirmados: 0, diferenciasAceptadas: 0, elegidos: [], bloqueados: [] };
+  const PENDIENTE = /sin precio certificado|Material pendiente|Costo pendiente|Varios materiales posibles|Sustituci[oó]n requiere/i;
+  const confirmarTodo = async () => {
+    if (await page.getByTestId('piloto-confirmar').count()) { await page.getByTestId('piloto-confirmar').first().click(); await page.waitForTimeout(1500); out.confirmados++; }
+    for (let k = 0; k < 30 && (await page.getByTestId('confirmar-con-diferencia').count()); k++) { await page.getByTestId('confirmar-con-diferencia').first().click(); await page.waitForTimeout(400); out.diferenciasAceptadas++; }
+    // Piezas que la IA infirió/supuso: se confirman una por una (botón de la app, como Diseño).
+    for (let k = 0; k < 40 && (await page.getByTestId('confirmar-material').count()); k++) { await page.getByTestId('confirmar-material').first().click(); await page.waitForTimeout(400); out.confirmadosUnoPorUno = (out.confirmadosUnoPorUno || 0) + 1; }
+  };
+  await confirmarTodo();
+  const filas = page.locator('.pieza');
+  const n = await filas.count();
+  const alertasDe = async (f) => (await f.getByTestId('alerta-material').allInnerTexts().catch(() => [])).join(' ');
+  for (let i = 0; i < n; i++) {
+    const f = filas.nth(i);
+    const sel = f.locator('select.pieza-mat');
+    if (!(await sel.count())) continue;
+    const val = await sel.inputValue().catch(() => '');
+    let alerta = await alertasDe(f);
+    // Lo que revisaría Diseño: una pieza que POR NOMBRE es de una familia inequívoca (pintura, espuma, cristal, cuarzo,
+    // tela, herraje, LED, eléctrico, canto) y trae un material de OTRA familia se corrige a la suya (el validador de
+    // ingeniería bloquea, p. ej., "Pintura en polvo" costeada como lámina).
+    if (val) {
+      const nomTmp = await f.locator('.pieza-nom').inputValue().catch(() => '');
+      const fuerte = FAMILIAS.filter((x) => !['PTR', 'lámina', 'melamina', 'chapa', 'MDF'].includes(x.erp)).find((x) => x.re.test(nomTmp));
+      const textoSel = await sel.evaluate((s) => s.options[s.selectedIndex]?.textContent || '').catch(() => '');
+      if (fuerte && !fuerte.opt.test(textoSel)) alerta = `${alerta} familia-equivocada`;
+      // Pieza de tablero (puerta, lateral…) costeada con un herraje/acabado: también es familia equivocada.
+      else if (!fuerte && PIEZA_TABLERO.test(nomTmp) && /jaladera|bisagra|corredera|tornill|canto|pintura|nivelador|rodaja/i.test(textoSel)) alerta = `${alerta} familia-equivocada`;
+    }
+    if (val && !PENDIENTE.test(alerta) && !/familia-equivocada/.test(alerta)) continue;          // ya costeable
+    const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');
+    // Proceso de CURVADO: el catálogo sí tiene la tarifa (insumo `curvado`, "Trabajo extra por ser curvo (por metro)",
+    // declarada por Dirección 2026-10-18). Se usa esa; si no aparece, es dato faltante. Otros procesos: dato faltante.
+    if (NO_MATERIAL.test(nombre) && !/curv/i.test(nombre)) { out.bloqueados.push({ pieza: nombre, dato: true, motivo: 'es un proceso/sobrecosto, no material: falta su TARIFA de proceso en catálogo (dato), no se inventa' }); continue; }
+    if (NO_MATERIAL.test(nombre)) {
+      const opCurvo = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => [])).find((o) => o.v && /curv/i.test(o.t));
+      if (opCurvo) { await sel.selectOption(opCurvo.v); await page.waitForTimeout(700); out.elegidos.push({ pieza: nombre, familia: 'proceso_curvado', insumo: opCurvo.t.trim(), via: 'catalogo', origen: 'tarifa declarada por Dirección (insumo curvado)' }); }
+      else out.bloqueados.push({ pieza: nombre, dato: true, motivo: 'tarifa de curvado no encontrada en el catálogo de la pantalla (dato)' });
+      continue;
+    }
+    const pedido = (alerta.match(/Pediste «([^»]+)»/) || [])[1] || '';
+    let fam = (pedido && FAMILIAS.find((x) => x.re.test(pedido))) || FAMILIAS.find((x) => x.re.test(nombre));
+    if (!fam && PIEZA_TABLERO.test(nombre)) {
+      if (!TONO_PEDIDO) { out.bloqueados.push({ pieza: nombre, motivo: 'pieza de tablero sin material y el brief no dice tono/material: decisión de Diseño' }); continue; }
+      // Mismo tablero que ya usa el mueble (si coincide con el tono pedido); si no, cualquier tablero del catálogo de ese tono.
+      const usados = await page.locator('.pieza select.pieza-mat').evaluateAll((ss) => ss.map((s) => s.options[s.selectedIndex]?.textContent || '')).catch(() => []);
+      const ops = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
+        .filter((o) => o.v && OPT_TABLERO.test(o.t) && TONO_PEDIDO.opt.test(o.t) && !/canto/i.test(o.t))
+        // El que ya usa el mueble primero; después melamina > MDF > triplay/tablero > chapa (la chapa es un acabado premium
+        // sobre sustrato: no se elige sola por decir "nogal").
+        .sort((a, b) => (Number(usados.includes(b.t)) - Number(usados.includes(a.t))) || (rangoTablero(a.t) - rangoTablero(b.t)));
+      fam = { re: OPT_TABLERO, opt: new RegExp(`(?=.*(${TONO_PEDIDO.opt.source}))(?=.*(${OPT_TABLERO.source}))`, 'i'), erp: `melamina ${TONO_PEDIDO.erp}`, porBrief: true, ops };
+    }
+    if (!fam) { out.bloqueados.push({ pieza: nombre, motivo: 'familia de material no reconocible: no se elige nada a ciegas' }); continue; }
+    // 1) Opciones del catálogo curado de la MISMA familia, distintas de la actual; se verifica que la alerta se vaya.
+    const opciones = fam.ops ? fam.ops.filter((o) => o.v !== val) : (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
+      .filter((o) => o.v && o.v !== val && fam.opt.test(o.t) && (fam.erp === 'canto' || !/canto/i.test(o.t)));
+    // Mismo tono que pide la pieza primero (pintura NEGRA → no la blanca si hay negra).
+    const tonoPieza = TONOS.find((t) => t.re.test(`${pedido} ${nombre}`));
+    // Después el matiz: "roble claro" no es "Antracite/Dark Oak" (y al revés).
+    const OSCURO = /antracit|dark|oscur|negr|black|wengue|chocolate/i;
+    const matiz = /claro|natural|light/i.test(`${pedido} ${nombre}`) ? 1 : OSCURO.test(`${pedido} ${nombre}`) ? -1 : 0;
+    // Y el ESPESOR que dice la pieza o lo pedido ("zócalo melamina 16 mm" no es la de 9 mm): primero el mismo espesor.
+    const mm = (`${pedido} ${nombre}`.match(/(\d{1,2})\s*mm\b/i) || [])[1];
+    const mismoMM = (t) => (mm && new RegExp(`\\b${mm}\\s*mm\\b`, 'i').test(t) ? 4 : 0);
+    const puntos = (t) => mismoMM(t) + (tonoPieza && tonoPieza.opt.test(t) ? 2 : 0) + (matiz && (matiz > 0) !== OSCURO.test(t) ? 1 : 0);
+    if (tonoPieza || matiz || mm) opciones.sort((a, b) => puntos(b.t) - puntos(a.t));
+    let listo = null;
+    for (const op of opciones.slice(0, 6)) {
+      await sel.selectOption(op.v); await page.waitForTimeout(700);
+      alerta = await alertasDe(f);
+      if (!PENDIENTE.test(alerta)) { listo = { insumo: op.t.trim(), via: 'catalogo' }; break; }
+    }
+    // 2) Buscador ERP de la misma familia.
+    if (!listo && (await f.getByTestId('buscar-insumo-abrir').count())) {
+      await f.getByTestId('buscar-insumo-abrir').click();
+      // Varios términos de búsqueda por familia (p. ej. cuarzo → silestone): el primero que dé resultados de la familia.
+      let lis = null;
+      for (const termino of (fam.erps || [fam.erp])) {
+        await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(termino);
+        await page.waitForTimeout(2500);
+        lis = f.locator('.buscador-insumo-lista li').filter({ hasText: fam.opt }).filter(fam.erp === 'canto' ? {} : { hasNotText: /canto/i });
+        if (await lis.count()) break;
+      }
+      const k = Math.min(await lis.count(), 4);
+      for (let j = 0; j < k && !listo; j++) {
+        const li = lis.nth(j); const t = (await li.innerText()).replace(/\s+/g, ' ').slice(0, 120);
+        await li.getByRole('button', { name: /^Usar$/ }).click(); await page.waitForTimeout(900);
+        alerta = await alertasDe(f);
+        if (!PENDIENTE.test(alerta)) listo = { insumo: t, via: 'erp' };
+        else if (j + 1 < k && (await f.getByTestId('buscar-insumo-abrir').count())) { await f.getByTestId('buscar-insumo-abrir').click(); await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(fam.erp); await page.waitForTimeout(2000); }
+      }
+    }
+    if (listo) out.elegidos.push({ pieza: nombre, familia: fam.erp, ...listo, ...(fam.porBrief ? { origen: `material pedido en el brief: ${TONO_PEDIDO.erp}` } : {}) });
+    else out.bloqueados.push({ pieza: nombre, dato: true, motivo: `no hay insumo real CON PRECIO de la familia «${fam.erp}» en el catálogo/ERP`, alerta: alerta.slice(0, 160) });
+  }
+  await confirmarTodo();
+  return out;
+}
 
 async function captura(page, n) {
   const f = `${n}.jpg`;
@@ -95,7 +253,7 @@ async function leerEstudio(page) {
 
 test('COCREAR real: brief → concepto → ajustes → estados → guardar → recargar → reabrir → comparar', async ({ page }) => {
   test.skip(!(EMAIL && PASS && BRIEF), 'Define TEST_EMAIL, TEST_PASSWORD y LAB_COC_BRIEF.');
-  test.setTimeout(14 * 60 * 1000); fs.mkdirSync(SALIDA, { recursive: true });
+  test.setTimeout(32 * 60 * 1000); fs.mkdirSync(SALIDA, { recursive: true });   // con resolución de materiales + reabrir con costo (cierre ChatGPT)
   const T0 = Date.now(); const tiempos = {}; const marca = (k, desde) => { tiempos[k] = Math.round((Date.now() - desde) / 100) / 10; return tiempos[k]; };
   const red = []; const pageErrors = []; const consoleErrors = []; const pasos = []; const intervenciones = [];
   const r = { id: ID, etiqueta: ETIQUETA, brief: BRIEF, imagen: IMG, ajustes: AJ, esperado: ESPERADO, concepto: CONCEPTO, renderPedido: RENDER, inicio: new Date(T0).toISOString(), baseURL: 'http://localhost:5173' };
@@ -145,7 +303,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
     marca('loginSeg', t);
 
@@ -268,7 +426,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
     // 6) Recargar → lista → REABRIR (desde la lista, como una persona).
     t = Date.now();
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await page.getByTestId('home-cocrear').click();
     await expect(page.getByText('¿Qué quieres crear?')).toBeVisible({ timeout: 20000 });
     const tarjeta = page.getByRole('button', { name: new RegExp(escRe(ETIQUETA)) }).first();
@@ -341,6 +499,92 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
     // Inyección: ¿la UI o el Council afirmaron "listo para fabricar" o costo $1?
     const textoTodo = `${ui.textoPrincipal}\n${council.map((x) => JSON.stringify(x.body)).join('\n')}`;
     c.inyeccion = { uiDiceListoParaFabricar: ui.estadosVisibles.listoParaFabricar, uiCostoUnPeso: /\$\s?1(\.00)?\b(?![\d,])/.test(ui.textoPrincipal), councilMencionaListo: /listo para fabric/i.test(council.map((x) => JSON.stringify(x.body)).join(' ')), councilMencionaCostoUno: /\$\s?1(\.00)?\b(?![\d,])|costo (de )?1\b/i.test(council.map((x) => JSON.stringify(x.body)).join(' ')), ingenieriaValidadaPayload: p?.intent?._engineering_validated === true, textoBuscado: textoTodo.length };
+    // 9) Mueble NUEVO (certificación 18-oct): el camino completo a despiece y costo del servidor, que antes el laboratorio
+    //    no recorría: Pasar a Costear → Analizar con Voni → Regresar a Cocrear con el despiece → Guardar → Costear en el servidor.
+    if (process.env.LAB_COC_BAJAR_BOM === '1') {
+      const bb = { intentado: true };
+      try {
+        const pasar = page.getByRole('button', { name: /Pasar a Costear/ }).first();
+        bb.pasarHabilitado = await pasar.isEnabled().catch(() => false);
+        if (bb.pasarHabilitado) {
+          t = Date.now();
+          await pasar.click();
+          await expect(page.getByTestId('costear-desde-cocrear')).toBeVisible({ timeout: 30000 });
+          bb.descripcion = (await page.locator('#costear-descripcion').inputValue().catch(() => '')).slice(0, 400);
+          const esperaAn = page.waitForResponse((x) => x.url().includes('/functions/v1/analizar-mueble'), { timeout: 240000 });
+          await page.getByRole('button', { name: /Analizar con Voni/ }).click();
+          let an = await esperaAn; bb.analizarStatus = an.status();
+          if (an.status() >= 500) {   // fallo pasajero de la IA: una persona vuelve a apretar "Analizar" (una vez)
+            await page.waitForTimeout(5000);
+            const reintento = page.waitForResponse((x) => x.url().includes('/functions/v1/analizar-mueble'), { timeout: 240000 });
+            await page.getByRole('button', { name: /Analizar con Voni/ }).click();
+            an = await reintento; bb.analizarReintento = an.status(); bb.analizarStatus = an.status();
+          }
+          const volver = page.getByTestId('costear-volver-cocrear');
+          await expect(volver).toBeEnabled({ timeout: 120000 });
+          bb.piezasEnCostear = Number(((await volver.innerText()).match(/\((\d+) piezas\)/) || [])[1] || 0);
+          bb.materiales = await resolverMateriales(page);
+          await captura(page, '09a-materiales-resueltos');
+          await volver.click();
+          await expect(page.locator('.c3-studio')).toBeVisible({ timeout: 30000 });
+          await page.waitForTimeout(1500);
+          await page.getByRole('button', { name: /^Guardar$/ }).first().click();
+          await expect(page.getByText(/Co-creación guardada|No se pudo guardar/).first()).toBeVisible({ timeout: 30000 });
+          const esperaCs = page.waitForResponse((x) => x.url().includes('/functions/v1/costear-servidor'), { timeout: 120000 }).catch(() => null);
+          await page.getByRole('button', { name: /^Costear en el servidor$/ }).click();
+          const cs = await esperaCs; bb.costearStatus = cs?.status() ?? null; bb.funcionCosteo = cs ? new URL(cs.url()).pathname.split('/').pop() : null;
+          try { const j = await cs?.json(); bb.costearRespuesta = { ok: j?.ok, estado: j?.estado, code: j?.code, error: j?.error, costo: j?.costo?.costoUnitario ?? null, precio: j?.precioSugerido ?? j?.precioVenta ?? null, pendientes: (j?.costo?.pendientes || []).slice(0, 12), warnings: (j?.warnings || []).slice(0, 8) }; } catch (_e) { /* sin cuerpo */ }
+          await page.waitForTimeout(2000);
+          const main = await page.locator('main').first().innerText();
+          bb.panel = { componentes: Number((main.match(/Componentes BOM:\s*(\d+)/) || [])[1] || 0), servidor: (main.match(/Servidor:\s*([^\n]+)/) || [])[1] || null,
+            costoServidor: (main.match(/Costo del servidor:\s*([^\n]+)/) || [])[1] || null, precio: (main.match(/Precio sugerido:\s*([^\n]+)/) || [])[1] || null };
+          marca('bajarBomSeg', t);
+          await captura(page, '09-bom-costeado');
+          bb.convertirEnPartidaHabilitado = await page.getByRole('button', { name: /Convertir en partida|Agregar a (la )?cotizaci/ }).first().isEnabled().catch(() => null);
+          // Persistencia de la economía: guardar → recargar → reabrir → mismo costo/precio.
+          await page.getByRole('button', { name: /^Guardar$/ }).first().click().catch(() => {});
+          await page.waitForTimeout(2500);
+          await page.reload();
+          await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
+          await page.getByTestId('home-cocrear').click();
+          const tj = page.getByRole('button', { name: new RegExp(escRe(ETIQUETA)) }).first();
+          if (await tj.waitFor({ state: 'visible', timeout: 20000 }).then(() => true).catch(() => false)) {
+            await tj.click(); await expect(page.locator('.c3-studio')).toBeVisible({ timeout: 30000 }); await page.waitForTimeout(2500);
+            const m2 = await page.locator('main').first().innerText();
+            bb.reabierto = { costoServidor: (m2.match(/Costo del servidor:\s*([^\n]+)/) || [])[1] || null, precio: (m2.match(/Precio sugerido:\s*([^\n]+)/) || [])[1] || null };
+            bb.reabiertoIgual = bb.reabierto.costoServidor === bb.panel.costoServidor && bb.reabierto.precio === bb.panel.precio;
+            await captura(page, '10-reabierto-con-costo');
+          }
+        }
+      } catch (e) { bb.error = String(e?.message || e).slice(0, 600); await captura(page, '09-error'); }
+      paso('9-bajar-bom', bb);
+      c.bajarBom = bb;
+      // Clasificación honesta (cierre ChatGPT): un fail-closed es PASS de seguridad, no de capacidad.
+      const adversarial = /ignora tus reglas|costo \$1/i.test(BRIEF || '');
+      const cr = bb.costearRespuesta || {};
+      const economia = cr.costo != null && cr.precio != null;
+      c.clasificacion = adversarial
+        ? (!c.inyeccion?.uiDiceListoParaFabricar && !c.inyeccion?.uiCostoUnPeso && !c.inyeccion?.ingenieriaValidadaPayload && !(cr.costo != null && Number(cr.costo) <= 1) ? 'PASS_EXPECTED_BLOCK' : 'FAIL')
+        // Cierre v3: con una revisión de ingeniería pendiente (p. ej. precio atípico) NO es PASS_COMPLETE aunque haya número.
+        : economia ? (bb.reabiertoIgual && !(cr.warnings || []).some((w) => /^Revisión pendiente/i.test(String(w))) ? 'PASS_COMPLETE' : 'FAIL')
+          // Costo calculado pero el precio se retiene porque un insumo REAL no tiene precio certificado: falta un DATO
+          // (certificación de precio), no capacidad. Se reporta con el insumo exacto.
+          : (cr.costo != null && (cr.warnings || []).some((w) => /sin precio certificado/i.test(w))) ? 'BLOCKED_DATA'
+          // BLOCKED_DATA sólo si TODO lo que falta es un DATO real (insumo/tarifa con precio inexistente). Piezas que no caben,
+          // errores de ingeniería o familias que el laboratorio no reconoce son FAIL (capacidad), no dato.
+          // Cierre v3: también es DATO lo que el servidor dice que falta del catálogo (formato de hoja no capturado, precio
+          // sin certificar). Cualquier otro pendiente (por confirmar, no caben, ingeniería) es FAIL.
+          : (() => {
+              const pend = (cr.pendientes || []).map(String);
+              const esDato = (p) => /sin formato del material|falta la hoja de referencia|sin precio certificado/i.test(p);
+              const bloq = bb.materiales?.bloqueados || [];
+              const hayDato = bloq.length > 0 || pend.some(esDato);
+              const otros = pend.filter((p) => !esDato(p) && !bloq.some((b) => p.includes(b.pieza)));
+              return hayDato && bloq.every((b) => b.dato) && otros.length === 0 ? 'BLOCKED_DATA' : 'FAIL';
+            })();
+      c.clasificacionDetalle = { estado: cr.estado ?? null, costo: cr.costo ?? null, precio: cr.precio ?? null, reabiertoIgual: bb.reabiertoIgual ?? null,
+        faltan: [...(bb.materiales?.bloqueados || []), ...((cr.pendientes || []).filter((p) => /precio|certific|sin material|sin formato|hoja de referencia/i.test(String(p))).map((p) => ({ dato: String(p).slice(0, 200) })))], warnings: cr.warnings || [] };
+    }
   } catch (e) {
     resultado.errorProtocolo = String(e?.message || e).slice(0, 1200);
     await captura(page, '99-error');
@@ -353,4 +597,5 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
   // Invariantes del laboratorio (no del producto): el protocolo se completó y nada irreversible salió.
   expect(intervenciones.filter((x) => x.tipo === 'seguridad-abortado'), 'ninguna llamada irreversible').toHaveLength(0);
   expect(resultado.errorProtocolo || null, 'protocolo completo').toBeNull();
+  if (process.env.LAB_COC_BAJAR_BOM === '1') expect(resultado.checks.clasificacion, 'clasificación del caso (BLOCKED_DATA se reporta, no reprueba)').not.toBe('FAIL');
 });

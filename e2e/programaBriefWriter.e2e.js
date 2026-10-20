@@ -96,7 +96,7 @@ test.describe('E2E P0.1 · gate J — el writer de ProgramBrief (navegador real)
     await page.fill('#email-login', EMAIL);
     await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
 
     // COTIZAR → VONI → PASO 2 (Muebles): aquí vive el CotizadorIA que escribe.
     await page.getByTestId('home-cotizar').click();

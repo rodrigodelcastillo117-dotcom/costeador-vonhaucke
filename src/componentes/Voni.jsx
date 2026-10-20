@@ -111,6 +111,37 @@ function ConflictoPrograma({ c, onConservar, onSustituir, onAmbos }) {
 
 // Prueba de Rodrigo 19-oct: un renglón (p. ej. 16 sillas WIN) que el plano reparte entre varios muebles del mismo tipo
 // (dos bancos de 8). No es un "producto distinto en el mismo lugar": se explica así y "Repartir" sí aplica la decisión.
+// VH-AUD-202: una silla cuyo uso depende del destino (CONCERTO) y el programa pide juntas Y visita: decide la persona.
+const USO_SILLA = { MEETING_SEAT: 'Son de la sala de juntas', VISITOR_SEAT: 'Son de visita (privados)' };
+function RolAmbiguoPrograma({ c, onElegir, onDejar }) {
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="rol-ambiguo-programa">
+      <div style={{ fontWeight: 700 }}>Tienes {c.cantidad} × {c.fila_nombre || 'silla'} y el plano pide sillas de ese modelo en la sala de juntas y como visita. ¿Para qué son las que ya tienes?</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>Mientras no lo decidas no se agregan sillas de ese uso, para no duplicarlas.</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onElegir && (c.opciones || []).map((r) => (
+          <button key={r} type="button" className="boton primario" style={{ minHeight: 34 }} onClick={() => onElegir(r)}>{USO_SILLA[r] || r}</button>
+        ))}
+        <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onDejar}>Dejarlo como está</button>
+      </div>
+    </div>
+  );
+}
+// P1-PROG-01: una fila sin destino que podría ir a dos zonas: la persona elige (nunca se asigna sola a la primera).
+function DestinoAmbiguoPrograma({ c, onElegir, onDejar }) {
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="destino-ambiguo-programa">
+      <div style={{ fontWeight: 700 }}>Tienes {c.cantidad} × {c.fila_nombre || 'pieza'} sin zona, y el plano lo pide en más de un lugar. ¿A dónde va?</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>Mientras no lo decidas no se agrega esa pieza en esas zonas, para no duplicarla.</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onElegir && (c.opciones || []).map((z) => (
+          <button key={z} type="button" className="boton primario" style={{ minHeight: 44 }} onClick={() => onElegir(z)}>Va en {z}</button>
+        ))}
+        <button type="button" className="boton fantasma" style={{ minHeight: 44 }} onClick={onDejar}>Dejarlo como está</button>
+      </div>
+    </div>
+  );
+}
 function RepartoPrograma({ grupo, onRepartir, onDejar }) {
   const t = textoReparto(grupo);
   return (
@@ -422,7 +453,7 @@ export default function Voni({
                   {recomendacionesCasa.map((r) => (
                     <div key={claveRecomendacion(r)} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 3 }} data-testid="recomendacion-casa">
                       <span>➕ {r.cantidad}× {r.nombre}{r.zone_id ? ` · ${r.zone_id}` : ''} <span className="ayuda" style={{ display: 'inline' }}>· {r.regla}</span></span>
-                      <button type="button" className="boton fantasma" style={{ minHeight: 30 }} disabled={!onAplicarPrograma}
+                      <button type="button" className="boton fantasma" style={{ minHeight: 44 }} disabled={!onAplicarPrograma}
                         onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { incluir: [claveRecomendacion(r)] })}>Agregar</button>
                     </div>
                   ))}
@@ -443,7 +474,7 @@ export default function Voni({
                     <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }} data-testid="ambigua-programa" data-id={a.id}>
                       <span>⇄ <b>{a.nombre}</b>{a.cantidad > 1 ? ` ×${a.cantidad}` : ''}{a.zonaActual ? ` (hoy en ${a.zonaActual})` : ''} {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'tiene más unidades que lugar; ¿mover una a…?' : 'es para:'}</span>
                       {a.opciones.map((o) => (
-                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 30 }}
+                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 44 }}
                           onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: o.id } })}>
                           {o.zona || o.nombre}
                         </button>
@@ -486,7 +517,17 @@ export default function Voni({
                         onRepartir={onAplicarPrograma && g[0].fila_id != null ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { repartir: [g[0].fila_id] }) : null} />
                     ));
                   })()}
-                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && !conflictosConservados.has(c.slot)).map((c, i) => (
+                  {conflictosPrograma.filter((c) => c.code === 'DESTINO_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c) => (
+                    <DestinoAmbiguoPrograma key={`dest-${c.slot}`} c={c}
+                      onDejar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                      onElegir={onAplicarPrograma && c.fila_id != null ? (z) => onAplicarPrograma?.(propuestaPrograma.propuesta, { destinos: { [c.fila_id]: z } }) : null} />
+                  ))}
+                  {conflictosPrograma.filter((c) => c.code === 'ROL_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c) => (
+                    <RolAmbiguoPrograma key={`rol-${c.slot}`} c={c}
+                      onDejar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                      onElegir={onAplicarPrograma && c.fila_id != null ? (r) => onAplicarPrograma?.(propuestaPrograma.propuesta, { roles: { [c.fila_id]: r } }) : null} />
+                  ))}
+                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && c.code !== 'ROL_AMBIGUO' && c.code !== 'DESTINO_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c, i) => (
                     <ConflictoPrograma key={i} c={c}
                       onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
                       onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}

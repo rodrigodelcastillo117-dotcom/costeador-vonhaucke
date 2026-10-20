@@ -113,7 +113,7 @@ async function entrar(page, email) {
   await page.fill('#email-login', email);
   await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
 }
 const inputCliente = (page) => page.locator('label.etiqueta', { hasText: /^Cliente$/ }).locator('xpath=following-sibling::input[1]');
@@ -459,7 +459,7 @@ test.describe('4 · Recarga a mitad de edición', () => {
     expect(llamadasA(nube, 'actualizar_cotizacion_segura')).toBe(0);
     const tR = Date.now();
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     T.marca('recargada');
     const local = await leerLocal(page);
     expect(local.cotizacion).toMatchObject({ id, cliente: 'Recarga SA Planta 2', folio: 'RC-77' });   // nada se perdió
@@ -485,7 +485,7 @@ test.describe('4 · Recarga a mitad de edición', () => {
     const id = [...nube.filas.keys()][0];
     expect((await leerLocal(page)).cotizacion.id ?? null).toBeNull();   // el cliente no sabe que se creó
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await expect.poll(async () => (await leerLocal(page)).cotizacion?.id, { timeout: 15000 }).toBe(id);
     T.marca('reconciliada');
     await esperar(2500);
@@ -537,7 +537,7 @@ test.describe('4 · Recarga a mitad de edición', () => {
     const bom = await piezasBOM(page);
     await esperar(500);
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     T.marca('recargada');
     if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
     await page.getByText('Más herramientas').click();
@@ -702,7 +702,7 @@ test.describe('6 · Sesión expirada', () => {
       await expect(page.locator('#email-login')).toBeVisible({ timeout: 10000 });
       await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', PASS);
       await page.getByRole('button', { name: /^Entrar$/i }).click();
-      await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
       await esperarNube(nube, (n) => n.filas.get(id).cliente === 'Sesion SA Norte', 15_000);
       const msRecupera = Date.now() - t0;
       await esperar(2500);

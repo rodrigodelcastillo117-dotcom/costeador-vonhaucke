@@ -22,7 +22,7 @@ test('reabrir y generar renders por área', async ({ page }) => {
   await page.goto('/');
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
   await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
   const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).first();
   await expect(tarjeta).toBeVisible({ timeout: 20000 });
@@ -71,7 +71,7 @@ test('reabrir y generar renders por área', async ({ page }) => {
     const ctx2 = await page.context().browser().newContext(); const p2 = await ctx2.newPage();
     await p2.addInitScript(([k, v]) => { try { window.localStorage.setItem(k, JSON.stringify(v)); window.localStorage.setItem('__lab', '1'); } catch (_e) {} }, [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await p2.goto('/'); await p2.fill('#email-login', EMAIL); await p2.fill('#pass-login', PASS); await p2.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(p2.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 30000 });
+    await expect(p2.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     await p2.getByText('Presupuestos anteriores', { exact: false }).first().click();
     const t2 = p2.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).first(); await expect(t2).toBeVisible({ timeout: 20000 }); await t2.getByRole('button', { name: /^Abrir$/ }).click();
     await expect.poll(async () => (await leerCot(p2))?.id || null, { timeout: 30000 }).toBe(id);

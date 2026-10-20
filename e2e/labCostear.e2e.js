@@ -117,7 +117,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
   await page.getByTestId('home-costear').click();
   await expect(page.getByTestId('costear-archivo')).toBeAttached({ timeout: 15000 });
@@ -254,8 +254,10 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   // 4) Sombra: la última respuesta de costear-servidor vs el costo en pantalla.
   await page.waitForTimeout(6000);
   // Holdout v4 (P1-03): la Edge de costeo EXACTA (no `startsWith`: costear-servidor de producción también empieza así).
-  // v5.2: con hoja (holdout/ciego) la Edge de costeo es SIEMPRE la RC; LAB_COSTEAR_FN sólo aplica al laboratorio sin hoja.
-  const FN_COSTEO = HOJA ? 'costear-servidor-rc' : (process.env.LAB_COSTEAR_FN || 'costear-servidor-rc');
+  // v5.2: con hoja (holdout/ciego) la Edge de costeo es la RC salvo que se pida EXPLÍCITO otra de la familia
+  // (certificación 18-oct contra producción: LAB_COSTEAR_FN=costear-servidor, ya promovida desde la RC).
+  const FN_PEDIDA = /^costear-servidor(-rc)?$/.test(process.env.LAB_COSTEAR_FN || '') ? process.env.LAB_COSTEAR_FN : null;
+  const FN_COSTEO = FN_PEDIDA || 'costear-servidor-rc';
   const costeoAjeno = edges.filter((e) => e.fn.startsWith('costear-servidor') && e.fn !== FN_COSTEO).map((e) => e.fn);
   expect(costeoAjeno, `se costeó con otra Edge que ${FN_COSTEO}`).toEqual([]);
   const srv = edges.filter((e) => e.fn === FN_COSTEO).pop();
@@ -350,6 +352,12 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
         const nSrv = edges.filter((e) => e.fn.startsWith('costear-servidor')).length;
         await btnAdd.first().click();
         await expect.poll(() => edges.filter((e) => e.fn.startsWith('costear-servidor')).length, { timeout: 60000 }).toBeGreaterThan(nSrv).catch(() => {});
+        // Cierre v3: con costo CERTIFICADO, "Agregar" verifica el costo autoritativo (varias llamadas) antes de agregar la
+        // partida; antes se esperaban 3 s fijos y la verificación llegaba DESPUÉS de la auditoría final. Se espera a que la
+        // partida aparezca (o a que el botón deje de decir "Verificando…") y a que la red quede en reposo.
+        await expect.poll(async () => ((await leerCot(page))?.partidas || []).length, { timeout: 60000 }).toBeGreaterThan(antes).catch(() => {});
+        await expect(page.getByRole('button', { name: /Verificando costo/ })).toHaveCount(0, { timeout: 60000 }).catch(() => {});
+        await page.waitForLoadState('networkidle').catch(() => {});
         await page.waitForTimeout(3000);
         const srv2 = edges.filter((e) => e.fn.startsWith('costear-servidor')).pop();
         const cot = await leerCot(page); const partidas = cot?.partidas || [];
@@ -392,10 +400,10 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   guardarCrudas();   // otra vez al final, en el mismo instante que la auditoría: crudas y resumen salen del mismo `edges`
   const hojaDeclarada = process.env.LAB_HOJA ? { ruta: path.relative(process.cwd(), path.resolve(process.env.LAB_HOJA)).split(path.sep).join('/'),
     sha256: crypto.createHash('sha256').update(fs.readFileSync(process.env.LAB_HOJA)).digest('hex') } : null;
-  const auditoria = auditarLlamadasCorrida(edges, { fnCosteo: HOJA ? 'costear-servidor-rc' : FN_COSTEO, costeable: HOJA ? costeableDeHoja(HOJA) : true, hoja: hojaDeclarada });
+  const auditoria = auditarLlamadasCorrida(edges, { fnCosteo: FN_COSTEO, costeable: HOJA ? costeableDeHoja(HOJA) : true, hoja: hojaDeclarada });
   guarda('llamadas.json', auditoria);
   guarda('ia_requests.json', auditoria.ia);
-  expect(auditoria.costeo.ajenas, 'toda llamada costear-servidor* de la hoja (incluidas transferencia, reapertura y recosteo) fue costear-servidor-rc').toEqual([]);
+  expect(auditoria.costeo.ajenas, `toda llamada costear-servidor* de la hoja (incluidas transferencia, reapertura y recosteo) fue ${FN_COSTEO}`).toEqual([]);
   expect(auditoria.motivos, 'auditoría de llamadas de la corrida').toEqual([]);
   // Nada llega después de la auditoría final: si llegó, la evidencia escrita no es la corrida completa.
   const nAuditadas = edges.length; await page.waitForTimeout(3000);

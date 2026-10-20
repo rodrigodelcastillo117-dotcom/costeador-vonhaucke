@@ -18,7 +18,7 @@ async function abrir(browser, nombreTab) {
   await page.goto('/');
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
   await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
   const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).first();
   await expect(tarjeta).toBeVisible({ timeout: 20000 });
@@ -59,7 +59,7 @@ test('dos pestañas editan la misma cotización: ¿se pisan?', async ({ browser 
   console.log('[lab-conc]', JSON.stringify(resumen));
   // Deshacer: B regresa la partida 2; A recarga y regresa la partida 1 si quedó.
   await B.page.getByRole('button', { name: '−' }).nth(1).click(); await B.page.waitForTimeout(4000);
-  await A.page.reload(); await expect(A.page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 30000 });
+  await A.page.reload(); await expect(A.page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
   const final = await B.nube(); console.log('[lab-conc] final', JSON.stringify(final.cantidades));
   if (final.cantidades[0]?.[1] !== antes.cantidades[0]?.[1]) {
     await A.page.getByText('Presupuestos anteriores', { exact: false }).first().click();

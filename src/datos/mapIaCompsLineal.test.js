@@ -14,8 +14,10 @@ describe('VH-160 · piezas lineales: los metros salen de largoMM × piezas', () 
     expect(c.cantidad).toBeCloseTo(2.924, 6);
     expect(c.piezasLineales).toBe(4);
   });
-  it('si la IA ya puso los metros en cantidad (5.0 con largoMM 5000) no se multiplica', () => {
-    expect(pieza({ nombre: 'Base PTR', insumoId: 'ptr-14', forma: 'lineal', largoMM: 5000, cantidad: 5 }).cantidad).toBe(5);
+  it('VH-AUD-201: cantidad 5 con largoMM 5000 son 5 piezas (25 m), nunca "ya eran metros"; queda para revisión', () => {
+    const c = pieza({ nombre: 'Base PTR', insumoId: 'ptr-14', forma: 'lineal', largoMM: 5000, cantidad: 5 });
+    expect(c.cantidad).toBe(25);
+    expect(c.iaIncoherencia).toMatchObject({ campo: 'cantidadLineal' });
   });
   it('lineal sin largoMM: cantidad son metros (contrato anterior intacto)', () => {
     expect(pieza({ nombre: 'Tapacanto', insumoId: 'tapacanto', forma: 'lineal', cantidad: 4.4 }).cantidad).toBe(4.4);

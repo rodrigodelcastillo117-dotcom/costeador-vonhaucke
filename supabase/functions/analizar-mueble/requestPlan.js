@@ -90,7 +90,7 @@ export function renglonPrevio(p = {}) {
   const forma = p.forma || (n0(p.largoMM) && n0(p.anchoMM) ? 'area' : 'pieza');
   if (forma === 'lineal') {
     const L = n0(p.largoMM);
-    if (L > 0) return `- ${p.nombre} ${mat} LINEAL: ${fmt(cant)} pieza(s) × ${fmt(L)} mm c/u = ${fmt((cant * L) / 1000)} m en total (largoMM=${fmt(L)}, cantidad=${fmt(cant)})${conf}`;
+    if (L > 0) return `- ${p.nombre} ${mat} LINEAL: ${fmt(cant)} pieza(s) × ${fmt(L)} mm c/u = ${fmt((cant * L) / 1000)} m en total (largoMM=${fmt(L)}, cantidad=${fmt(cant)}, metrosTotales=${fmt((cant * L) / 1000)})${conf}`;
     return `- ${p.nombre} ${mat} LINEAL: ${fmt(cant)} m en total (sin largo por pieza)${conf}`;
   }
   if (forma === 'area') {

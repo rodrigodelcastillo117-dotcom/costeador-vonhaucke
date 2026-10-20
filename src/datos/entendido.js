@@ -4,6 +4,7 @@
 import { tipoDe, vaBajoEscritorio } from './espacio.js';
 import { esSillaDeVisita } from './planner.js';
 import { puestosDe } from './porCuarto.js';
+import { inferRole } from './confirmarPrograma.js';
 
 const sinAcento = (s) => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 const esBench = (pt) => /banca|bench/.test(sinAcento(pt.nombre)) || puestosDe(pt.nombre) > 1;
@@ -20,13 +21,19 @@ const GRUPOS = [
   { clave: 'puestos', titulo: 'Puestos de trabajo', unidad: 'personas',
     es: (pt) => tipoDe(pt) === 'escritorio', cuenta: (pt) => puestosDe(pt.nombre, pt.cantidad) },
   { clave: 'juntas', titulo: 'Mesas de juntas', unidad: 'mesas', es: (pt) => tipoDe(pt) === 'juntas' },
+  // Recorrido texto→plano (lab 19-oct): el mostrador de recepción es un PUESTO (quien atiende tiene su silla de
+  // trabajo). Antes caía en "Lo demás" / guardado y salía "18 sillas de trabajo para 17 puestos: sobran 1".
+  { clave: 'recepcion', titulo: 'Recepción', unidad: 'personas',
+    es: (pt) => !esAsiento(pt) && /recepci|mostrador/.test(sinAcento(pt.nombre)),
+    cuenta: (pt) => (Number(pt.user_capacity ?? pt.usuarios) > 0 ? Number(pt.user_capacity ?? pt.usuarios) : 1) * (pt.cantidad || 1) },
   { clave: 'guardas', titulo: 'Guardado de piso', unidad: 'muebles',
     es: (pt) => tipoDe(pt) === 'guarda' && !vaBajoEscritorio(pt) },
   { clave: 'gavetas', titulo: 'Gavetas bajo la cubierta', unidad: 'gavetas', es: (pt) => vaBajoEscritorio(pt) },
   { clave: 'sillas', titulo: 'Sillas de trabajo', unidad: 'sillas',
     es: (pt) => esAsiento(pt) && esSillaPuesto(pt) && !esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) },
   { clave: 'visita', titulo: 'Sillas de visita', unidad: 'sillas',
-    es: (pt) => esAsiento(pt) && esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) },
+    // Una CONCERTO "de visita" en el catálogo que la nota manda a la sala de juntas es de REUNIÓN.
+    es: (pt) => esAsiento(pt) && esSillaDeVisita({ tipo: 'asiento', nombre: pt.nombre }) && inferRole(pt) !== 'MEETING_SEAT' },
   { clave: 'reunion', titulo: 'Sillas de reunión / otras', unidad: 'sillas', es: (pt) => esAsiento(pt) },
   { clave: 'mamparas', titulo: 'Mamparas y muros', unidad: 'piezas', es: (pt) => tipoDe(pt) === 'mampara' },
   { clave: 'otros', titulo: 'Lo demás', unidad: 'piezas', es: () => true },
@@ -43,7 +50,7 @@ export function loQueEntendi(partidas = [], areasM = []) {
   }
   const vivos = grupos.filter((g) => g.renglones.length).map(({ es, cuenta, ...g }) => g);
   const de = (clave) => vivos.find((g) => g.clave === clave)?.cuentaTotal || 0;
-  const puestos = de('puestos');
+  const puestos = de('puestos') + de('recepcion');
   const sillas = de('sillas');
   const visitas = de('visita');
   const reunion = de('reunion');
@@ -75,8 +82,29 @@ export function loQueEntendi(partidas = [], areasM = []) {
   if (puestos > 0 && sillas > puestos) {
     avisos.push({ tono: 'ambar', texto: `Hay ${sillas} sillas de trabajo para ${puestos} puestos: sobran ${sillas - puestos}.` });
   }
+  // Lab de recorridos 19-oct (plano→texto): el plano contó 8 escritorios en OPERATIVA y el texto pidió 16. Ninguno de
+  // los dos números es "el bueno" por sí solo; lo que no puede pasar es que nadie lo diga.
+  const puestosOpPlano = (areasM || []).filter((a) => a?.tipo === 'open' && Number(a?.puestos) > 0).reduce((s, a) => s + Number(a.puestos), 0);
+  const puestosOpCot = de('puestos') - partidas.filter((pt) => tipoDe(pt) === 'escritorio' && !esBench(pt)).reduce((s, pt) => s + puestosDe(pt.nombre, pt.cantidad), 0);
+  if (puestosOpPlano > 0 && puestosOpCot > 0 && puestosOpPlano !== puestosOpCot) {
+    avisos.push({ tono: 'ambar', texto: `El plano cuenta ${puestosOpPlano} puestos operativos y la cotización trae ${puestosOpCot}. Revisa cuál es el correcto antes de acomodar.` });
+  }
   if (gavetas > puestos && puestos > 0) {
     avisos.push({ tono: 'ambar', texto: `Hay ${gavetas} gavetas para ${puestos} puestos: sobran ${gavetas - puestos}.` });
+  }
+  // Recorrido texto→plano (lab 19-oct): "Eclipse Mesa de consejo modular recta 1.80 m … para 10 lugares" pasaba sin
+  // aviso (y el acomodo la dejaba en 6). Si la nota pide N lugares y la mesa da menos (ficha del banco o ≈ una silla
+  // cada 0.60 m por lado), se dice. No se cambia la mesa sola: la persona decide (otra mesa o más módulos).
+  for (const pt of partidas) {
+    if (tipoDe(pt) !== 'juntas') continue;
+    const pide = Number((sinAcento(pt.nota).match(/para\s+(\d+)\s*(?:lugares|personas|plazas|usuarios|sillas)/) || [])[1]) || 0;
+    if (!pide) continue;
+    const mL = sinAcento(pt.nombre).match(/(\d+(?:\.\d+)?)\s*(?:m\b|x|×)/);
+    const largo = Number(pt.w) > 0 ? Number(pt.w) : (mL ? (Number(mL[1]) < 20 ? Number(mL[1]) * 1000 : Number(mL[1])) : 0);
+    const cap = (Number(pt.user_capacity ?? pt.usuarios) > 0 ? Number(pt.user_capacity ?? pt.usuarios) : (largo ? 2 * Math.floor(largo / 600) : 0)) * (pt.cantidad || 1);
+    if (cap > 0 && cap < pide) {
+      avisos.push({ tono: 'ambar', texto: `La mesa «${pt.nombre}» da para unos ${cap} lugares y la nota pide ${pide}. Cambia a una mesa más grande o agrega módulos.` });
+    }
   }
   if (espacio.privados > 0) {
     const individuales = partidas.filter((pt) => tipoDe(pt) === 'escritorio' && !esBench(pt)).reduce((s, pt) => s + (pt.cantidad || 0), 0);

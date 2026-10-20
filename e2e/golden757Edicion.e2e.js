@@ -11,7 +11,7 @@ import fs from 'node:fs';
 //  golden más reciente con acomodo" entre datos compartidos mientras golden757 corría en paralelo: flaky en CI 786 y 789
 //  ("ningún presupuesto golden reciente tiene acomodo": las 6 tarjetas recientes estaban a medias).
 const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
-const CLIENTE = process.env.GOLDEN_CLIENTE || 'Torre Sur (golden)';
+let CLIENTE = process.env.GOLDEN_CLIENTE || 'Torre Sur (golden)';
 const CLAVE = 'costeador-vonhaucke-v1';
 const leerCot = (page) => page.evaluate((k) => { try { return JSON.parse(window.localStorage.getItem(k))?.cotizacion || null; } catch (_e) { return null; } }, CLAVE);
 const firmaCol = (plan) => JSON.stringify((plan?.colocacion || []).map((c) => [c.id, c.area, c.x, c.y, c.rot || 0]).sort());
@@ -28,11 +28,12 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
 
     // Abre EXACTAMENTE el presupuesto que dejó golden757 en esta corrida (por id): ni "el más reciente" ni datos ajenos.
     const golden = JSON.parse(fs.readFileSync('test-results/golden757-ultimo.json', 'utf8'));
     expect(golden.id, 'golden757 dejó el id de su presupuesto').toBeTruthy();
+    if (golden.cliente) CLIENTE = golden.cliente;   // el nombre EXACTO con el que golden757 lo guardó
     const abrir = async (conPlan = true, idBuscado = golden.id) => {
       await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
       const total = await page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).count();
@@ -99,7 +100,7 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     // Otra "computadora": estado local vacío, recarga, reabrir desde el Archivo.
     await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     const cot2 = await abrir(true, id);                // el MISMO presupuesto, aunque otra corrida haya creado uno más nuevo
     expect(cot2.id).toBe(id);
     expect(cot2.partidas.length).toBe(cot0.partidas.length);

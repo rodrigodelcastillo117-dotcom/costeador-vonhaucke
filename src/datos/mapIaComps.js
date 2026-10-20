@@ -57,6 +57,9 @@ function marcarTotalLinealIncoherente(comps, piezas) {
     if (!grupos.has(k)) grupos.set(k, []);
     grupos.get(k).push(i);
   });
+  // SRV-01: el total que la IA declara viaja como EVIDENCIA en el renglón (ia_totales_declarados_m) para que el servidor
+  // repita este mismo diagnóstico con la misma función (revisionEstructural.totalesLinealesIncoherentes).
+  comps.forEach((c, i) => { if (c.forma === 'lineal') { const d = totalesDeclaradosM(piezas[i]); if (d.length) c.ia_totales_declarados_m = d; } });
   for (const [insumoId, idx] of grupos) {
     const declarados = idx.flatMap((i) => totalesDeclaradosM(piezas[i]));
     if (!declarados.length) continue;
@@ -95,18 +98,28 @@ export function mapIaComps(p, insumos = {}) {
     base.procedencia = procedenciaCanonica(z.procedencia);
     if (z.evidencia) base.evidencia = String(z.evidencia).slice(0, 240);
     if (Number.isFinite(Number(z.pagina)) && Number(z.pagina) > 0) base.pagina = Number(z.pagina);
-    // LINEALES (VH-160): la IA manda el largo de UNA pieza en largoMM y el número de piezas en cantidad
-    // ("Base PTR", largoMM 5000, cantidad 1). Antes se descartaba largoMM y el motor recibía 1 m. Los metros
-    // son largoMM/1000 × piezas. Si la IA ya puso los metros en cantidad (cantidad ≈ largoMM/1000), no se multiplica.
+    // LINEALES (VH-160 + VH-AUD-201): contrato inequívoco — largoMM = largo de UNA pieza, cantidad = NÚMERO de piezas,
+    // metrosTotales = el total que la IA declara. Los metros son largoMM/1000 × piezas. NUNCA se adivina por coincidencia
+    // numérica (antes "cantidad ≈ largoMM/1000 ⇒ ya son metros": 2 × 2000 mm salía 2 m, no 4). Si la IA declara un total
+    // que no cuadra, o la cantidad podría ser metros (contrato viejo: no entera, o igual al largo en m), se costea como
+    // piezas y queda REVIEW_REQUIRED: el validador estructural lo bloquea hasta que una persona lo confirme.
+    if (base.forma === 'lineal' && !(Number(z.largoMM) > 0) && Number(z.metrosTotales) > 0) base.cantidad = Number(z.metrosTotales);
     if (base.forma === 'lineal' && Number(z.largoMM) > 0) {
       const m1 = Number(z.largoMM) / 1000, n = Number(z.cantidad) > 0 ? Number(z.cantidad) : 1;
-      base.cantidad = Math.abs(n - m1) <= 0.05 ? n : Math.round(m1 * n * 1000) / 1000;
-      base.largoLinealMM = Number(z.largoMM); base.piezasLineales = Math.abs(n - m1) <= 0.05 ? 1 : n;
+      const total = Math.round(m1 * n * 1000) / 1000;
+      base.cantidad = total;
+      base.largoLinealMM = Number(z.largoMM); base.piezasLineales = n;
+      const declarado = Number(z.metrosTotales) > 0 ? Number(z.metrosTotales) : null;
+      if (declarado != null) {
+        if (Math.abs(declarado - total) / total > 0.05) base.iaIncoherencia = { campo: 'metrosTotales', dice: declarado, puso: total, piezas: n, largoMM: Number(z.largoMM) };
+      } else if (!Number.isInteger(n) || (n > 1 && Math.abs(n - m1) <= 0.05)) {
+        base.iaIncoherencia = { campo: 'cantidadLineal', dice: n, puso: total, piezas: n, largoMM: Number(z.largoMM) };
+      }
       // Certificación 18-oct (mesa de centro): la IA razonó "perímetro 2800 mm" y escribió largoMM 1800. Si su propio
       // razonamiento declara el perímetro de la pieza y no coincide (±5 %) con el largo que puso, se marca: el validador
       // estructural lo bloquea para que la persona lo corrija. No se corrige solo: no se elige por ella cuál número vale.
       const per = String(z.razonamiento || '').match(/per[ií]metro\s*(?:de\s*)?(\d{3,6})\s*mm/i);
-      if (per) { const dice = Number(per[1]), puso = Number(z.largoMM); if (Math.abs(dice - puso) / dice > 0.05) base.iaIncoherencia = { campo: 'largoMM', dice, puso }; }
+      if (per && !base.iaIncoherencia) { const dice = Number(per[1]), puso = Number(z.largoMM); if (Math.abs(dice - puso) / dice > 0.05) base.iaIncoherencia = { campo: 'largoMM', dice, puso }; }
       // Certificación 19-oct: la 2ª pasada "corrigió" 2 × 2800 a 1 × 2800 escribiendo "largo total 5600 mm" en su nota.
       const lt = `${z.nota || ''} ${z.razonamiento || ''}`.match(/largo\s+total\s*(?:de\s*)?(\d{3,6})\s*mm/i);
       if (!base.iaIncoherencia && lt) { const dice = Number(lt[1]), puso = Math.round(base.cantidad * 1000); if (Math.abs(dice - puso) / dice > 0.05) base.iaIncoherencia = { campo: 'largoTotal', dice, puso }; }

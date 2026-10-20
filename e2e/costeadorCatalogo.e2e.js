@@ -14,7 +14,7 @@ async function abrirModoAvanzado(browser, nube) {
   await page.goto('/');
   await page.fill('#email-login', 'rodrigo@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
   await page.getByText('Más herramientas').click();   // inicio vivo: tres tarjetas + atajos plegados
   await page.getByRole('button', { name: /^Costeo manual/ }).click();

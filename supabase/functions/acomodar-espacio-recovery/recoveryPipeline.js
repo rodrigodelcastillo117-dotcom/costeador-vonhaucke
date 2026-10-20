@@ -18,8 +18,15 @@ import { mensajeVendedor } from './opciones.js';
 // GAP28: las opciones se verifican con el MISMO contrato del pipeline final
 // (resolverKitsMulti → hard → semantic → quality). El verifier NO llama a
 // mensajeVendedor, así que no hay recursión.
+// Laboratorio de recorridos 19-oct (546 en producción): cuando algo no cabe, cada opción sugerida re-corría el multi
+// COMPLETO (6 estrategias); con dos mesas de más eran ~0.4 s locales sólo en opciones y la edge pasaba de 2 s de CPU.
+// Las simulaciones usan la estrategia GANADORA del acomodo principal (y la base): misma verificación (HARD ∧ SEMANTIC ∧
+// QUALITY del pipeline), menos órdenes de búsqueda. Puede encontrar menos opciones; nunca anuncia una no verificada.
 function mensajeSerializable(areas, piezas, sol, cacheEstatico) {
-  const m = mensajeVendedor(areas, piezas, sol, { resolver: (as, ps) => resolverKitsMulti(as, ps, { cacheEstatico }) });
+  const g = sol?.seleccion?.ganador_orden;
+  const ganadora = g == null || g === 'row' ? undefined : g;
+  const estrategias = ganadora === undefined ? [undefined] : [ganadora, undefined];
+  const m = mensajeVendedor(areas, piezas, sol, { resolver: (as, ps) => resolverKitsMulti(as, ps, { cacheEstatico, estrategias }) });
   return { pendientes: m.pendientes, motivos: m.motivos, opciones: m.opciones.map((o) => ({ id: o.id, texto: o.texto })), sin_opcion: m.sin_opcion, hay_pendientes: m.hay_pendientes };
 }
 

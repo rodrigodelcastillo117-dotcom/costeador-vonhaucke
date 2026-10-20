@@ -36,7 +36,10 @@ const COMP_PERMITIDOS = ['insumoId', 'nombre', 'cantidad', 'largoMM', 'anchoMM',
   'areaPintadaM2', 'tubular',
   // Auditoría 2026-10-14 (P1-01): procedencia de la pieza (OBSERVADO/INFERIDO/SUPUESTO) y si una persona confirmó que
   // EXISTE. Son técnicos, no económicos: con ellos el servidor no certifica un costo con piezas inferidas sin confirmar.
-  'procedencia', 'pieza_confirmada'];
+  'procedencia', 'pieza_confirmada',
+  // SRV-01 (cierre ChatGPT v3): EVIDENCIA técnica para que el servidor repita el diagnóstico "la IA declara TOTAL X m y
+  // sus renglones suman Y" con la MISMA función que el cliente (revisionEstructural). No mueve dinero: sólo bloquea.
+  'ia_totales_declarados_m'];
 
 // MATERIAL_PENDING (P0-05): estados de match en los que la IA NO asignó insumoId
 // porque el catálogo no tiene la familia/precio. El componente NO se inventa ni se
@@ -148,6 +151,7 @@ export function validarIntentCosteo(body) {
       // sólo lo HONRA con capability Diseño/Dirección (índice/reconcile); aquí sólo se sanea.
       if (campo === 'engineering_override') { if (c.engineering_override === true) limpio.engineering_override = true; continue; }
       if (campo === 'override_motivo') { if (typeof c.override_motivo === 'string' && c.override_motivo.trim()) limpio.override_motivo = c.override_motivo.trim().slice(0, 300); continue; }
+      if (campo === 'ia_totales_declarados_m') { const v = Array.isArray(c.ia_totales_declarados_m) ? c.ia_totales_declarados_m.filter((x) => finito(x) && x > 0 && x < 100000).slice(0, 10) : []; if (v.length) limpio.ia_totales_declarados_m = v; continue; }
       limpio[campo] = c[campo];
     }
     // Normaliza el pendiente: insumoId='' explícito + bandera para UI/motor.
@@ -200,6 +204,14 @@ export function validarIntentCosteo(body) {
     else promesaOk = promesaDeOrigen(body.promesa, compsLimpios);
   }
 
+  // SRV-01: claves de revisiones que una persona marcó como revisadas en pantalla. El servidor sólo las honra con
+  // capability (Diseño/Dirección), igual que la confirmación de material.
+  let revisionesOk = null;
+  if (pieza.revisiones_aceptadas != null) {
+    if (!Array.isArray(pieza.revisiones_aceptadas)) issues.push({ field: 'pieza.revisiones_aceptadas', msg: 'revisiones_aceptadas debe ser una lista de claves.' });
+    else revisionesOk = pieza.revisiones_aceptadas.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim().slice(0, 200)).slice(0, 50);
+  }
+
   if (issues.length) return { ok: false, code: 'INVALID_INPUT', issues };
 
   const intent = {
@@ -207,7 +219,7 @@ export function validarIntentCosteo(body) {
     ...(body.version != null ? { version: body.version } : {}),
     ...(body.contexto != null ? { contexto: body.contexto } : {}),
     cantidad,
-    pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}), ...(dificultadOk != null ? { dificultad: dificultadOk } : {}) },
+    pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}), ...(dificultadOk != null ? { dificultad: dificultadOk } : {}), ...(revisionesOk?.length ? { revisiones_aceptadas: revisionesOk } : {}) },
     ...(identidadOk ? { identidad: identidadOk } : {}),
     ...(promesaOk ? { promesa: promesaOk } : {}),
   };
@@ -252,6 +264,7 @@ export function intentDesdePieza(pieza, cantidad = 1) {
     ? Object.fromEntries(Object.entries(pieza.horas).filter(([, h]) => Number.isFinite(h) && h >= 0))
     : undefined;
   const n = Math.max(1, Math.round(Number(cantidad) || 1));
-  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}) },
+  const revs = Array.isArray(pieza?.revisionesAceptadas) ? pieza.revisionesAceptadas.filter((x) => typeof x === 'string' && x) : [];
+  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}), ...(revs.length ? { revisiones_aceptadas: revs } : {}) },
     identidad: identidadDeCosteo(pieza), promesa: promesaDeclaradaDeCosteo(pieza) };
 }

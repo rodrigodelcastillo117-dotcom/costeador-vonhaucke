@@ -29,7 +29,8 @@ export const REGLAS_TALLER = Object.freeze({
   niveladores: Object.freeze({ porModulo: 4, solicitado: 'Nivelador' }),
   // Zoclo: en gabinete bajo sin base/patas se recomienda (durabilidad y vista), 100 mm.
   // VH-169: "gabinete BAJO" = costado de hasta 1100 mm (credenza, gabinete bajo). Un librero o gabinete alto no recibe zoclo solo.
-  zoclo: Object.freeze({ altoMM: 100, gabineteBajoMaxMM: 1100 }),
+  // Cierre v3 (cocrear-5): un zoclo más largo que la hoja se corta en tramos iguales de hasta 2400 mm (hoja 2440 − corte).
+  zoclo: Object.freeze({ altoMM: 100, gabineteBajoMaxMM: 1100, tramoMaxMM: 2400 }),
   // Refuerzo: entrepaño/repisa con claro ≥ 800 mm → recomendar travesaño trasero (por coherencia
   // con la carga que irá en el estante; no se agrega solo).
   refuerzo: Object.freeze({ claroMM: 800 }),

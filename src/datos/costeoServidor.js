@@ -52,10 +52,14 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
   const idsPieza = [...new Set((pieza.componentes || []).map((c) => String(c?.insumoId || '')).filter(Boolean))];
   let insumos = null;
   let catalogoFuente = 'catalogo';
-  try {
-    const { data: cat, error: catErr } = await svc.rpc('catalogo_motor', { p_incluir_erp: false, p_ids: idsPieza.length ? idsPieza : null });
-    if (!catErr && cat && typeof cat === 'object' && Object.keys(cat).length) insumos = cat;
-  } catch (_e) { /* fallback abajo */ }
+  // Cierre ChatGPT (2026-10-20): un fallo PASAJERO del catálogo (base lenta) mandaba el costo a la configuración de
+  // respaldo. Se reintenta UNA vez antes de caer al respaldo (que sigue avisando "no cotices en firme").
+  for (let intento = 0; intento < 2 && !insumos; intento++) {
+    try {
+      const { data: cat, error: catErr } = await svc.rpc('catalogo_motor', { p_incluir_erp: false, p_ids: idsPieza.length ? idsPieza : null });
+      if (!catErr && cat && typeof cat === 'object' && Object.keys(cat).length) insumos = cat;
+    } catch (_e) { /* reintento / fallback abajo */ }
+  }
   if (!insumos) {
     catalogoFuente = 'config-fallback';
     insumos = (datos.insumos && typeof datos.insumos === 'object' && Object.keys(datos.insumos).length)
@@ -98,12 +102,16 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
   // FAIL-CLOSED: MISMO juez que el cliente. Esto incluye material/precio faltante,
   // costo no finito y piezas que NO CABEN en el formato de compra. No duplicamos
   // la definición de emitibilidad en la Edge.
-  const emision = costeoEmitible(r);
+  let emision = costeoEmitible(r);
   // VONI Ingeniería en el servidor autoritativo: los bloqueos que NO dependen de una decisión humana (material con función
   // equivocada, cantidad imposible) se aplican aquí también; un cliente alterado no se los salta. Los "aceptables"
   // (duplicado, conteo distinto a la descripción) y los que requieren medidas generales los decide la persona en pantalla.
-  const bloqueosIng = revisarEstructura({ componentes: piezaEfectiva.componentes, insumos, descripcion: '' })
-    .observaciones.filter((o) => o.nivel === 'blocker' && !o.aceptable);
+  // SRV-01 (cierre ChatGPT v3): los "aceptables" (la IA se contradice, total declarado ≠ suma, duplicado…) los decide una
+  // persona; el servidor ya NO los calla: los repite con la MISMA función y el MISMO texto que la pantalla y topa el estado
+  // en 'preliminar' mientras nadie con capability los marque como revisados (pieza.revisiones_aceptadas).
+  const obsIng = revisarEstructura({ componentes: piezaEfectiva.componentes, insumos, descripcion: '', aceptadas: puedeConfirmar ? (pieza.revisiones_aceptadas || []) : [] }).observaciones;
+  const bloqueosIng = obsIng.filter((o) => o.nivel === 'blocker' && !o.aceptable);
+  const revisionesPendientes = obsIng.filter((o) => o.nivel === 'blocker' && o.aceptable).map((o) => ({ clave: o.clave, mensaje: o.mensaje }));
   const faltan = Array.isArray(r.componentesIgnorados) ? r.componentesIgnorados : [];
   const warnings = [];
   if (catalogoFuente === 'config-fallback') warnings.push('Catálogo central no disponible: costo con la configuración de respaldo. No cotices en firme.');
@@ -146,7 +154,7 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
 
   // ESTADO con motivos (OP9.5-04). 'incompleto' sólo si FALTA un dato; 'bloqueado' si el cálculo no es físicamente válido
   // o Ingeniería está en rojo; un material "por confirmar" con precio real es 'preliminar' con su motivo, no 'incompleto'.
-  const base = estadoBaseServidor({ emision, bloqueosIng, noCertificados, usados, requierenValidacion, costoUnitario: r.costoUnitario });
+  const base = estadoBaseServidor({ emision, bloqueosIng, noCertificados, usados, requierenValidacion, costoUnitario: r.costoUnitario, nombreDe: (id) => insumos[id]?.nombre || null });
   let estado = base.estado;
   for (const w of base.warnings) if (!warnings.includes(w)) warnings.push(w);
   // P0.11: si hay algún material LEGACY_SELECTED, el estado se topa en 'preliminar' aunque TODOS
@@ -175,6 +183,13 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
     warnings.push("Costo con configuración de respaldo (no catálogo central): estado tope 'preliminar'. No es certificable.");
   }
 
+  // SRV-01: revisión de ingeniería pendiente (decisión humana) ⇒ nunca 'certificado'; el motivo es el mismo texto que ve la persona.
+  if (revisionesPendientes.length) {
+    if (estado === 'certificado') estado = 'preliminar';
+    for (const rv of revisionesPendientes) warnings.push(`Revisión pendiente: ${rv.mensaje}`);
+    // Cierre v3: con una revisión de ingeniería pendiente NO se emite ni se da precio (fail-closed; igual que la pantalla).
+    emision = { ...emision, emitible: false, pendientes: [...(emision.pendientes || []), ...revisionesPendientes.map((rv) => `Revisión pendiente: ${rv.mensaje}`)] };
+  }
   // P1-03: 'certificado' exige aprobación HUMANA verificada de cada precio exacto usado. Sin ella, tope 'preliminar'.
   if (estado === 'certificado' && !aprobacionHumana) {
     estado = 'preliminar';
@@ -194,7 +209,7 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
     fuenteCosto: catalogoFuente,
     calculadoEn: new Date().toISOString(),
   };
-  return { r, emision, estado, aprobacionHumana, preciosUsados: aprob.precios, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos, piezaEfectiva, componentes: piezaEfectiva.componentes };
+  return { r, emision, estado, revisionesPendientes, aprobacionHumana, preciosUsados: aprob.precios, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos, piezaEfectiva, componentes: piezaEfectiva.componentes };
 }
 
 /**
@@ -254,7 +269,7 @@ export async function atenderCosteo({ svc, body, email }) {
     // la pieza EFECTIVA que costeó el motor. Versión y huella de promesa y spec las sella el trigger de la base.
     const { data: regC, error: regErr } = await svc.from('costeos_servidor').insert(filaCosteoServidor({
       intent, piezaEfectiva: k.piezaEfectiva, n, email, rol, bomHash: huellaBom, costoUnitario: dinero(r.costoUnitario), estado, aprobacionHumana, meta,
-      precios: k.preciosUsados || [], warnings, insumosUsados: usados, baseCostoHuella: baseHuella,
+      precios: k.preciosUsados || [], revisionesPendientes: k.revisionesPendientes || [], warnings, insumosUsados: usados, baseCostoHuella: baseHuella,
     })).select('id').single();
     if (regErr) warnings.push('Costeo sin registro autoritativo (SEG-01c no aplicada): no servirá para emitir cuando se aplique.');
     else costeoId = regC?.id ?? null;
@@ -274,7 +289,7 @@ export async function atenderCosteo({ svc, body, email }) {
   // El precio se entrega mientras el cálculo sea posible (certificado o preliminar) Y
   // el precio sea un número válido. El sistema debe OPERAR con preliminares; incompleto,
   // bloqueado o un precio no finito (fail-closed) ocultan el precio.
-  const hayPrecio = (estado === 'certificado' || estado === 'preliminar') && precioVenta != null;
+  const hayPrecio = (estado === 'certificado' || estado === 'preliminar') && precioVenta != null && !(k.revisionesPendientes || []).length;
 
   // --- SALIDA POR CAPACIDAD ---
   // Ventas: SOLO información comercial. Precio de venta + estado + warnings comerciales.
@@ -305,8 +320,8 @@ export async function atenderCosteo({ svc, body, email }) {
     componentesIgnorados: faltan,
   };
   const evidencia = { usados: usados.length, certificados: usados.length - noCertificados.length, noCertificados: noCertificados.length };
-  if (esDiseno) return { status: 200, body: { ok: true, estado, aprobacionHumana, costeoId, bomHash: huellaBom, especificacionTecnica, piezas: n, costo: tecnico, evidencia, precios: k.preciosUsados || [], ...meta, catalogoFuente, warnings } };
+  if (esDiseno) return { status: 200, body: { ok: true, estado, aprobacionHumana, costeoId, bomHash: huellaBom, especificacionTecnica, piezas: n, costo: tecnico, evidencia, precios: k.preciosUsados || [], revisionesPendientes: k.revisionesPendientes || [], ...meta, catalogoFuente, warnings } };
 
   // Dirección: todo (incluye precio, margen, desglose completo y evidencia).
-  return { status: 200, body: { ok: true, estado, aprobacionHumana, costeoId, bomHash: huellaBom, especificacionTecnica, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, precios: k.preciosUsados || [], desglose: r, ...meta, catalogoFuente, warnings } };
+  return { status: 200, body: { ok: true, estado, aprobacionHumana, costeoId, bomHash: huellaBom, especificacionTecnica, piezas: n, precioVenta: hayPrecio ? precioVenta : null, margen, costo: tecnico, evidencia, precios: k.preciosUsados || [], revisionesPendientes: k.revisionesPendientes || [], desglose: r, ...meta, catalogoFuente, warnings } };
 }

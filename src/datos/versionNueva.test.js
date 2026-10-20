@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { esErrorDeVersion, recargarUnaVez, instalarRecargaPorVersion, CLAVE_RECARGA_VERSION, VENTANA_RECARGA_MS } from './versionNueva.js';
+import { esErrorDeVersion, recargarUnaVez, instalarRecargaPorVersion, sinRed, CLAVE_RECARGA_VERSION, VENTANA_RECARGA_MS } from './versionNueva.js';
 
 const memoria = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), m }; };
 
@@ -63,6 +63,31 @@ describe('instalarRecargaPorVersion: engancha vite:preloadError', () => {
     const w = new EventTarget(); const recargar = vi.fn(); const s = memoria();
     s.setItem(CLAVE_RECARGA_VERSION, '5');
     instalarRecargaPorVersion(w, { storage: s, recargar, ahora: 10 });
+    const ev = new Event('vite:preloadError', { cancelable: true });
+    w.dispatchEvent(ev);
+    expect(recargar).not.toHaveBeenCalled();
+    expect(ev.defaultPrevented).toBe(false);
+  });
+});
+
+describe('sin internet NO se recarga (sería la página de error del navegador en lugar de la app)', () => {
+  it('sinRed lee navigator.onLine (sólo false explícito cuenta como sin red)', () => {
+    expect(sinRed({ onLine: false })).toBe(true);
+    expect(sinRed({ onLine: true })).toBe(false);
+    expect(sinRed(null)).toBe(false);
+    expect(sinRed({})).toBe(false);
+  });
+  it('offline: no recarga y NO gasta el candado (al volver la red sí podrá recargar)', () => {
+    const s = memoria(); const recargar = vi.fn();
+    expect(recargarUnaVez({ storage: s, recargar, ahora: 1_000_000, offline: true })).toBe(false);
+    expect(recargar).not.toHaveBeenCalled();
+    expect(s.getItem(CLAVE_RECARGA_VERSION)).toBeNull();
+    expect(recargarUnaVez({ storage: s, recargar, ahora: 1_000_100, offline: false })).toBe(true);
+    expect(recargar).toHaveBeenCalledTimes(1);
+  });
+  it('vite:preloadError sin red: no recarga ni cancela el error (llega a la red de seguridad, que lo explica)', () => {
+    const w = new EventTarget(); const recargar = vi.fn(); const s = memoria();
+    instalarRecargaPorVersion(w, { storage: s, recargar, ahora: 10, offline: true });
     const ev = new Event('vite:preloadError', { cancelable: true });
     w.dispatchEvent(ev);
     expect(recargar).not.toHaveBeenCalled();
