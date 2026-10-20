@@ -41,7 +41,7 @@ function esperadoDelPlano() {
 
 test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, async ({ page }) => {
   test.skip(!(EMAIL && PASS && PLANO), 'Define TEST_EMAIL, TEST_PASSWORD y LAB_PLANO.');
-  test.setTimeout(30 * 60 * 1000);
+  test.setTimeout(22 * 60 * 1000);   // el job de CI corta a los 25 min: el test termina antes y deja su evidencia
   fs.mkdirSync(SALIDA, { recursive: true });
   const hallazgos = [];
   const hallazgo = (etapa, tipo, detalle) => { hallazgos.push({ etapa, tipo, detalle }); console.log('[recorrido] HALLAZGO', etapa, tipo, JSON.stringify(detalle).slice(0, 400)); };
@@ -69,7 +69,9 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     const ilegibles = await page.evaluate(() => {
       const rgb = (s) => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; const [r, g, b, a = 1] = m[1].split(',').map((x) => parseFloat(x)); return { r, g, b, a }; };
       const lum = ({ r, g, b }) => { const f = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
-      const fondo = (el) => { for (let e = el; e; e = e.parentElement) { const c = rgb(getComputedStyle(e).backgroundColor); if (c && c.a > 0.5) return c; } return { r: 255, g: 255, b: 255, a: 1 }; };
+      // Si entre el texto y su primer fondo opaco hay un background-image (botones con degradado), el fondo real no se
+      // puede calcular aquí: no se reporta (antes "texto blanco sobre claro" en .boton.primario era un falso positivo).
+      const fondo = (el) => { for (let e = el; e; e = e.parentElement) { const s = getComputedStyle(e); if (s.backgroundImage && s.backgroundImage !== 'none') return null; const c = rgb(s.backgroundColor); if (c && c.a > 0.5) return c; } return { r: 255, g: 255, b: 255, a: 1 }; };
       const out = [];
       const raiz = document.querySelector('main') || document.body;
       for (const el of raiz.querySelectorAll('*')) {
@@ -79,7 +81,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
         if (cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.3 || r.width < 2 || r.height < 2) continue;
         if (el.closest('[aria-hidden="true"], button:disabled')) continue;
         const fg = rgb(cs.color); if (!fg) continue;
-        const bg = fondo(el);
+        const bg = fondo(el); if (!bg) continue;
         const L1 = lum(fg), L2 = lum(bg);
         const ratio = (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05);
         if (ratio < 3) out.push({ texto: propio.slice(0, 80), ratio: Math.round(ratio * 100) / 100, color: cs.color, fondo: `rgb(${bg.r}, ${bg.g}, ${bg.b})` });
@@ -97,7 +99,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
   function auditarSillas(etapa, partidas) {
     const sum = (re, no) => partidas.filter((p) => re.test(norm(p.nombre)) && !(no && no.test(norm(p.nombre))) && !p.noCobrar).reduce((s, p) => s + (Number(p.cantidad) || 0), 0);
     const trabajo = sum(/silla/, /junta|consejo|concerto|sonata|visita|delta|alpha|directiv|ejecutiv/);
-    const alpha = sum(/alpha|directiv|ejecutiv/);
+    const alpha = sum(/silla.*(alpha|directiv|ejecutiv)|(alpha|directiv|ejecutiv).*silla/);   // sólo SILLAS (no "Escritorio Directivo")
     const esperadas = esperado.operativos + esperado.recepcion;
     const r = { trabajo, esperadas, alpha, privados: esperado.privados };
     guarda(`sillas-${etapa}.json`, { ...r, partidas: partidas.map((p) => [p.nombre, p.cantidad, p.relation_role || null, p.anchor_role || null]) });
@@ -129,7 +131,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
   }
 
   async function subirPlano(etapa) {
-    await page.getByTestId('voni-paso-espacio').click().catch(() => {});
+    await page.getByTestId('voni-paso-espacio').click({ timeout: 10000 }).catch(() => {});
     await page.getByTestId('cotizar-plano').setInputFiles(PLANO);
     const gate = page.getByTestId('confirmar-lectura');
     await expect(gate.or(page.locator('text=/No se pudo procesar|no pude leer/i')).first()).toBeVisible({ timeout: 150000 });
@@ -151,7 +153,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
   }
 
   async function describirTexto(etapa) {
-    await page.getByTestId('voni-paso-muebles').click().catch(() => {});
+    await page.getByTestId('voni-paso-muebles').click({ timeout: 10000 }).catch(() => {});
     const volver = page.getByRole('button', { name: /Volver a describir o agregar más/ });
     if (await volver.count()) await volver.first().click();
     const caja = page.locator('textarea.ia-textarea').first(); await expect(caja).toBeVisible({ timeout: 15000 });
@@ -211,11 +213,11 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     if (firma(antes) !== firma(despues)) hallazgo(etapa, 'REABIERTA_DISTINTA', { antes: firma(antes), despues: firma(despues) });
     await auditar(`${etapa}-reabierta`);
     // Volver al paso de muebles de Voni: el plano ya aplicado no debe volver a pedir nada.
-    await page.getByTestId('home-cotizar').click().catch(() => {});
-    await page.getByTestId('voni-paso-muebles').click().catch(() => {});
+    await page.getByTestId('home-cotizar').click({ timeout: 10000 }).catch(() => {});
+    await page.getByTestId('voni-paso-muebles').click({ timeout: 10000 }).catch(() => {});
     await page.waitForTimeout(1500);
     const revisar = page.getByRole('button', { name: /Revisar lo que entendí/ });
-    if (await revisar.count()) { await revisar.first().click(); await page.waitForTimeout(1000); }
+    if (await revisar.count()) { await revisar.first().click({ timeout: 10000 }).catch(() => {}); await page.waitForTimeout(1000); }
     const pide = await page.getByRole('button', { name: /Aplicar programa detectado/ }).count();
     const reps = await page.getByTestId('reparto-programa').count();
     if (pide || reps) hallazgo(etapa, 'REABRIR_VUELVE_A_PEDIR', { aplicar: pide, repartos: reps });
