@@ -36,6 +36,12 @@ case "$CASO" in
     # El render cuesta: sólo en C1 (el resto mide lectura → acomodo → PDF → reabrir).
     if [ "$c" = "C1" ]; then SINR=; else SINR=1; fi
     LAB_PLANO="$d/plano.pdf" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI plano $c" LAB_SIN_RENDER="$SINR" pw e2e/labTorreNorte.e2e.js ;;
+  rodrigo)
+    # Prueba de Rodrigo 19-oct (cot. 3354): plano C7 con lo ya cotizado por texto (16 WIN, GAMMA-E de recepción, Ergonova 4).
+    (cd lab/planos && python3 gen_corpus.py > "$OUT/corpus.log" 2>&1) || { echo "gen_corpus falló"; cat "$OUT/corpus.log"; exit 3; }
+    d=$(ls -d lab/planos/C7_* | head -1); cp "$d/control.json" "$OUT/control.json"
+    LAB_PLANO="$d/plano.pdf" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI prueba Rodrigo" LAB_SIN_RENDER=1 \
+      LAB_PARTIDAS_INICIALES="$RAIZ/lab/certificacion/rodrigo_partidas.json" pw e2e/labTorreNorte.e2e.js ;;
   texto)
     LAB_MODO=texto LAB_OUT="$OUT" LAB_CLIENTE="LAB CI texto" \
       LAB_TEXTO="Oficina para 10 personas: una mesa de juntas de 2.40 x 1.20 para 8 personas con sus 8 sillas, 6 lugares de trabajo operativos de 1.50 con sus 6 sillas, un escritorio de dirección con su silla y una recepción para 2 personas." \
