@@ -52,10 +52,14 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
   const idsPieza = [...new Set((pieza.componentes || []).map((c) => String(c?.insumoId || '')).filter(Boolean))];
   let insumos = null;
   let catalogoFuente = 'catalogo';
-  try {
-    const { data: cat, error: catErr } = await svc.rpc('catalogo_motor', { p_incluir_erp: false, p_ids: idsPieza.length ? idsPieza : null });
-    if (!catErr && cat && typeof cat === 'object' && Object.keys(cat).length) insumos = cat;
-  } catch (_e) { /* fallback abajo */ }
+  // Cierre ChatGPT (2026-10-20): un fallo PASAJERO del catálogo (base lenta) mandaba el costo a la configuración de
+  // respaldo. Se reintenta UNA vez antes de caer al respaldo (que sigue avisando "no cotices en firme").
+  for (let intento = 0; intento < 2 && !insumos; intento++) {
+    try {
+      const { data: cat, error: catErr } = await svc.rpc('catalogo_motor', { p_incluir_erp: false, p_ids: idsPieza.length ? idsPieza : null });
+      if (!catErr && cat && typeof cat === 'object' && Object.keys(cat).length) insumos = cat;
+    } catch (_e) { /* reintento / fallback abajo */ }
+  }
   if (!insumos) {
     catalogoFuente = 'config-fallback';
     insumos = (datos.insumos && typeof datos.insumos === 'object' && Object.keys(datos.insumos).length)
