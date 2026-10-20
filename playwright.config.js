@@ -10,6 +10,14 @@ const NAVEGADOR = {
   ...(process.env.PW_EXECUTABLE ? { launchOptions: { executablePath: process.env.PW_EXECUTABLE } } : {}),
 };
 
+// Auditoría ChatGPT 19-oct ("12 skipped opacos"): los LABORATORIOS contra producción y las pasadas en vivo no son
+// pruebas del CI: cuestan IA/renders y necesitan su propio insumo (plano, imagen, brief, cliente). Antes entraban a
+// cada corrida y salían "skipped". Ahora sólo se cargan cuando quien los corre los pide con su variable (LAB_* lo
+// pone lab/certificacion/caso.sh y lab/noche/*; VIVO / LIVE_AI / RENDER_PROD / COCREAR_QA, a mano). Inventario y
+// razones: docs/auditoria/SKIPS_E2E.md.
+const A_PEDIDO = /(^|[\\/])(lab[A-Z]\w*|vivo|vivoSombra|live-ai-smoke|renderEscenas|cocrearExpediente)\.e2e\.js$/;
+const pidioAPedido = Object.keys(process.env).some((k) => /^LAB_/.test(k)) || ['VIVO', 'LIVE_AI', 'RENDER_PROD', 'COCREAR_QA'].some((k) => process.env[k]);
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.js',
@@ -27,7 +35,7 @@ export default defineConfig({
   // tarjetas recientes estaban a medias y fallaba (flaky en CI 786 y 789). Ahora la edición es un proyecto que DEPENDE de
   // golden757 y abre EXACTAMENTE el presupuesto que éste dejó (su id), sin carrera ni estado ajeno.
   projects: [
-    { name: 'chromium', testIgnore: /golden757(Edicion)?\.e2e\.js$/, use: NAVEGADOR },
+    { name: 'chromium', testIgnore: [/golden757(Edicion)?\.e2e\.js$/, ...(pidioAPedido ? [] : [A_PEDIDO])], use: NAVEGADOR },
     { name: 'golden757', testMatch: /golden757\.e2e\.js$/, use: NAVEGADOR },
     { name: 'golden757-edicion', testMatch: /golden757Edicion\.e2e\.js$/, dependencies: ['golden757'], use: NAVEGADOR },
   ],
