@@ -62,6 +62,10 @@ export function rolFromRel(rel) {
 // Rol funcional de un item existente: explícito, o inferido del nombre (legacy).
 export function inferRole(item) {
   if (item.relation_role) return item.relation_role;
+  // VH-AUD-202 + recorrido texto→plano: el DESTINO declarado (anchor_role o la nota "para la sala de juntas") manda
+  // sobre el modelo; una CONCERTO de juntas no es "visita" sólo porque el catálogo la llame así.
+  const porDestino = relDeDestino(item);
+  if (porDestino) return porDestino;
   const porId = rolPorId(bancoDe(item));          // #3: identidad de catálogo primero
   if (porId) return porId;
   const t = norm(`${item.nombre || ''} ${item.nota || ''}`);
@@ -174,6 +178,13 @@ function relDeDestino(e) {
   if (!/silla|asiento|concerto|sonata/.test(t)) return null;
   if (e.anchor_role === 'ANCHOR_MEETING') return 'MEETING_SEAT';
   if (e.anchor_role === 'ANCHOR_DESK' && /concerto|visit|delta|confident/.test(t)) return 'VISITOR_SEAT';
+  // Silla cuyo uso depende del destino: lo que dice su nota/zona (cotizar por texto: "Modelo de casa para salas de
+  // juntas/consejo"). Juntas primero; visita sólo si la nota habla de visitas/privados.
+  if (esAsientoFlexible(e)) {
+    const d = norm(`${e?.nota || ''} ${e?.zone_id || ''} ${e?.zonaSugerida || ''}`);
+    if (/sala(?:s)? de junta|\bjunta(?:s)?\b|consejo|reunion|meeting|boardroom/.test(d)) return 'MEETING_SEAT';
+    if (/visita|privad|direccion|oficina/.test(d)) return 'VISITOR_SEAT';
+  }
   return null;
 }
 // VH-AUD-203: firma canónica de un reparto (renglón, rol, requerimientos y cuántas piezas van a cada mueble).
