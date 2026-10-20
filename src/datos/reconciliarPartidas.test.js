@@ -296,3 +296,28 @@ describe('fusión de duplicados respeta el destino (VH-AUD-204)', () => {
     expect(reconciliarNuevasConPrograma(programa, persona).sustituidas.length).toBe(1);
   });
 });
+
+// Recorrido plano→texto (lab 19-oct): el programa puso una mesa por sala y luego el texto agregó "Mesa de juntas APP LT
+// 2.40" con nota "Sala creativa resuelta…" y "Eclipse Mesa de consejo…" con nota "Mesa de consejo … para 10 lugares".
+// Sin zona eran AMBIGUAS (dos salas candidatas) y quedaban 4 mesas para 2 salas. La nota nombra la sala: es evidencia.
+describe('fusión: la nota que nombra la sala resuelve la ambigüedad', () => {
+  const prog = (id, zona, nombre) => ({ id, source: 'CONFIRMADO_PROGRAMA', nombre, bancoId: 'mj', cantidad: 1, relation_role: 'ANCHOR_MEETING',
+    zone_id: zona, requirement_id: `req:${zona}`, instance_id: `inst:${zona}` });
+  const programa = [prog('pc', 'SALA DE CONSEJO', 'Mesa de juntas App LT (con caja eléctrica)'), prog('pk', 'SALA CREATIVA', 'Mesa de juntas App LT')];
+  it('cada mesa del texto sustituye a la de SU sala; no quedan 4 mesas', () => {
+    const texto = [
+      { id: 'ecl', nombre: 'Eclipse Mesa de consejo modular recta 1.80 m', cantidad: 1, nota: 'Mesa de consejo corrida/modular armada para 10 lugares.' },
+      { id: 'app', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 1, nota: 'Sala creativa resuelta con mesa de juntas App LT de 2.40 m para 6 lugares.' },
+    ];
+    const r = reconciliarNuevasConPrograma(programa, texto);
+    expect(r.ambiguas).toEqual([]);
+    const mesas = r.partidas.filter((p) => /mesa/i.test(p.nombre));
+    expect(mesas).toHaveLength(2);
+    expect(mesas.find((p) => p.id === 'ecl').zone_id).toBe('SALA DE CONSEJO');
+    expect(mesas.find((p) => p.id === 'app').zone_id).toBe('SALA CREATIVA');
+  });
+  it('una mesa del texto sin sala en su nota sigue siendo ambigua (la persona decide)', () => {
+    const r = reconciliarNuevasConPrograma(programa, [{ id: 'x', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', cantidad: 1, nota: 'Mesa estándar.' }]);
+    expect(r.ambiguas.map((a) => a.id)).toEqual(['x']);
+  });
+});

@@ -102,6 +102,16 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     if (n.requirement_id) candidatos = candidatos.filter(({ e }) => String(e.requirement_id || '') === String(n.requirement_id));
     else if (decision != null && decision !== 'repartir') candidatos = candidatos.filter(({ e }) => String(e.id) === String(decision));
     else if (zonaDe(n) && decision !== 'repartir') candidatos = candidatos.filter(({ e }) => zonaDe(e) === zonaDe(n));
+    else if (decision == null) {
+      // Recorrido plano→texto (lab 19-oct): la NOTA o el nombre de la partida nombra la sala ("Sala creativa resuelta…",
+      // "Mesa de consejo … para 10 lugares"). Si nombra exactamente UNA de las zonas candidatas, ésa es la evidencia.
+      const t = norm(`${n.nota || ''} ${n.nombre || ''}`);
+      const VACIAS = new Set(['sala', 'salas', 'de', 'del', 'la', 'las', 'el', 'los', 'y', 'oficina', 'area', 'zona', 'nivel']);
+      const claves = (z) => String(z || '').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !VACIAS.has(w));
+      const zonas = [...new Set(candidatos.map(({ e }) => zonaDe(e)).filter(Boolean))];
+      const nombradas = zonas.filter((z) => { const k = claves(z); return k.length && k.every((w) => new RegExp(`\\b${w}\\b`).test(t)); });
+      if (nombradas.length === 1) candidatos = candidatos.filter(({ e }) => zonaDe(e) === nombradas[0]);
+    }
     if (!candidatos.length) { salida.push(n); continue; }
     // Sin evidencia de zona ni decisión: si los candidatos viven en zonas/anclas distintas, es
     // ambiguo → NEEDS_REVIEW (la persona decide), no se sustituye nada.

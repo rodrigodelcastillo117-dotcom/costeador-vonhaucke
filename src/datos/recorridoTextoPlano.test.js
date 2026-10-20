@@ -92,3 +92,26 @@ describe('4 · una mesa que no alcanza para las personas de su sala se avisa (no
     expect(t).not.toMatch(/APP LT 2\.40/);
   });
 });
+
+// Recorrido plano→reabrir (lab 19-oct, run 39358970210): el lector agregó "ÁREA SIN ROTULAR (esquina superior derecha)"
+// tipo open SIN puestos. El programa le estimaba 8 puestos por geometría (24 en vez de 16) y mandaba LOS DOS bancos de 12
+// a ese rincón vacío; OPERATIVA (16 escritorios dibujados) quedaba sin nada.
+import { proponerProgramaDelPlano } from './programaRealDelPlano.js';
+describe('5 · un área abierta sin escritorios dibujados no inventa puestos cuando el plano sí los cuenta', () => {
+  const areas = [
+    { nombre: 'OFICINA DIRECCIÓN', tipo: 'privado', x: 0, y: 0, ancho: 5, largo: 5, puestos: 1 },
+    { nombre: 'SALA DE CONSEJO', tipo: 'juntas', x: 5, y: 0, ancho: 7, largo: 5, asientos: 10 },
+    { nombre: 'ÁREA SIN ROTULAR (esquina superior derecha)', tipo: 'open', x: 17, y: 0, ancho: 7, largo: 5 },
+    { nombre: 'OPERATIVA', tipo: 'open', x: 0, y: 7, ancho: 12, largo: 7, puestos: 16 },
+    { nombre: 'RECEPCIÓN', tipo: 'recepcion', x: 12, y: 7, ancho: 6, largo: 7, puestos: 1 },
+  ];
+  it('16 puestos (no 24), todo en OPERATIVA, y un aviso que nombra el área sin escritorios', () => {
+    const r = proponerProgramaDelPlano(areas, { linea: 'App LT' });
+    expect(r.programaDetectado.operativos).toBe(16);
+    const ops = r.propuesta.partidas.filter((p) => p.relation_role === 'ANCHOR_WORKSTATION' || (p.relation_role === 'WORK_SEAT' && p.anchor_role === 'ANCHOR_WORKSTATION'));
+    expect(new Set(ops.map((p) => p.zone_id))).toEqual(new Set(['OPERATIVA']));
+    const sillas = r.propuesta.partidas.filter((p) => p.relation_role === 'WORK_SEAT' && p.anchor_role === 'ANCHOR_WORKSTATION').reduce((s, p) => s + p.cantidad, 0);
+    expect(sillas).toBe(16);
+    expect(r.programaDetectado.avisos.join(' ')).toMatch(/SIN ROTULAR.*no tiene escritorios dibujados/);
+  });
+});
