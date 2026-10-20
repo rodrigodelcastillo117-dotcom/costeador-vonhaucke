@@ -11,6 +11,9 @@
 set -u
 cd "$(dirname "$0")/../.."
 CASO="$1"; RAIZ=$(pwd); OUT="$RAIZ/lab/certificacion/ci/$CASO"; mkdir -p "$OUT"
+# Cierre ChatGPT (P1-REL-01): "<caso>~preview" corre el MISMO caso contra la Vercel PREVIEW del FINAL_SHA
+# (lab/certificacion/preview_url.txt) en vez de un vite local.
+if [ "${CASO%~preview}" != "$CASO" ]; then export E2E_BASE_URL="$(cat lab/certificacion/preview_url.txt)"; CASO="${CASO%~preview}"; echo "contra la preview: $E2E_BASE_URL"; fi
 export PW_EXECUTABLE="$(node -e "console.log(require('playwright').chromium.executablePath())")"
 export LAB_GIT_SHA="$(git rev-parse --short HEAD)"
 pw() { npx playwright test "$@" --workers=1 --retries=0 --reporter=line --output="$OUT/pw"; }   # un lab no se reintenta solo: 10 min y doble gasto de IA
@@ -32,7 +35,7 @@ case "$CASO" in
     (cd lab/planos && python3 gen_corpus.py > "$OUT/corpus.log" 2>&1) || { echo "gen_corpus falló"; cat "$OUT/corpus.log"; exit 3; }
     d=$(ls -d lab/planos/${c}_* | head -1)
     [ -f "$d/plano.pdf" ] || { echo "no hay $c"; exit 3; }
-    cp "$d/control.json" "$OUT/control.json"
+    cp "$d/control.json" "$OUT/control.json"; export LAB_CONTROL="$d/control.json"
     # El render cuesta: sólo en C1 (el resto mide lectura → acomodo → PDF → reabrir).
     if [ "$c" = "C1" ]; then SINR=; else SINR=1; fi
     LAB_PLANO="$d/plano.pdf" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI plano $c" LAB_SIN_RENDER="$SINR" pw e2e/labTorreNorte.e2e.js ;;

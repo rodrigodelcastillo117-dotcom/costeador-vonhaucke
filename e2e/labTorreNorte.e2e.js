@@ -88,6 +88,17 @@ test.describe('LAB · plano Torre Norte', () => {
     await expect.poll(async () => (await leerCot(page))?.acomodo?.areasM?.length || 0, { timeout: 15000 }).toBeGreaterThan(0);
     const cotA = await leerCot(page);
     guarda('2-acomodo-tras-lectura.json', cotA.acomodo);
+    // Cierre ChatGPT (P1-ARQ-01): con hoja de control, la lectura es un GOLDEN — los puestos de cada área abierta tienen
+    // que ser los ESCRITORIOS dibujados (C7: 16, aunque sólo 8 tengan silla). No es "informativo".
+    if (process.env.LAB_CONTROL) {
+      const ctl = JSON.parse(fs.readFileSync(process.env.LAB_CONTROL, 'utf8'));
+      const esperado = (ctl.paginas || []).flatMap((pg) => pg.areas || []).filter((a) => a.tipo === 'open' && a.puestos > 0).map((a) => [a.nombre, a.puestos]);
+      const leido = Object.fromEntries((cotA.acomodo.areasM || []).filter((a) => a.tipo === 'open').map((a) => [a.nombre, a.puestos || 0]));
+      const golden = esperado.map(([n, p]) => ({ area: n, esperado: p, leido: leido[n] ?? null, ok: leido[n] === p }));
+      guarda('2b-golden-lectura.json', golden);
+      console.log('[lab] golden lectura:', JSON.stringify(golden));
+      expect(golden.filter((g) => !g.ok), 'puestos leídos = escritorios dibujados (golden)').toEqual([]);
+    }
     console.log('[lab] puertas en estado:', JSON.stringify((cotA.acomodo.areasM || []).map((a) => [a.nombre, (a.puertas || []).map((q) => [q.x, q.y, q.ancho, q.tieneBarrido, q.sentido, q.doble || false]), (a.puertasPendientes || []).length])));
     await page.waitForTimeout(1500);
     const paso2 = await page.locator('main').innerText();
