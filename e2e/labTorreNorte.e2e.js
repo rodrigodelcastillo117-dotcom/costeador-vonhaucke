@@ -92,7 +92,12 @@ test.describe('LAB · plano Torre Norte', () => {
     // que ser los ESCRITORIOS dibujados (C7: 16, aunque sólo 8 tengan silla). No es "informativo".
     if (process.env.LAB_CONTROL) {
       const ctl = JSON.parse(fs.readFileSync(process.env.LAB_CONTROL, 'utf8'));
-      const esperado = (ctl.paginas || []).flatMap((pg) => pg.areas || []).filter((a) => a.tipo === 'open' && a.puestos > 0).map((a) => [a.nombre, a.puestos]);
+      // Plano de varios niveles: se acomoda UN nivel a la vez (el elegido al confirmar), así que el golden es el de las
+      // páginas/niveles cuyas áreas sí se leyeron (C4: NIVEL 1; "OPERATIVA 2" es del NIVEL 2 y se cotiza aparte).
+      const nombresLeidos = new Set((cotA.acomodo.areasM || []).map((a) => a.nombre));
+      const paginasDelNivel = (ctl.paginas || []).filter((pg) => (pg.areas || []).some((a) => nombresLeidos.has(a.nombre)));
+      const esperado = paginasDelNivel.flatMap((pg) => pg.areas || []).filter((a) => a.tipo === 'open' && a.puestos > 0).map((a) => [a.nombre, a.puestos]);
+      expect(esperado.length, 'el golden compara al menos un área abierta del nivel leído').toBeGreaterThan(0);
       const leido = Object.fromEntries((cotA.acomodo.areasM || []).filter((a) => a.tipo === 'open').map((a) => [a.nombre, a.puestos || 0]));
       const golden = esperado.map(([n, p]) => ({ area: n, esperado: p, leido: leido[n] ?? null, ok: leido[n] === p }));
       guarda('2b-golden-lectura.json', golden);
