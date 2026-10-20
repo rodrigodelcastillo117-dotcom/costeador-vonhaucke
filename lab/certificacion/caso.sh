@@ -42,6 +42,13 @@ case "$CASO" in
     d=$(ls -d lab/planos/C7_* | head -1); cp "$d/control.json" "$OUT/control.json"
     LAB_PLANO="$d/plano.pdf" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI prueba Rodrigo" LAB_SIN_RENDER=1 \
       LAB_PARTIDAS_INICIALES="$RAIZ/lab/certificacion/rodrigo_partidas.json" pw e2e/labTorreNorte.e2e.js ;;
+  recorrido-*)
+    # Recorridos combinados con auditor (e2e/labRecorridos.e2e.js): recorrido-<texto-plano|plano-texto|plano-reabrir>[@Cn].
+    r="${CASO#recorrido-}"; c="C7"; case "$r" in *@*) c="${r#*@}"; r="${r%@*}";; esac
+    (cd lab/planos && python3 gen_corpus.py > "$OUT/corpus.log" 2>&1) || { echo "gen_corpus falló"; cat "$OUT/corpus.log"; exit 3; }
+    d=$(ls -d lab/planos/${c}_* | head -1); cp "$d/control.json" "$OUT/control.json"
+    LAB_RECORRIDO="$r" LAB_PLANO="$d/plano.pdf" LAB_CONTROL="$d/control.json" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI $CASO $(date +%m%d-%H%M)" \
+      pw e2e/labRecorridos.e2e.js ;;
   texto)
     LAB_MODO=texto LAB_OUT="$OUT" LAB_CLIENTE="LAB CI texto" \
       LAB_TEXTO="Oficina para 10 personas: una mesa de juntas de 2.40 x 1.20 para 8 personas con sus 8 sillas, 6 lugares de trabajo operativos de 1.50 con sus 6 sillas, un escritorio de dirección con su silla y una recepción para 2 personas." \
