@@ -108,8 +108,9 @@ h3 { font-size: 17px; font-weight: 700; }
    que el tema oscuro dejó con texto claro heredado. Se les fija texto oscuro aquí
    (los `span`/`em` en --gris siguen ganando por especificidad: son secundarios a
    propósito). Auditoría 2026-10-04 "texto blanco sobre fondo claro en toda la app". */
-.empezar-resumen,
-.prog-resumen,
+/* (.empezar-resumen y .prog-resumen salieron de esta lista: el bloque "Superficies neutras claras → superficie
+   oscura" de más abajo les pone fondo --panel !important, y el texto oscuro de aquí quedaba negro sobre negro —
+   "9 personas" a 1.09:1, matriz de vista 2026-10-19. Heredan el texto claro del tema.) */
 .cuarto-chip,
 .cancel-aviso,
 .prog-plano { color: #1E1B1A; }
@@ -395,6 +396,9 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .dos-col { display: grid; grid-template-columns: 1fr 380px; gap: 20px; align-items: start; }
 @media (max-width: 1000px) {
   .dos-col { grid-template-columns: 1fr; }
+  /* En una columna el panel de precio (.pegado, sticky) se deslizaba hasta el fondo del grid y quedaba DEBAJO de la
+     .barra-fija: "Ver ficha PDF" no recibía el clic (matriz de vista 2026-10-19). Igual que .dos-col-costeo. */
+  .dos-col .pegado { position: static; }
   .kpis { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -711,8 +715,12 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
    Ahora sube por encima de la barra en vez de encimarse. */
 .toast {
   position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%);
-  background: var(--verde); color: #fff; font-weight: 700; font-size: 17px;
+  /* Texto oscuro: blanco sobre --verde (#34D399) medía 1.92:1 (matriz de vista 2026-10-19). */
+  background: var(--verde); color: #06281C; font-weight: 700; font-size: 17px;
   padding: 14px 24px; border-radius: 999px; z-index: 60; box-shadow: 0 6px 20px rgba(0,0,0,.18);
+  /* Sólo informa: que el clic pase al botón de abajo. Tras "Armar el proyecto" se plantaba 2.6 s sobre
+     "Sí, así es — acomódalo →" y se comía el toque (matriz de vista 2026-10-19). */
+  pointer-events: none;
 }
 
 /* ---- Confirmacion de borrado (unico modal permitido) ---- */
@@ -1220,7 +1228,8 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .btn-cot:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 .btn-cot-n {
   display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px;
-  border-radius: 999px; background: rgba(255,255,255,.22); font-size: 12px; font-weight: 700;
+  border-radius: 999px; background: rgba(0,0,0,.28); font-size: 12px; font-weight: 700;
+  /* Antes rgba(255,255,255,.22): aclaraba el rojo y el número blanco quedaba a 2.96:1 (matriz de vista 2026-10-19). */
 }
 @media (max-width: 380px) { .btn-cot { padding: 0 11px; font-size: 12px; } }
 
@@ -1231,7 +1240,10 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 }
 /* Sobre una tarjeta completa: sólo cambia el tono, no el relleno. */
 .tarjeta.agregado-ok { margin-top: 0; padding: 18px 20px; border-color: var(--verde); }
-.tarjeta.agregado-ok strong { font-family: var(--display); font-size: 16.5px; color: #0b5c54; }
+.tarjeta.agregado-ok strong { font-family: var(--display); font-size: 16.5px; color: #6ee7b7; }
+/* Antes #0b5c54 (verde oscuro de la época clara): sobre la tarjeta del tema oscuro medía 2.26–2.38:1. El fondo es
+   oscuro en AMBOS esquemas del sistema (los tokens de :root son oscuros siempre), así que se corrige la regla base y no
+   sólo bajo prefers-color-scheme: dark; mismo verde que los sellos "ok" del tema oscuro (matriz de vista 2026-10-19). */
 .agregado-ok .texto { font-size: 13px; color: var(--tinta); }
 
 /* Barra fija de compra: precio + cuenta + cantidad + agregar, sin scrollear.

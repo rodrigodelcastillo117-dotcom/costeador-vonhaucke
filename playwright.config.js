@@ -10,6 +10,10 @@ const NAVEGADOR = {
   ...(process.env.PW_EXECUTABLE ? { launchOptions: { executablePath: process.env.PW_EXECUTABLE } } : {}),
 };
 
+// Puerto del dev server: 5173 por defecto. E2E_PORT=xxxx permite correr dos checkouts a la vez sin que
+// `reuseExistingServer` reutilice el vite de OTRO árbol (se probaría código ajeno).
+const PUERTO = Number(process.env.E2E_PORT) || 5173;
+
 export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.e2e.js',
@@ -18,7 +22,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: `http://localhost:${PUERTO}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -32,8 +36,8 @@ export default defineConfig({
     { name: 'golden757-edicion', testMatch: /golden757Edicion\.e2e\.js$/, dependencies: ['golden757'], use: NAVEGADOR },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: PUERTO === 5173 ? 'npm run dev' : `npm run dev -- --port ${PUERTO} --strictPort`,
+    url: `http://localhost:${PUERTO}`,
     reuseExistingServer: true,
     timeout: 60_000,
   },
