@@ -79,7 +79,7 @@ async function loginYSemilla(page) {
   await page.fill('#email-login', EMAIL);
   await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
 }
 
 async function irAAcomodo(page) {

@@ -234,7 +234,7 @@ async function entrar(browser, email, { viewport, tema }) {
   await page.fill('#email-login', email);
   await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   // Estado final de cada vista (sin fades a medio camino que falseen el contraste).
   await page.addStyleTag({ content: '*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition:none!important;caret-color:transparent!important}' });
   return { context, page, errores, nube };

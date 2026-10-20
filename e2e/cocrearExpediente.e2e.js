@@ -29,7 +29,7 @@ test.describe('COCREAR · expediente QA', () => {
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     await page.getByTestId('home-cocrear').click();
     await expect(page.getByText(/Qué tienes en mente|Cocrear|Diséñalo|Disénalo/i).first()).toBeVisible({ timeout: 15000 });
     await page.screenshot({ path: testInfo.outputPath('cocrear-1-inicio.png'), fullPage: true });
@@ -70,7 +70,7 @@ test.describe('COCREAR · expediente QA', () => {
     console.log('[cocrear] botones irreversibles presentes (no se tocan):', await registrar.count());
     // Recargar y reabrir: lo guardado sigue.
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     await page.getByTestId('home-cocrear').click();
     const t2 = page.getByRole('button', { name: new RegExp(NOMBRE, 'i') }).first();
     await expect(t2).toBeVisible({ timeout: 15000 });

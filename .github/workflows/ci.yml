@@ -69,6 +69,21 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: E2E público + auth condicional
         run: npm run e2e
+      # Seguridad (19-oct): el error-context de Playwright incluye el VALOR de los campos de texto; si el login falla,
+      # la contraseña de la cuenta QA quedaba en el artefacto. Se tacha cualquier aparición de los secretos antes de subir.
+      - name: Tachar secretos de la evidencia
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, pathlib
+          secretos = [s for s in (os.environ.get('TEST_PASSWORD'), os.environ.get('TEST_EMAIL')) if s and len(s) >= 4]
+          for p in pathlib.Path('test-results').rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in ('.md', '.txt', '.json', '.log', '.html', '.yml'):
+                  continue
+              t = p.read_text(errors='ignore'); n = t
+              for s in secretos: n = n.replace(s, '•••')
+              if n != t: p.write_text(n)
+          PY
       - name: Guardar capturas/artefactos de Playwright
         if: always()
         uses: actions/upload-artifact@v4

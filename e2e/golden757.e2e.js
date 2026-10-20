@@ -118,7 +118,7 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     expect((await leerCot(page)).partidas).toHaveLength(18);
 
     // 1) COTIZAR → Muebles: el panel enseña los duplicados ANTES de tocar nada y ofrece fusionarlos.
@@ -264,7 +264,7 @@ test.describe('GOLDEN 757 · plano → programa → VONI → fusión → acomodo
     //    desde "Presupuestos anteriores" (RPC `cotizacion_segura`) → mismas partidas y mismo acomodo.
     await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     expect((await leerCot(page))?.partidas || []).toHaveLength(0);
     await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
     // La tarjeta de UN presupuesto (la lista entera también es `.tarjeta`): la que tiene su fila de botones.

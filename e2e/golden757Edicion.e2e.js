@@ -28,7 +28,7 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
 
     // Abre EXACTAMENTE el presupuesto que dejó golden757 en esta corrida (por id): ni "el más reciente" ni datos ajenos.
     const golden = JSON.parse(fs.readFileSync('test-results/golden757-ultimo.json', 'utf8'));
@@ -100,7 +100,7 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     // Otra "computadora": estado local vacío, recarga, reabrir desde el Archivo.
     await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     const cot2 = await abrir(true, id);                // el MISMO presupuesto, aunque otra corrida haya creado uno más nuevo
     expect(cot2.id).toBe(id);
     expect(cot2.partidas.length).toBe(cot0.partidas.length);

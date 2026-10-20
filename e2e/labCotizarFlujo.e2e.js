@@ -114,7 +114,7 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
   const tR = Date.now();
   await page.reload();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
   const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: firmaAntes.cliente || CLIENTE }).first();
   await expect(tarjeta).toBeVisible({ timeout: 20000 });

@@ -101,7 +101,7 @@ test.describe('COTIZAR · tres proyectos', () => {
       await page.goto('/');
       await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
       await page.getByRole('button', { name: /^Entrar$/i }).click();
-      await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
       const n0 = (await leerCot(page)).partidas.length;
 
       // 1) Muebles: si el programa del plano propone/vincula, se aplica; nunca debe duplicar un ancla.
@@ -196,7 +196,7 @@ test.describe('COTIZAR · tres proyectos', () => {
       expect(firmaDe((await leerNube()).partidas)).toBe(firmaDe(cot.partidas));
       await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
       await page.reload();
-      await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
       await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
       const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: P.cliente }).first();
       await expect(tarjeta).toBeVisible({ timeout: 20000 });

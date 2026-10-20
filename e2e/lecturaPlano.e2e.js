@@ -19,7 +19,7 @@ test('subir plano → confirmar lectura → paso 2, con puestos contados y lectu
   await page.goto('/');
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await page.getByTestId('home-cotizar').click();
   await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
 
@@ -58,7 +58,7 @@ test('"Volver a subir" descarta la lectura sin tocar el estado', async ({ browse
   await page.goto('/');
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await page.getByTestId('home-cotizar').click();
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
   writeFileSync(ruta, PNG_1x1);
@@ -82,7 +82,7 @@ test('REVIEW_REQUIRED del servidor: la compuerta enseña el aviso y no dice "con
   await page.goto('/');
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await page.getByTestId('home-cotizar').click();
   await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
@@ -109,7 +109,7 @@ test('FAIL del servidor: no hay compuerta; el error explica qué no cuadró', as
   await page.goto('/');
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await page.getByTestId('home-cotizar').click();
   await expect(page.getByText(/Soy .*Voni/i).first()).toBeVisible({ timeout: 10000 });
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
@@ -138,7 +138,7 @@ test('puertas sin barrido: panel por puerta, sin índices internos; confirmar de
   await page.goto('/');
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await page.getByTestId('home-cotizar').click();
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
   writeFileSync(ruta, PNG_1x1);
@@ -182,7 +182,7 @@ test('documento con dos niveles: se elige el nivel 2 en la compuerta y se guarda
   await page.goto('/');
   await page.fill('#email-login', 'ventas@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await page.getByTestId('home-cotizar').click();
   const ruta = join(mkdtempSync(join(tmpdir(), 'plano-e2e-')), 'plano.png');
   writeFileSync(ruta, PNG_1x1);

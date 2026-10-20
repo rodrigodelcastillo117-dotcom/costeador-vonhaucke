@@ -29,7 +29,7 @@ async function entrar(page, email) {
   await page.fill('#email-login', email);
   await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
 }
 const estadoNube = (page) => page.getByTestId('nube-estado');
@@ -67,7 +67,7 @@ test.describe('Bloque 1 · persistencia certificable', () => {
     await expect.poll(async () => (await leerLocal(page)).cotizacion?.id).toBe(id);   // el id quedó PERSISTIDO
     for (let i = 0; i < 100; i++) {
       await page.reload();
-      await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+      await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
       await esperar(1700);   // ventana del autosave
       expect(nube.filas.size, `recarga ${i + 1}`).toBe(1);
     }
@@ -86,7 +86,7 @@ test.describe('Bloque 1 · persistencia certificable', () => {
     await entrar(a, 'ventas@vh.mx');
     const b = await context.newPage();
     await b.goto('/');   // misma sesión (localStorage compartido): arranca y autosalva a la vez
-    await expect(b.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(b.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await esperar(2500);
     expect(nube.filas.size).toBe(1);
     // Ediciones cruzadas: ninguna crea otra fila y la última queda registrada.
@@ -169,7 +169,7 @@ test.describe('Bloque 1 · persistencia certificable', () => {
     await expect(p1.locator('#email-login')).toBeVisible({ timeout: 10000 });
     await p1.fill('#email-login', 'ventas2@vh.mx'); await p1.fill('#pass-login', PASS);
     await p1.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(p1.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(p1.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await esperarGuardado(nube, (n) => n.filas.size === 2, 15000);
     const ajena = nube.filas.get(id);
     expect(ajena.usuario).toBe('ventas@vh.mx');

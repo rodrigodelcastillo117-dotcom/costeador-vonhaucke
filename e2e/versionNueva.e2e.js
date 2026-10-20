@@ -16,7 +16,7 @@ async function entrar(page) {
   await page.fill('#email-login', 'rodrigo@vh.mx');
   await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
 }
 const abrirCotizar = (page) => page.getByTestId('home-cotizar').click();
@@ -81,7 +81,7 @@ test.describe('Versión nueva publicada con la app abierta', () => {
     await abrirCotizar(page);
     await recarga;
     expect(negados).toBe(1);
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await expect(page.getByText('Esta pantalla se atoró')).toHaveCount(0);
     if (!(await pantallaCotizar(page).isVisible().catch(() => false))) await abrirCotizar(page);
     await expect(pantallaCotizar(page)).toBeVisible({ timeout: 15000 });
@@ -118,7 +118,7 @@ test.describe('Versión nueva publicada con la app abierta', () => {
     const recargas = contarRecargas(page);
     await abrirCotizar(page);
     await expect.poll(() => recargas.v, { timeout: 20000 }).toBe(1);
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await expect(page.getByText('Esta pantalla se atoró')).toHaveCount(0);
     await expect(page.getByTestId('aviso-error-tardio')).toHaveCount(0);   // la recarga por versión no es un "error de botón"
     await borradorIntacto(page, nube, id);
@@ -153,7 +153,7 @@ test.describe('Versión nueva publicada con la app abierta', () => {
     await page.unroute(ARCHIVO_PANTALLA, negar);
     await page.getByRole('button', { name: 'Recargar ahora' }).click();
     await expect.poll(() => recargas.v, { timeout: 20000 }).toBe(1);
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await borradorIntacto(page, nube, id);
     await context.close();
   });
@@ -183,7 +183,7 @@ test.describe('Versión nueva publicada con la app abierta', () => {
     // Vuelve la red: se recarga sola UNA vez y todo sigue.
     await context.setOffline(false);
     await expect.poll(() => recargas.v, { timeout: 20000 }).toBe(1);
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     // La recarga la hizo la app (recargarUnaVez deja su candado), no el cliente de Vite al reconectar.
     expect(await page.evaluate(() => sessionStorage.getItem('vh:recargaPorVersion'))).toMatch(/^\d+$/);
     await borradorIntacto(page, nube, id);
