@@ -115,3 +115,15 @@ describe('5 · un área abierta sin escritorios dibujados no inventa puestos cua
     expect(r.programaDetectado.avisos.join(' ')).toMatch(/SIN ROTULAR.*no tiene escritorios dibujados/);
   });
 });
+
+describe('6 · el plano cuenta N puestos y la cotización trae M: se dice (no se esconde)', () => {
+  const partidas = [{ id: 'b', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', cantidad: 2 }, { id: 'w', nombre: 'Silla operativa · WIN', cantidad: 16 }];
+  it('OPERATIVA con 8 puestos en el plano y 16 cotizados → aviso con los dos números', () => {
+    const e = loQueEntendi(partidas, [{ nombre: 'OPERATIVA', tipo: 'open', ancho: 12, largo: 7, puestos: 8 }]);
+    expect(e.avisos.map((a) => a.texto).join(' ')).toMatch(/El plano cuenta 8 puestos.*16/);
+  });
+  it('si cuadran, no hay aviso', () => {
+    const e = loQueEntendi(partidas, [{ nombre: 'OPERATIVA', tipo: 'open', ancho: 12, largo: 7, puestos: 16 }]);
+    expect(e.avisos.map((a) => a.texto).join(' ')).not.toMatch(/El plano cuenta/);
+  });
+});

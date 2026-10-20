@@ -82,6 +82,13 @@ export function loQueEntendi(partidas = [], areasM = []) {
   if (puestos > 0 && sillas > puestos) {
     avisos.push({ tono: 'ambar', texto: `Hay ${sillas} sillas de trabajo para ${puestos} puestos: sobran ${sillas - puestos}.` });
   }
+  // Lab de recorridos 19-oct (plano→texto): el plano contó 8 escritorios en OPERATIVA y el texto pidió 16. Ninguno de
+  // los dos números es "el bueno" por sí solo; lo que no puede pasar es que nadie lo diga.
+  const puestosOpPlano = (areasM || []).filter((a) => a?.tipo === 'open' && Number(a?.puestos) > 0).reduce((s, a) => s + Number(a.puestos), 0);
+  const puestosOpCot = de('puestos') - partidas.filter((pt) => tipoDe(pt) === 'escritorio' && !esBench(pt)).reduce((s, pt) => s + puestosDe(pt.nombre, pt.cantidad), 0);
+  if (puestosOpPlano > 0 && puestosOpCot > 0 && puestosOpPlano !== puestosOpCot) {
+    avisos.push({ tono: 'ambar', texto: `El plano cuenta ${puestosOpPlano} puestos operativos y la cotización trae ${puestosOpCot}. Revisa cuál es el correcto antes de acomodar.` });
+  }
   if (gavetas > puestos && puestos > 0) {
     avisos.push({ tono: 'ambar', texto: `Hay ${gavetas} gavetas para ${puestos} puestos: sobran ${gavetas - puestos}.` });
   }

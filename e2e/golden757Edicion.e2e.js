@@ -11,7 +11,7 @@ import fs from 'node:fs';
 //  golden más reciente con acomodo" entre datos compartidos mientras golden757 corría en paralelo: flaky en CI 786 y 789
 //  ("ningún presupuesto golden reciente tiene acomodo": las 6 tarjetas recientes estaban a medias).
 const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
-const CLIENTE = process.env.GOLDEN_CLIENTE || 'Torre Sur (golden)';
+let CLIENTE = process.env.GOLDEN_CLIENTE || 'Torre Sur (golden)';
 const CLAVE = 'costeador-vonhaucke-v1';
 const leerCot = (page) => page.evaluate((k) => { try { return JSON.parse(window.localStorage.getItem(k))?.cotizacion || null; } catch (_e) { return null; } }, CLAVE);
 const firmaCol = (plan) => JSON.stringify((plan?.colocacion || []).map((c) => [c.id, c.area, c.x, c.y, c.rot || 0]).sort());
@@ -33,6 +33,7 @@ test.describe('GOLDEN 757 · edición manual del acomodo persiste de verdad', ()
     // Abre EXACTAMENTE el presupuesto que dejó golden757 en esta corrida (por id): ni "el más reciente" ni datos ajenos.
     const golden = JSON.parse(fs.readFileSync('test-results/golden757-ultimo.json', 'utf8'));
     expect(golden.id, 'golden757 dejó el id de su presupuesto').toBeTruthy();
+    if (golden.cliente) CLIENTE = golden.cliente;   // el nombre EXACTO con el que golden757 lo guardó
     const abrir = async (conPlan = true, idBuscado = golden.id) => {
       await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
       const total = await page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).count();
