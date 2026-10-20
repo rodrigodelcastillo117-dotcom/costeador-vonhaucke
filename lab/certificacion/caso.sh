@@ -73,6 +73,17 @@ case "$CASO" in
     if [ "$c" = "C1" ]; then export LAB_TEXTO="Oficina con 12 puestos operativos, una recepción para 1 persona con su silla, una oficina de dirección con escritorio y su silla y una sala de juntas para 8 personas."; fi
     LAB_RECORRIDO="$r" LAB_PLANO="$d/plano.pdf" LAB_CONTROL="$d/control.json" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI $CASO $(date +%m%d-%H%M)" \
       pw e2e/labRecorridos.e2e.js ;;
+  holdout-*)
+    # Cierre ChatGPT v3 (Release/Holdout): corrida del holdout Intelisis sobre el SHA CONGELADO del MANIFIESTO (entorno
+    # limpio, deps verificadas) con las Edge RC exactas; después se verifica con congelar_holdout --verificar.
+    h="${CASO#holdout-}"
+    SHA_H=$(node -e "console.log(require('./lab/costear/holdout_intelisis/MANIFIESTO.json').frontendSha)")
+    node scripts/prepararEntornoHoldout.mjs ../envh "$SHA_H" > "$OUT/prep.log" 2>&1 || { echo "preparación holdout falló"; tail -20 "$OUT/prep.log"; exit 3; }
+    cd ../envh
+    export VITE_ANALIZAR_MUEBLE_FN=analizar-mueble-rc VITE_COSTEAR_FN=costear-servidor-rc
+    echo "$SHA_H" > "$OUT/GIT_SHA"
+    LAB_HOJA="lab/costear/ciego_erp/hojas/$h.json" LAB_OUT="$OUT/$h" LAB_COSTEAR_NOMBRE="LAB holdout $h $(date +%m%d-%H%M)" \
+      LAB_COSTEAR_FN=costear-servidor-rc LAB_GIT_SHA="$(git rev-parse --short HEAD)" pw e2e/labCostear.e2e.js ;;
   concurrencia)
     # P1-REL-02: control optimista A–L contra el deployment (usar como "concurrencia~preview").
     LAB_CONC_OPT=1 LAB_OUT="$OUT" pw e2e/labControlOptimista.e2e.js ;;

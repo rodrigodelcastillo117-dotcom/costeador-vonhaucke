@@ -59,6 +59,8 @@ jobs:
         with:
           # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Holdout: el SHA congelado del MANIFIESTO tiene que estar en el clon (prepararEntornoHoldout + git diff).
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
