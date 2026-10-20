@@ -10,12 +10,12 @@ import { PRECIOS_LINEA, articuloPorClave, precioListaDe, pisoDe } from './precio
 import { LINEAS_REG } from './lineas.js';
 
 describe('catálogo de precios de línea', () => {
-  // 1713 del Excel original + 3 parches a mano que Rodrigo confirmó el
-  // 2026-08-19/20 (escritorios Alba que todavía no están en el Excel fuente —
-  // ver los comentarios "PARCHE A MANO" en preciosLinea.js). Si este número
-  // vuelve a moverse sin querer, esta prueba lo cacha.
-  it('trae los 1716 artículos (1713 del Excel + 3 parches a mano confirmados)', () => {
-    expect(PRECIOS_LINEA.length).toBe(1716);
+  // 1713 del Excel original + 4 parches a mano que Rodrigo confirmó: 3 escritorios
+  // Alba (2026-08-19/20) y el FLEX 1200 rodante FXESCCM24M19ABS (2026-10-20, de la
+  // cotización A-2610022-01) — ver los comentarios "PARCHE A MANO" en
+  // preciosLinea.js. Si este número vuelve a moverse sin querer, esta prueba lo cacha.
+  it('trae los 1717 artículos (1713 del Excel + 4 parches a mano confirmados)', () => {
+    expect(PRECIOS_LINEA.length).toBe(1717);
   });
 
   it('cada clave ERP es única (se puede indexar sin choque)', () => {

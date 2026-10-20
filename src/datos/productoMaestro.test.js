@@ -16,9 +16,9 @@ const precioPorRef = fixture.precio_por_ref;
 const lineaConPrecio = PRECIOS_LINEA.filter((a) => Number(a.l) > 0);   // los comercializables
 
 describe('Producto Maestro — cobertura de identidad (frontend → source_ref)', () => {
-  it('TOTAL del snapshot = 1931 (1716 línea + 215 banco)', () => {
-    expect(fixture.total).toBe(1931);
-    expect(Object.keys(precioPorRef).length).toBe(1931);
+  it('TOTAL del snapshot = 1937 (1717 línea + 220 banco)', () => {
+    expect(fixture.total).toBe(1937);
+    expect(Object.keys(precioPorRef).length).toBe(1937);
   });
 
   it('LÍNEA: toda clave `c` con precio>0 resuelve a Producto Maestro (match único, con precio)', () => {

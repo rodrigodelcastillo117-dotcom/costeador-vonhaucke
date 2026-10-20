@@ -163,7 +163,7 @@ const PROGRAMA_APLICADO = [
     precioUnitario: 28540, sinPrecioAutorizado: true, config: { usuarios: 10 }, source: 'CONFIRMADO_PROGRAMA' },
   { id: 'prog-gamma', piezaId: 'silla-gamma-e', bancoId: 'silla-gamma-e', nombre: 'Silla operativa GAMMA-E', cantidad: 2, relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION',
     anchor_instance_id: REC, ...enZona('RECEPCIÓN', 'req:RECEPCIÓN:recepcion:0', REC),
-    precioUnitario: 4140, sinPrecioAutorizado: true, source: 'CONFIRMADO_PROGRAMA' },
+    precioUnitario: 3990, sinPrecioAutorizado: true, source: 'CONFIRMADO_PROGRAMA' },
   { id: 'p-banca', nombre: 'Banca doble APP LT 1.50 · 10 usuarios · ocupa 6.00 × 1.20 m', piezaId: 'linea-banca_doble', productoId: 'banca_doble', cantidad: 1, precioUnitario: 26145, w: 6000, d: 1200, origen: 'ia' },
 ];
 
