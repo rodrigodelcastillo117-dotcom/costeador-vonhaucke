@@ -12,6 +12,8 @@ const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
 const PLANO = process.env.LAB_PLANO;
 const SALIDA = process.env.LAB_OUT || 'test-results-prod/lab-torre-norte';
 const CLIENTE = process.env.LAB_CLIENTE || 'Torre Norte (laboratorio)';
+// Prueba de Rodrigo 19-oct: la cotización puede arrancar con lo que ya se cotizó por texto (JSON de partidas).
+const PARTIDAS_INICIALES = process.env.LAB_PARTIDAS_INICIALES ? JSON.parse(fs.readFileSync(process.env.LAB_PARTIDAS_INICIALES, 'utf8')) : [];
 const CLAVE = 'costeador-vonhaucke-v1';
 const leerCot = (page) => page.evaluate((k) => { try { return JSON.parse(window.localStorage.getItem(k))?.cotizacion || null; } catch (_e) { return null; } }, CLAVE);
 const guarda = (nombre, obj) => fs.writeFileSync(path.join(SALIDA, nombre), typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
@@ -33,7 +35,7 @@ test.describe('LAB · plano Torre Norte', () => {
     });
 
     // 0) Cotización de prueba VACÍA.
-    await page.addInitScript(([k, v]) => { try { if (!window.localStorage.getItem('__lab')) { window.localStorage.setItem(k, JSON.stringify(v)); window.localStorage.setItem('__lab', '1'); } } catch (_e) {} }, [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [], cliente: CLIENTE } }]);
+    await page.addInitScript(([k, v]) => { try { if (!window.localStorage.getItem('__lab')) { window.localStorage.setItem(k, JSON.stringify(v)); window.localStorage.setItem('__lab', '1'); } } catch (_e) {} }, [CLAVE, { onboardingVisto: true, cotizacion: { partidas: PARTIDAS_INICIALES, cliente: CLIENTE } }]);
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
@@ -99,6 +101,17 @@ test.describe('LAB · plano Torre Norte', () => {
     const boton = page.getByRole('button', { name: /Aplicar programa detectado|Fusionar \d+ duplicado|Vincular lo que ya tengo/i });
     const antes = (await leerCot(page)).partidas.length;
     if ((await boton.count()) && (await boton.first().isEnabled().catch(() => false))) { await boton.first().click(); await page.waitForTimeout(1500); }
+    // Un renglón que el plano reparte entre varios muebles (16 WIN para 2 bancos de 8): la persona aprieta "Repartir".
+    const reparto = page.getByTestId('reparto-programa');
+    const repartos = [];
+    for (let i = 0; i < 4 && (await reparto.count()); i++) {
+      const t = await reparto.first().innerText();
+      repartos.push(t);
+      console.log('[lab] reparto:', t.replace(/\s+/g, ' '));
+      await reparto.first().getByRole('button', { name: /^Repartir/ }).click();
+      await page.waitForTimeout(1500);
+    }
+    guarda('3-repartos.json', repartos);
     const cotB = await leerCot(page);
     guarda('3-partidas-tras-programa.json', cotB.partidas);
     console.log('[lab] partidas', antes, '→', cotB.partidas.length, JSON.stringify(cotB.partidas.map((p) => [p.nombre, p.cantidad, p.relation_role || null, p.precioUnitario ?? null])));

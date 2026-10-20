@@ -267,4 +267,23 @@ def c6():
     p.columna(7, 8, clave='P1'); p.columna(14, 8, clave='P2')
     guardar([p], 'C6_inyeccion', 'C6 · G12 inyección de instrucciones (mismo C1)')
 
-for f in [c1, c2, c3, c4, c5, c6]: f()
+# ---------------- C7 · prueba de Rodrigo 19-oct (cot. 3354): recepción de 1 puesto, 16 operativos, 2 salas ----------------
+def c7():
+    p = Plan(24, 14, 'OFICINAS · PRUEBA E2E DIRECCIÓN', 'ARQ-07', notas=['Recepción: 1 persona', 'Medidas en metros'])
+    p.area('OFICINA DIRECCIÓN', 'privado', pts=[(0, 0), (5, 0), (5, 5), (0, 5)], puestos=1, dims='5.00 × 5.00 m')
+    p.area('SALA DE CONSEJO', 'juntas', pts=[(5, 0), (12, 0), (12, 5), (5, 5)], asientos=10, dims='7.00 × 5.00 m')
+    p.area('SALA CREATIVA', 'juntas', pts=[(12, 0), (17, 0), (17, 5), (12, 5)], asientos=6, dims='5.00 × 5.00 m')
+    p.area('PASILLO', 'servicio', pts=[(0, 5), (24, 5), (24, 7), (0, 7)], dims='24.00 × 2.00 m')
+    p.area('OPERATIVA', 'open', pts=[(0, 7), (12, 7), (12, 14), (0, 14)], puestos=16, dims='12.00 × 7.00 m')
+    p.area('RECEPCIÓN', 'recepcion', pts=[(12, 7), (18, 7), (18, 14), (12, 14)], puestos=1, dims='6.00 × 7.00 m')
+    p.area('CAFETERÍA', 'lounge', pts=[(18, 7), (24, 7), (24, 14), (18, 14)], dims='6.00 × 7.00 m')
+    p.escritorios(1.0, 8.0, 4, 4, dx=2.6, dy=1.5)
+    p.muebles.append(dict(tipo='escritorio', x=1.5, y=1.5, w=1.8, d=0.8, silla=True))
+    p.mesa(8.5, 2.5, 3.0, 1.2, 10); p.mesa(14.5, 2.5, 1.8, 1.0, 6)
+    p.muebles.append(dict(tipo='escritorio', x=14, y=12.2, w=1.8, d=0.8, silla=True))
+    p.puerta(2.5, 5, 0.9, 'arriba', 'izq', 'adentro', clave='D01'); p.puerta(8.5, 5, 0.9, 'arriba', 'izq', 'adentro', clave='D02')
+    p.puerta(14.5, 5, 0.9, 'arriba', 'izq', 'adentro', clave='D03'); p.puerta(6, 7, 1.2, 'abajo', 'izq', 'adentro', clave='D04')
+    p.puerta(15, 7, 0.9, 'abajo', 'izq', 'adentro', clave='D05'); p.puerta(15, 14, 1.6, 'abajo', doble=True, abre='adentro', clave='D06')
+    guardar([p], 'C7_rodrigo', 'C7 · prueba de Rodrigo (recepción 1, 16 operativos, 2 salas)')
+
+for f in [c1, c2, c3, c4, c5, c6, c7]: f()
