@@ -173,7 +173,7 @@ export default function HojaCosto({ resultado, insumos, pieza, parametros = PARA
           <div className="fila"><strong>Precios por volumen</strong><span className="gris">método Vonhaucke</span></div>
           <table className="hoja-vol" style={{ width: '100%', fontSize: '0.85em', borderCollapse: 'collapse', marginTop: 4 }}>
             <thead>
-              <tr style={{ textAlign: 'right', color: '#8A8178' }}>
+              <tr style={{ textAlign: 'right', color: '#5f5850' }}>
                 <th style={{ textAlign: 'left' }}>Volumen</th><th>Mínimo</th><th>Lista</th><th>Precio 2</th>
               </tr>
             </thead>

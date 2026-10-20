@@ -453,7 +453,7 @@ export default function Voni({
                   {recomendacionesCasa.map((r) => (
                     <div key={claveRecomendacion(r)} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 3 }} data-testid="recomendacion-casa">
                       <span>➕ {r.cantidad}× {r.nombre}{r.zone_id ? ` · ${r.zone_id}` : ''} <span className="ayuda" style={{ display: 'inline' }}>· {r.regla}</span></span>
-                      <button type="button" className="boton fantasma" style={{ minHeight: 30 }} disabled={!onAplicarPrograma}
+                      <button type="button" className="boton fantasma" style={{ minHeight: 44 }} disabled={!onAplicarPrograma}
                         onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { incluir: [claveRecomendacion(r)] })}>Agregar</button>
                     </div>
                   ))}
@@ -474,7 +474,7 @@ export default function Voni({
                     <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }} data-testid="ambigua-programa" data-id={a.id}>
                       <span>⇄ <b>{a.nombre}</b>{a.cantidad > 1 ? ` ×${a.cantidad}` : ''}{a.zonaActual ? ` (hoy en ${a.zonaActual})` : ''} {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'tiene más unidades que lugar; ¿mover una a…?' : 'es para:'}</span>
                       {a.opciones.map((o) => (
-                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 30 }}
+                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 44 }}
                           onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: o.id } })}>
                           {o.zona || o.nombre}
                         </button>

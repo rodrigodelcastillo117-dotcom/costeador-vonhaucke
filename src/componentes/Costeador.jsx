@@ -672,7 +672,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             </div>
           ) : (
             <div style={{ marginTop: 14 }}>
-              <div className="ayuda" style={{ marginBottom: 6, color: '#8a6d00' }}>Simulación manual (no oficial). El costo oficial se calcula con Alba V1; mover estos factores simula escenarios.</div>
+              <div className="ayuda" style={{ marginBottom: 6, color: '#e0b84a' }}>Simulación manual (no oficial). El costo oficial se calcula con Alba V1; mover estos factores simula escenarios.</div>
               <label className="etiqueta">Factor de material directo</label>
               <div className="masmenos" style={{ marginBottom: 8 }}>
                 <input type="range" min="1" max="99" value={costeo.factorDirecta ?? 55}

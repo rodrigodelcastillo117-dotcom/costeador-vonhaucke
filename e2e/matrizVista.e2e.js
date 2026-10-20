@@ -154,7 +154,8 @@ function auditarEnPagina({ movil, exclusionesDesborde, alcance }) {
     for (const bg of f.cands) { const r = ratio(sobre(fg, bg), bg); if (r < peor) { peor = r; peorBg = bg; } }
     const minimo = grande ? 3 : 4.5;
     if (peor >= minimo) continue;
-    const nivel = peor < 3 ? 'FALLO' : 'AVISO';
+    // Cierre ChatGPT (P2): el criterio es WCAG AA — texto normal ≥ 4.5:1, texto grande ≥ 3:1. Debajo = FALLO.
+    const nivel = peor < minimo ? 'FALLO' : 'AVISO';
     const clave = `${nivel}|${desc(el).replace(/".*$/, '')}|${hex(fg)}|${hex(peorBg)}`;
     const v = vistos.get(clave);
     if (v) { v.detalle.repeticiones++; continue; }
@@ -184,8 +185,9 @@ function auditarEnPagina({ movil, exclusionesDesborde, alcance }) {
     if (movil) {
       const cs = getComputedStyle(el);
       const enLinea = el.tagName === 'A' && cs.display === 'inline' && (el.parentElement?.innerText || '').trim().length > (el.innerText || '').trim().length;
-      if (!enLinea && (r.width < 32 || r.height < 32)) {
-        const nivel = r.width < 24 || r.height < 24 ? 'FALLO' : 'AVISO';
+      // Cierre ChatGPT (P2): en celular/tablet un control independiente mide ≥ 44 × 44 px (los enlaces en línea, exentos).
+      if (!enLinea && (r.width < 44 || r.height < 44)) {
+        const nivel = 'FALLO';
         hallazgos.push({ tipo: 'objetivo-tactil', nivel, detalle: { el: desc(el), ancho: Math.round(r.width), alto: Math.round(r.height) } });
       }
     }

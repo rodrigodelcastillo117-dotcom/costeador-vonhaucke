@@ -189,7 +189,7 @@ function Emisiones({ cotizacionId, folio }) {
           {r.snapshot && (
             // VH-042: el PDF de una revisión se vuelve a generar DESDE SU SNAPSHOT conservado,
             // no desde el estado vivo. Lo que se reimprime es exactamente lo que se emitió.
-            <button className="boton fantasma" style={{ minHeight: 30, fontSize: 12 }}
+            <button className="boton fantasma" style={{ minHeight: 44, fontSize: 13 }}
               onClick={async () => {
                 try {
                   const marca = await cargarMarca().catch(() => null);

@@ -3073,3 +3073,17 @@ body::before {
 .menu-cuenta-correo { font-size: 12px; color: var(--gris); padding: 6px 10px 8px; border-bottom: 1px solid var(--linea); margin-bottom: 4px; word-break: break-all; }
 .menu-cuenta-lista button { text-align: left; padding: 9px 10px; border: 0; background: transparent; border-radius: 8px; font: inherit; font-weight: 600; color: var(--tinta); cursor: pointer; }
 .menu-cuenta-lista button:hover { background: var(--panel, #f4f2ef); }
+
+
+/* ---- Cierre ChatGPT 2026-10-20 (P2 accesibilidad) ----
+   Texto normal ≥ 4.5:1 y controles táctiles ≥ 44 px en celular/tablet; el aviso verde no tapa contenido en celular. */
+.prog-plano span { color: #c4c7ce !important; }   /* var(--gris) daba 4.17:1 sobre el verde oscuro */
+@media (max-width: 1000px) {
+  /* Controles independientes ≥ 44 × 44 en celular/tablet (WCAG 2.5.5); gana a los minHeight 30–36 en línea. */
+  main button:not(.enlace), header button, .marca, .chip, .boton { min-height: 44px !important; }
+  .boton { min-width: 44px; }
+  .icono-btn, .pieza-x, button[aria-label]:not(.enlace):empty { min-width: 44px !important; min-height: 44px !important; }
+}
+@media (max-width: 600px) {
+  .toast { top: calc(70px + env(safe-area-inset-top)); bottom: auto; font-size: 14px; padding: 10px 16px; max-width: 92vw; text-align: center; }
+}

@@ -32,7 +32,7 @@ export default function AprobacionesPendientes({ visible = false, onResuelta = n
     <div className="tarjeta" data-testid="aprobaciones-pendientes">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <strong>Aprobaciones pendientes{lista ? ` (${lista.length})` : ''}</strong>
-        <button className="boton fantasma" style={{ minHeight: 30, fontSize: 12 }} onClick={cargar}>Actualizar</button>
+        <button className="boton fantasma" style={{ minHeight: 44, fontSize: 13 }} onClick={cargar}>Actualizar</button>
       </div>
       <p className="ayuda" style={{ marginTop: 4 }}>Lo que un vendedor pidió aprobar desde su cotización. Aprobar firma ESA versión exacta: si la cambia, tendrá que pedirla de nuevo.</p>
       {err && <div className="alerta roja" role="alert"><span className="texto">{err}</span></div>}
