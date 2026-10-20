@@ -1,8 +1,8 @@
 {
- "congeladoEn": "2026-10-20T18:02:22.303Z",
- "huellaTotal": "b6a7febe65bb1635c3b6ee550aac1863020a7a79e5efa0ea516a35f522b350df",
+ "congeladoEn": "2026-10-20T20:10:58.851Z",
+ "huellaTotal": "f99ad93db690af9b13ac89372588dc0f7bf302806af59f4783d88e5cf1bd8526",
  "nArchivos": 118,
- "frontendSha": "8b2024edcb31993ff8614ec052d30e6abc9b8815",
+ "frontendSha": "de4234a0c3dcd4be734415781006c673cc952561",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
   "e2e/labCostear.e2e.js": "0c4ad9fa45e7662268b1fed10cf3d4f70d955b631c5884238923aaa366edb7c0",
@@ -39,7 +39,7 @@
   "src/datos/confirmarPrograma.js": "bb42e8d66310eed05b59c9d27fc440d99497a84d830838a66774b70a5b0c1ece",
   "src/datos/conflictoGuardado.js": "eb5c363ed31a4cd5dcd291c10afb8d8234b8347cb8a60b183a20c1b196d0dce3",
   "src/datos/conservarConfirmados.js": "7d58989e985dca783ff055c02607b2436dfcba00b39a834c86c192858c97096b",
-  "src/datos/costeoServidor.js": "913161e76437801ca90d0eb612570051c6d3ac9bef6f4d9d4f9ad105c90fa614",
+  "src/datos/costeoServidor.js": "1e1a55e212911ac8e8550abc17edb6bc7b30f8f1d80c7b42ff4f45f69e87085a",
   "src/datos/crm.js": "8875df37f0475dc387ed04dd4c1c05d05a116932e57229ad4298cbdbb8799cea",
   "src/datos/desarrolloProducto.js": "2dd592fe1eb712aad05754a506f4524c3ad9c296c9b843fff4a58c2ad7d60e43",
   "src/datos/destinoAcomodo.js": "63c997ed795013cdbd52c7bc1b68452c4edbbeb1f6a7a42796771f5410c152be",
@@ -65,7 +65,7 @@
   "src/datos/lineas.js": "6394f8025d5bf8c2e407f51a16063f30223f7754659e1d61d9113808143a9e41",
   "src/datos/luna.js": "39ca466fa7b802776340796a1366a7d00a27741f492025f7c396ab1e5608c8e3",
   "src/datos/materialKnowledge.js": "00e4151c351ed4343d205483c6a830048256cfa8c76ff547258b3b5681b0d38c",
-  "src/datos/materialMatch.js": "d6678cbc14ac4fd95b46f8c6508242324f2e7e112c33b19cb86b8dc6d6c33cec",
+  "src/datos/materialMatch.js": "000865a8500be621f668ac3fe23f7de21cd2425751eda569229f9d771bebd5eb",
   "src/datos/metricasHoldout.js": "f9622c43347b1ddfe3d09755eb2ed6108948f4f24f94c3a54fb6bceda7178d21",
   "src/datos/modulor.js": "58da0a06edf9509d2638c479d6bba13e7583aa4b477892bef589eb8b0ef168dd",
   "src/datos/mox.js": "3fef43a42c064dd4a6f8e58a6cf3a5fe6c494c05c9831b2bc493d5e6a981b720",
@@ -84,7 +84,7 @@
   "src/datos/renderPartida.js": "9f0a2fa53c9e1e7595fd3872efd34727a054e3a5d0288de1b8f898b3e4e94b94",
   "src/datos/renderRespuesta.js": "8c596eb1e136c36c44667bda2e885d149d6cd2e1b3731d33b581a54e3904bf67",
   "src/datos/resolverArticulo.js": "dcc68c65a8ce659d5e62ab5bcb88ab77c24a18b301e5f5aef763b4b3b0159d09",
-  "src/datos/revisionEstructural.js": "8d324c89b99cb053b55bb9dd7f4afa23331bdff1c879ff89e4ddf4804c9870bd",
+  "src/datos/revisionEstructural.js": "46a2a65be83f7fec90b9f7dc76eeb6f91738984680b15665f3dbac4b31cda31b",
   "src/datos/rio.js": "8ab2b1896d96af85a3f89f31489747a7f036f2e6680a231a418cf75f2cad5f0b",
   "src/datos/roles.js": "7ae31932cade05a01d1aeab1bed81ce3098505114a7d3c0819e20678857740b3",
   "src/datos/specTecnica.js": "ab6123c8e36af010078c99f76983dcf5eb79a2fbbd9d6803ced703411632e267",
@@ -131,7 +131,7 @@
    "private_api.catalogo_motor": "fe81d391dc205365bc712441376eefa0",
    "public.buscar_insumos_motor": "5b9b9afad0a486bf2ddfc66948c3946e"
   },
-  "medido_en": "2026-10-20T18:02:05.235172+00:00",
+  "medido_en": "2026-10-20T20:10:23.951296+00:00",
   "insumo_precios": {
    "md5": "49b5c77d2443fc680f759da7df5bc872",
    "filas": 11849
@@ -148,8 +148,8 @@
    "ezbr_sha256": "f226b7927d345f885145eee1a7606c5bd34fcbe8e3b3f0b88e3bad33e0fb323f"
   },
   "costear-servidor-rc": {
-   "version": 28,
-   "ezbr_sha256": "896b3232e3fad61490fd5306e330b80f7c686d7380f6bfca557224cd8db44005"
+   "version": 29,
+   "ezbr_sha256": "8be709a77d557868e5027348185aad5626c49cfb5a06111ad3605a1a02338bac"
   }
  },
  "modelosEsperados": {
