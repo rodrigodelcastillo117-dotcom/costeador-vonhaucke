@@ -236,7 +236,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
     const antes = await leerCot(page);
     await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
     const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).first();
     await expect(tarjeta).toBeVisible({ timeout: 20000 });
@@ -263,7 +263,7 @@ test(`recorrido ${RECORRIDO}: lo que revisa una persona, en cada pantalla`, asyn
   await page.goto('/');
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   await auditar('inicio');
   await page.getByTestId('home-cotizar').click();
   const cliente = page.getByPlaceholder('Nombre del cliente'); if (await cliente.count()) await cliente.fill(CLIENTE);

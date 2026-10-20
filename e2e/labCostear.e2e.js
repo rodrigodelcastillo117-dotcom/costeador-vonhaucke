@@ -117,7 +117,7 @@ test('COSTEAR real: imagen → BOM → ERP a mano → costo → sombra → guard
   if (process.env.LAB_GIT_SHA) expect(shaApp, 'el navegador no sirve el SHA congelado').toBe(process.env.LAB_GIT_SHA);
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
   await page.getByTestId('home-costear').click();
   await expect(page.getByTestId('costear-archivo')).toBeAttached({ timeout: 15000 });

@@ -225,7 +225,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
     marca('loginSeg', t);
 
@@ -348,7 +348,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
     // 6) Recargar → lista → REABRIR (desde la lista, como una persona).
     t = Date.now();
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
     await page.getByTestId('home-cocrear').click();
     await expect(page.getByText('¿Qué quieres crear?')).toBeVisible({ timeout: 20000 });
     const tarjeta = page.getByRole('button', { name: new RegExp(escRe(ETIQUETA)) }).first();

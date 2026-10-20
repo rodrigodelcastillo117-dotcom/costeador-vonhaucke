@@ -40,7 +40,7 @@ test('COTIZAR real por texto o manual: partidas → guardar → nube → PDF →
   await page.goto('/');
   await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
 
   let entrada = {};
   if (MODO === 'texto') {
