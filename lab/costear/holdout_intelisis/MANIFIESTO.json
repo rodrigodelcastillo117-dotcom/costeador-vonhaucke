@@ -1,8 +1,8 @@
 {
- "congeladoEn": "2026-10-20T16:51:04.606Z",
- "huellaTotal": "b0531c426f0018c3ed0164739b24a7273ac74fcccdde62419e0b347b93dc1cde",
- "nArchivos": 117,
- "frontendSha": "09397bf4febd233fbf12dcef717cb4111c705782",
+ "congeladoEn": "2026-10-20T18:02:22.303Z",
+ "huellaTotal": "b6a7febe65bb1635c3b6ee550aac1863020a7a79e5efa0ea516a35f522b350df",
+ "nArchivos": 118,
+ "frontendSha": "8b2024edcb31993ff8614ec052d30e6abc9b8815",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
   "e2e/labCostear.e2e.js": "0c4ad9fa45e7662268b1fed10cf3d4f70d955b631c5884238923aaa366edb7c0",
@@ -37,7 +37,7 @@
   "src/datos/cocrearServidor.js": "b71a2d931cf67dbe973c39ce1bbe653fc6ba3900a4cbaa9e337be9c11d633192",
   "src/datos/colorMelamina.js": "fa17f1f750b131e2181b959fc9a7add26c113e3d585642616237c03c0712beb1",
   "src/datos/confirmarPrograma.js": "bb42e8d66310eed05b59c9d27fc440d99497a84d830838a66774b70a5b0c1ece",
-  "src/datos/conflictoGuardado.js": "1ee11b1bd21d56b21a36403034c0adf8e83fe26831dbb72240487a954b752f6d",
+  "src/datos/conflictoGuardado.js": "eb5c363ed31a4cd5dcd291c10afb8d8234b8347cb8a60b183a20c1b196d0dce3",
   "src/datos/conservarConfirmados.js": "7d58989e985dca783ff055c02607b2436dfcba00b39a834c86c192858c97096b",
   "src/datos/costeoServidor.js": "913161e76437801ca90d0eb612570051c6d3ac9bef6f4d9d4f9ad105c90fa614",
   "src/datos/crm.js": "8875df37f0475dc387ed04dd4c1c05d05a116932e57229ad4298cbdbb8799cea",
@@ -61,10 +61,11 @@
   "src/datos/holdoutHuellas.js": "55e2ff3a93dff1f88fd50b572a30f9c156eb1ed3a6703a706ad104744b4f3704",
   "src/datos/imagenStorage.js": "4414fdeb8c907a137c42af1a7d7e08120d44764c665f41611d69eeb30398a809",
   "src/datos/insumos.js": "32be168611dc9ff7a5be7a2142cd418c4ebb7838ab90c44164560963c8d3981b",
+  "src/datos/lecturaConReintento.js": "ba182843a9e57007e54a340adce6383434f29987f4f9eab3b782943cd286025f",
   "src/datos/lineas.js": "6394f8025d5bf8c2e407f51a16063f30223f7754659e1d61d9113808143a9e41",
   "src/datos/luna.js": "39ca466fa7b802776340796a1366a7d00a27741f492025f7c396ab1e5608c8e3",
   "src/datos/materialKnowledge.js": "00e4151c351ed4343d205483c6a830048256cfa8c76ff547258b3b5681b0d38c",
-  "src/datos/materialMatch.js": "4995080a60e31810891e22cf1662ca7887bc23e58bffe4bb13ab8a1b729e0814",
+  "src/datos/materialMatch.js": "d6678cbc14ac4fd95b46f8c6508242324f2e7e112c33b19cb86b8dc6d6c33cec",
   "src/datos/metricasHoldout.js": "f9622c43347b1ddfe3d09755eb2ed6108948f4f24f94c3a54fb6bceda7178d21",
   "src/datos/modulor.js": "58da0a06edf9509d2638c479d6bba13e7583aa4b477892bef589eb8b0ef168dd",
   "src/datos/mox.js": "3fef43a42c064dd4a6f8e58a6cf3a5fe6c494c05c9831b2bc493d5e6a981b720",
@@ -105,7 +106,7 @@
   "src/motor/formulaAlba.js": "feaf687b3bf225fc5997b9b148ce259e0a449598ebaed68da9d647acafcc375f",
   "src/motor/optimizacionCorte.js": "4069d9f7c51e5fae61a025069e8d9a77ba47954bd81d3b53e348ff66039e7954",
   "src/motor/politicaMerma.js": "39e479509338b0239c466866d6abad882522f68f9c4c1e8fccc8bb8229e35a45",
-  "src/nube.js": "5da64d3ff07ea861feb70ffdcefe014e7b99306b73b4720cbe97eb612c7df3d2",
+  "src/nube.js": "cca48e4183b9d182dd07f62f02ba535d01673e77474dd9a5bfd880ce9fc49ebb",
   "src/voni/conocimiento.js": "ff5b8d53d4605829b4216f2f626744e928d7cac6908a81c210b442587759779e",
   "src/voni/especialidades.js": "928345a190cc50f1997bad8313ec1892a8b3ece9eb5d7a46744c3dd47b2338b4",
   "src/voni/lentes.js": "93b209659f69febfc09c2c9354b5ea57180ed61b66f7dbda58a5bd3a7cec868c",
@@ -130,7 +131,7 @@
    "private_api.catalogo_motor": "fe81d391dc205365bc712441376eefa0",
    "public.buscar_insumos_motor": "5b9b9afad0a486bf2ddfc66948c3946e"
   },
-  "medido_en": "2026-10-20T16:50:48.242258+00:00",
+  "medido_en": "2026-10-20T18:02:05.235172+00:00",
   "insumo_precios": {
    "md5": "49b5c77d2443fc680f759da7df5bc872",
    "filas": 11849
@@ -147,8 +148,8 @@
    "ezbr_sha256": "f226b7927d345f885145eee1a7606c5bd34fcbe8e3b3f0b88e3bad33e0fb323f"
   },
   "costear-servidor-rc": {
-   "version": 27,
-   "ezbr_sha256": "48377ab3148799564ee68d1978cf3a454b95619b34a782dd7ba81b3c09f5f23c"
+   "version": 28,
+   "ezbr_sha256": "896b3232e3fad61490fd5306e330b80f7c686d7380f6bfca557224cd8db44005"
   }
  },
  "modelosEsperados": {
