@@ -43,6 +43,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      # Cada corrida deja SU presupuesto golden con nombre propio: dos CI en paralelo con la misma cuenta ya no se pisan
+      # (19-oct: golden757Edicion buscaba "Torre Sur (golden)" y encontró el de la otra corrida).
+      GOLDEN_CLIENTE: Torre Sur (golden) ${{ github.run_id }}-${{ github.run_attempt }}
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
