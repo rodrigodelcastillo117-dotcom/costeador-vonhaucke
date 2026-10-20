@@ -4,6 +4,7 @@
 //  IA, Acomodo, Propuesta al cliente) en un solo flujo guiado, con sello
 //  Firme/Estimado por renglón y "no tengo planos" siempre a la mano.
 // ============================================================================
+import { textoReparto } from '../datos/textoReparto.js';
 import { useMemo, useState, useRef, useEffect } from 'react';
 import CotizadorIA from './CotizadorIA.jsx';
 import Acomodo from './Acomodo.jsx';
@@ -92,7 +93,7 @@ function ConflictoPrograma({ c, onConservar, onSustituir, onAmbos }) {
     ['Precio de lista', money(e.precio), money(p.precio)],
   ];
   return (
-    <div className="tarjeta" style={{ marginTop: 8, border: '1px solid #e0b4b4', background: '#fff8f8' }} data-testid="conflicto-programa">
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0b4b4', background: '#fff8f8' }} data-testid="conflicto-programa">
       <div style={{ fontWeight: 700 }}>✗ {etiquetaSlot(c.slot)}: ya tienes un producto en este lugar y el plano propone otro.</div>
       <table style={{ width: '100%', marginTop: 6, fontSize: 14, borderCollapse: 'collapse' }}>
         <thead><tr><th style={{ textAlign: 'left' }}></th><th style={{ textAlign: 'left' }}>Lo que ya tienes</th><th style={{ textAlign: 'left' }}>Lo que propone el plano</th></tr></thead>
@@ -103,6 +104,22 @@ function ConflictoPrograma({ c, onConservar, onSustituir, onAmbos }) {
         <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onConservar}>Conservar el mío</button>
         {onSustituir && <button type="button" className="boton primario" style={{ minHeight: 34 }} onClick={onSustituir}>Sustituir por el propuesto</button>}
         {onAmbos && <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onAmbos}>Mantener ambos (son dos muebles distintos)</button>}
+      </div>
+    </div>
+  );
+}
+
+// Prueba de Rodrigo 19-oct: un renglón (p. ej. 16 sillas WIN) que el plano reparte entre varios muebles del mismo tipo
+// (dos bancos de 8). No es un "producto distinto en el mismo lugar": se explica así y "Repartir" sí aplica la decisión.
+function RepartoPrograma({ grupo, onRepartir, onDejar }) {
+  const t = textoReparto(grupo);
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="reparto-programa">
+      <div style={{ fontWeight: 700 }}>{t.titulo}</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>{t.ayuda}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onRepartir && <button type="button" className="boton primario" style={{ minHeight: 34 }} onClick={onRepartir}>{t.boton}</button>}
+        <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onDejar}>Dejarlo como está</button>
       </div>
     </div>
   );
@@ -233,7 +250,7 @@ export default function Voni({
   const ambiguasPrograma = conciliacion.ambiguas || [];
   // VH-090: existentes del usuario que cubren el programa y aún no están vinculados (sin instance/anchor).
   const reutilizadosPrograma = reconPrograma
-    ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id; })
+    ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id && !(Number(p.repartido_entre) > 0); })
     : [];
   const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
 
@@ -386,7 +403,7 @@ export default function Voni({
             </div>
           )}
           {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0 || recomendacionesCasa.length > 0) && (
-            <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
+            <div className="tarjeta no-imprimir nota-clara" data-testid="programa-detectado" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
               <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
                 Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
@@ -454,7 +471,22 @@ export default function Voni({
               {conflictosPrograma.length > 0 && (
                 <div style={{ marginTop: 8, color: '#8a1f1f' }}>
                   <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
-                  {conflictosPrograma.filter((c) => !conflictosConservados.has(c.slot)).map((c, i) => (
+                  {(() => {
+                    // SPLIT_REQUIRED agrupado por renglón: una tarjeta por renglón, con su propia decisión.
+                    const grupos = new Map();
+                    for (const c of conflictosPrograma) {
+                      if (c.code !== 'SPLIT_REQUIRED' || conflictosConservados.has(c.slot)) continue;
+                      const k = String(c.fila_id ?? c.slot);
+                      if (!grupos.has(k)) grupos.set(k, []);
+                      grupos.get(k).push(c);
+                    }
+                    return [...grupos.entries()].map(([k, g]) => (
+                      <RepartoPrograma key={`rep-${k}`} grupo={g}
+                        onDejar={() => setConflictosConservados((prev) => new Set([...prev, ...g.map((c) => c.slot)]))}
+                        onRepartir={onAplicarPrograma && g[0].fila_id != null ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { repartir: [g[0].fila_id] }) : null} />
+                    ));
+                  })()}
+                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && !conflictosConservados.has(c.slot)).map((c, i) => (
                     <ConflictoPrograma key={i} c={c}
                       onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
                       onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}

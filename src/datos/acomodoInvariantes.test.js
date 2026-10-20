@@ -251,3 +251,22 @@ describe('acomodoInvariantes · verify-first vs edge + repair', () => {
     expect(r.render_ready).toBe(false);
   });
 });
+
+// Prueba de Rodrigo 2026-10-19 (cotización 3354): "un mueble se sale de su cuarto («p-1792455947285-3-1»)". La credenza
+// Eclipse 2100 × 600 girada 90° quedó en x 4400, y 0 de la OFICINA de 5000 × 5000: PEGADA al muro derecho y al de arriba,
+// dentro del cuarto (el servidor la aprobó). La revisión de la pantalla probaba las esquinas EXACTAS contra el polígono y
+// un punto sobre el muro contaba como "fuera".
+describe('pieza pegada al muro no "se sale de su cuarto"', () => {
+  const oficina = { nombre: 'OFICINA DIRECCIÓN', ancho: 5000, largo: 5000, poly: [[0, 0], [5000, 0], [5000, 5000], [0, 5000]] };
+  const credenza = { id: 'cred', nombre: 'Eclipse Credenza baja 2.10 × 0.60 m', w: 2100, d: 600, relation_role: 'SUPPORT_STORAGE', standalone: true };
+  const issuesDe = (x, y, rot) => evaluarInvariantesAcomodo({ payload: { areas: [oficina], piezas: [credenza] }, plan: { colocacion: [{ id: 'cred', area: 0, x, y, rot }] } }).issues;
+  it('girada 90° pegada al muro derecho y al de arriba: dentro', () => {
+    expect(issuesDe(4400, 0, 90).some((i) => i.code === 'OUT_OF_BOUNDS')).toBe(false);
+  });
+  it('pegada a la esquina inferior derecha sin girar: dentro', () => {
+    expect(issuesDe(2900, 4400, 0).some((i) => i.code === 'OUT_OF_BOUNDS')).toBe(false);
+  });
+  it('si de verdad se sale 1 cm, sí se marca', () => {
+    expect(issuesDe(4410, 0, 90).some((i) => i.code === 'OUT_OF_BOUNDS')).toBe(true);
+  });
+});

@@ -99,7 +99,7 @@ export default function Reglas({ puedeEditar = false }) {
               Si es de las que valen para siempre, conviértela en regla.
             </p>
             {puedeEditar && aprendido.some((a) => a.aprobado_para_ia !== true) && (
-              <div className="tarjeta" data-testid="lecciones-pendientes" style={{ padding: 12, marginBottom: 10, background: '#fff8e8', border: '1px solid #e8c77a' }}>
+              <div className="tarjeta nota-clara" data-testid="lecciones-pendientes" style={{ padding: 12, marginBottom: 10, background: '#fff8e8', border: '1px solid #e8c77a' }}>
                 <strong>Pendientes de revisión ({aprendido.filter((a) => a.aprobado_para_ia !== true).length})</strong>
                 <p className="ayuda" style={{ marginTop: 4 }}>Lo que un vendedor anotó. No entra a lo que Voni sabe hasta que lo apruebes aquí (misma regla que la base: <code>aprobado_para_ia</code>).</p>
                 <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 8, marginTop: 8 }}>

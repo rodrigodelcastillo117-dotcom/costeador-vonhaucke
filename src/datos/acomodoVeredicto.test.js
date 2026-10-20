@@ -146,3 +146,14 @@ describe('VH-A10-06/07 · evidencia de medidas y bancas APP LT en el veredicto',
     expect(v.bloques.find((b) => b.clave === 'evidencia').texto).toBe('medidas y productos con identidad de catálogo');
   });
 });
+
+// Prueba de Rodrigo 2026-10-19: "un mueble se sale de su cuarto («p-1792455947285-3-1»)" — el id interno no le dice nada.
+describe('los avisos nombran el mueble, no su id interno', () => {
+  it('OUT_OF_BOUNDS con la pieza en el plan → «Eclipse Credenza baja…»', () => {
+    const plan = { piezas: [{ id: 'p-1792455947285-3-1', nombre: 'Eclipse Credenza baja 2.10 × 0.60 m' }],
+      invariantes: { issues: [{ code: 'OUT_OF_BOUNDS', severity: 'fail', id: 'p-1792455947285-3-1' }] } };
+    const txt = JSON.stringify(explicarAcomodo({ plan }));
+    expect(txt).toMatch(/se sale de su cuarto \(«Eclipse Credenza baja 2\.10 × 0\.60 m»\)/);
+    expect(txt).not.toMatch(/p-1792455947285-3-1/);
+  });
+});
