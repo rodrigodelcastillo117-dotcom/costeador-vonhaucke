@@ -63,8 +63,8 @@ const FAMILIAS = [
   { re: /nivelador|regat/i, opt: /nivelador|regat/i, erp: 'nivelador' },
   { re: /rodaja|rueda|rodaj/i, opt: /rodaja|rueda/i, erp: 'rodaja' },
   { re: /pasacable|grommet/i, opt: /pasacable|grommet/i, erp: 'pasacables' },
-  { re: /chicote|cablead|\bcable\b/i, opt: /chicote|cable/i, erp: 'chicote' },
-  { re: /tornill|minifix|taquete|herraje/i, opt: /tornill|herraje|minifix/i, erp: 'tornillo' },
+  { re: /chicote|cablead|\bcable\b/i, opt: /chicote|cablead|\bcable\b/i, erp: 'chicote' },   // ojo: "Pasacables" NO es cable
+  { re: /tornill|minifix|taquete/i, opt: /tornill|minifix|taquete/i, erp: 'tornillo' },   // "herraje" solo es ambiguo (placas de lámina, tapas App LT)
   { re: /\bled\b|ilumin/i, opt: /\bled\b/i, erp: 'LED' },
   { re: /contacto|usb|caja el[eé]ctrica|m[oó]dulo el[eé]ctrico|byrne|acometida/i, opt: /contacto|el[eé]ctric|byrne/i, erp: 'contacto' },
   { re: /\bptr\b|tubular|tubo\b|perfil met|soldadura|microalambre/i, opt: /\bptr\b|tubular|tubo|perfil|soldadura|microalambre/i, erp: 'PTR' },
@@ -88,6 +88,7 @@ const TONOS = [
 ];
 const TONO_PEDIDO = TONOS.find((t) => t.re.test(`${AJ?.material || ''} ${BRIEF}`)) || null;
 const OPT_TABLERO = /melamin|\bmdf\b|chapa|triplay|tablero/i;
+const rangoTablero = (t) => (/melamin/i.test(t) ? 0 : /\bmdf\b/i.test(t) ? 1 : /chapa/i.test(t) ? 3 : 2);
 async function resolverMateriales(page) {
   const out = { confirmados: 0, diferenciasAceptadas: 0, elegidos: [], bloqueados: [] };
   const PENDIENTE = /sin precio certificado|Material pendiente|Costo pendiente|Varios materiales posibles|Sustituci[oó]n requiere/i;
@@ -112,7 +113,7 @@ async function resolverMateriales(page) {
     // ingeniería bloquea, p. ej., "Pintura en polvo" costeada como lámina).
     if (val) {
       const nomTmp = await f.locator('.pieza-nom').inputValue().catch(() => '');
-      const fuerte = FAMILIAS.slice(0, 16).find((x) => x.re.test(nomTmp));
+      const fuerte = FAMILIAS.filter((x) => !['PTR', 'lámina', 'melamina', 'chapa', 'MDF'].includes(x.erp)).find((x) => x.re.test(nomTmp));
       const textoSel = await sel.evaluate((s) => s.options[s.selectedIndex]?.textContent || '').catch(() => '');
       if (fuerte && !fuerte.opt.test(textoSel)) alerta = `${alerta} familia-equivocada`;
     }
@@ -127,7 +128,9 @@ async function resolverMateriales(page) {
       const usados = await page.locator('.pieza select.pieza-mat').evaluateAll((ss) => ss.map((s) => s.options[s.selectedIndex]?.textContent || '')).catch(() => []);
       const ops = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
         .filter((o) => o.v && OPT_TABLERO.test(o.t) && TONO_PEDIDO.opt.test(o.t) && !/canto/i.test(o.t))
-        .sort((a, b) => Number(usados.includes(b.t)) - Number(usados.includes(a.t)));
+        // El que ya usa el mueble primero; después melamina > MDF > triplay/tablero > chapa (la chapa es un acabado premium
+        // sobre sustrato: no se elige sola por decir "nogal").
+        .sort((a, b) => (Number(usados.includes(b.t)) - Number(usados.includes(a.t))) || (rangoTablero(a.t) - rangoTablero(b.t)));
       fam = { re: OPT_TABLERO, opt: new RegExp(`(?=.*(${TONO_PEDIDO.opt.source}))(?=.*(${OPT_TABLERO.source}))`, 'i'), erp: `melamina ${TONO_PEDIDO.erp}`, porBrief: true, ops };
     }
     if (!fam) { out.bloqueados.push({ pieza: nombre, motivo: 'familia de material no reconocible: no se elige nada a ciegas' }); continue; }
