@@ -26,7 +26,7 @@ jobs:
   caso:
     needs: plan
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       # La IA tiene un límite de 40 análisis por hora por usuario (analizar-mueble): pocos casos a la vez.

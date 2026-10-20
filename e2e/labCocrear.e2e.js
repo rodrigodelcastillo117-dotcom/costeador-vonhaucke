@@ -69,38 +69,53 @@ const FAMILIAS = [
 ];
 async function resolverMateriales(page) {
   const out = { confirmados: 0, diferenciasAceptadas: 0, elegidos: [], bloqueados: [] };
-  const conf = page.getByTestId('piloto-confirmar');
-  if (await conf.count()) { await conf.first().click(); await page.waitForTimeout(2500); out.confirmados++; }
-  for (let k = 0; k < 30 && (await page.getByTestId('confirmar-con-diferencia').count()); k++) { await page.getByTestId('confirmar-con-diferencia').first().click(); await page.waitForTimeout(600); out.diferenciasAceptadas++; }
+  const PENDIENTE = /sin precio certificado|Material pendiente|Costo pendiente|Varios materiales posibles|Sustituci[oó]n requiere/i;
+  const confirmarTodo = async () => {
+    if (await page.getByTestId('piloto-confirmar').count()) { await page.getByTestId('piloto-confirmar').first().click(); await page.waitForTimeout(1500); out.confirmados++; }
+    for (let k = 0; k < 30 && (await page.getByTestId('confirmar-con-diferencia').count()); k++) { await page.getByTestId('confirmar-con-diferencia').first().click(); await page.waitForTimeout(400); out.diferenciasAceptadas++; }
+  };
+  await confirmarTodo();
   const filas = page.locator('.pieza');
   const n = await filas.count();
+  const alertasDe = async (f) => (await f.getByTestId('alerta-material').allInnerTexts().catch(() => [])).join(' ');
   for (let i = 0; i < n; i++) {
     const f = filas.nth(i);
     const sel = f.locator('select.pieza-mat');
     if (!(await sel.count())) continue;
     const val = await sel.inputValue().catch(() => '');
-    if (val) continue;                                   // ya tiene material
+    let alerta = await alertasDe(f);
+    if (val && !PENDIENTE.test(alerta)) continue;          // ya costeable
     const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');
-    const alerta = (await f.getByTestId('alerta-material').allInnerTexts().catch(() => [])).join(' ');
-    const texto = `${nombre} ${alerta}`;
-    const fam = FAMILIAS.find((x) => x.re.test(texto));
+    const fam = FAMILIAS.find((x) => x.re.test(`${nombre} ${alerta}`));
     if (!fam) { out.bloqueados.push({ pieza: nombre, motivo: 'familia de material no reconocible: no se elige nada a ciegas' }); continue; }
-    const opciones = await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []);
-    const op = opciones.find((o) => o.v && fam.opt.test(o.t));
-    if (op) { await sel.selectOption(op.v); await page.waitForTimeout(500); out.elegidos.push({ pieza: nombre, familia: fam.erp, insumo: op.t.trim(), via: 'catalogo' }); continue; }
-    const abrir = f.getByTestId('buscar-insumo-abrir');
-    if (await abrir.count()) {
-      await abrir.click();
+    // 1) Opciones del catálogo curado de la MISMA familia, distintas de la actual; se verifica que la alerta se vaya.
+    const opciones = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
+      .filter((o) => o.v && o.v !== val && fam.opt.test(o.t));
+    let listo = null;
+    for (const op of opciones.slice(0, 6)) {
+      await sel.selectOption(op.v); await page.waitForTimeout(700);
+      alerta = await alertasDe(f);
+      if (!PENDIENTE.test(alerta)) { listo = { insumo: op.t.trim(), via: 'catalogo' }; break; }
+    }
+    // 2) Buscador ERP de la misma familia.
+    if (!listo && (await f.getByTestId('buscar-insumo-abrir').count())) {
+      await f.getByTestId('buscar-insumo-abrir').click();
       await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(fam.erp);
       await page.waitForTimeout(2500);
-      const li = f.locator('.buscador-insumo-lista li').filter({ hasText: fam.opt }).first();
-      if (await li.count()) { const t = (await li.innerText()).replace(/\s+/g, ' ').slice(0, 120); await li.getByRole('button', { name: /^Usar$/ }).click(); await page.waitForTimeout(800); out.elegidos.push({ pieza: nombre, familia: fam.erp, insumo: t, via: 'erp' }); continue; }
+      const lis = f.locator('.buscador-insumo-lista li').filter({ hasText: fam.opt });
+      const k = Math.min(await lis.count(), 4);
+      for (let j = 0; j < k && !listo; j++) {
+        const li = lis.nth(j); const t = (await li.innerText()).replace(/\s+/g, ' ').slice(0, 120);
+        await li.getByRole('button', { name: /^Usar$/ }).click(); await page.waitForTimeout(900);
+        alerta = await alertasDe(f);
+        if (!PENDIENTE.test(alerta)) listo = { insumo: t, via: 'erp' };
+        else if (j + 1 < k && (await f.getByTestId('buscar-insumo-abrir').count())) { await f.getByTestId('buscar-insumo-abrir').click(); await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(fam.erp); await page.waitForTimeout(2000); }
+      }
     }
-    out.bloqueados.push({ pieza: nombre, motivo: `no hay insumo real de la familia «${fam.erp}» en el catálogo/ERP` });
+    if (listo) out.elegidos.push({ pieza: nombre, familia: fam.erp, ...listo });
+    else out.bloqueados.push({ pieza: nombre, motivo: `no hay insumo real CON PRECIO de la familia «${fam.erp}» en el catálogo/ERP`, alerta: alerta.slice(0, 160) });
   }
-  // Lo recién elegido puede abrir nuevas confirmaciones de la app.
-  for (let k = 0; k < 30 && (await page.getByTestId('confirmar-con-diferencia').count()); k++) { await page.getByTestId('confirmar-con-diferencia').first().click(); await page.waitForTimeout(600); out.diferenciasAceptadas++; }
-  if (await page.getByTestId('piloto-confirmar').count()) { await page.getByTestId('piloto-confirmar').first().click(); await page.waitForTimeout(2000); out.confirmados++; }
+  await confirmarTodo();
   return out;
 }
 
@@ -160,7 +175,7 @@ async function leerEstudio(page) {
 
 test('COCREAR real: brief → concepto → ajustes → estados → guardar → recargar → reabrir → comparar', async ({ page }) => {
   test.skip(!(EMAIL && PASS && BRIEF), 'Define TEST_EMAIL, TEST_PASSWORD y LAB_COC_BRIEF.');
-  test.setTimeout(14 * 60 * 1000); fs.mkdirSync(SALIDA, { recursive: true });
+  test.setTimeout(32 * 60 * 1000); fs.mkdirSync(SALIDA, { recursive: true });   // con resolución de materiales + reabrir con costo (cierre ChatGPT)
   const T0 = Date.now(); const tiempos = {}; const marca = (k, desde) => { tiempos[k] = Math.round((Date.now() - desde) / 100) / 10; return tiempos[k]; };
   const red = []; const pageErrors = []; const consoleErrors = []; const pasos = []; const intervenciones = [];
   const r = { id: ID, etiqueta: ETIQUETA, brief: BRIEF, imagen: IMG, ajustes: AJ, esperado: ESPERADO, concepto: CONCEPTO, renderPedido: RENDER, inicio: new Date(T0).toISOString(), baseURL: 'http://localhost:5173' };
@@ -420,7 +435,13 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
           bb.descripcion = (await page.locator('#costear-descripcion').inputValue().catch(() => '')).slice(0, 400);
           const esperaAn = page.waitForResponse((x) => x.url().includes('/functions/v1/analizar-mueble'), { timeout: 240000 });
           await page.getByRole('button', { name: /Analizar con Voni/ }).click();
-          const an = await esperaAn; bb.analizarStatus = an.status();
+          let an = await esperaAn; bb.analizarStatus = an.status();
+          if (an.status() >= 500) {   // fallo pasajero de la IA: una persona vuelve a apretar "Analizar" (una vez)
+            await page.waitForTimeout(5000);
+            const reintento = page.waitForResponse((x) => x.url().includes('/functions/v1/analizar-mueble'), { timeout: 240000 });
+            await page.getByRole('button', { name: /Analizar con Voni/ }).click();
+            an = await reintento; bb.analizarReintento = an.status(); bb.analizarStatus = an.status();
+          }
           const volver = page.getByTestId('costear-volver-cocrear');
           await expect(volver).toBeEnabled({ timeout: 120000 });
           bb.piezasEnCostear = Number(((await volver.innerText()).match(/\((\d+) piezas\)/) || [])[1] || 0);
