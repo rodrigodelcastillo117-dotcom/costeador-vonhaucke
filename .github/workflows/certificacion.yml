@@ -21,6 +21,9 @@ jobs:
       casos: ${{ steps.leer.outputs.casos }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - id: leer
         run: echo "casos=$(tr -d '\n' < lab/certificacion/casos.json)" >> "$GITHUB_OUTPUT"
   caso:
@@ -38,6 +41,9 @@ jobs:
       TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22

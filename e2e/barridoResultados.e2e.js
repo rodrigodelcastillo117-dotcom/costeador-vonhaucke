@@ -39,6 +39,7 @@ const esVigilada = (url) => {
 
 function vigia(page) {
   const problemas = [];
+  const infra = [];
   const permitidas = [];          // { rx: RegExp de URL, status?: number, motivo }
   let redCaidaPermitida = false;
   const permitida = (url, status) => permitidas.some((p) => p.rx.test(url) && (p.status == null || p.status === status));
@@ -50,6 +51,10 @@ function vigia(page) {
     const r = RX_RECURSO.exec(t);
     if (r && permitida(url, Number(r[1]))) return;
     if (redCaidaPermitida && RX_RED_CAIDA.test(t)) return;
+    // Infra, no app (flaky CI 62202cc0 intento 2): el handshake del WebSocket de Supabase REALTIME a veces responde 5xx
+    // y el cliente de Realtime reintenta solo. Se registra como aviso de infraestructura; cualquier otro error sigue
+    // reprobando, igual que un aviso de error tardío en pantalla.
+    if (/WebSocket connection to 'wss:\/\/[^']+\/realtime\/v1\/websocket[^']*' failed/.test(t)) { infra.push(t.slice(0, 200)); return; }
     problemas.push(`console.error: ${t.slice(0, 300)}${url ? ` @ ${url.slice(0, 160)}` : ''}`);
   });
   page.on('response', (r) => {
@@ -58,6 +63,7 @@ function vigia(page) {
   });
   return {
     problemas,
+    infra,
     permitir(rx, status, motivo) { permitidas.push({ rx, status, motivo }); },
     permitirRedCaida() { redCaidaPermitida = true; },
     // unhandledrejection: se anota en la página (init script) y se lee al final.

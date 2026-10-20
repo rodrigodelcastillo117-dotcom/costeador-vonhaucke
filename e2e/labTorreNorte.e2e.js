@@ -21,6 +21,8 @@ const guarda = (nombre, obj) => fs.writeFileSync(path.join(SALIDA, nombre), type
 test.describe('LAB · plano Torre Norte', () => {
   test.skip(!(EMAIL && PASS && PLANO), 'Define TEST_EMAIL, TEST_PASSWORD y LAB_PLANO.');
   test.setTimeout(25 * 60 * 1000);
+  // Un click que no encuentra su botón falla en 20 s con el árbol de la página, no a los 25 min.
+  test.use({ actionTimeout: 20000 });
 
   test('ARQ-01 + MOB-01: lectura → programa → acomodo → guardar → render → PDF → reabrir', async ({ page }) => {
     fs.mkdirSync(SALIDA, { recursive: true });
@@ -124,7 +126,8 @@ test.describe('LAB · plano Torre Norte', () => {
       const t = await reparto.first().innerText();
       repartos.push(t);
       console.log('[lab] reparto:', t.replace(/\s+/g, ' '));
-      await reparto.first().getByRole('button', { name: /^Repartir/ }).click();
+      // La tarjeta dice "Repartir…" o, con un solo destino, "Usar N para <destino>" (cierre ChatGPT P1-PROG-01).
+      await reparto.first().getByRole('button', { name: /^(Repartir|Usar \d+ para)/ }).first().click();
       await page.waitForTimeout(1500);
     }
     guarda('3-repartos.json', repartos);
