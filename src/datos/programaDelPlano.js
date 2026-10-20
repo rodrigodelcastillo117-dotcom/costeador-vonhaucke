@@ -118,7 +118,7 @@ export function programaDelPlano(areas, opts = {}) {
   // que lo rodea.
   const nombresConIslas = new Set(zonas.map((z) => z.dentroDe));
   const abiertos = lista.filter((a) => !esZona(a) && rolDe(a, lista) === 'open' && !nombresConIslas.has(a.nombre));
-  const islasA = zonas.length ? zonas : abiertos;
+  let islasA = zonas.length ? zonas : abiertos;
 
   const avisos = [];
   let operativos = 0, porIsla = 0;
@@ -132,6 +132,14 @@ export function programaDelPlano(areas, opts = {}) {
   if (islasA.length) {
     const explicitas = islasA.filter((a) => Number.isFinite(a.puestos) && a.puestos > 0);
     contado = explicitas.length > 0;
+    // Recorrido plano→reabrir (lab 19-oct): si el plano CUENTA escritorios en unas áreas abiertas, una área abierta SIN
+    // escritorios dibujados (p. ej. "ÁREA SIN ROTULAR") no se llena por geometría: se le estimaban 8 puestos y se le
+    // mandaban los bancos. Queda fuera del conteo y se dice, para que la persona confirme si lleva puestos.
+    if (contado && explicitas.length < islasA.length) {
+      const sinConteo = islasA.filter((a) => !explicitas.includes(a));
+      avisos.push(`${sinConteo.map((a) => `«${a.nombre}»`).join(', ')}: parece espacio abierto pero no tiene escritorios dibujados; no le puse puestos. Si lleva, dímelo.`);
+      islasA = explicitas.slice().sort((x, y) => (y.puestos || 0) - (x.puestos || 0));
+    }
     const cuentas = islasA.map((a) => (Number.isFinite(a.puestos) && a.puestos > 0
       ? a.puestos
       : puestosPorIsla(a, largoPuesto)));
