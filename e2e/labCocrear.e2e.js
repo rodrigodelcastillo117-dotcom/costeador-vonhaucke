@@ -61,7 +61,7 @@ const FAMILIAS = [
   { re: /corredera|riel/i, opt: /corredera|riel/i, erp: 'corredera' },
   { re: /jaladera|tirador/i, opt: /jaladera|tirador/i, erp: 'jaladera' },
   { re: /nivelador|regat/i, opt: /nivelador|regat/i, erp: 'nivelador' },
-  { re: /rodaja|rueda|rodaj/i, opt: /rodaja|rueda/i, erp: 'rodaja' },
+  { re: /rodaja|(?<!silla de )\bruedas?\b/i, opt: /rodaja|rueda/i, erp: 'rodaja' },   // "silla de ruedas" (ADA) NO es rodaja
   { re: /pasacable|grommet/i, opt: /pasacable|grommet/i, erp: 'pasacables' },
   { re: /chicote|cablead|\bcable\b/i, opt: /chicote|cablead|\bcable\b/i, erp: 'chicote' },   // ojo: "Pasacables" NO es cable
   { re: /tornill|minifix|taquete/i, opt: /tornill|minifix|taquete/i, erp: 'tornillo' },   // "herraje" solo es ambiguo (placas de lámina, tapas App LT)
@@ -77,7 +77,7 @@ const FAMILIAS = [
 const NO_MATERIAL = /trabajo|mano de obra|proceso|instalaci[oó]n|formado|curvatura|curvad|sobrecosto|maquila/i;
 // Pieza de tablero (cuerpo, puertas, cubierta…) que la IA dejó SIN material: Diseño le pone el material que el CLIENTE
 // pidió en el brief/ajustes (p.ej. "nogal") — no una equivalencia inventada. Si el catálogo no tiene ese tono → BLOCKED_DATA.
-const PIEZA_TABLERO = /lateral|costado|piso|techo|entrepa|divisor|puerta|frente|cuerpo|cubierta|fald[oó]n|panel|pierna|zoclo|tapa|respaldo|fondo|repisa|caj[oó]n|retorno|\bala\b|nivel/i;
+const PIEZA_TABLERO = /lateral|costado|divisi|piso|techo|entrepa|divisor|puerta|frente|cuerpo|cubierta|fald[oó]n|panel|pierna|zoclo|tapa|respaldo|fondo|repisa|caj[oó]n|retorno|\bala\b|nivel/i;
 const TONOS = [
   { re: /nogal|walnut/i, opt: /nogal|walnut/i, erp: 'nogal' },
   { re: /roble|oak/i, opt: /roble|oak/i, erp: 'roble' },
@@ -116,6 +116,8 @@ async function resolverMateriales(page) {
       const fuerte = FAMILIAS.filter((x) => !['PTR', 'lámina', 'melamina', 'chapa', 'MDF'].includes(x.erp)).find((x) => x.re.test(nomTmp));
       const textoSel = await sel.evaluate((s) => s.options[s.selectedIndex]?.textContent || '').catch(() => '');
       if (fuerte && !fuerte.opt.test(textoSel)) alerta = `${alerta} familia-equivocada`;
+      // Pieza de tablero (puerta, lateral…) costeada con un herraje/acabado: también es familia equivocada.
+      else if (!fuerte && PIEZA_TABLERO.test(nomTmp) && /jaladera|bisagra|corredera|tornill|canto|pintura|nivelador|rodaja/i.test(textoSel)) alerta = `${alerta} familia-equivocada`;
     }
     if (val && !PENDIENTE.test(alerta) && !/familia-equivocada/.test(alerta)) continue;          // ya costeable
     const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');

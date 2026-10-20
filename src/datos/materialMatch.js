@@ -769,7 +769,14 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   const id = String(pieza?.insumoId || '').trim();
   const existe = id ? resolver(id) : null;
   const insumoNombre = existe?.nombre || '';
-  const solicitado = pieza?.material_solicitado || '';
+  // Cierre ChatGPT (cocrear-1, 2026-10-20): en un renglón que ES un acabado ("Pintura en polvo negro mate (base)"), lo
+  // pedido describe el acabado y DÓNDE va ("acabado negro mate en metal"): la familia es la del acabado, no la del metal.
+  // Sin esto, la pintura confirmada por Diseño se descartaba como "cruce de familia" y el servidor la cambiaba por
+  // "Frente de metal" (una mampara por m²).
+  const solicitadoRaw = pieza?.material_solicitado || '';
+  const famSolRaw = familiaDeMaterial(solicitadoRaw);
+  const solicitado = (familiaDeMaterial(pieza?.nombre || '') === 'pintura_polvo' && famSolRaw && famSolRaw !== 'pintura_polvo' && famSolRaw !== 'acabado_metal')
+    ? `pintura ${solicitadoRaw}` : solicitadoRaw;
   // VH-053: la IA elige del catálogo del SERVIDOR (insumos_catalogo, 259 ids); el
   // navegador costea con el local (config, 92). Un id que la IA declara EXACT y aquí
   // no existe es un material REAL sin precio certificado por Compras: se dice tal
@@ -860,10 +867,10 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
     material_match: clase,
     // Lo PEDIDO viaja top-level: lo usan el DTO, la firma del BOM (P0.7) y la RECONCILIACIÓN
     // server-side (P0.5) para recalcular la clase; sin esto el servidor no tendría qué reclasificar.
-    material_solicitado: solicitado,
+    material_solicitado: solicitadoRaw,
     candidate_insumo_id: candidatoId,
     _match: {
-      clase, motivo, solicitado, resuelto, cambio, autollenado,
+      clase, motivo, solicitado: solicitadoRaw, resuelto, cambio, autollenado,
       candidate_insumo_id: candidatoId,
       // ¿entra al cálculo provisional? (true para COMPATIBLE/EXACT/USER_CONFIRMED)
       autocosteable: MATCH_AUTOCOSTEABLE.has(clase) && !!insumoIdFinal,
