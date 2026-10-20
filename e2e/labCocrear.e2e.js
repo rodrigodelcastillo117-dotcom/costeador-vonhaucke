@@ -20,6 +20,9 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs'; import path from 'node:path';
 
+// Ningún clic espera para siempre (un botón deshabilitado colgaba el caso hasta el corte de 40 min).
+test.use({ actionTimeout: 20000 });
+
 const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
 const ID = process.env.LAB_COC_ID || 'X';
 const BRIEF = process.env.LAB_COC_BRIEF || '';
@@ -59,13 +62,13 @@ const FAMILIAS = [
   { re: /tornill|minifix|taquete|herraje|ensamble/i, opt: /tornill|herraje|minifix/i, erp: 'tornillo' },
   { re: /\bled\b|ilumin/i, opt: /\bled\b/i, erp: 'LED' },
   { re: /el[eé]ctric|acometida|byrne|contacto|portacables/i, opt: /el[eé]ctric|contacto|byrne|portacable/i, erp: 'eléctrico' },
-  { re: /\bptr\b|tubular|tubo|perfil|estructura met|marco met|bastidor|travesa|patas? (de )?(acero|metal)/i, opt: /\bptr\b|tubular|tubo|perfil/i, erp: 'PTR' },
+  { re: /\bptr\b|tubular|tubo|perfil|estructura met|marco met|bastidor|travesa|patas? (de )?(acero|metal)|soldadura|microalambre/i, opt: /\bptr\b|tubular|tubo|perfil/i, erp: 'PTR' },
   { re: /l[aá]mina|placa|cal\.?\s?1[0-8]\b|charola/i, opt: /l[aá]mina|placa/i, erp: 'lámina' },
   { re: /melamin/i, opt: /melamin/i, erp: 'melamina' },
   { re: /\bchapa\b/i, opt: /chapa/i, erp: 'chapa' },
   // Tablero estructural (lateral, cubierta, entrepaño, costado, fondo, respaldo, puerta, faldón, división, piso, nogal/roble):
   // la base de fabricación es MDF; el acabado (chapa) va como pieza propia cuando el despiece la trae.
-  { re: /\bmdf\b|aglomerad|tablero|triplay|nogal|roble|encino|madera|lateral|cubierta|entrepa|costado|fondo|respaldo|piso|divisi|puerta|fald[oó]n|panel|duela|tapa/i, opt: /\bmdf\b|triplay|tablero/i, erp: 'MDF' },
+  { re: /\bmdf\b|aglomerad|tablero|triplay|nogal|roble|encino|madera|lateral|cubierta|entrepa|costado|fondo|respaldo|piso|divisi|divisor|puerta|fald[oó]n|panel|duela|tapa|zoclo|cuerpo|m[oó]dulo|frente|caj[oó]n|gaveta|repisa/i, opt: /\bmdf\b|triplay|tablero/i, erp: 'MDF' },
 ];
 async function resolverMateriales(page) {
   const out = { confirmados: 0, diferenciasAceptadas: 0, elegidos: [], bloqueados: [] };
@@ -73,6 +76,8 @@ async function resolverMateriales(page) {
   const confirmarTodo = async () => {
     if (await page.getByTestId('piloto-confirmar').count()) { await page.getByTestId('piloto-confirmar').first().click(); await page.waitForTimeout(1500); out.confirmados++; }
     for (let k = 0; k < 30 && (await page.getByTestId('confirmar-con-diferencia').count()); k++) { await page.getByTestId('confirmar-con-diferencia').first().click(); await page.waitForTimeout(400); out.diferenciasAceptadas++; }
+    // Piezas que la IA infirió/supuso: se confirman una por una (botón de la app, como Diseño).
+    for (let k = 0; k < 40 && (await page.getByTestId('confirmar-material').count()); k++) { await page.getByTestId('confirmar-material').first().click(); await page.waitForTimeout(400); out.confirmadosUnoPorUno = (out.confirmadosUnoPorUno || 0) + 1; }
   };
   await confirmarTodo();
   const filas = page.locator('.pieza');
