@@ -14,7 +14,8 @@
 //  grupo, zona, ancla, capacidad) para que el acomodo siga sabiendo qué es. Nunca
 //  se tocan precio/costo. Puro y determinista.
 // ============================================================================
-import { inferRole, esAncla, estructuraDe } from './confirmarPrograma.js';
+import { inferRole, esAncla, estructuraDe, rolFromRel } from './confirmarPrograma.js';
+import { inferirDestinoPartida } from './destinoAcomodo.js';
 import { capacidadDeNombre } from './capacidadDeclarada.js';
 
 const esDelPrograma = (p) => !!p && p.source === 'CONFIRMADO_PROGRAMA';
@@ -48,7 +49,13 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     // Idempotente: una fila que YA sustituyó a una del programa no vuelve a consumir otra
     // (p. ej. SONATA ya conciliada no se come también a CONCERTO en la segunda aplicación).
     if (!rel || n.sustituyePrograma) { salida.push(n); continue; }
-    let candidatos = ex.map((e, i) => ({ e, i })).filter(({ e, i }) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel);
+    // VH-AUD-204: si los dos destinos se conocen tienen que ser el mismo (una WIN de puestos operativos no sustituye a
+    // la silla de RECEPCIÓN del programa). El de la fila del programa sale de su ancla; el de la persona, de su texto.
+    const destN = n.anchor_role ? rolFromRel(n.anchor_role) : (inferirDestinoPartida(n) || null);
+    const destE = (e) => rolFromRel(e.anchor_role) || null;
+    const igual = (a, b) => (a === 'open' ? 'operativo' : a) === (b === 'open' ? 'operativo' : b);
+    let candidatos = ex.map((e, i) => ({ e, i })).filter(({ e, i }) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel
+      && (!destN || !destE(e) || igual(destN, destE(e))));
     if (!candidatos.length) { salida.push(n); continue; }
     // 1) Identidad del requerimiento manda; 2) decisión explícita de la persona; 3) misma zona.
     const decision = decisiones && n.id != null ? decisiones[String(n.id)] : null;
