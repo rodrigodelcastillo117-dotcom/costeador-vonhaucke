@@ -63,6 +63,7 @@ const FAMILIAS = [
   { re: /nivelador|regat/i, opt: /nivelador|regat/i, erp: 'nivelador' },
   { re: /rodaja|rueda|rodaj/i, opt: /rodaja|rueda/i, erp: 'rodaja' },
   { re: /pasacable|grommet/i, opt: /pasacable|grommet/i, erp: 'pasacables' },
+  { re: /chicote|cablead|\bcable\b/i, opt: /chicote|cable/i, erp: 'chicote' },
   { re: /tornill|minifix|taquete|herraje/i, opt: /tornill|herraje|minifix/i, erp: 'tornillo' },
   { re: /\bled\b|ilumin/i, opt: /\bled\b/i, erp: 'LED' },
   { re: /contacto|usb|caja el[eé]ctrica|m[oó]dulo el[eé]ctrico|byrne|acometida/i, opt: /contacto|el[eé]ctric|byrne/i, erp: 'contacto' },
@@ -73,7 +74,20 @@ const FAMILIAS = [
   { re: /\bmdf\b|aglomerad|tablero|triplay/i, opt: /\bmdf\b|triplay|tablero/i, erp: 'MDF' },
 ];
 // Mano de obra / procesos no son material: no se les asigna insumo (se reporta).
-const NO_MATERIAL = /trabajo|mano de obra|proceso|instalaci[oó]n|formado|curvatura|maquila/i;
+const NO_MATERIAL = /trabajo|mano de obra|proceso|instalaci[oó]n|formado|curvatura|curvad|sobrecosto|maquila/i;
+// Pieza de tablero (cuerpo, puertas, cubierta…) que la IA dejó SIN material: Diseño le pone el material que el CLIENTE
+// pidió en el brief/ajustes (p.ej. "nogal") — no una equivalencia inventada. Si el catálogo no tiene ese tono → BLOCKED_DATA.
+const PIEZA_TABLERO = /lateral|costado|piso|techo|entrepa|divisor|puerta|frente|cuerpo|cubierta|fald[oó]n|panel|pierna|zoclo|tapa|respaldo|fondo|repisa|caj[oó]n|retorno|\bala\b|nivel/i;
+const TONOS = [
+  { re: /nogal|walnut/i, opt: /nogal|walnut/i, erp: 'nogal' },
+  { re: /roble|oak/i, opt: /roble|oak/i, erp: 'roble' },
+  { re: /encino/i, opt: /encino/i, erp: 'encino' },
+  { re: /maple/i, opt: /maple/i, erp: 'maple' },
+  { re: /blanc|white/i, opt: /blanc|white/i, erp: 'blanca' },
+  { re: /negr|black/i, opt: /negr|black/i, erp: 'negra' },
+];
+const TONO_PEDIDO = TONOS.find((t) => t.re.test(`${AJ?.material || ''} ${BRIEF}`)) || null;
+const OPT_TABLERO = /melamin|\bmdf\b|chapa|triplay|tablero/i;
 async function resolverMateriales(page) {
   const out = { confirmados: 0, diferenciasAceptadas: 0, elegidos: [], bloqueados: [] };
   const PENDIENTE = /sin precio certificado|Material pendiente|Costo pendiente|Varios materiales posibles|Sustituci[oó]n requiere/i;
@@ -104,13 +118,25 @@ async function resolverMateriales(page) {
     }
     if (val && !PENDIENTE.test(alerta) && !/familia-equivocada/.test(alerta)) continue;          // ya costeable
     const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');
-    if (NO_MATERIAL.test(nombre)) { out.bloqueados.push({ pieza: nombre, motivo: 'es mano de obra/proceso, no material: va en mano de obra o se excluye (decisión de Diseño)' }); continue; }
+    if (NO_MATERIAL.test(nombre)) { out.bloqueados.push({ pieza: nombre, dato: true, motivo: 'es un proceso/sobrecosto, no material: falta su TARIFA de proceso en catálogo (dato), no se inventa' }); continue; }
     const pedido = (alerta.match(/Pediste «([^»]+)»/) || [])[1] || '';
-    const fam = (pedido && FAMILIAS.find((x) => x.re.test(pedido))) || FAMILIAS.find((x) => x.re.test(nombre));
+    let fam = (pedido && FAMILIAS.find((x) => x.re.test(pedido))) || FAMILIAS.find((x) => x.re.test(nombre));
+    if (!fam && PIEZA_TABLERO.test(nombre)) {
+      if (!TONO_PEDIDO) { out.bloqueados.push({ pieza: nombre, motivo: 'pieza de tablero sin material y el brief no dice tono/material: decisión de Diseño' }); continue; }
+      // Mismo tablero que ya usa el mueble (si coincide con el tono pedido); si no, cualquier tablero del catálogo de ese tono.
+      const usados = await page.locator('.pieza select.pieza-mat').evaluateAll((ss) => ss.map((s) => s.options[s.selectedIndex]?.textContent || '')).catch(() => []);
+      const ops = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
+        .filter((o) => o.v && OPT_TABLERO.test(o.t) && TONO_PEDIDO.opt.test(o.t) && !/canto/i.test(o.t))
+        .sort((a, b) => Number(usados.includes(b.t)) - Number(usados.includes(a.t)));
+      fam = { re: OPT_TABLERO, opt: new RegExp(`(?=.*(${TONO_PEDIDO.opt.source}))(?=.*(${OPT_TABLERO.source}))`, 'i'), erp: `melamina ${TONO_PEDIDO.erp}`, porBrief: true, ops };
+    }
     if (!fam) { out.bloqueados.push({ pieza: nombre, motivo: 'familia de material no reconocible: no se elige nada a ciegas' }); continue; }
     // 1) Opciones del catálogo curado de la MISMA familia, distintas de la actual; se verifica que la alerta se vaya.
-    const opciones = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
-      .filter((o) => o.v && o.v !== val && fam.opt.test(o.t));
+    const opciones = fam.ops ? fam.ops.filter((o) => o.v !== val) : (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => []))
+      .filter((o) => o.v && o.v !== val && fam.opt.test(o.t) && (fam.erp === 'canto' || !/canto/i.test(o.t)));
+    // Mismo tono que pide la pieza primero (pintura NEGRA → no la blanca si hay negra).
+    const tonoPieza = TONOS.find((t) => t.re.test(`${pedido} ${nombre}`));
+    if (tonoPieza) opciones.sort((a, b) => Number(tonoPieza.opt.test(b.t)) - Number(tonoPieza.opt.test(a.t)));
     let listo = null;
     for (const op of opciones.slice(0, 6)) {
       await sel.selectOption(op.v); await page.waitForTimeout(700);
@@ -122,7 +148,7 @@ async function resolverMateriales(page) {
       await f.getByTestId('buscar-insumo-abrir').click();
       await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(fam.erp);
       await page.waitForTimeout(2500);
-      const lis = f.locator('.buscador-insumo-lista li').filter({ hasText: fam.opt });
+      const lis = f.locator('.buscador-insumo-lista li').filter({ hasText: fam.opt }).filter(fam.erp === 'canto' ? {} : { hasNotText: /canto/i });
       const k = Math.min(await lis.count(), 4);
       for (let j = 0; j < k && !listo; j++) {
         const li = lis.nth(j); const t = (await li.innerText()).replace(/\s+/g, ' ').slice(0, 120);
@@ -132,8 +158,8 @@ async function resolverMateriales(page) {
         else if (j + 1 < k && (await f.getByTestId('buscar-insumo-abrir').count())) { await f.getByTestId('buscar-insumo-abrir').click(); await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(fam.erp); await page.waitForTimeout(2000); }
       }
     }
-    if (listo) out.elegidos.push({ pieza: nombre, familia: fam.erp, ...listo });
-    else out.bloqueados.push({ pieza: nombre, motivo: `no hay insumo real CON PRECIO de la familia «${fam.erp}» en el catálogo/ERP`, alerta: alerta.slice(0, 160) });
+    if (listo) out.elegidos.push({ pieza: nombre, familia: fam.erp, ...listo, ...(fam.porBrief ? { origen: `material pedido en el brief: ${TONO_PEDIDO.erp}` } : {}) });
+    else out.bloqueados.push({ pieza: nombre, dato: true, motivo: `no hay insumo real CON PRECIO de la familia «${fam.erp}» en el catálogo/ERP`, alerta: alerta.slice(0, 160) });
   }
   await confirmarTodo();
   return out;
@@ -511,7 +537,10 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
           // Costo calculado pero el precio se retiene porque un insumo REAL no tiene precio certificado: falta un DATO
           // (certificación de precio), no capacidad. Se reporta con el insumo exacto.
           : (cr.costo != null && (cr.warnings || []).some((w) => /sin precio certificado/i.test(w))) ? 'BLOCKED_DATA'
-          : ((bb.materiales?.bloqueados || []).length ? 'BLOCKED_DATA' : 'FAIL');
+          // BLOCKED_DATA sólo si TODO lo que falta es un DATO real (insumo/tarifa con precio inexistente). Piezas que no caben,
+          // errores de ingeniería o familias que el laboratorio no reconoce son FAIL (capacidad), no dato.
+          : (((bb.materiales?.bloqueados || []).length && (bb.materiales.bloqueados).every((b) => b.dato)
+              && !(cr.pendientes || []).some((p) => /no caben|Ingenier[ií]a:|Estructura:|es una pieza|es un acabado/i.test(String(p)))) ? 'BLOCKED_DATA' : 'FAIL');
       c.clasificacionDetalle = { estado: cr.estado ?? null, costo: cr.costo ?? null, precio: cr.precio ?? null, reabiertoIgual: bb.reabiertoIgual ?? null,
         faltan: [...(bb.materiales?.bloqueados || []), ...((cr.pendientes || []).filter((p) => /precio|certific|sin material/i.test(String(p))).map((p) => ({ dato: String(p).slice(0, 200) })))], warnings: cr.warnings || [] };
     }
