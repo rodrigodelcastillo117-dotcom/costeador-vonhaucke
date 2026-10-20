@@ -108,3 +108,54 @@ describe('reparto parcial: lo que sobra no queda amarrado al único mueble', () 
     expect(p.anchor_instance_id).toBeNull();
   });
 });
+
+// ============================================================================
+//  Cierre ChatGPT · P1-PROG-01: el DESTINO explícito por zona/requerimiento/ancla también separa (no sólo recepción).
+// ============================================================================
+describe('P1-PROG-01 · destino canónico (zona, requerimiento, ancla) para todos los roles', () => {
+  const RR = { product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY', precio_lista_snapshot: 1 };
+  const ancla = { juntas: 'ANCHOR_MEETING', privado: 'ANCHOR_DESK', operativo: 'ANCHOR_WORKSTATION', recepcion: 'ANCHOR_RECEPTION' };
+  const zona = { juntas: 'SALA DE CONSEJO', privado: 'OFICINA CEO', operativo: 'OPERATIVA', recepcion: 'RECEPCIÓN' };
+  const dep = (rol, rel, iid, n = 1, banco = 'X') => ({ ...RR, rol, relation_role: rel, anchor_role: ancla[rol], bancoId: banco, anchor_instance_id: iid, requirement_id: `req:${zona[rol]}`, zone_id: zona[rol], cantidad: n, nombre: 'Pieza X' });
+  const anc = (rol, iid) => ({ ...RR, rol, relation_role: ancla[rol], bancoId: `a-${rol}`, instance_id: iid, requirement_id: `req:${zona[rol]}`, zone_id: zona[rol], cantidad: 1, nombre: `Ancla ${rol}`, w: 1800, d: 900 });
+  const nuevas = (r, rel) => r.confirmadas.filter((p) => p.relation_role === rel).reduce((s, p) => s + p.cantidad, 0);
+
+  it('ataque exacto: SUPPORT_STORAGE de OFICINA CEO (sin anchor_role) NO cubre la de SALA DE CONSEJO', () => {
+    const r = confirmarPrograma({ partidas: [anc('juntas', 'M'), dep('juntas', 'SUPPORT_STORAGE', 'M')] },
+      { existentes: [{ id: 'g', piezaId: 'X', bancoId: 'X', nombre: 'Pieza X', cantidad: 1, relation_role: 'SUPPORT_STORAGE', zone_id: 'OFICINA CEO', anchor_role: null }] });
+    expect(r.enriquecidos.some((e) => e.id === 'g')).toBe(false);
+    expect(nuevas(r, 'SUPPORT_STORAGE')).toBe(1);
+  });
+  for (const rel of ['SUPPORT_STORAGE', 'UNDERDESK_STORAGE', 'WORK_SEAT', 'VISITOR_SEAT']) {
+    for (const [de, a] of [['operativo', 'privado'], ['privado', 'juntas'], ['juntas', 'recepcion'], ['recepcion', 'operativo']]) {
+      it(`${rel}: fila de ${de} (zona explícita) no cubre ${a}`, () => {
+        const r = confirmarPrograma({ partidas: [anc(a, 'K'), dep(a, rel, 'K')] },
+          { existentes: [{ id: 'f', piezaId: 'X', bancoId: 'X', nombre: 'Pieza X', cantidad: 1, relation_role: rel, zone_id: zona[de] }] });
+        expect(r.enriquecidos.some((e) => e.id === 'f')).toBe(false);
+      });
+    }
+    it(`${rel}: misma zona explícita sí cubre`, () => {
+      const r = confirmarPrograma({ partidas: [anc('privado', 'K'), dep('privado', rel, 'K')] },
+        { existentes: [{ id: 'f', piezaId: 'X', bancoId: 'X', nombre: 'Pieza X', cantidad: 1, relation_role: rel, zone_id: 'OFICINA CEO' }] });
+      expect(r.enriquecidos.some((e) => e.id === 'f')).toBe(true);
+    });
+  }
+  it('sin destino y DOS destinos compatibles (oficina y sala piden 1 c/u) → NEEDS_REVIEW, sin agregar a ciegas', () => {
+    const prop = { partidas: [anc('privado', 'P'), anc('juntas', 'M'), dep('privado', 'SUPPORT_STORAGE', 'P'), dep('juntas', 'SUPPORT_STORAGE', 'M')] };
+    const r = confirmarPrograma(prop, { existentes: [{ id: 's', piezaId: 'X', bancoId: 'X', nombre: 'Pieza X', cantidad: 1, relation_role: 'SUPPORT_STORAGE' }] });
+    const c = r.conflictos.find((x) => x.code === 'DESTINO_AMBIGUO');
+    expect(c).toMatchObject({ fila_id: 's' });
+    expect(c.opciones.sort()).toEqual(['OFICINA CEO', 'SALA DE CONSEJO']);
+    expect(r.enriquecidos.some((e) => e.id === 's')).toBe(false);
+    // La persona decide la zona → se vincula ahí y sólo se agrega la otra.
+    const d = confirmarPrograma(prop, { existentes: [{ id: 's', piezaId: 'X', bancoId: 'X', nombre: 'Pieza X', cantidad: 1, relation_role: 'SUPPORT_STORAGE' }], destinos: { s: 'SALA DE CONSEJO' } });
+    expect(d.conflictos.filter((x) => x.code === 'DESTINO_AMBIGUO')).toEqual([]);
+    expect(d.enriquecidos.find((e) => e.id === 's').patch.zone_id).toBe('SALA DE CONSEJO');
+    expect(nuevas(d, 'SUPPORT_STORAGE')).toBe(1);
+  });
+  it('sin destino y UN solo destino compatible → se vincula (fallback controlado)', () => {
+    const r = confirmarPrograma({ partidas: [anc('privado', 'P'), dep('privado', 'SUPPORT_STORAGE', 'P')] },
+      { existentes: [{ id: 's', piezaId: 'X', bancoId: 'X', nombre: 'Pieza X', cantidad: 1, relation_role: 'SUPPORT_STORAGE' }] });
+    expect(r.enriquecidos.some((e) => e.id === 's')).toBe(true);
+  });
+});

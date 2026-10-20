@@ -127,6 +127,21 @@ function RolAmbiguoPrograma({ c, onElegir, onDejar }) {
     </div>
   );
 }
+// P1-PROG-01: una fila sin destino que podría ir a dos zonas: la persona elige (nunca se asigna sola a la primera).
+function DestinoAmbiguoPrograma({ c, onElegir, onDejar }) {
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="destino-ambiguo-programa">
+      <div style={{ fontWeight: 700 }}>Tienes {c.cantidad} × {c.fila_nombre || 'pieza'} sin zona, y el plano lo pide en más de un lugar. ¿A dónde va?</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>Mientras no lo decidas no se agrega esa pieza en esas zonas, para no duplicarla.</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onElegir && (c.opciones || []).map((z) => (
+          <button key={z} type="button" className="boton primario" style={{ minHeight: 44 }} onClick={() => onElegir(z)}>Va en {z}</button>
+        ))}
+        <button type="button" className="boton fantasma" style={{ minHeight: 44 }} onClick={onDejar}>Dejarlo como está</button>
+      </div>
+    </div>
+  );
+}
 function RepartoPrograma({ grupo, onRepartir, onDejar }) {
   const t = textoReparto(grupo);
   return (
@@ -502,12 +517,17 @@ export default function Voni({
                         onRepartir={onAplicarPrograma && g[0].fila_id != null ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { repartir: [g[0].fila_id] }) : null} />
                     ));
                   })()}
+                  {conflictosPrograma.filter((c) => c.code === 'DESTINO_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c) => (
+                    <DestinoAmbiguoPrograma key={`dest-${c.slot}`} c={c}
+                      onDejar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                      onElegir={onAplicarPrograma && c.fila_id != null ? (z) => onAplicarPrograma?.(propuestaPrograma.propuesta, { destinos: { [c.fila_id]: z } }) : null} />
+                  ))}
                   {conflictosPrograma.filter((c) => c.code === 'ROL_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c) => (
                     <RolAmbiguoPrograma key={`rol-${c.slot}`} c={c}
                       onDejar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
                       onElegir={onAplicarPrograma && c.fila_id != null ? (r) => onAplicarPrograma?.(propuestaPrograma.propuesta, { roles: { [c.fila_id]: r } }) : null} />
                   ))}
-                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && c.code !== 'ROL_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c, i) => (
+                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && c.code !== 'ROL_AMBIGUO' && c.code !== 'DESTINO_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c, i) => (
                     <ConflictoPrograma key={i} c={c}
                       onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
                       onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}

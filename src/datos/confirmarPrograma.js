@@ -198,7 +198,7 @@ export function firmaReparto(filaId, deps) {
   return JSON.stringify({ v: 1, fila: String(filaId), rel, reqs, destinos });
 }
 
-export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [], roles = {} } = {}) {
+export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [], roles = {}, destinos = {} } = {}) {
   const sustituirSet = new Set((Array.isArray(sustituir) ? sustituir : []).map(String));
   // Prueba de Rodrigo 19-oct: ids de renglones que la persona decidió REPARTIR entre varios muebles del mismo tipo
   // (16 WIN para dos bancos de 8). Sin esta decisión, partir un renglón sigue siendo SPLIT_REQUIRED.
@@ -209,6 +209,9 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   for (const e of existentes) if (e && e.id != null && typeof e.reparto_firma === 'string' && e.reparto_firma) firmasGuardadas.set(String(e.id), e.reparto_firma);
   // VH-AUD-202: decisión explícita de la persona sobre el uso de una silla ambigua ({ id: 'MEETING_SEAT' | 'VISITOR_SEAT' }).
   const rolesDecididos = roles && typeof roles === 'object' ? roles : {};
+  // P1-PROG-01: decisión explícita de la persona sobre la ZONA de una fila sin destino ({ id: 'SALA DE CONSEJO' }).
+  const destinosDecididos = destinos && typeof destinos === 'object' ? destinos : {};
+  existentes = existentes.map((e) => (e && e.id != null && typeof destinosDecididos[String(e.id)] === 'string' && !e.zone_id ? { ...e, zone_id: destinosDecididos[String(e.id)] } : e));
   const ambosSet = new Set((Array.isArray(mantenerAmbos) ? mantenerAmbos : []).map(String));
   const reemplazados = [];                        // ids de existentes sustituidos por decisión explícita
   const partidas = (propuesta && Array.isArray(propuesta.partidas)) ? propuesta.partidas : [];
@@ -369,9 +372,33 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   // si la fila existente declara a qué mueble va (anchor_role, zona o nota) y no es el del dependiente, no se usa.
   const destinoFila = (raw) => rolFromRel(raw?.anchor_role) || (/\brecepci/i.test(`${raw?.zone_id || ''} ${raw?.nota || ''}`) ? 'recepcion' : null);
   const destinoDep = (dep) => rolFromRel(dep.anchor_role) || null;
-  // VH-AUD-204: si los DOS destinos son explícitos tienen que ser el mismo (privado ≠ juntas ≠ operativo ≠ recepción).
-  // Sólo una fila SIN destino declarado puede servir a cualquiera (fallback controlado: tamaño exacto o SPLIT_REQUIRED).
-  const mismoDestino = (e, dep) => { const a = destinoFila(ex[e.idx]?.raw), b = destinoDep(dep); return !a || !b || a === b; };
+  // VH-AUD-204 + P1-PROG-01 (cierre ChatGPT): el DESTINO es canónico — rol del ancla, ZONA y requerimiento. Cada dato que
+  // las DOS filas declaran tiene que coincidir (una guarda de OFICINA CEO no cubre la de SALA DE CONSEJO aunque ninguna
+  // diga anchor_role). Sólo lo que una fila NO declara queda como fallback controlado.
+  const zonaNorm = (z) => (z == null || z === '' ? null : norm(String(z)));
+  const canonFila = (raw) => ({ rol: destinoFila(raw), zona: zonaNorm(raw?.zone_id ?? raw?.zonaSugerida), req: raw?.requirement_id ?? null });
+  const canonDep = (dep) => ({ rol: destinoDep(dep), zona: zonaNorm(dep.zone_id), req: dep.requirement_id ?? null });
+  const mismoDestino = (e, dep) => {
+    const a = canonFila(ex[e.idx]?.raw), b = canonDep(dep);
+    for (const k of ['rol', 'zona', 'req']) if (a[k] != null && b[k] != null && String(a[k]) !== String(b[k])) return false;
+    return true;
+  };
+  // P1-PROG-01: una fila SIN ningún destino que podría cubrir ENTERA a dependientes de DOS o más zonas distintas no se
+  // asigna en silencio a la primera: DESTINO_AMBIGUO (la persona elige la zona) y esos dependientes no se agregan a ciegas.
+  const zonasRetenidas = new Set();
+  for (const e of ex) {
+    if (!e.rel || esAncla(e.rel) || excluidos.has(e._i)) continue;
+    const c = canonFila(e.raw);
+    if (c.rol != null || c.zona != null || c.req != null) continue;
+    const zonasQueLaToman = [...new Set(depsProp.filter((d) => d.relation_role === e.rel && Math.max(1, Number(d.cantidad) || 1) >= e.cantidad && d.zone_id != null).map((d) => String(d.zone_id)))];
+    if (zonasQueLaToman.length >= 2) {
+      excluidos.add(e._i);
+      zonasQueLaToman.forEach((z) => zonasRetenidas.add(`${e.rel}|${zonaNorm(z)}`));
+      conflictos.push({ code: 'DESTINO_AMBIGUO', slot: `destino|${e.raw.id ?? e._i}`, fila_id: e.raw.id ?? null, fila_nombre: e.raw.nombre ?? null, cantidad: e.cantidad, relation_role: e.rel, opciones: zonasQueLaToman.sort() });
+    }
+  }
+  for (const [k, lista] of poolDep) poolDep.set(k, lista.filter((en) => !excluidos.has(en.idx)));
+  for (const [k, lista] of poolRol) poolRol.set(k, lista.filter((en) => !excluidos.has(en.idx)));
   for (const dep of depsProp) {
     const slot = `${dep.rol || rolFromRel(dep.relation_role)}|${dep.relation_role}|${dep.anchor_instance_id || ''}`;
     const k = `${dep.relation_role}|${dep.bancoId}`;
@@ -395,7 +422,7 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
         conflictos.push({ code: 'SPLIT_REQUIRED', slot, relation_role: dep.relation_role, bancoId: dep.bancoId, fila_cantidad: mayor.rem, requerido: need,
           fila_id: filaId, fila_nombre: fila.nombre ?? null, anchor_role: dep.anchor_role ?? null, rol: dep.rol || rolFromRel(dep.relation_role) });
         need = 0;
-      } else if (!rolesRetenidos.has(dep.relation_role)) confirmadas.push(aItemConfirmado({ ...dep, cantidad: need }, { slot, estado: 'CONFIRMADO' }));
+      } else if (!rolesRetenidos.has(dep.relation_role) && !zonasRetenidas.has(`${dep.relation_role}|${zonaNorm(dep.zone_id)}`)) confirmadas.push(aItemConfirmado({ ...dep, cantidad: need }, { slot, estado: 'CONFIRMADO' }));
     }
   }
   for (const [idx, { deps: asignados, item, rem0 }] of repartidos) {
