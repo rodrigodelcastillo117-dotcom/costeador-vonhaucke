@@ -16,6 +16,7 @@
      afecta aquí (se fuerza claro en @media print más abajo). */
   --rojo: #E5484D;          /* rojo de marca, más brillante para destacar en oscuro */
   --rojo-osc: #B22A22;
+  --rojo-boton: #C93A3F;    /* fondo de botón con letra blanca: 5.0:1 (WCAG AA). --rojo sigue para texto/acentos */
   --oscuro: #141210;        /* superficie oscura (header, botones tinta): antes --carbon/--tinta */
   --carbon: #ECE9E4;        /* AHORA = texto principal claro */
   --tinta: #ECE9E4;         /* AHORA = texto principal claro */
@@ -201,7 +202,7 @@ input.capturado { border-color: var(--verde); }
 .boton:hover { border-color: var(--tinta); }
 .boton:active { transform: translateY(1px); }
 .boton:focus-visible { outline: 3px solid var(--foco); outline-offset: 1px; }
-.boton.primario { background: var(--rojo); border-color: var(--rojo); color: var(--blanco-puro); }
+.boton.primario { background: var(--rojo-boton); border-color: var(--rojo-boton); color: var(--blanco-puro); }
 .boton.primario:hover { background: var(--rojo-osc); border-color: var(--rojo-osc); }
 .boton.tinta { background: var(--oscuro); border-color: var(--tinta); color: #fff; }
 .boton.tinta:hover { background: #000; }
@@ -227,7 +228,7 @@ input.capturado { border-color: var(--verde); }
   border: 2px solid var(--linea); background: var(--blanco); color: var(--carbon);
   font-size: 16px; font-weight: 600;
 }
-.chip.on { background: var(--rojo); border-color: var(--rojo); color: var(--blanco-puro); }
+.chip.on { background: var(--rojo-boton); border-color: var(--rojo-boton); color: var(--blanco-puro); }
 .chip .marca-chip { font-weight: 800; }
 .chip-swatch { width: 18px; height: 18px; border-radius: 50%; border: 1px solid rgba(0,0,0,.18); flex-shrink: 0; }
 
@@ -490,7 +491,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 /* Tile rojo (acciones con IA dentro de los paneles) */
 .tile-roja {
   grid-column: 1 / -1;
-  background: var(--rojo); border-color: var(--rojo); color: #fff;
+  background: var(--rojo-boton); border-color: var(--rojo-boton); color: #fff;
   min-height: 120px; align-items: center;
 }
 .tile-roja .tile-icono { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22); color: #fff; }
@@ -534,7 +535,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .accion-oscuro .accion-kicker { color: #b9b2ab; }
 .accion-oscuro .accion-desc { color: #cfc9c4; }
 .accion-oscuro .accion-cta { color: #fff; }
-.accion-acento { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+.accion-acento { background: var(--rojo-boton); border-color: var(--rojo-boton); color: #fff; }
 .accion-acento .accion-icono { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22); color: #fff; }
 .accion-acento .accion-kicker { color: rgba(255,255,255,.8); }
 .accion-acento .accion-desc { color: rgba(255,255,255,.92); }
@@ -704,7 +705,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
   cursor: pointer; border: 2px solid var(--linea); background: var(--blanco); border-radius: 999px;
   padding: 0 20px; height: 54px; font-size: 17px; font-weight: 700; font-family: var(--sans);
 }
-.ganar-botones button.on { background: var(--rojo); border-color: var(--rojo); color: #fff; }
+.ganar-botones button.on { background: var(--rojo-boton); border-color: var(--rojo-boton); color: #fff; }
 .exito { text-align: center; padding: 20px; }
 .exito .palomita { font-size: 64px; line-height: 1; }
 
@@ -943,7 +944,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .propx-cover { background: var(--blanco); border: 1px solid var(--linea); border-top: 6px solid var(--rojo);
   border-radius: 16px; padding: 36px 40px; margin-bottom: 16px; box-shadow: var(--sombra); break-inside: avoid; }
 .propx-cover-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
-.propx-sello { border: 1.5px solid var(--rojo); color: var(--rojo); border-radius: 999px; padding: 7px 16px;
+.propx-sello { border: 1.5px solid var(--rojo-boton); color: var(--rojo-boton); border-radius: 999px; padding: 7px 16px;
   font-family: var(--display); font-weight: 800; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; }
 .propx-cover-rule { height: 3px; background: linear-gradient(90deg, var(--rojo), rgba(178,42,34,0)); margin: 26px 0 18px; border-radius: 2px; }
 .propx-cover-doc { font-family: var(--display); font-weight: 700; letter-spacing: .2em; text-transform: uppercase; font-size: 12px; color: var(--gris); }
@@ -1125,7 +1126,7 @@ table.datos td.num, table.datos th.num { text-align: right; font-family: var(--m
 .voni-paso-t { font-weight: 700; color: var(--tinta); }
 .voni-paso-d { font-size: 12px; color: var(--gris); }
 .voni-paso-activo { border-color: var(--rojo); box-shadow: 0 0 0 3px var(--foco); }
-.voni-paso-activo .voni-paso-num { background: var(--rojo); color: #fff; border-color: var(--rojo); }
+.voni-paso-activo .voni-paso-num { background: var(--rojo-boton); color: #fff; border-color: var(--rojo-boton); }
 .voni-paso-hecho .voni-paso-num { background: var(--verde); color: #fff; border-color: var(--verde); }
 
 /* Lista de muebles del proyecto */
@@ -1221,7 +1222,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .btn-cot {
   display: inline-flex; align-items: center; gap: 7px;
   min-height: 44px; padding: 0 14px; border-radius: 999px;
-  background: var(--rojo); color: #fff; border: 0; cursor: pointer;
+  background: var(--rojo-boton); color: #fff; border: 0; cursor: pointer;
   font-family: var(--display); font-weight: 700; font-size: 13px; letter-spacing: .01em;
 }
 .btn-cot:hover { filter: brightness(1.06); }
@@ -1408,7 +1409,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .guia-paso-h:focus-visible { outline: 3px solid var(--foco); outline-offset: -3px; border-radius: 8px; }
 .guia-num {
   flex: none; width: 30px; height: 30px; border-radius: 999px; margin-top: 1px;
-  background: var(--rojo); color: #fff; font-family: var(--display); font-weight: 700;
+  background: var(--rojo-boton); color: #fff; font-family: var(--display); font-weight: 700;
   font-size: 14px; display: grid; place-items: center;
 }
 .guia-num.visto { background: var(--verde); }
@@ -1553,7 +1554,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .costear-principal:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
 .costear-principal .voni-principal-av { color: var(--rojo); display: flex; }
 .costear-principal .voni-principal-k { color: var(--rojo); opacity: 1; }
-.costear-principal .voni-principal-cta { background: var(--rojo); color: #fff; }
+.costear-principal .voni-principal-cta { background: var(--rojo-boton); color: #fff; }
 
 .inicio-o { display: flex; align-items: center; gap: 14px; margin: 22px 0 14px; color: var(--gris); font-size: 13px; }
 .inicio-o::before, .inicio-o::after { content: ''; flex: 1; height: 1px; background: var(--linea); }
@@ -1790,7 +1791,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 .paleta-n {
   position: absolute; top: 6px; right: 6px; min-width: 26px; height: 26px;
   display: grid; place-items: center; padding: 0 6px;
-  background: var(--rojo); color: #fff; border-radius: 999px;
+  background: var(--rojo-boton); color: #fff; border-radius: 999px;
   font-family: var(--mono); font-weight: 700; font-size: 13px; line-height: 1;
 }
 /* Para lo que no tiene foto de catálogo (la sillería del banco): un dibujo, no
@@ -1935,8 +1936,8 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
    Descargar PDF en ROJO de marca (prominente) + Imprimir/Verificar legibles. */
 .cot-acciones-fija .cot-pdf,
 .cot-acciones-fija .boton.tinta {
-  background: var(--rojo, #B22A22);
-  border: 1px solid var(--rojo, #B22A22);
+  background: var(--rojo-boton, #C93A3F);
+  border: 1px solid var(--rojo-boton, #C93A3F);
   color: #fff;
   font-weight: 800;
   box-shadow: 0 6px 18px -8px rgba(178, 42, 34, .6);
@@ -2023,7 +2024,7 @@ input:disabled, select:disabled, textarea:disabled { background: var(--papel); c
 /* BOTONES: primario con profundidad y elevación al hover; press táctil claro. */
 .boton { border-radius: 10px; transition: background .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease), transform .08s var(--ease); }
 .boton.primario {
-  background: linear-gradient(180deg, #C1322A 0%, var(--rojo) 55%, var(--rojo-osc) 100%);
+  background: linear-gradient(180deg, #C1322A 0%, var(--rojo-boton) 55%, var(--rojo-osc) 100%);
   box-shadow: 0 1px 1px rgba(255,255,255,.18) inset, 0 8px 20px -10px rgba(178,42,34,.55);
 }
 .boton.primario:hover { transform: translateY(-1px); box-shadow: 0 1px 1px rgba(255,255,255,.2) inset, 0 12px 26px -10px rgba(178,42,34,.65); }
@@ -2038,7 +2039,7 @@ input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 3px var(--foco), 0
 
 /* CHIPS: on con degradado de marca y leve relieve. */
 .chip { transition: background .18s var(--ease), border-color .18s var(--ease), box-shadow .18s var(--ease); }
-.chip.on { background: linear-gradient(180deg, #C1322A, var(--rojo)); box-shadow: 0 6px 16px -8px rgba(178,42,34,.55); }
+.chip.on { background: linear-gradient(180deg, #C1322A, var(--rojo-boton)); box-shadow: 0 6px 16px -8px rgba(178,42,34,.55); }
 
 /* BOTÓN FLOTANTE DE VONI: que se sienta "vivo" y premium en todas las pantallas. */
 .voni-fab, .voni-flotante, .fab-voni { box-shadow: 0 10px 28px -8px rgba(178,42,34,.6) !important; }
@@ -2795,12 +2796,12 @@ body::before {
 
 /* Botón primario/tinta: degradado rojo de marca + glow — el CTA se siente "caro". */
 .boton.primario {
-  background-image: linear-gradient(180deg, #E5484D, var(--rojo-osc));
+  background-image: linear-gradient(180deg, var(--rojo-boton), var(--rojo-osc));
   border-color: var(--rojo-osc);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 6px 16px -7px rgba(178,42,34,.65);
 }
 .boton.primario:hover:not(:disabled) {
-  background-image: linear-gradient(180deg, #ea5a5f, var(--rojo));
+  background-image: linear-gradient(180deg, #d2464b, var(--rojo-boton));
   box-shadow: inset 0 1px 0 rgba(255,255,255,.16), 0 10px 26px -8px rgba(229,72,77,.75);
 }
 .boton.primario:active:not(:disabled) { box-shadow: inset 0 2px 6px rgba(0,0,0,.25); }
@@ -2825,7 +2826,7 @@ h1 { letter-spacing: -0.035em; }
 }
 
 /* La cuenta del carrito (pill) con el degradado rojo también. */
-.btn-cot { background-image: linear-gradient(180deg, #E5484D, var(--rojo-osc)); border-color: var(--rojo-osc); }
+.btn-cot { background-image: linear-gradient(180deg, var(--rojo-boton), var(--rojo-osc)); border-color: var(--rojo-osc); }
 
 /* ---- SKELETONS (carga percibida premium): en vez de "Cargando…", bloques con
    brillo que recorren. Dicen "ya casi" y se sienten instantáneos. ---- */
@@ -3022,7 +3023,7 @@ body::before {
 .vh-camino:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
 .vh-camino.principal { border-color: rgba(229,72,77,.55); }
 .vh-camino.principal .vh-k { color: #FF8A82; }
-.vh-camino.principal b { padding: 10px 14px; border-radius: 9px; background: var(--t-red); color: #fff; align-self: flex-start; }
+.vh-camino.principal b { padding: 10px 14px; border-radius: 9px; background: var(--rojo-boton); color: #fff; align-self: flex-start; }
 
 /* Atajos ------------------------------------------------------------------ */
 .vh-herr { margin-top: 30px; }
@@ -3067,7 +3068,7 @@ body::before {
 .menu-cuenta { position: relative; }
 .menu-cuenta > summary { list-style: none; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
 .menu-cuenta > summary::-webkit-details-marker { display: none; }
-.menu-cuenta-ini { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #E5484D; color: #fff; font-size: 12px; font-weight: 800; line-height: 1; }
+.menu-cuenta-ini { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--rojo-boton); color: #fff; font-size: 12px; font-weight: 800; line-height: 1; }
 .menu-cuenta-lista { position: absolute; right: 0; top: calc(100% + 6px); min-width: 200px; display: grid; gap: 2px; padding: 8px; border: 1px solid var(--linea); border-radius: 12px; background: var(--blanco, #fff); box-shadow: 0 14px 34px rgba(0,0,0,.14); z-index: 50; }
 .menu-cuenta-correo { font-size: 12px; color: var(--gris); padding: 6px 10px 8px; border-bottom: 1px solid var(--linea); margin-bottom: 4px; word-break: break-all; }
 .menu-cuenta-lista button { text-align: left; padding: 9px 10px; border: 0; background: transparent; border-radius: 8px; font: inherit; font-weight: 600; color: var(--tinta); cursor: pointer; }
