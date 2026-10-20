@@ -17,6 +17,9 @@ const NAVEGADOR = {
 // razones: docs/auditoria/SKIPS_E2E.md.
 const A_PEDIDO = /(^|[\\/])(lab[A-Z]\w*|vivo|vivoSombra|live-ai-smoke|renderEscenas|cocrearExpediente)\.e2e\.js$/;
 const pidioAPedido = Object.keys(process.env).some((k) => /^LAB_/.test(k)) || ['VIVO', 'LIVE_AI', 'RENDER_PROD', 'COCREAR_QA'].some((k) => process.env[k]);
+// E2E_PORT: otro puerto para el dev server (varias copias del repo/worktrees corriendo e2e a la vez sin que una
+// reutilice el servidor de la otra y pruebe código ajeno). Por omisión 5173, como siempre.
+const PUERTO = Number(process.env.E2E_PORT) || 5173;
 
 export default defineConfig({
   testDir: './e2e',
@@ -26,7 +29,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: `http://localhost:${PUERTO}`,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
   },
@@ -40,8 +43,8 @@ export default defineConfig({
     { name: 'golden757-edicion', testMatch: /golden757Edicion\.e2e\.js$/, dependencies: ['golden757'], use: NAVEGADOR },
   ],
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: PUERTO === 5173 ? 'npm run dev' : `npm run dev -- --port ${PUERTO} --strictPort`,
+    url: `http://localhost:${PUERTO}`,
     reuseExistingServer: true,
     timeout: 60_000,
   },

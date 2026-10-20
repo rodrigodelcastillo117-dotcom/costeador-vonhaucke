@@ -82,6 +82,7 @@ import { normalizarRol, veCostosCosteo } from './datos/roles.js';
 import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerBorradorCosteo, guardarBorradorCosteo, borrarBorradorCosteo } from './datos/borradorCosteo.js';
+import { borrarBorradorPedido } from './datos/borradorPedido.js';
 import { crearSeguroDobleClic, firmaAgregado } from './datos/dobleClic.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot, CARRIL_RC } from './nube.js';
 import { modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
@@ -258,6 +259,7 @@ export default function App() {
         descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
       },
     }));
+    borrarBorradorPedido();       // el pedido a Voni de la cotización anterior no se arrastra a la nueva
     mostrarAviso('Listo: empezaste una cotización nueva, desde cero.');
   };
 
@@ -832,6 +834,7 @@ export default function App() {
   async function hacerLogout() {
     await salir();
     borrarBorradorCosteo(localStorage);   // R-05: el borrador técnico no se queda en una computadora sin sesión
+    borrarBorradorPedido();               // el pedido a Voni a medio escribir tampoco (datos/borradorPedido.js)
     setPestania('inicio');
     // Al salir se borra de esta computadora todo lo de Direccion.
     setEstado((e) => limpiarSensibles(e));
