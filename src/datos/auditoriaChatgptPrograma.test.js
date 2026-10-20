@@ -1,0 +1,93 @@
+// ============================================================================
+//  Auditoría ChatGPT 2026-10-19 · reconciliación del programa (antes del solver).
+//   VH-AUD-202: el MODELO no decide el uso. Una CONCERTO puede ser silla de juntas o de visita según su destino.
+//   VH-AUD-203: la aprobación humana de un reparto vale sólo para ESE reparto (firma), no para cualquier otro.
+//   VH-AUD-204: si los dos destinos son explícitos, tienen que ser el mismo (privado ≠ juntas ≠ operativo ≠ recepción).
+// ============================================================================
+import { describe, it, expect } from 'vitest';
+import { confirmarPrograma } from './confirmarPrograma.js';
+
+const R = { product_status: 'RESOLVED', identity_status: 'RESOLVED', price_status: 'SNAPSHOT_DISPLAY', precio_lista_snapshot: 1 };
+const mesa = (iid, zona = 'SALA') => ({ ...R, rol: 'juntas', relation_role: 'ANCHOR_MEETING', bancoId: 'mj-2400x1200', instance_id: iid, requirement_id: `req:${zona}`, zone_id: zona, cantidad: 1, nombre: 'Mesa de juntas', w: 2400, d: 1200 });
+const juntas = (iid, n, zona = 'SALA') => ({ ...R, rol: 'juntas', relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING', bancoId: 'silla-concerto', anchor_instance_id: iid, requirement_id: `req:${zona}`, zone_id: zona, cantidad: n, nombre: 'Silla CONCERTO' });
+const escritorio = (iid) => ({ ...R, rol: 'privado', relation_role: 'ANCHOR_DESK', bancoId: 'dir-1800x2400', instance_id: iid, requirement_id: 'req:DIR', zone_id: 'DIR', cantidad: 1, nombre: 'Escritorio', w: 1800, d: 2400 });
+const visita = (iid, n) => ({ ...R, rol: 'privado', relation_role: 'VISITOR_SEAT', anchor_role: 'ANCHOR_DESK', bancoId: 'silla-concerto', anchor_instance_id: iid, requirement_id: 'req:DIR', zone_id: 'DIR', cantidad: n, nombre: 'Silla CONCERTO (visita)' });
+const sillasNuevas = (r, rel) => r.confirmadas.filter((p) => p.relation_role === rel).reduce((s, p) => s + p.cantidad, 0);
+
+describe('VH-AUD-202 · CONCERTO: el destino decide el rol, no el modelo', () => {
+  it('CONCERTO ×4 ya cotizada (sin rol) + sala de juntas que pide CONCERTO ×4 → 4 en total, 0 nuevas', () => {
+    const r = confirmarPrograma({ partidas: [mesa('M1'), juntas('M1', 4)] }, { existentes: [{ id: 'c4', piezaId: 'silla-concerto', nombre: 'Silla CONCERTO', cantidad: 4 }] });
+    expect(sillasNuevas(r, 'MEETING_SEAT')).toBe(0);
+    expect(r.conflictos).toEqual([]);
+    expect(r.enriquecidos.find((e) => e.id === 'c4').patch).toMatchObject({ relation_role: 'MEETING_SEAT', anchor_instance_id: 'M1' });
+  });
+  it('CONCERTO marcada explícitamente como VISITA no cubre la sala de juntas', () => {
+    const r = confirmarPrograma({ partidas: [mesa('M1'), juntas('M1', 4)] }, { existentes: [{ id: 'v4', piezaId: 'silla-concerto', nombre: 'Silla CONCERTO', cantidad: 4, relation_role: 'VISITOR_SEAT' }] });
+    expect(sillasNuevas(r, 'MEETING_SEAT')).toBe(4);
+    expect(r.enriquecidos.some((e) => e.id === 'v4')).toBe(false);
+  });
+  it('CONCERTO sin destino y un solo uso posible en el programa (juntas) → se vincula y se explica en el patch', () => {
+    const r = confirmarPrograma({ partidas: [mesa('M1'), juntas('M1', 6)] }, { existentes: [{ id: 'c6', piezaId: 'silla-concerto', nombre: 'Silla CONCERTO', cantidad: 6 }] });
+    expect(r.enriquecidos.find((e) => e.id === 'c6').patch.relation_role).toBe('MEETING_SEAT');
+  });
+  it('CONCERTO sin destino con DOS usos posibles (juntas y visita) → NEEDS_REVIEW, sin agregar sillas a ciegas', () => {
+    const prop = { partidas: [mesa('M1'), juntas('M1', 4), escritorio('D1'), visita('D1', 2)] };
+    const r = confirmarPrograma(prop, { existentes: [{ id: 'c4', piezaId: 'silla-concerto', nombre: 'Silla CONCERTO', cantidad: 4 }] });
+    const c = r.conflictos.find((x) => x.code === 'ROL_AMBIGUO');
+    expect(c).toMatchObject({ fila_id: 'c4', opciones: ['MEETING_SEAT', 'VISITOR_SEAT'] });
+    expect(sillasNuevas(r, 'MEETING_SEAT') + sillasNuevas(r, 'VISITOR_SEAT')).toBe(0);
+    // La persona decide "son de juntas": la fila cubre la sala y sólo se agregan las 2 de visita.
+    const d = confirmarPrograma(prop, { existentes: [{ id: 'c4', piezaId: 'silla-concerto', nombre: 'Silla CONCERTO', cantidad: 4 }], roles: { c4: 'MEETING_SEAT' } });
+    expect(d.conflictos.filter((x) => x.code === 'ROL_AMBIGUO')).toEqual([]);
+    expect(sillasNuevas(d, 'MEETING_SEAT')).toBe(0);
+    expect(sillasNuevas(d, 'VISITOR_SEAT')).toBe(2);
+    expect(d.enriquecidos.find((e) => e.id === 'c4').patch.relation_role).toBe('MEETING_SEAT');
+  });
+  it('SONATA legacy sigue siendo silla de juntas', () => {
+    const r = confirmarPrograma({ partidas: [mesa('M1'), { ...juntas('M1', 4), bancoId: 'silla-sonata' }] }, { existentes: [{ id: 's4', piezaId: 'silla-sonata', nombre: 'Silla SONATA', cantidad: 4 }] });
+    expect(sillasNuevas(r, 'MEETING_SEAT')).toBe(0);
+  });
+  it('ALPHA no cubre juntas ni puestos operativos', () => {
+    const r = confirmarPrograma({ partidas: [mesa('M1'), juntas('M1', 1)] }, { existentes: [{ id: 'a1', piezaId: 'silla-alpha', nombre: 'Silla directiva ALPHA', cantidad: 1 }] });
+    expect(sillasNuevas(r, 'MEETING_SEAT')).toBe(1);
+  });
+});
+
+describe('VH-AUD-204 · destinos explícitos tienen que coincidir', () => {
+  const op = (iid) => ({ ...R, rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', bancoId: 'op-8u', instance_id: iid, requirement_id: 'req:OP', zone_id: 'OP', cantidad: 1, nombre: 'Banca', w: 4800, d: 1200 });
+  const gaveta = (iid, n, anchor_role = 'ANCHOR_WORKSTATION') => ({ ...R, rol: 'operativo', relation_role: 'UNDERDESK_STORAGE', anchor_role, bancoId: 'gaveta-x', anchor_instance_id: iid, cantidad: n, nombre: 'Gaveta' });
+  it('gaveta explícita de PRIVADO no cubre una banca operativa', () => {
+    const r = confirmarPrograma({ partidas: [op('B1'), gaveta('B1', 2)] }, { existentes: [{ id: 'g', piezaId: 'gaveta-x', nombre: 'Gaveta', cantidad: 2, relation_role: 'UNDERDESK_STORAGE', anchor_role: 'ANCHOR_DESK' }] });
+    expect(r.enriquecidos.some((e) => e.id === 'g')).toBe(false);
+    expect(sillasNuevas(r, 'UNDERDESK_STORAGE')).toBe(2);
+  });
+  it('gaveta explícita OPERATIVA sí cubre la banca operativa', () => {
+    const r = confirmarPrograma({ partidas: [op('B1'), gaveta('B1', 2)] }, { existentes: [{ id: 'g', piezaId: 'gaveta-x', nombre: 'Gaveta', cantidad: 2, relation_role: 'UNDERDESK_STORAGE', anchor_role: 'ANCHOR_WORKSTATION' }] });
+    expect(r.enriquecidos.some((e) => e.id === 'g')).toBe(true);
+  });
+  it('silla de juntas explícita no cubre visita de privado (aunque sea el mismo modelo)', () => {
+    const r = confirmarPrograma({ partidas: [escritorio('D1'), visita('D1', 2)] }, { existentes: [{ id: 'm2', piezaId: 'silla-concerto', nombre: 'Silla CONCERTO', cantidad: 2, relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING' }] });
+    expect(sillasNuevas(r, 'VISITOR_SEAT')).toBe(2);
+  });
+  it('sin destino en la fila: se usa (fallback controlado)', () => {
+    const r = confirmarPrograma({ partidas: [op('B1'), gaveta('B1', 2)] }, { existentes: [{ id: 'g', piezaId: 'gaveta-x', nombre: 'Gaveta', cantidad: 2 }] });
+    expect(r.enriquecidos.some((e) => e.id === 'g')).toBe(true);
+  });
+});
+
+describe('VH-AUD-203 · el reparto aprobado vale sólo para ESE reparto', () => {
+  const bench = (iid, req = 'req:OP') => ({ ...R, rol: 'operativo', relation_role: 'ANCHOR_WORKSTATION', bancoId: 'op-8u', instance_id: iid, requirement_id: req, zone_id: 'OP', cantidad: 1, nombre: 'Banca', w: 4800, d: 1200 });
+  const seat = (iid, n, req = 'req:OP') => ({ ...R, rol: 'operativo', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', bancoId: 'silla-win', anchor_instance_id: iid, requirement_id: req, zone_id: 'OP', cantidad: n, nombre: 'WIN' });
+  const win = { id: 'w16', piezaId: 'silla-win', nombre: 'WIN', cantidad: 16 };
+  const prop = (pares, req) => ({ partidas: [...pares.map(([i]) => bench(i, req)), ...pares.map(([i, n]) => seat(i, n, req))] });
+  const aprobar = (p) => { const r = confirmarPrograma(p, { existentes: [win], repartir: ['w16'] }); return { ...win, ...r.enriquecidos.find((e) => e.id === 'w16').patch }; };
+  const pregunta = (p, fila) => confirmarPrograma(p, { existentes: [fila] }).conflictos.some((c) => c.code === 'SPLIT_REQUIRED');
+  const base = prop([['A', 8], ['B', 8]]);
+  it('mismas anclas y cantidades → no vuelve a preguntar', () => { expect(pregunta(base, aprobar(base))).toBe(false); });
+  it('sólo cambia el orden → la firma sigue valiendo', () => { expect(pregunta(prop([['B', 8], ['A', 8]]), aprobar(base))).toBe(false); });
+  it('cambia una ancla → pregunta', () => { expect(pregunta(prop([['A', 8], ['C', 8]]), aprobar(base))).toBe(true); });
+  it('cambia el número de anclas → pregunta', () => { expect(pregunta(prop([['C', 6], ['D', 6], ['E', 4]]), aprobar(base))).toBe(true); });
+  it('cambian las cantidades → pregunta', () => { expect(pregunta(prop([['A', 10], ['B', 6]]), aprobar(base))).toBe(true); });
+  it('cambia el requerimiento → pregunta', () => { expect(pregunta(prop([['A', 8], ['B', 8]], 'req:OTRO'), aprobar(base))).toBe(true); });
+  it('la fila aprobada guarda la firma de la decisión', () => { expect(aprobar(base).reparto_firma).toMatch(/A.*8.*B.*8/); });
+});

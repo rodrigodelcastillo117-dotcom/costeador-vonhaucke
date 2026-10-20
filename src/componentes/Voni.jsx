@@ -111,6 +111,22 @@ function ConflictoPrograma({ c, onConservar, onSustituir, onAmbos }) {
 
 // Prueba de Rodrigo 19-oct: un renglón (p. ej. 16 sillas WIN) que el plano reparte entre varios muebles del mismo tipo
 // (dos bancos de 8). No es un "producto distinto en el mismo lugar": se explica así y "Repartir" sí aplica la decisión.
+// VH-AUD-202: una silla cuyo uso depende del destino (CONCERTO) y el programa pide juntas Y visita: decide la persona.
+const USO_SILLA = { MEETING_SEAT: 'Son de la sala de juntas', VISITOR_SEAT: 'Son de visita (privados)' };
+function RolAmbiguoPrograma({ c, onElegir, onDejar }) {
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="rol-ambiguo-programa">
+      <div style={{ fontWeight: 700 }}>Tienes {c.cantidad} × {c.fila_nombre || 'silla'} y el plano pide sillas de ese modelo en la sala de juntas y como visita. ¿Para qué son las que ya tienes?</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>Mientras no lo decidas no se agregan sillas de ese uso, para no duplicarlas.</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onElegir && (c.opciones || []).map((r) => (
+          <button key={r} type="button" className="boton primario" style={{ minHeight: 34 }} onClick={() => onElegir(r)}>{USO_SILLA[r] || r}</button>
+        ))}
+        <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onDejar}>Dejarlo como está</button>
+      </div>
+    </div>
+  );
+}
 function RepartoPrograma({ grupo, onRepartir, onDejar }) {
   const t = textoReparto(grupo);
   return (
@@ -486,7 +502,12 @@ export default function Voni({
                         onRepartir={onAplicarPrograma && g[0].fila_id != null ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { repartir: [g[0].fila_id] }) : null} />
                     ));
                   })()}
-                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && !conflictosConservados.has(c.slot)).map((c, i) => (
+                  {conflictosPrograma.filter((c) => c.code === 'ROL_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c) => (
+                    <RolAmbiguoPrograma key={`rol-${c.slot}`} c={c}
+                      onDejar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                      onElegir={onAplicarPrograma && c.fila_id != null ? (r) => onAplicarPrograma?.(propuestaPrograma.propuesta, { roles: { [c.fila_id]: r } }) : null} />
+                  ))}
+                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && c.code !== 'ROL_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c, i) => (
                     <ConflictoPrograma key={i} c={c}
                       onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
                       onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}
