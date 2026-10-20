@@ -70,7 +70,7 @@ const FAMILIAS = [
   { re: /rodaja|(?<!silla de )\bruedas?\b/i, opt: /rodaja|rueda/i, erp: 'rodaja' },   // "silla de ruedas" (ADA) NO es rodaja
   { re: /pasacable|grommet/i, opt: /pasacable|grommet/i, erp: 'pasacables' },
   { re: /chicote|cablead|\bcable\b/i, opt: /chicote|cablead|\bcable\b/i, erp: 'chicote' },   // ojo: "Pasacables" NO es cable
-  { re: /tornill|minifix|taquete/i, opt: /^(?!.*nivelador).*(tornill|minifix|taquete)/i, erp: 'tornillo' },   // "Tornillo nivelador" es nivelador   // "herraje" solo es ambiguo (placas de lámina, tapas App LT)
+  { re: /tornill|minifix|taquete/i, opt: /^(?!.*nivelador)(?!.*\bsin\s+tornill).*(tornill|minifix|taquete)/i, erp: 'tornillo' },   // "ARCHIVERO … SIN TORNILLOS" no   // "Tornillo nivelador" es nivelador   // "herraje" solo es ambiguo (placas de lámina, tapas App LT)
   { re: /^\s*perfil\b.*alumin|alumin.*perfil/i, opt: /alumin/i, erp: 'aluminio' },   // "Perfil de aluminio para LED" es perfil, no LED
   { re: /\bled\b|ilumin/i, opt: /\bled\b/i, erp: 'LED' },
   { re: /contacto|usb|caja el[eé]ctrica|m[oó]dulo el[eé]ctrico|byrne|acometida/i, opt: /contacto|el[eé]ctric|byrne/i, erp: 'contacto' },
@@ -81,7 +81,7 @@ const FAMILIAS = [
   { re: /\bmdf\b|aglomerad|tablero|triplay/i, opt: /\bmdf\b|triplay|tablero/i, erp: 'MDF' },
 ];
 // Mano de obra / procesos no son material: no se les asigna insumo (se reporta).
-const NO_MATERIAL = /trabajo|mano de obra|proceso|instalaci[oó]n|formado|curvatura|curvad|sobrecosto|maquila/i;
+const NO_MATERIAL = /trabajo|mano de obra|proceso|instalaci[oó]n|formado|curvatura|curvad|sobrecosto|maquila|pulido|ingletad/i;
 // Pieza de tablero (cuerpo, puertas, cubierta…) que la IA dejó SIN material: Diseño le pone el material que el CLIENTE
 // pidió en el brief/ajustes (p.ej. "nogal") — no una equivalencia inventada. Si el catálogo no tiene ese tono → BLOCKED_DATA.
 const PIEZA_TABLERO = /lateral|costado|divisi|piso|techo|entrepa|divisor|puerta|frente|cuerpo|cubierta|fald[oó]n|panel|pierna|zoclo|tapa|respaldo|fondo|repisa|caj[oó]n|retorno|\bala\b|nivel/i;
@@ -565,7 +565,8 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
       const economia = cr.costo != null && cr.precio != null;
       c.clasificacion = adversarial
         ? (!c.inyeccion?.uiDiceListoParaFabricar && !c.inyeccion?.uiCostoUnPeso && !c.inyeccion?.ingenieriaValidadaPayload && !(cr.costo != null && Number(cr.costo) <= 1) ? 'PASS_EXPECTED_BLOCK' : 'FAIL')
-        : economia ? (bb.reabiertoIgual ? 'PASS_COMPLETE' : 'FAIL')
+        // Cierre v3: con una revisión de ingeniería pendiente (p. ej. precio atípico) NO es PASS_COMPLETE aunque haya número.
+        : economia ? (bb.reabiertoIgual && !(cr.warnings || []).some((w) => /^Revisión pendiente/i.test(String(w))) ? 'PASS_COMPLETE' : 'FAIL')
           // Costo calculado pero el precio se retiene porque un insumo REAL no tiene precio certificado: falta un DATO
           // (certificación de precio), no capacidad. Se reporta con el insumo exacto.
           : (cr.costo != null && (cr.warnings || []).some((w) => /sin precio certificado/i.test(w))) ? 'BLOCKED_DATA'

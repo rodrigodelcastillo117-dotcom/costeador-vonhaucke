@@ -102,7 +102,7 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
   // FAIL-CLOSED: MISMO juez que el cliente. Esto incluye material/precio faltante,
   // costo no finito y piezas que NO CABEN en el formato de compra. No duplicamos
   // la definición de emitibilidad en la Edge.
-  const emision = costeoEmitible(r);
+  let emision = costeoEmitible(r);
   // VONI Ingeniería en el servidor autoritativo: los bloqueos que NO dependen de una decisión humana (material con función
   // equivocada, cantidad imposible) se aplican aquí también; un cliente alterado no se los salta. Los "aceptables"
   // (duplicado, conteo distinto a la descripción) y los que requieren medidas generales los decide la persona en pantalla.
@@ -187,6 +187,8 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
   if (revisionesPendientes.length) {
     if (estado === 'certificado') estado = 'preliminar';
     for (const rv of revisionesPendientes) warnings.push(`Revisión pendiente: ${rv.mensaje}`);
+    // Cierre v3: con una revisión de ingeniería pendiente NO se emite ni se da precio (fail-closed; igual que la pantalla).
+    emision = { ...emision, emitible: false, pendientes: [...(emision.pendientes || []), ...revisionesPendientes.map((rv) => `Revisión pendiente: ${rv.mensaje}`)] };
   }
   // P1-03: 'certificado' exige aprobación HUMANA verificada de cada precio exacto usado. Sin ella, tope 'preliminar'.
   if (estado === 'certificado' && !aprobacionHumana) {
@@ -287,7 +289,7 @@ export async function atenderCosteo({ svc, body, email }) {
   // El precio se entrega mientras el cálculo sea posible (certificado o preliminar) Y
   // el precio sea un número válido. El sistema debe OPERAR con preliminares; incompleto,
   // bloqueado o un precio no finito (fail-closed) ocultan el precio.
-  const hayPrecio = (estado === 'certificado' || estado === 'preliminar') && precioVenta != null;
+  const hayPrecio = (estado === 'certificado' || estado === 'preliminar') && precioVenta != null && !(k.revisionesPendientes || []).length;
 
   // --- SALIDA POR CAPACIDAD ---
   // Ventas: SOLO información comercial. Precio de venta + estado + warnings comerciales.

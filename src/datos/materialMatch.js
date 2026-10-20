@@ -257,8 +257,12 @@ export function familiaDeMaterial(texto) {
   // Cierre v3 (cocrear-7): "MDF 19 mm (sustrato de refuerzo BAJO piedra)" es MDF; lo que va después de bajo/debajo de/
   // sobre/encima de es CONTEXTO (dónde va), no el material. Antes la tabla ponía piedra antes que MDF y la confirmación de
   // Diseño se rechazaba como cruce de familia. Si el texto sin contexto no dice nada, se usa el texto completo.
-  const sinContexto = t.replace(/\b(?:bajo|debajo\s+de|sobre|encima\s+de)\b[^,;()]*/gi, ' ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
-  if (sinContexto && sinContexto !== t) { const f = familiaDeMaterial(sinContexto); if (f) return f; }
+  // Cierre v3 (cocrear-4/6): también "para <uso>" ("tablero base PARA asiento tapizado" no es tapicería) y "sin <x>"
+  // ("ARCHIVERO MÓVIL … SIN TORNILLOS" no es tornillería: se costeó un archivero de $793,379 como tornillos). Sólo se
+  // quita la cláusula si NO es el inicio del texto ("Sobre de cristal" sigue siendo cristal). El texto sin contexto MANDA,
+  // aunque no diga familia ('' = no se sabe; mejor que adivinar por una palabra del contexto).
+  const sinContexto = t.replace(/(\S)\s+(?:bajo|debajo\s+de|sobre|encima\s+de|para|sin)\b[^,;()]*/gi, '$1 ').replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim();
+  if (sinContexto && sinContexto !== t) return familiaDeMaterial(sinContexto);
   let primera = '';
   for (const [fam, re] of FAMILIAS) {
     if (re.test(t)) { primera = fam; break; }

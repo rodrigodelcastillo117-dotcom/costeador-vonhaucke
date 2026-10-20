@@ -62,3 +62,32 @@ describe('SRV-01 · servidor autoritativo', () => {
     expect((await costearConMotor(svcFalso(), revisada, 1, false)).revisionesPendientes).toHaveLength(1);
   });
 });
+
+// Cierre v3 (run 39471362989, cocrear-4): "Tornillería y ensamble" amarrada al ERP "ARCHIVERO MÓVIL … SIN TORNILLOS"
+// de $793,379.24 → el servidor CERTIFICÓ un librero de $1.4 M. Ahora: 'sin tornillos' no es tornillería, y un precio > 50×
+// la mediana curada de la familia de la pieza es revisión obligatoria (cliente = servidor) y el servidor no da precio.
+import { familiaDeMaterial } from './materialMatch.js';
+describe('cierre v3 · precio atípico y "sin/para" como contexto', () => {
+  const archivero = { id: 'erp-esp-arcbebi-a101b718c2000', nombre: 'ARCHIVERO MOVIL DE  SISTEMA DE ARCHIVO MOVIL SIN TORNILLOS: 1 BAT DE 3 MOD 1000 X 400 MM, 5 BAT DE 3 MOD', clasificacion: 'erp', unidad: 'pza', precio: 793379.24 };
+  const cat = { ...insumos, tornilleria: { id: 'tornilleria', nombre: 'Tornilleria', clasificacion: 'vigente', unidad: 'jgo', precio: 45 }, [archivero.id]: archivero };
+  it('"… SIN TORNILLOS" no es tornillería; "tablero base para asiento tapizado" no es tapicería', () => {
+    expect(familiaDeMaterial(archivero.nombre)).not.toBe('tornilleria');
+    expect(familiaDeMaterial('tablero base para asiento tapizado')).not.toBe('tapiceria');
+    expect(familiaDeMaterial('Sobre de cristal templado')).toBe('cristal');
+    expect(familiaDeMaterial('Tornillería y silicón estructural')).toBe('tornilleria');
+  });
+  it('la pantalla y el servidor marcan el precio atípico con la MISMA clave', () => {
+    const comps = [{ nombre: 'Tornillería y ensamble (minifix/taquete)', insumoId: archivero.id, cantidad: 1, material_confirmado: true, material_solicitado: 'tornillería' }];
+    const o = revisarEstructura({ componentes: comps, insumos: cat }).observaciones.filter((x) => x.regla === 'precio_atipico');
+    expect(o).toHaveLength(1);
+    expect(o[0].mensaje).toMatch(/793,379\.24.*50 veces/);
+  });
+  it('el servidor no certifica ni da precio con la revisión pendiente', async () => {
+    const svc = { from: (t) => { const q = { select: () => q, eq: () => q, in: () => q, is: () => q, neq: () => q, single: async () => ({ data: t === 'config' ? { datos: { insumos: cat } } : null, error: null }), maybeSingle: async () => ({ data: null, error: null }), then: (f) => Promise.resolve({ data: [], error: null, count: 0 }).then(f) }; return q; }, rpc: async () => ({ data: cat, error: null }) };
+    const pieza = validarIntentCosteo({ cantidad: 1, pieza: { componentes: [{ nombre: 'Tornillería y ensamble (minifix/taquete)', insumoId: archivero.id, cantidad: 1, material_confirmado: true, material_solicitado: 'tornillería' }] } }).intent.pieza;
+    const k = await costearConMotor(svc, pieza, 1, true);
+    expect(k.revisionesPendientes.map((x) => x.clave)).toEqual(['precio_atipico:Tornillería y ensamble (minifix/taquete)']);
+    expect(k.estado).not.toBe('certificado');
+    expect(k.emision.emitible).toBe(false);
+  });
+});

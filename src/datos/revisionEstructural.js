@@ -280,6 +280,25 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
     if (FAM_MATERIAL_BASE.has(f)) obs.push({ nivel: 'blocker', regla: 'material_funcion', clave: `material_funcion:${c.nombre}`, pieza: c.nombre,
       mensaje: `«${c.nombre}» es un acabado pero está costeado con ${(insumos && insumos[c.insumoId]?.nombre) || c.insumoId} (${f.replace('_', ' ')}): se cobraría como material. Asígnale el insumo del acabado o quítalo si ya va incluido.` });
   }
+  // (2c) PRECIO ATÍPICO (cierre ChatGPT v3, cocrear-4): "Tornillería y ensamble" quedó amarrada a un artículo ERP
+  //      "ARCHIVERO MÓVIL … SIN TORNILLOS" de $793,379.24 y el servidor CERTIFICÓ un librero de $1.4 M. Un renglón cuyo
+  //      insumo cuesta más de 50× la mediana del catálogo CURADO de la familia de la pieza (no ERP; mismo cálculo en
+  //      cliente y servidor) es revisión obligatoria: la persona confirma que el artículo es el correcto.
+  {
+    const curados = Object.values(insumos || {}).filter((x) => x && x.clasificacion !== 'erp' && Number(x.precio ?? x.precioBase) > 0);
+    const porFam = new Map();
+    for (const x of curados) { const f = familiaDeMaterial(x.nombre || ''); if (!f) continue; if (!porFam.has(f)) porFam.set(f, []); porFam.get(f).push(Number(x.precio ?? x.precioBase)); }
+    const mediana = (a) => { const b = [...a].sort((p, q) => p - q); const m = Math.floor(b.length / 2); return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+    for (const c of comps) {
+      if (c.excluida || !c.insumoId || !insumos?.[c.insumoId]) continue;
+      const ins = insumos[c.insumoId]; const p = Number(ins.precio ?? ins.precioBase);
+      if (!(p > 1000)) continue;
+      const f = familiaDeMaterial(c.nombre || '') || familiaDeMaterial(c.material_solicitado || '') || familiaDeMaterial(ins.nombre || '');
+      const ref = f && porFam.has(f) ? mediana(porFam.get(f)) : null;
+      if (ref && p > 50 * ref) obs.push({ nivel: 'blocker', aceptable: true, regla: 'precio_atipico', clave: `precio_atipico:${c.nombre}`, pieza: c.nombre,
+        mensaje: `«${c.nombre}» está costeada con «${String(ins.nombre || c.insumoId).slice(0, 80)}» a $${p.toLocaleString('es-MX', { maximumFractionDigits: 2 })} por ${ins.unidad || 'unidad'}: más de 50 veces lo normal para ${f.replace(/_/g, ' ')} en el catálogo. Confirma que es el artículo correcto (o cámbialo) antes de cotizar.` });
+    }
+  }
   // (3) DUPLICADOS: mismo nombre, mismas medidas y mismo material en dos renglones.
   const vistos = new Map();
   for (const c of comps) {
