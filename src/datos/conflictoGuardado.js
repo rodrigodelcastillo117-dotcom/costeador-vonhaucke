@@ -411,6 +411,31 @@ export function leerRespaldoConflicto(storage, id) {
   }
 }
 
+// P1-REL-02 (cierre ChatGPT v3): un conflicto SIN RESOLVER sobrevive a recargar la página. Antes, al recargar, lo local
+// se volvía a enviar, el aviso reaparecía y la versión del servidor nunca se mostraba. Con la marca, al volver a abrir se
+// respalda lo local y se carga la versión del servidor (lo mismo que "Ver la versión del servidor").
+export const PREFIJO_CONFLICTO_ABIERTO = 'costeador-vonhaucke-conflicto-abierto-';
+/** Marca (c) o retira (null) el conflicto abierto de esa cotización. Nunca lanza. */
+export function marcarConflictoAbierto(storage, id, c) {
+  try {
+    if (!storage || id == null) return false;
+    if (c) storage.setItem(PREFIJO_CONFLICTO_ABIERTO + id, JSON.stringify({ ...c, marcado: new Date().toISOString() }));
+    else storage.removeItem(PREFIJO_CONFLICTO_ABIERTO + id);
+    return true;
+  } catch { return false; }
+}
+/** El conflicto abierto que quedó al recargar, o null. */
+export function leerConflictoAbierto(storage, id) {
+  try {
+    if (!storage || id == null) return null;
+    const raw = storage.getItem(PREFIJO_CONFLICTO_ABIERTO + id);
+    const c = raw ? JSON.parse(raw) : null;
+    return c && typeof c === 'object' ? c : null;
+  } catch { return null; }
+}
+// "Volver a aplicar mis cambios" guarda el documento COMPLETO encima de lo de la otra persona: se confirma.
+export const CONFIRMACION_REAPLICAR = 'Vas a guardar TU versión completa encima de la que guardó la otra persona: lo que ella cambió se pierde. ¿Seguro? (Para conservar lo de los dos usa "Ver la versión del servidor" y luego "Recuperar mis cambios".)';
+
 /** Respaldo nuevo encima del previo (si había): el previo no se pierde. */
 export function apilarRespaldo(previo, nuevo) {
   if (!previo) return nuevo;

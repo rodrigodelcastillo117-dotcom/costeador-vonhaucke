@@ -105,6 +105,18 @@ test.describe('LAB · plano Torre Norte', () => {
       guarda('2b-golden-lectura.json', golden);
       console.log('[lab] golden lectura:', JSON.stringify(golden));
       expect(golden.filter((g) => !g.ok), 'puestos leídos = escritorios dibujados (golden)').toEqual([]);
+      // Cierre ChatGPT v3 (C7): donde el plano dibuja MENOS sillas que escritorios, la lectura tiene que decirlo con los
+      // dos conteos y tomar los escritorios (nunca las sillas como proxy): "N escritorios observados y M sillas
+      // observadas. Tomé N puestos (los escritorios); capacidad por confirmar."
+      const textoGate = `${lectura.problemas || ''} ${lectura.gate || ''}`;
+      const contrato = paginasDelNivel.flatMap((pg) => pg.areas || [])
+        .filter((a) => a.tipo === 'open' && a.escritorios_dibujados > 0 && a.sillas_dibujadas < a.escritorios_dibujados)
+        .map((a) => ({ area: a.nombre, esperado: `«${a.nombre}»: ${a.escritorios_dibujados} escritorios observados y ${a.sillas_dibujadas} sillas observadas. Tomé ${a.escritorios_dibujados} puestos (los escritorios); capacidad por confirmar.` }))
+        .map((x) => ({ ...x, ok: textoGate.includes(x.esperado) }));
+      guarda('2c-contrato-escritorios-sillas.json', contrato);
+      console.log('[lab] contrato escritorios/sillas:', JSON.stringify(contrato));
+      // Contrato textual exigido para C7 (LAB_CONTRATO_SILLAS=1, lo pone caso.sh); en los demás planos se registra.
+      if (process.env.LAB_CONTRATO_SILLAS === '1') expect(contrato.filter((x) => !x.ok), 'la lectura nombra escritorios Y sillas observadas y toma los escritorios').toEqual([]);
     }
     console.log('[lab] puertas en estado:', JSON.stringify((cotA.acomodo.areasM || []).map((a) => [a.nombre, (a.puertas || []).map((q) => [q.x, q.y, q.ancho, q.tieneBarrido, q.sentido, q.doble || false]), (a.puertasPendientes || []).length])));
     await page.waitForTimeout(1500);

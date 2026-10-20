@@ -12,7 +12,8 @@
 set -u
 cd "$(dirname "$0")/../.."
 export CERTIFICACION=1   # P1-LAB-COC-09: playwright.config fuerza retries=0
-CASO="$1"; RAIZ=$(pwd); OUT="$RAIZ/lab/certificacion/ci/$CASO"; mkdir -p "$OUT"
+# "<caso>#N": repetición del MISMO caso (p. ej. plano-C7#2 para medir la varianza del lector sin alterar el archivo).
+CASO_ID="$1"; CASO="${1%%#*}"; RAIZ=$(pwd); OUT="$RAIZ/lab/certificacion/ci/$CASO_ID"; mkdir -p "$OUT"
 # Cierre ChatGPT (P1-REL-01): "<caso>~preview" corre el MISMO caso contra la Vercel PREVIEW del FINAL_SHA
 # (lab/certificacion/preview_url.txt) en vez de un vite local.
 if [ "${CASO%~preview}" != "$CASO" ]; then
@@ -52,6 +53,8 @@ case "$CASO" in
     d=$(ls -d lab/planos/${c}_* | head -1)
     [ -f "$d/plano.pdf" ] || { echo "no hay $c"; exit 3; }
     cp "$d/control.json" "$OUT/control.json"; export LAB_CONTROL="$d/control.json"
+    # Cierre ChatGPT v3: C7 exige el texto "16 escritorios observados y 8 sillas observadas. Tomé 16 puestos…".
+    if [ "$c" = "C7" ]; then export LAB_CONTRATO_SILLAS=1; fi
     # El render cuesta: sólo en C1 (el resto mide lectura → acomodo → PDF → reabrir).
     if [ "$c" = "C1" ]; then SINR=; else SINR=1; fi
     LAB_PLANO="$d/plano.pdf" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI plano $c" LAB_SIN_RENDER="$SINR" pw e2e/labTorreNorte.e2e.js ;;
@@ -70,6 +73,9 @@ case "$CASO" in
     if [ "$c" = "C1" ]; then export LAB_TEXTO="Oficina con 12 puestos operativos, una recepción para 1 persona con su silla, una oficina de dirección con escritorio y su silla y una sala de juntas para 8 personas."; fi
     LAB_RECORRIDO="$r" LAB_PLANO="$d/plano.pdf" LAB_CONTROL="$d/control.json" LAB_OUT="$OUT" LAB_CLIENTE="LAB CI $CASO $(date +%m%d-%H%M)" \
       pw e2e/labRecorridos.e2e.js ;;
+  concurrencia)
+    # P1-REL-02: control optimista A–L contra el deployment (usar como "concurrencia~preview").
+    LAB_CONC_OPT=1 LAB_OUT="$OUT" pw e2e/labControlOptimista.e2e.js ;;
   texto)
     LAB_MODO=texto LAB_OUT="$OUT" LAB_CLIENTE="LAB CI texto" \
       LAB_TEXTO="Oficina para 10 personas: una mesa de juntas de 2.40 x 1.20 para 8 personas con sus 8 sillas, 6 lugares de trabajo operativos de 1.50 con sus 6 sillas, un escritorio de dirección con su silla y una recepción para 2 personas." \

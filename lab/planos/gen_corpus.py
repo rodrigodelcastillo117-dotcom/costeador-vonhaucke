@@ -134,11 +134,29 @@ def dibujar(plan, ax):
     for i, nline in enumerate(plan.notas):
         ax.text(W + 0.3, 0.9 + i * 0.6, nline, fontsize=5.8, color=INK)
 
+def _dentro(pt, a):
+    # Punto dentro del área (polígono por rayo, o círculo). Sólo para el control: no cambia el dibujo.
+    x, y = pt
+    if a['circulo']:
+        cx, cy, r = a['circulo']; return (x - cx) ** 2 + (y - cy) ** 2 <= r * r
+    pts, ok = a['pts'], False
+    for i in range(len(pts)):
+        (x1, y1), (x2, y2) = pts[i], pts[(i + 1) % len(pts)]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1: ok = not ok
+    return ok
+
+def _dibujados(plan, a):
+    # Cierre ChatGPT v3 (C7): lo que el plano DIBUJA en el área — escritorios y cuántos tienen silla — para que el golden
+    # exija "N escritorios observados y M sillas observadas; N puestos" sin usar las sillas como proxy.
+    es = [m for m in plan.muebles if m['tipo'] == 'escritorio' and _dentro((m['x'] + m['w'] / 2, m['y'] + m['d'] / 2), a)]
+    return len(es), sum(1 for m in es if m.get('silla'))
+
 def control(plan, pagina=1):
     def m2(a):
         return round(math.pi * a['circulo'][2] ** 2 if a['circulo'] else poly_area(a['pts']), 1)
     return dict(envolvente_m=[plan.W, plan.H], nivel=plan.nivel, pagina=pagina,
         areas=[dict(nombre=a['nombre'], tipo=a['tipo'], m2=m2(a), puestos=a['puestos'], asientos=a['asientos'],
+                    escritorios_dibujados=_dibujados(plan, a)[0], sillas_dibujadas=_dibujados(plan, a)[1],
                     forma='circulo' if a['circulo'] else 'poligono', puntos=a['pts'], circulo=a['circulo']) for a in plan.areas],
         puertas=[dict(x=p['x'], y=p['y'], ancho=p['ancho'], doble=p['doble'], abre=p['abre'], clave=p['clave']) for p in plan.puertas],
         columnas=[dict(x=c['x'], y=c['y'], lado=c['lado'], clave=c['clave']) for c in plan.columnas],

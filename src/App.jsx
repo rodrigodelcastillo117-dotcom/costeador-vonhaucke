@@ -68,6 +68,7 @@ import {
   controlOptimistaActivo, esperadoParaGuardar, conflictoDesdeResultado, respaldoConflicto, aplicarFilaServidor,
   camposMezcla, mezclarRespaldo, resumenDiferencias, confirmacionRecuperar, confirmacionDescartar,
   leerRespaldoConflicto, guardarRespaldoConflicto, descartarRespaldoConflicto, retirarRespaldoRecuperado, ETIQUETAS_CAMPO,
+  marcarConflictoAbierto, leerConflictoAbierto, CONFIRMACION_REAPLICAR,
 } from './datos/conflictoGuardado.js';
 import ConflictoGuardado from './componentes/ConflictoGuardado.jsx';
 import RespaldoConflicto from './componentes/RespaldoConflicto.jsx';
@@ -505,7 +506,11 @@ export default function App() {
   const [conflicto, setConflicto] = useState(null);
   const conflictoRef = useRef(null);
   const [resolviendoConflicto, setResolviendoConflicto] = useState(false);
-  const fijarConflicto = (c) => { conflictoRef.current = c; setConflicto(c); };
+  // P1-REL-02: el conflicto abierto se marca en esta computadora para que sobreviva a recargar (ver efecto de abajo).
+  const fijarConflicto = (c, id = idCotizacion.current) => {
+    conflictoRef.current = c; setConflicto(c);
+    if (controlOptimistaActivo()) marcarConflictoAbierto(typeof localStorage === 'undefined' ? null : localStorage, id ?? null, c);
+  };
   // VH-148 · BASE de la fusión de tres vías: lo que esta pestaña sabe que está en el servidor (campos
   // comparables de la cotización al abrirla, al cargar la versión del servidor y tras cada guardado
   // confirmado). Viaja dentro del respaldo de conflicto para que "Recuperar mis cambios" sepa qué
@@ -735,6 +740,8 @@ export default function App() {
   async function reaplicarMisCambios() {
     const c = conflictoRef.current;
     if (!c) return;
+    // P1-REL-02: reemplaza lo de la otra persona con el documento completo: sólo con confirmación explícita.
+    if (!confirm(CONFIRMACION_REAPLICAR)) return;
     setResolviendoConflicto(true);
     try {
       let esperado = c.actualizadoServidor;
@@ -746,6 +753,24 @@ export default function App() {
       setResolviendoConflicto(false);
     }
   }
+
+  // P1-REL-02 · recargar con un conflicto SIN RESOLVER: antes lo local se reenviaba, el aviso reaparecía y la versión del
+  // servidor no se mostraba. Ahora, con la sesión lista, se respalda lo local y se carga la versión del servidor (lo mismo
+  // que "Ver la versión del servidor"); recuperar lo propio sigue siendo una decisión explícita (tarjeta de respaldo).
+  const conflictoRecargaHecho = useRef(false);
+  useEffect(() => {
+    if (!controlOptimista || conflictoRecargaHecho.current || !sesion?.user?.email) return;
+    const id = idCotizacion.current ?? estado.cotizacion?.id ?? null;
+    let pendiente = null;
+    try { pendiente = leerConflictoAbierto(localStorage, id); } catch { pendiente = null; }
+    if (!pendiente) return;
+    conflictoRecargaHecho.current = true;
+    if (!conflictoRef.current) { conflictoRef.current = pendiente; setConflicto(pendiente); }
+    verVersionDelServidor().then(() => {
+      if (!conflictoRef.current) mostrarAviso('Recargaste con un conflicto sin resolver: en pantalla está la versión del servidor y tus cambios quedaron respaldados en esta computadora.', 9000);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlOptimista, sesion?.user?.email, idAbierta]);
 
   // Cambió la persona (salir / entrar otro correo): lo "ya guardado" era de la sesión
   // anterior. Se olvida la firma para que el siguiente guardado vaya al servidor y éste
@@ -1407,6 +1432,15 @@ export default function App() {
               // trae la cotización COMPLETA por id (seller-safe) para poder re-editarla.
               // Si la nube falla, se cae a lo que traía la tarjeta (degradación suave).
               const full = (await cargarCotizacionCompleta(c.id)) || c;
+              // P1-REL-02: abrir desde la lista con un conflicto sin resolver ya NO tira lo local: primero se respalda (la
+              // misma pila que "Ver la versión del servidor"), y el respaldo se ofrece al volver a esa cotización.
+              if (conflictoRef.current) {
+                const idPrevio = idCotizacion.current ?? estado.cotizacion?.id ?? null;
+                let ok = false;
+                try { ok = guardarRespaldoConflicto(localStorage, idPrevio, respaldoConflicto(estado, conflictoRef.current, { base: baseNube.current })); } catch { ok = false; }
+                if (!ok && !confirm('No se pudo guardar una copia de tus cambios sin guardar. Si abres este presupuesto, se pierden. ¿Abrir de todos modos?')) return;
+                fijarConflicto(null, idPrevio);
+              }
               epocaCot.current += 1;          // invalida guardados en vuelo de la anterior
               idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
               fijarConflicto(null);           // VH-148: se abre otra cotización; el conflicto anterior ya no aplica
