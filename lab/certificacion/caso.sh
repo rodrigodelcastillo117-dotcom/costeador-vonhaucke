@@ -5,6 +5,7 @@
 #                    acepta las diferencias de material como lo haría Diseño (LAB_ACEPTAR_DIFERENCIAS=1) para medir la cadena
 #                    completa hasta el servidor, guardar y reabrir
 #   cocrear-<n>      labCocrear, proyecto n de lab/noche/cocrear10/correr.sh
+#   cocrearrc-<n>    igual, costeando con costear-servidor-rc (motor de la rama)
 #   plano-<Cn>       labTorreNorte con el plano sintético Cn de lab/planos/gen_corpus.py (lectura → acomodo → PDF → reabrir)
 #   planorc-<Cn>     igual, con el lector de planos RC (VITE_LEER_PLANO_FN=leer-plano-rc)
 #   texto | manual   labCotizarFlujo (Voni por texto / banco de precios)
@@ -25,8 +26,10 @@ case "$CASO" in
     cd ../env
     LAB_HOJA="lab/costear/hojas_control/$h.json" LAB_OUT="$OUT" LAB_COSTEAR_NOMBRE="LAB CI $h $(date +%m%d-%H%M)" \
       LAB_COSTEAR_FN=costear-servidor LAB_GIT_SHA="$(git rev-parse --short HEAD)" LAB_ACEPTAR_DIFERENCIAS=1 pw e2e/labCostear.e2e.js ;;
-  cocrear-*)
-    n="${CASO#cocrear-}"
+  cocrear-*|cocrearrc-*)
+    # cocrearrc-<n>: el MISMO proyecto costeado con costear-servidor-rc (el motor de ESTA rama, desplegado como RC) para
+    # probar un arreglo del motor de punta a punta antes de que Dirección despliegue el de producción.
+    if [ "${CASO#cocrearrc-}" != "$CASO" ]; then export VITE_COSTEAR_FN=costear-servidor-rc; n="${CASO#cocrearrc-}"; else n="${CASO#cocrear-}"; fi
     LAB_SUFIJO=_ci LAB_COC_BAJAR_BOM=1 bash lab/noche/cocrear10/correr.sh "$n"; rc=$?
     cp -R lab/noche/cocrear10/*_ci "$OUT/" 2>/dev/null; exit $rc ;;
   plano-*|planorc-*)

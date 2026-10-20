@@ -505,7 +505,7 @@ test('COCREAR real: brief → concepto → ajustes → estados → guardar → r
           await expect(page.getByText(/Co-creación guardada|No se pudo guardar/).first()).toBeVisible({ timeout: 30000 });
           const esperaCs = page.waitForResponse((x) => x.url().includes('/functions/v1/costear-servidor'), { timeout: 120000 }).catch(() => null);
           await page.getByRole('button', { name: /^Costear en el servidor$/ }).click();
-          const cs = await esperaCs; bb.costearStatus = cs?.status() ?? null;
+          const cs = await esperaCs; bb.costearStatus = cs?.status() ?? null; bb.funcionCosteo = cs ? new URL(cs.url()).pathname.split('/').pop() : null;
           try { const j = await cs?.json(); bb.costearRespuesta = { ok: j?.ok, estado: j?.estado, code: j?.code, error: j?.error, costo: j?.costo?.costoUnitario ?? null, precio: j?.precioSugerido ?? j?.precioVenta ?? null, pendientes: (j?.costo?.pendientes || []).slice(0, 12), warnings: (j?.warnings || []).slice(0, 8) }; } catch (_e) { /* sin cuerpo */ }
           await page.waitForTimeout(2000);
           const main = await page.locator('main').first().innerText();
