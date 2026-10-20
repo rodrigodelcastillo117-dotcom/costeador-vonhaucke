@@ -11,6 +11,7 @@
 #   texto | manual   labCotizarFlujo (Voni por texto / banco de precios)
 set -u
 cd "$(dirname "$0")/../.."
+export CERTIFICACION=1   # P1-LAB-COC-09: playwright.config fuerza retries=0
 CASO="$1"; RAIZ=$(pwd); OUT="$RAIZ/lab/certificacion/ci/$CASO"; mkdir -p "$OUT"
 # Cierre ChatGPT (P1-REL-01): "<caso>~preview" corre el MISMO caso contra la Vercel PREVIEW del FINAL_SHA
 # (lab/certificacion/preview_url.txt) en vez de un vite local.

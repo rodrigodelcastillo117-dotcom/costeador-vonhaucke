@@ -24,6 +24,21 @@ jobs:
         with:
           # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # P1-LAB-COC-09: el gate falla solo. Un spec que falla en el 1.er intento y pasaría en el 2.º debe REPROBAR bajo la
+      # configuración de certificación; si "pasa", la certificación no corre.
+      - name: Meta-prueba — la certificación no admite reintentos
+        run: |
+          set +e
+          CI=1 CERTIFICACION=1 LAB_META=1 E2E_BASE_URL=http://127.0.0.1:9 npx playwright test e2e/labMetaReintento.e2e.js --workers=1 --reporter=line
+          rc=$?
+          set -e
+          if [ "$rc" = 0 ]; then echo "::error::un primer intento FAIL quedó en verde: la certificación admite reintentos"; exit 1; fi
+          echo "OK: el primer intento FAIL reprobó (exit $rc) — retries=0 en certificación"
       - id: leer
         run: echo "casos=$(tr -d '\n' < lab/certificacion/casos.json)" >> "$GITHUB_OUTPUT"
   caso:

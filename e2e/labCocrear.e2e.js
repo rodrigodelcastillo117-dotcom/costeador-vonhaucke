@@ -50,13 +50,17 @@ const limpio = (o, n = 600) => JSON.parse(JSON.stringify(o ?? null, (k, v) => (t
 const FAMILIAS = [
   // Cierre ChatGPT (sin inventar equivalencias): la familia sale del MATERIAL PEDIDO (alerta "Pediste «…»") y, si no lo
   // hay, del nombre de la pieza; cada familia sólo acepta insumos de ESA familia (cuarzo ≠ superficie sólida).
-  { re: /cuarzo/i, opt: /cuarzo/i, erp: 'cuarzo' },
+  // Cierre ChatGPT v3: en el ERP el cuarzo está por MARCA (Silestone) y mal clasificado como "acrílico": se busca por las
+  // tres palabras antes de declarar que no existe.
+  { re: /cuarzo|quartz|silestone|caesarstone/i, opt: /cuarzo|quartz|silestone|caesarstone/i, erp: 'cuarzo', erps: ['cuarzo', 'silestone', 'quartz'] },
   { re: /solid surface|superficie s[oó]lida|corian|krion/i, opt: /solid|superficie s[oó]lida|corian|krion/i, erp: 'superficie sólida' },
   { re: /cristal|vidrio/i, opt: /cristal|vidrio/i, erp: 'cristal' },
   { re: /vinil|tela\b|tapiz|piel/i, opt: /vinil|tela|tapiz|piel/i, erp: 'vinil' },
   { re: /espuma|hule|poliuretano/i, opt: /espuma|hule|poliuretano/i, erp: 'espuma' },
   { re: /\bcanto\b|cubrecanto|tapacanto/i, opt: /canto/i, erp: 'canto' },
   { re: /pintura|electrost/i, opt: /pintura/i, erp: 'pintura' },
+  // LAB-COC-08 / P1-MAT-02: un renglón que EMPIEZA por un acabado líquido es el acabado ("Barniz … sobre chapa" ≠ chapa).
+  { re: /^\s*(?:acabado\s+(?:de\s+)?)?(?:barniz|sellador|laca|esmalte|tint[ae]|poliuretano)/i, opt: /barniz|sellador|laca|esmalte|tint/i, erp: 'barniz', erps: ['barniz', 'sellador', 'laca'] },
   { re: /bisagra/i, opt: /bisagra/i, erp: 'bisagra' },
   { re: /corredera|riel/i, opt: /corredera|riel/i, erp: 'corredera' },
   { re: /jaladera|tirador/i, opt: /jaladera|tirador/i, erp: 'jaladera' },
@@ -122,7 +126,15 @@ async function resolverMateriales(page) {
     }
     if (val && !PENDIENTE.test(alerta) && !/familia-equivocada/.test(alerta)) continue;          // ya costeable
     const nombre = await f.locator('.pieza-nom').inputValue().catch(() => '');
-    if (NO_MATERIAL.test(nombre)) { out.bloqueados.push({ pieza: nombre, dato: true, motivo: 'es un proceso/sobrecosto, no material: falta su TARIFA de proceso en catálogo (dato), no se inventa' }); continue; }
+    // Proceso de CURVADO: el catálogo sí tiene la tarifa (insumo `curvado`, "Trabajo extra por ser curvo (por metro)",
+    // declarada por Dirección 2026-10-18). Se usa esa; si no aparece, es dato faltante. Otros procesos: dato faltante.
+    if (NO_MATERIAL.test(nombre) && !/curv/i.test(nombre)) { out.bloqueados.push({ pieza: nombre, dato: true, motivo: 'es un proceso/sobrecosto, no material: falta su TARIFA de proceso en catálogo (dato), no se inventa' }); continue; }
+    if (NO_MATERIAL.test(nombre)) {
+      const opCurvo = (await sel.locator('option').evaluateAll((os) => os.map((o) => ({ v: o.value, t: o.textContent || '' }))).catch(() => [])).find((o) => o.v && /curv/i.test(o.t));
+      if (opCurvo) { await sel.selectOption(opCurvo.v); await page.waitForTimeout(700); out.elegidos.push({ pieza: nombre, familia: 'proceso_curvado', insumo: opCurvo.t.trim(), via: 'catalogo', origen: 'tarifa declarada por Dirección (insumo curvado)' }); }
+      else out.bloqueados.push({ pieza: nombre, dato: true, motivo: 'tarifa de curvado no encontrada en el catálogo de la pantalla (dato)' });
+      continue;
+    }
     const pedido = (alerta.match(/Pediste «([^»]+)»/) || [])[1] || '';
     let fam = (pedido && FAMILIAS.find((x) => x.re.test(pedido))) || FAMILIAS.find((x) => x.re.test(nombre));
     if (!fam && PIEZA_TABLERO.test(nombre)) {
@@ -156,9 +168,14 @@ async function resolverMateriales(page) {
     // 2) Buscador ERP de la misma familia.
     if (!listo && (await f.getByTestId('buscar-insumo-abrir').count())) {
       await f.getByTestId('buscar-insumo-abrir').click();
-      await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(fam.erp);
-      await page.waitForTimeout(2500);
-      const lis = f.locator('.buscador-insumo-lista li').filter({ hasText: fam.opt }).filter(fam.erp === 'canto' ? {} : { hasNotText: /canto/i });
+      // Varios términos de búsqueda por familia (p. ej. cuarzo → silestone): el primero que dé resultados de la familia.
+      let lis = null;
+      for (const termino of (fam.erps || [fam.erp])) {
+        await f.getByTestId('buscador-insumo').locator('input[type=search]').fill(termino);
+        await page.waitForTimeout(2500);
+        lis = f.locator('.buscador-insumo-lista li').filter({ hasText: fam.opt }).filter(fam.erp === 'canto' ? {} : { hasNotText: /canto/i });
+        if (await lis.count()) break;
+      }
       const k = Math.min(await lis.count(), 4);
       for (let j = 0; j < k && !listo; j++) {
         const li = lis.nth(j); const t = (await li.innerText()).replace(/\s+/g, ' ').slice(0, 120);

@@ -205,7 +205,12 @@ const FAMILIAS = [
   // VH-181 (prueba ciega ERP 2026-10-13, biombo ATBIOCRT5): "Soporte tipo clamp/escuadra metálica…, acabado pintura en
   // polvo" se amarraba a PINTURA y cobraba 2 kg ($337.12) en vez de 2 soportes. El objeto manda sobre su acabado.
   ['herraje_soporte',   /\bsoporte|escuadra|\bclamp\b|m[eé]nsula|bracket/i],
-  ['pintura_polvo',     /\bpintura\b|electrost[aá]tic|\bpowder\b|\blaca\b|lacado/i],
+  ['pintura_polvo',     /\bpintura\b|electrost[aá]tic|\bpowder\b/i],
+  // P1-MAT-02 (cierre ChatGPT v3, 2026-10-20): UNA taxonomía de acabados para motor y validador estructural. Los acabados
+  // líquidos (barniz, sellador, laca, esmalte, tinte, poliuretano de acabado) son familia propia: "Barniz de acabado sobre
+  // chapa" es BARNIZ, no chapa. Igual que los herrajes, si el texto nombra PRIMERO el material base y el acabado es un
+  // atributo ("Chapa de nogal barnizada", "MDF lacado"), manda el material base (ver familiaDeMaterial).
+  ['acabado_liquido',   /\bbarniz|barnizad|\bsellador|\blaca\b|\blacad[oa]s?\b|\besmalt|\btint[ae]s?\b|\btintad[oa]|(?<!espuma\s+de\s+)(?<!hule\s+)\bpoliuretano\b(?![^,;()]*(?:espuma|flexible|expandid|inyectad|foam|r[ií]gido))/i],
   // VH-164 (2026-10-13): el ACABADO metálico (EcoCrom/cromado/niquelado) es un renglón propio, no
   // acero. Sólo cuando el texto EMPIEZA por el acabado ("cromado (EcoCrom) en base tubular",
   // "Acabado cromado de la base", "EcoCrom"); "tubular 3/4 cromado" sigue siendo el tubo.
@@ -220,7 +225,8 @@ const FAMILIAS = [
   // soldadura es un consumible: sin insumo propio queda pendiente, nunca se costea como perfil.
   ['soldadura',         /soldadura|soldar|electrodo|micro\s*alambre|\bmig\b|\btig\b/i],
   ['cristal',           /cristal|vidrio|templado|glass/i],
-  ['marmol_piedra',     /m[aá]rmol|marble|granito|cuarzo|quartz|piedra|onix|[oó]nix/i],
+  // Cierre ChatGPT v3 (datos reales): el cuarzo del ERP se llama por marca ("HOJA ECOMARMOL SILESTONE…", "DEKTON…").
+  ['marmol_piedra',     /m[aá]rmol|marble|granito|cuarzo|quartz|silestone|caesarstone|dekton|neolith|sinterizad|piedra|onix|[oó]nix/i],
   ['acero_inoxidable',  /inoxidable|inox\b|stainless|304|316/i],
   ['aluminio',          /aluminio|aluminum|anodiz/i],
   // VH-086 (2026-10-12): melamina ANTES que laminado/HPL. "Melamina / EcoLegno 19 mm" (nombre real en la
@@ -257,7 +263,7 @@ export function familiaDeMaterial(texto) {
     const posAcc = posicionFamilia(t, primera);
     let mejor = null;
     for (const [fam, re] of FAMILIAS) {
-      if (FAMILIAS_HERRAJE.has(fam) || fam === 'equipo_externo' || fam === 'acabado_metal' || fam === 'soldadura') continue;
+      if (FAMILIAS_HERRAJE.has(fam) || fam === 'equipo_externo' || FAMILIAS_ACABADO.has(fam) || fam === 'soldadura') continue;
       const m = re.exec(t);
       if (m && m.index < posAcc && (!mejor || m.index < mejor.pos)) mejor = { fam, pos: m.index };
     }
@@ -266,7 +272,8 @@ export function familiaDeMaterial(texto) {
   // VH-181: la pintura es material sólo cuando el texto EMPIEZA por ella ("Pintura electrostática negra"). Mencionada
   // como acabado de otra cosa sin material base reconocible ("Base metálica pintura electrostática") no se adivina:
   // sin familia, la pieza queda pendiente para que la persona diga de qué es.
-  if (primera === 'pintura_polvo' && !/^\s*(?:(?:la|el)\s+)?(?:pintura|acabado|esmalte|laca|lacado|electrost|powder|recubrimiento)/i.test(t)) return '';
+  // P1-MAT-02: lo mismo para los acabados líquidos ("Mesa con barniz" no es barniz; "Barniz sobre chapa" sí).
+  if ((primera === 'pintura_polvo' || primera === 'acabado_liquido') && !RE_INICIO_ACABADO.test(t)) return '';
   return primera;
 }
 
@@ -309,7 +316,11 @@ function conflictoCalibre(a='',b='') {
 
 // Familias de HERRAJE / CONSUMIBLE (reglas de casa 2026-10-12): ante varios candidatos sin
 // variante pedida, el GENÉRICO (nombre más corto) es el estándar de casa, marcado por confirmar.
-export const FAMILIAS_HERRAJE = new Set(['tapacanto', 'herraje_soporte', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'pintura_polvo', 'iluminacion', 'electrico', 'adhesivo', 'tornilleria']);
+// P1-MAT-02: un texto EMPIEZA por un acabado (es el renglón del acabado, no de la pieza).
+export const RE_INICIO_ACABADO = /^\s*(?:(?:la|el)\s+)?(?:acabado\s+(?:de\s+|en\s+)?)?(?:pintura|esmalt|laca|lacad|electrost|powder|recubrimiento|barniz|sellador|tint[ae]|tintad|poliuretano|cromad|eco\s*crom|niquelad|cromo)/i;
+// Familias que son ACABADO (se aplican sobre una pieza; nunca son la pieza). La usan motor y validador estructural.
+export const FAMILIAS_ACABADO = new Set(['pintura_polvo', 'acabado_liquido', 'acabado_metal']);
+export const FAMILIAS_HERRAJE = new Set(['acabado_liquido', 'tapacanto', 'herraje_soporte', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'pintura_polvo', 'iluminacion', 'electrico', 'adhesivo', 'tornilleria']);
 /** Espesores en mm que nombra un texto (exportado para las reglas de casa). */
 export function espesoresDe(texto = '') { return espesoresMM(texto); }
 // ¿Lo pedido nombra una VARIANTE de herraje que el candidato no tiene? ("bisagra cierre suave"
@@ -769,14 +780,16 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   const id = String(pieza?.insumoId || '').trim();
   const existe = id ? resolver(id) : null;
   const insumoNombre = existe?.nombre || '';
-  // Cierre ChatGPT (cocrear-1, 2026-10-20): en un renglón que ES un acabado ("Pintura en polvo negro mate (base)"), lo
-  // pedido describe el acabado y DÓNDE va ("acabado negro mate en metal"): la familia es la del acabado, no la del metal.
-  // Sin esto, la pintura confirmada por Diseño se descartaba como "cruce de familia" y el servidor la cambiaba por
-  // "Frente de metal" (una mampara por m²).
+  // Cierre ChatGPT (cocrear-1 / P1-MAT-02, 2026-10-20): en un renglón que ES un acabado ("Pintura en polvo negro mate
+  // (base)", "Barniz de acabado sobre chapa"), lo pedido describe el acabado y DÓNDE va ("acabado negro mate en metal",
+  // "chapa nogal mate"): la familia es la del ACABADO, no la del material sobre el que va. Sin esto, la pintura confirmada
+  // por Diseño se descartaba como "cruce de familia" y el servidor la cambiaba por "Frente de metal" (mampara por m²).
   const solicitadoRaw = pieza?.material_solicitado || '';
   const famSolRaw = familiaDeMaterial(solicitadoRaw);
-  const solicitado = (familiaDeMaterial(pieza?.nombre || '') === 'pintura_polvo' && famSolRaw && famSolRaw !== 'pintura_polvo' && famSolRaw !== 'acabado_metal')
-    ? `pintura ${solicitadoRaw}` : solicitadoRaw;
+  const famNombre = familiaDeMaterial(pieza?.nombre || '');
+  const inicioAcabado = (String(pieza?.nombre || '').match(RE_INICIO_ACABADO) || [''])[0].trim();
+  const solicitado = (FAMILIAS_ACABADO.has(famNombre) && famSolRaw && !FAMILIAS_ACABADO.has(famSolRaw) && inicioAcabado)
+    ? `${inicioAcabado} ${solicitadoRaw}` : solicitadoRaw;
   // VH-053: la IA elige del catálogo del SERVIDOR (insumos_catalogo, 259 ids); el
   // navegador costea con el local (config, 92). Un id que la IA declara EXACT y aquí
   // no existe es un material REAL sin precio certificado por Compras: se dice tal

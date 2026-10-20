@@ -32,7 +32,7 @@ const ROLES = [
   ['cristal', /\b(cristal|vidrio|templado)\b/i],
 ];
 
-import { familiaDeMaterial, espesoresDe } from './materialMatch.js';
+import { familiaDeMaterial, espesoresDe, FAMILIAS_ACABADO } from './materialMatch.js';
 import { REGLAS_TALLER } from './reglasTaller.js';
 
 // STRUCTURAL_LINT: etiqueta interna. Esto es un guardrail determinista (regex/heurística),
@@ -60,6 +60,34 @@ function tipoIntencion(desc = '') {
  * @param {{componentes?:Array, descripcion?:string, piezas?:number}} entrada
  * @returns {{roles: object, observaciones: Array<{nivel:string, mensaje:string, pieza?:string}>, resumen: object}}
  */
+/**
+ * SRV-01: "la IA declara TOTAL X m de un material lineal y sus renglones suman Y". Por material (insumoId) lineal, si algún
+ * renglón trae el total declarado por la IA (ia_totales_declarados_m) y NINGUNO cuadra (−5 %…+15 %) con la suma de sus
+ * renglones, se reporta en el primero del grupo. Misma tolerancia que mapIaComps. La usan el cliente y el servidor.
+ */
+export function totalesLinealesIncoherentes(componentes = [], insumos = null) {
+  const lineal = (c) => c.forma === 'lineal' || /^(m|ml|metro)s?$/i.test(String(insumos?.[c.insumoId]?.unidad || ''));
+  const grupos = new Map();
+  // Mismo material = el insumo del renglón o, si la política lo dejó pendiente de confirmar, su candidato (como el cliente,
+  // que agrupa por el insumo que pidió la IA).
+  const clave = (c) => c?.insumoId || c?._match?.candidate_insumo_id || '';
+  for (const c of componentes) {
+    const k = clave(c);
+    if (!c || c.excluida || !k || !lineal({ ...c, insumoId: k }) || !(Number(c.cantidad) > 0)) continue;
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(c);
+  }
+  const out = [];
+  for (const [material, cs] of grupos) {
+    const declarados = cs.flatMap((c) => (Array.isArray(c.ia_totales_declarados_m) ? c.ia_totales_declarados_m : [])).filter((v) => Number(v) > 0);
+    if (!declarados.length) continue;
+    const suma = Math.round(cs.reduce((s, c) => s + Number(c.cantidad), 0) * 1000) / 1000;   // igual que mapIaComps
+    if (declarados.some((v) => suma >= v * 0.95 && suma <= v * 1.15)) continue;
+    out.push({ comp: cs[0], material, dice: Math.max(...declarados), puso: suma, renglones: cs.length });
+  }
+  return out;
+}
+
 export function revisarEstructura({ componentes = [], descripcion = '', insumos = null, medidasGenerales = '', aceptadas = [], ingenieria = true } = {}) {
   const comps = Array.isArray(componentes) ? componentes.filter((c) => c && (c.nombre || c.insumoId)) : [];
   const conRol = comps.map((c) => ({ ...c, _rol: rolDe(c.nombre || c.insumoId || '') }));
@@ -207,7 +235,7 @@ export function medidasDe(texto = '') {
   return crudos.map((n) => (enM ? n * 1000 : n)).filter((n) => n >= 50 && n <= 20000).slice(0, 3);
 }
 const ROL_PANEL = new Set(['cubierta', 'lateral', 'entrepano', 'puerta', 'faldon', 'frente_cajon', 'respaldo', 'fondo']);
-const FAM_NO_ES_PIEZA = new Set(['pintura_polvo', 'tornilleria', 'adhesivo', 'tapacanto', 'soldadura', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'iluminacion', 'electrico']);
+const FAM_NO_ES_PIEZA = new Set(['pintura_polvo', 'acabado_liquido', 'acabado_metal', 'tornilleria', 'adhesivo', 'tapacanto', 'soldadura', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'iluminacion', 'electrico']);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const NUMS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8 };
 function cuantosPide(texto, rx) {
@@ -244,10 +272,10 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
   // (2b) ACABADO COSTEADO COMO MATERIAL (lab credenza ronda 3, 2026-10-13): "Barniz chapa nogal" quedó amarrado a
   //      chapa-madera y se cobraron 3.5 m² de chapa. Un renglón que EMPIEZA por un acabado (barniz, laca, sellador,
   //      tinta, pintura) no puede costearse con un tablero/chapa/metal.
-  const RE_ACABADO = /^\s*(?:acabado\s+)?(?:barniz|laca|lacad|sellador|tinta|tintado|pintura|esmalte|poliuretano)\b/i;
+  // P1-MAT-02: la MISMA taxonomía que el motor (materialMatch): un renglón es acabado si su familia lo es.
   const FAM_MATERIAL_BASE = new Set(['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'madera_solida', 'triplay', 'metal_lamina', 'acero_inoxidable', 'aluminio', 'cristal']);
   for (const c of comps) {
-    if (!c.insumoId || c.excluida || !RE_ACABADO.test(c.nombre || '')) continue;
+    if (!c.insumoId || c.excluida || !FAMILIAS_ACABADO.has(familiaDeMaterial(c.nombre || ''))) continue;
     const f = familiaDeMaterial((insumos && insumos[c.insumoId]?.nombre) || c.insumoId);
     if (FAM_MATERIAL_BASE.has(f)) obs.push({ nivel: 'blocker', regla: 'material_funcion', clave: `material_funcion:${c.nombre}`, pieza: c.nombre,
       mensaje: `«${c.nombre}» es un acabado pero está costeado con ${(insumos && insumos[c.insumoId]?.nombre) || c.insumoId} (${f.replace('_', ' ')}): se cobraría como material. Asígnale el insumo del acabado o quítalo si ya va incluido.` });
@@ -288,9 +316,14 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
         : `«${c.nombre}»: la IA dice ${x.dice} mm en su razonamiento pero puso ${x.puso} mm. Revisa la medida en el plano y corrígela, o márcalo como revisado si ${x.puso} mm es la correcta.` });
   }
   // (4c) EL TOTAL DECLARADO NO CUADRA: la IA escribe "TOTAL 7.17 m" de un material lineal y sus renglones suman otra cosa.
+  //      SRV-01: se calcula AQUÍ desde la evidencia del renglón (ia_totales_declarados_m) — misma función en cliente y
+  //      servidor —; el marcador precalculado de mapIaComps sólo cuenta si un material no trae evidencia.
+  const porEvidencia = totalesLinealesIncoherentes(comps, insumos);
+  const conEvidencia = new Set(porEvidencia.map((x) => x.material));
   for (const c of comps) {
-    if (c.excluida || !c.iaTotalIncoherente) continue;
-    const x = c.iaTotalIncoherente;
+    if (c.excluida) continue;
+    const x = porEvidencia.find((p) => p.comp === c) || (c.iaTotalIncoherente && !conEvidencia.has(c.iaTotalIncoherente.material) ? c.iaTotalIncoherente : null);
+    if (!x) continue;
     obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_total_incoherente:${x.material}`, pieza: c.nombre,
       mensaje: `La IA declara un total de ${x.dice} m de ${c.material_solicitado || x.material}, pero sus ${x.renglones} renglón(es) suman ${x.puso} m. Revisa cantidades y largos (p. ej. «${c.nombre}»), o márcalo como revisado si ${x.puso} m es lo correcto.` });
   }

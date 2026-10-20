@@ -26,7 +26,10 @@ export default defineConfig({
   testMatch: '**/*.e2e.js',
   timeout: 30_000,
   expect: { timeout: 10_000 },
-  retries: process.env.CI ? 1 : 0,
+  // P1-LAB-COC-09 (cierre ChatGPT v3): una CERTIFICACIÓN no reintenta. Si corre un laboratorio (LAB_*) o la
+  // certificación (CERTIFICACION=1), retries = 0 venga de donde venga la llamada: un primer intento FAIL reprueba el job
+  // (lo comprueba e2e/labMetaReintento.e2e.js en el job `plan` de certificacion.yml). El CI normal conserva 1 reintento.
+  retries: (pidioAPedido || process.env.CERTIFICACION === '1') ? 0 : (process.env.CI ? 1 : 0),
   reporter: process.env.CI ? 'github' : 'list',
   use: {
     // Cierre ChatGPT (P1-REL-01): E2E_BASE_URL = la Vercel PREVIEW del FINAL_SHA; entonces no se levanta vite local.

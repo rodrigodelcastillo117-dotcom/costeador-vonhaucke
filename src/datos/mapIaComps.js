@@ -57,6 +57,9 @@ function marcarTotalLinealIncoherente(comps, piezas) {
     if (!grupos.has(k)) grupos.set(k, []);
     grupos.get(k).push(i);
   });
+  // SRV-01: el total que la IA declara viaja como EVIDENCIA en el renglón (ia_totales_declarados_m) para que el servidor
+  // repita este mismo diagnóstico con la misma función (revisionEstructural.totalesLinealesIncoherentes).
+  comps.forEach((c, i) => { if (c.forma === 'lineal') { const d = totalesDeclaradosM(piezas[i]); if (d.length) c.ia_totales_declarados_m = d; } });
   for (const [insumoId, idx] of grupos) {
     const declarados = idx.flatMap((i) => totalesDeclaradosM(piezas[i]));
     if (!declarados.length) continue;
