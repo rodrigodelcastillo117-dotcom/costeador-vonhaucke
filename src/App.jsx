@@ -26,7 +26,7 @@ const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
-import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
+import { aplicarPrograma, partidaComercialDesdeConfirmado, actualizarPartidasDePrograma } from './datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from './datos/reconciliarPartidas.js';
 import { fusionarAcomodo } from './datos/acomodoEstado.js';
 import { aplicarCompartido } from './datos/aplicarCompartido.js';
@@ -208,7 +208,12 @@ function aplicarDireccion(estado, datos) {
 }
 
 export default function App() {
-  const [estado, setEstado] = useState(cargar);
+  // Renglones del programa guardados antes de CATALOG_LIST se re-evalúan al arrancar (si no, no se emiten).
+  const [estado, setEstado] = useState(() => {
+    const est = cargar();
+    const partidas = actualizarPartidasDePrograma(est.cotizacion?.partidas);
+    return partidas === est.cotizacion?.partidas ? est : { ...est, cotizacion: { ...est.cotizacion, partidas } };
+  });
   const [pestania, setPestania] = useState('inicio');
   const [voniAbierto, setVoniAbierto] = useState(false);
   const [inicioVista, setInicioVista] = useState('home'); // sub-vista del Inicio (home/costear/cotizar)
@@ -1464,7 +1469,7 @@ export default function App() {
                 // VH-148: la versión desde la que se edita (cadena tal cual; null con la RPC vieja).
                 actualizado: typeof full.actualizado === 'string' ? full.actualizado : null,
                 cliente: full.cliente || '', folio: full.folio || '',
-                partidas: full.partidas || [], acomodo: full.acomodo || null,
+                partidas: actualizarPartidasDePrograma(full.partidas || []), acomodo: full.acomodo || null,
                 descuentoPct: full.totales?.descuentoPct ?? estado.cotizacion.descuentoPct,
                 contingenciaPct: full.totales?.contingenciaPct ?? estado.cotizacion.contingenciaPct,
                 maniobrasPct: full.totales?.maniobrasPct ?? estado.cotizacion.maniobrasPct,

@@ -91,3 +91,29 @@ describe('VH-111 · estados del edge que antes se leían como "sin validación"'
     expect(estadoAcomodo({ layoutSpec: { status: 'LO_QUE_SEA' } })).toBe('SIN_VALIDACION');
   });
 });
+
+// E2E 2026-10-20 (cotización 4048, edge recovery v19): el edge recovery no manda `noColocadas`, sólo
+// `no_cupieron`/`layoutSpec.unplaced`. `sinColocar` salía vacío y la revisión se daba por VENCIDA.
+describe('edge recovery sin `noColocadas`', () => {
+  const sinLista = (extra) => { const r = base(extra); delete r.noColocadas; delete r.total; return r; };
+  it('las no colocadas se derivan de lo enviado que no volvió colocado', () => {
+    const r = sinLista({ plan: { colocacion: [{ id: 'a', area: 0, x: 0, y: 0, rot: 0 }] },
+      layoutSpec: { status: 'QUALITY_REVIEW_REQUIRED', validation: { issues: [], reviews: [] } } });
+    const i = interpretarAcomodoServidor(r, PIEZAS);
+    expect(i.ok).toBe(true);
+    expect(i.plan.sinColocar).toEqual(['b', 'c']);
+    expect(i.plan.colocacion.length + i.plan.sinColocar.length).toBe(PIEZAS.length);   // ⇒ la revisión NO está vencida
+    expect(i.plan.auditoria.find((a) => a.check === 'Todas las piezas colocadas')).toMatchObject({ ok: false, detalle: '1 de 3' });
+  });
+  it('todo colocado: nada sin colocar', () => {
+    const i = interpretarAcomodoServidor(sinLista(), PIEZAS);
+    expect(i.plan.sinColocar).toEqual([]);
+  });
+  it('avisos agrupados en plural: "3 piezas quedaron separadas"', () => {
+    const issues = ['a', 'b', 'c'].map((id) => ({ code: 'FUNCTIONAL_GROUP_SPLIT', id }));
+    const i = interpretarAcomodoServidor(sinLista({ layoutSpec: { status: 'QUALITY_REVIEW_REQUIRED', validation: { issues, reviews: [] } } }), PIEZAS);
+    const geo = i.plan.auditoria.find((a) => a.check === 'Sin problemas geométricos').detalle;
+    expect(geo).toMatch(/^3 piezas quedaron separadas de su grupo/);
+    expect(geo).not.toMatch(/quedó/);
+  });
+});
