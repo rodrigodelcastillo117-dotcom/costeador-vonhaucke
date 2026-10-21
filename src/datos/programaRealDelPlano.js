@@ -172,11 +172,25 @@ export function actualizarPartidaDePrograma(p) {
   };
 }
 
-/** Aplica `actualizarPartidaDePrograma` a una lista; devuelve la MISMA lista si nada cambió. */
+/**
+ * Lo mismo para renglones del BANCO agregados antes de que se les pegara la identidad de catálogo
+ * (Voni / "agregar del banco" antes de PR #70; cotización 4048, líneas 9–16: WIN, ALPHA, CONCERTO,
+ * mesa, SONATA, recepción, GAMMA-E, archivero). La emisión decía "falta confirmar el costo con
+ * Diseño/Dirección". Se pega la MISMA identidad que hoy pone `agregarDeBanco`/CotizadorIA, sólo si
+ * el catálogo vigente trae producto + versión + renglón de lista. Precio y cantidad no se tocan.
+ */
+export function actualizarPartidaDeBanco(p) {
+  if (!p || p.deBanco !== true || p.producto_id != null || p.piezaId == null) return p;
+  const ident = identidadDeCatalogo('banco', p.piezaId);
+  if (!ident || ident.lista_precio_item_id == null) return p;
+  return { ...p, ...ident, precio_lista_snapshot: p.precio_lista_snapshot ?? p.precioUnitario };
+}
+
+/** Aplica ambas reparaciones a una lista; devuelve la MISMA lista si nada cambió. */
 export function actualizarPartidasDePrograma(partidas) {
   if (!Array.isArray(partidas)) return partidas;
   let cambio = false;
-  const out = partidas.map((p) => { const q = actualizarPartidaDePrograma(p); if (q !== p) cambio = true; return q; });
+  const out = partidas.map((p) => { const q = actualizarPartidaDeBanco(actualizarPartidaDePrograma(p)); if (q !== p) cambio = true; return q; });
   return cambio ? out : partidas;
 }
 
