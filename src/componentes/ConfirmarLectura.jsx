@@ -36,7 +36,11 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
   const nivelTxt = noPlanta ? '✗ Esto no parece un plano de oficina' : { alta: '✓ Lectura confiable', media: '◑ Lectura con dudas', baja: '⚠ Lectura poco confiable', nula: '✗ No reconocí cuartos' }[resumen.nivel] || '';
   const puestos = visibles.reduce((s, { a }) => s + (Number.isFinite(a.puestos) ? a.puestos : 0), 0);
   const puertasPendientes = visibles.map(({ a }) => a).flatMap((a) => (a.puertasPendientes || []).map((pp) => ({ area: a.nombre || 'Área', x: Number(pp.x) || 0, y: Number(pp.y) || 0, ancho: Number(pp.ancho) || null, motivo: pp.motivo })));
-  const problemasVisibles = confirmadas ? (resumen.problemas || []).filter((t) => !/puerta/i.test(t)) : (resumen.problemas || []);
+  // Las puertas sin sentido de apertura ya tienen su propio recuadro abajo ("dime tú cómo abren"): no se
+  // repiten dos veces en "Revisa esto" (Rodrigo, 21-oct: el aviso decía lo mismo de las 5 puertas dos veces).
+  const puertasAparte = (t) => /barrido verificable|sin bisagra ni sentido/i.test(t);
+  const problemasVisibles = confirmadas ? (resumen.problemas || []).filter((t) => !/puerta/i.test(t))
+    : sinConfirmar.length ? (resumen.problemas || []).filter((t) => !puertasAparte(t)) : (resumen.problemas || []);
   const puedeConfirmar = visibles.length > 0 && !noPlanta;
   return (
     <div className="tarjeta" style={{ marginTop: 12 }} data-testid="confirmar-lectura">

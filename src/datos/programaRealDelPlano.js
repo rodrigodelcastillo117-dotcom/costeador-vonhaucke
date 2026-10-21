@@ -234,6 +234,9 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
   const z = programa.zonas || {};
   const briefBase = { ...(programa.brief || {}), ...(brief || {}) };
   if (z.operativo) briefBase.operativoZoneId = briefBase.operativoZoneId || z.operativo.id || z.operativo.nombre;
+  if (Array.isArray(programa.operativosPorZona) && programa.operativosPorZona.length >= 2) {
+    briefBase.operativosPorZona = programa.operativosPorZona.map((o) => ({ zone_id: o.id || o.nombre, puestos: o.puestos }));
+  }
   if (z.recepcion) briefBase.recepcionZoneId = briefBase.recepcionZoneId || z.recepcion.id || z.recepcion.nombre;
   if (z.recepcion?.puestos && !(Number(briefBase.recepcionPuestos) > 0)) briefBase.recepcionPuestos = z.recepcion.puestos;
   const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(zz.anchoM && zz.largoM ? { zona_dims: { anchoM: zz.anchoM, largoM: zz.largoM } } : {}), ...(arr[i] || {}) }));

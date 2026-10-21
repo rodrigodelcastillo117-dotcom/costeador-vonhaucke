@@ -318,6 +318,8 @@ for (const [email, rol] of Object.entries(USUARIOS)) {
         const ruta = path.join(mkdtempSync(path.join(tmpdir(), 'matriz-plano-')), 'plano.png');
         writeFileSync(ruta, PNG_1x1);
         await page.locator('input[type=file][accept*="pdf"]').first().setInputFiles(ruta);
+        // 21-oct: con un proyecto abierto, la app pregunta si el plano es para ése (es la misma matriz).
+        await page.getByTestId('plano-proyecto-este').click();
         await expect(page.getByTestId('confirmar-lectura')).toBeVisible({ timeout: 15000 });
         await auditar('lectura-plano');
         await page.getByTestId('lectura-confirmar').click();

@@ -15,7 +15,13 @@
 
 const mm = (x) => (Number.isFinite(Number(x)) ? `${Math.round(Number(x))} mm` : '?');
 const zona = (w) => (w?.zone ? ` (${w.zone})` : '');
-const campo = (w) => (w?.field ? ` [${w.field}]` : '');
+// "puertas[4]" es el índice interno del modelo: a la persona se le dice "n.º 5 del plano" (Rodrigo, 21-oct:
+// "Una puerta [puertas[4]] se ubicó por supuesto"). Un campo que no sea lista[i] se enseña tal cual.
+const campo = (w) => {
+  if (!w?.field) return '';
+  const m = String(w.field).match(/^[A-Za-z_]+\[(\d+)\]$/);
+  return m ? ` (n.º ${Number(m[1]) + 1} del plano)` : ` [${w.field}]`;
+};
 
 // Avisos (REVIEW_REQUIRED): la lectura se puede usar, pero la persona debe saberlo.
 const TEXTO_AVISO = {

@@ -260,6 +260,9 @@ export default function App() {
       ...e,
       cotizacion: {
         ...e.cotizacion, partidas: [], acomodo: null, cliente: '', folio: '',
+        // 21-oct: el "pedido" que interpretó Voni (programaBrief) es de ESA cotización. Se quedaba pegado y el
+        // programa del siguiente plano pedía los Eclipse de la anterior ("ESCRITORIO_SOLICITADO_NO_CANONICO").
+        programaBrief: null,
         // Bloque 1: el id de la nube vive en el estado (persiste al recargar). Una
         // cotización nueva = sin id y con clave de creación propia (idempotencia).
         id: null, claveCreacion: claveCreacionNueva(),
@@ -1470,6 +1473,7 @@ export default function App() {
                 actualizado: typeof full.actualizado === 'string' ? full.actualizado : null,
                 cliente: full.cliente || '', folio: full.folio || '',
                 partidas: actualizarPartidasDePrograma(full.partidas || []), acomodo: full.acomodo || null,
+                programaBrief: full.programaBrief ?? null,   // el pedido de ESTA cotización, nunca el de la que estaba abierta
                 descuentoPct: full.totales?.descuentoPct ?? estado.cotizacion.descuentoPct,
                 contingenciaPct: full.totales?.contingenciaPct ?? estado.cotizacion.contingenciaPct,
                 maniobrasPct: full.totales?.maniobrasPct ?? estado.cotizacion.maniobrasPct,
@@ -1554,6 +1558,7 @@ export default function App() {
             onAgregarItems={agregarItemsProyecto}
             onGuardarAcomodo={guardarAcomodo}
             onAplicarPrograma={aplicarProgramaDetectado}
+            onEmpezarDeCero={descartarProyecto}
             onIr={irA}
           />
         )}

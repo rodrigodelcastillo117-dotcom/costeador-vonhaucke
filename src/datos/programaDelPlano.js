@@ -130,8 +130,12 @@ export function programaDelPlano(areas, opts = {}) {
   // puesto donde el plano dibujaba 4 → el total se iba al piso. La geometría
   // queda sólo de respaldo para islas sin conteo (planos sin mobiliario claro).
   let contado = false;
+  let operativosPorZona = null;   // [{nombre,id,puestos}] cuando hay VARIOS open space, cada uno con su conteo
+  // 21-oct: "OPEN SPACE 01 (8 PAX)" sin escritorios dibujados. La capacidad escrita en el nombre del
+  // cuarto es evidencia del plano (como en las salas): manda sobre la estimación por geometría.
+  const puestosDe = (a) => (Number.isFinite(a.puestos) && a.puestos > 0 ? a.puestos : (capacidadDeNombre(a.nombre) || 0));
   if (islasA.length) {
-    const explicitas = islasA.filter((a) => Number.isFinite(a.puestos) && a.puestos > 0);
+    const explicitas = islasA.filter((a) => puestosDe(a) > 0);
     contado = explicitas.length > 0;
     // Recorrido plano→reabrir (lab 19-oct): si el plano CUENTA escritorios en unas áreas abiertas, una área abierta SIN
     // escritorios dibujados (p. ej. "ÁREA SIN ROTULAR") no se llena por geometría: se le estimaban 8 puestos y se le
@@ -139,13 +143,17 @@ export function programaDelPlano(areas, opts = {}) {
     if (contado && explicitas.length < islasA.length) {
       const sinConteo = islasA.filter((a) => !explicitas.includes(a));
       avisos.push(`${sinConteo.map((a) => `«${a.nombre}»`).join(', ')}: parece espacio abierto pero no tiene escritorios dibujados; no le puse puestos. Si lleva, dímelo.`);
-      islasA = explicitas.slice().sort((x, y) => (y.puestos || 0) - (x.puestos || 0));
+      islasA = explicitas.slice().sort((x, y) => puestosDe(y) - puestosDe(x));
     }
-    const cuentas = islasA.map((a) => (Number.isFinite(a.puestos) && a.puestos > 0
-      ? a.puestos
-      : puestosPorIsla(a, largoPuesto)));
+    const cuentas = islasA.map((a) => (puestosDe(a) > 0 ? puestosDe(a) : puestosPorIsla(a, largoPuesto)));
     operativos = cuentas.reduce((s, n) => s + n, 0);
     porIsla = cuentas[0] || 0;
+    // 21-oct: 3 open space de 8 PAX se componían como UN total (24 → 2 bancas de 12) y una banca de 7.20 m no
+    // cabe en un open space de 6.6 m. Con ≥2 cuartos abiertos SEPARADOS (no islas de un mismo cuarto), cada
+    // uno con su conteo, cada cuarto lleva su banca. Islas dentro de un cuarto: como siempre (un total).
+    if (!zonas.length && islasA.length >= 2 && islasA.every((a) => puestosDe(a) > 0)) {
+      operativosPorZona = islasA.map((a, i) => ({ nombre: a.nombre, id: a.id || null, puestos: cuentas[i] }));
+    }
     // ⚠️ EL AVISO QUE FALTABA. Con 1.80 m por puesto, una isla de 4.5 m da 2 por
     // hilera (4 por isla), no 3 (6): 32 personas en vez de 48. Antes esto no se
     // decía en ningún lado y el proyectista descubría el hueco al final.
@@ -229,6 +237,7 @@ export function programaDelPlano(areas, opts = {}) {
 
   return {
     operativos,
+    ...(operativosPorZona ? { operativosPorZona } : {}),
     privados: privados.length,
     juntas: salas.length ? Math.max(...salas) : 0,
     salas,
