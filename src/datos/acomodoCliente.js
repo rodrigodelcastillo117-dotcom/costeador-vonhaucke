@@ -73,9 +73,9 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
       existe:true, mostrar:ok, valido:ok,
       estado: ok ? 'VALIDADO_ESPACIAL' : 'ESPACIAL_NO_APROBADO',
       razones: ok ? [] : [
-        status && status!=='PASS' ? `estado espacial ${status}` : null,
-        !ready ? 'render_ready=false' : null,
-        !invariant ? 'invariante de cantidades inválida' : null,
+        status && status!=='PASS' ? 'el acomodo aún no pasa la validación del motor espacial' : null,
+        !ready ? 'falta terminar de generar la vista del acomodo' : null,
+        !invariant ? 'las cantidades del acomodo no cuadran con lo cotizado' : null,
       ].filter(Boolean),
       source:'PLACEMENT_SPEC_V2',
     };
