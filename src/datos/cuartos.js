@@ -26,6 +26,11 @@ export function clasificarCuarto(nombre) {
   if (/sanitar|ba[n]o|\bwc\b|w\.c|toilet|\bhombres?\b|\bmujeres?\b/.test(t)) return { rol: 'servicio', zona: ZONA.SANITARIOS };
   if (/\bsite\b|\bit\b|\bdata\b|rack|comunicac/.test(t)) return { rol: 'servicio', zona: ZONA.SITE };
   if (/nucleo|ducto|escaler|\bcore\b|cocin|kitchen/.test(t)) return { rol: 'servicio', zona: ZONA.GENERICA };
+  // Un PASILLO / CIRCULACIÓN es zona de paso: NO lleva muebles. Sin esto, un corredor
+  // amplio (p. ej. 22×2 m = 44 m²) caía por tamaño en 'juntas' y el programa le proponía
+  // una mesa de juntas fantasma (plano de prueba, 2026-10-21). 'vestíbulo' y 'acceso' NO
+  // entran aquí: ésos son recepción a propósito (regla de abajo).
+  if (/circulac|pasillo|corredor|distribuidor/.test(t)) return { rol: 'servicio', zona: ZONA.GENERICA };
   if (/ceo|direcc|director/.test(t)) return { rol: 'privado', zona: ZONA.CEO };
   if (/jun|consejo|board|reunion/.test(t)) return { rol: 'juntas', zona: ZONA.CONSEJO };
   if (/lounge|descanso|estar|comedor|break|caf[e]|espera/.test(t)) return { rol: 'lounge', zona: ZONA.GENERICA };
