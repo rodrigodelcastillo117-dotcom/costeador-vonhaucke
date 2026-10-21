@@ -18,6 +18,7 @@
 //  Todo en METROS (es lo que devuelve `areasDeLectura` y lo que guarda `areasM`).
 // ============================================================================
 import { rolCuartoBase, rolArea, tipoAreaConfiable } from './planner.js';
+import { capacidadDeNombre } from './capacidadDeclarada.js';
 
 // El rol de un cuarto: lo que declaró el lector, su nombre, o —si ninguno de
 // los dos dice nada, "Sala 12" sin `tipo`— su TAMAÑO. Mismo criterio que usa el
@@ -178,7 +179,10 @@ export function programaDelPlano(areas, opts = {}) {
   // VH-093: si el lector CONTÓ las sillas dibujadas alrededor de la mesa (`asientos`), ésa es
   // la capacidad (DETECTADA); la regla de m²/persona queda sólo para salas sin sillas dibujadas.
   // Antes una sala de consejo con 10 sillas dibujadas salía "mesa de 4" por 22 m².
-  const salas = salasA.map((a, i) => (Number.isFinite(a.asientos) && a.asientos > 0 ? a.asientos : personasEnSala(m2Salas[i])));
+  // E2E 2026-10-20: con "Todavía no hay plano" la sala se llama "Sala de juntas (12 personas)" — lo pidió la
+  // persona — y la regla de m² la bajaba a 6 (mesa de 2.40 y 6 sillas). La capacidad DECLARADA en el nombre manda.
+  const salas = salasA.map((a, i) => (Number.isFinite(a.asientos) && a.asientos > 0 ? a.asientos
+    : (capacidadDeNombre(a.nombre) || personasEnSala(m2Salas[i]))));
   // ⚠️ "0 m²: da para 4 personas" ERA UNA CONTRADICCIÓN MUDA (auditoría
   // 2026-08-19). `personasEnSala` siempre pone un piso de 4 (Rodrigo: una
   // sala de juntas real nunca es para menos), pero eso NO distingue "sala

@@ -25,3 +25,15 @@ describe('privado · el programa escoge un escritorio que quepa', () => {
     expect(escritorio && (escritorio.bancoId || escritorio.piezaId)).toBe('ger-1800x1800');
   });
 });
+
+describe('sala de juntas · la capacidad que pidió la persona manda sobre la regla de m²', async () => {
+  const { programaDelPlano } = await import('./programaDelPlano.js');
+  it('"Sala de juntas (12 personas)" de 30 m² ⇒ 12, no 6', () => {
+    const pr = programaDelPlano([{ nombre: 'Open space', ancho: 18, largo: 16, tipo: 'open' }, { nombre: 'Sala de juntas (12 personas)', ancho: 6, largo: 5, tipo: 'juntas' }]);
+    expect(pr.salas).toEqual([12]);
+  });
+  it('sin capacidad en el nombre sigue la regla de m²', () => {
+    const pr = programaDelPlano([{ nombre: 'Sala de juntas', ancho: 6, largo: 5, tipo: 'juntas' }]);
+    expect(pr.salas[0]).toBeLessThan(12);
+  });
+});
