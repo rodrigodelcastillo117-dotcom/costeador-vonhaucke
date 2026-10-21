@@ -321,3 +321,46 @@ describe('fusión: la nota que nombra la sala resuelve la ambigüedad', () => {
     expect(r.ambiguas.map((a) => a.id)).toEqual(['x']);
   });
 });
+
+// ---------------------------------------------------------------------------
+//  E2E 2026-10-20 · Torre Norte: "Aplicar programa detectado" + "Dime qué lleva" (Armar el proyecto).
+//  Quedaban 4 mesas para 2 salas y 32 sillas de reunión para 16 lugares; el acomodo decía
+//  "no cabe, revisa con un diseñador". La capacidad declarada y la cantidad exacta son evidencia.
+// ---------------------------------------------------------------------------
+describe('Torre Norte · programa del plano + asistente no duplican salas', () => {
+  const mesaP = (zona, banco, w, usuarios) => ({ ...mesa(zona, banco, w), usuarios, user_capacity: usuarios });
+  const sillaP = (zona, n) => P({ id: `con:${zona}`, nombre: 'Silla CONCERTO (visita 4 pts)', bancoId: 'silla-concerto', relation_role: 'MEETING_SEAT', anchor_role: 'ANCHOR_MEETING', anchor_instance_id: `inst:${zona}`, functional_group_id: `fg:${zona}`, zone_id: zona, cantidad: n });
+  const programa = [mesaP('SALA DE CONSEJO', 'mj-3000x1200', 3000, 10), mesaP('SALA CREATIVA', 'mj-2400x1200', 2400, 8), sillaP('SALA DE CONSEJO', 10), sillaP('SALA CREATIVA', 6)];
+  const asistente = [
+    { id: 'n-chica', nombre: 'Mesa de juntas APP LT 2.10 × 1.20', nota: '2.10 m da capacidad para 6 personas (sala chica).', piezaId: 'linea-mesa_juntas', cantidad: 1, precioUnitario: 11798, w: 2100, d: 1200 },
+    { id: 'n-grande', nombre: 'Mesa de juntas App LT (con caja eléctrica) (3000 × 1200 mm)', nota: 'Sala de juntas para 10 personas; incluye caja eléctrica.', piezaId: 'mj-3000x1200', cantidad: 1, precioUnitario: 18560, w: 3000, d: 1200 },
+    { id: 'n-sonata', nombre: 'Silla · SONATA', nota: 'Sala de juntas para 10 personas.', piezaId: 'p9-silla-sonata-2420-144', cantidad: 16, precioUnitario: 2420, anchor_role: 'ANCHOR_MEETING' },
+  ];
+  const r = reconciliarNuevasConPrograma(programa, asistente);
+  const mesas = r.partidas.filter((p) => p.relation_role === 'ANCHOR_MEETING' || /mesa de juntas/i.test(p.nombre));
+  const sillas = r.partidas.filter((p) => /silla/i.test(p.nombre));
+
+  it('2 salas ⇒ 2 mesas: cada mesa del asistente sustituye a la de la sala de su capacidad', () => {
+    expect(r.ambiguas).toEqual([]);
+    expect(mesas).toHaveLength(2);
+    expect(mesas.every((m) => m.source !== 'CONFIRMADO_PROGRAMA')).toBe(true);
+    expect(mesas.find((m) => m.id === 'n-grande').zone_id).toBe('SALA DE CONSEJO');
+    expect(mesas.find((m) => m.id === 'n-chica').zone_id).toBe('SALA CREATIVA');
+  });
+  it('16 SONATA = 10 + 6: sustituyen a las CONCERTO del programa, repartidas por sala', () => {
+    expect(sillas.every((s) => /SONATA/.test(s.nombre))).toBe(true);
+    expect(sillas.reduce((t, s) => t + s.cantidad, 0)).toBe(16);
+    const porZona = Object.fromEntries(sillas.map((s) => [s.zone_id, s.cantidad]));
+    expect(porZona).toEqual({ 'SALA DE CONSEJO': 10, 'SALA CREATIVA': 6 });
+  });
+  it('sin evidencia sigue preguntando (no se adivina): mesa sin capacidad entre dos salas', () => {
+    const sinCap = reconciliarNuevasConPrograma(programa.slice(0, 2), [{ id: 'x', nombre: 'Mesa de juntas APP LT', piezaId: 'linea-mesa_juntas', cantidad: 1, precioUnitario: 1 }]);
+    expect(sinCap.ambiguas).toHaveLength(1);
+    expect(sinCap.sustituidas).toEqual([]);
+  });
+  it('empate de capacidad ⇒ ambiguo', () => {
+    const iguales = [mesaP('SALA A', 'mj-2400x1200', 2400, 8), mesaP('SALA B', 'mj-2400x1200', 2400, 8)];
+    const t = reconciliarNuevasConPrograma(iguales, [{ id: 'x', nombre: 'Mesa de juntas 8 personas', piezaId: 'linea-mesa_juntas', cantidad: 1, precioUnitario: 1 }]);
+    expect(t.ambiguas).toHaveLength(1);
+  });
+});
