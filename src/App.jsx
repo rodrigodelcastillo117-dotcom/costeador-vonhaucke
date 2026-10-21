@@ -1479,8 +1479,13 @@ export default function App() {
               };
               // Lo que se acaba de abrir YA está en la nube: no se reescribe (ni se pisa la
               // economía que este rol no ve) hasta que el usuario edite algo.
-              fijarFirmaComoGuardada({ ...estado, cotizacion: cotAbierta });
-              baseNube.current = comparables(cotAbierta);   // VH-148: desde aquí se edita
+              // EXCEPCIÓN: la reparación de renglones viejos (actualizarPartidasDePrograma) SÍ tiene que
+              // subir. La firma y la base son las de lo que hay en el SERVIDOR; si la reparación cambió algo,
+              // el autoguardado lo sube. Antes se firmaba lo reparado y nunca se guardaba: la emisión comparaba
+              // el renglón reparado contra el guardado y decía "no corresponde a lo que se costeó" (4048, 20-oct).
+              const cotServidor = { ...cotAbierta, partidas: full.partidas || [] };
+              fijarFirmaComoGuardada({ ...estado, cotizacion: cotServidor });
+              baseNube.current = comparables(cotServidor);   // VH-148: desde aquí se edita
               setEstado((e) => ({ ...e, cotizacion: cotAbierta }));
               irA('cotizacion');
               mostrarAviso(`Abierto: ${full.cliente || c.cliente || 'sin cliente'}`);
