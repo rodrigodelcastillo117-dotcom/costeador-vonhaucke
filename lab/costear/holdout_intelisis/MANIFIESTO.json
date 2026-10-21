@@ -1,8 +1,8 @@
 {
- "congeladoEn": "2026-10-21T02:07:43.006Z",
+ "congeladoEn": "2026-10-21T03:39:39.794Z",
  "huellaTotal": "d994a88b6977ff055386bd35435fc4d2774ba1099574c1ba34948fa4afc32a92",
  "nArchivos": 118,
- "frontendSha": "d0ad743bf604dfa46e71a42fa555ab5b011e812e",
+ "frontendSha": "3aceb9d275f1578e92558e5a14a22692a7195c84",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
   "e2e/labCostear.e2e.js": "0c4ad9fa45e7662268b1fed10cf3d4f70d955b631c5884238923aaa366edb7c0",
