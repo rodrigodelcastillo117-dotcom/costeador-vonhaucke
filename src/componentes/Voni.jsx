@@ -435,7 +435,7 @@ export default function Voni({
           )}
           {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0 || recomendacionesCasa.length > 0) && (
             <div className="tarjeta no-imprimir nota-clara" data-testid="programa-detectado" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
-              <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
+              <strong style={{ color: '#174f45' }}>✨ Programa detectado {cot.acomodo?.planReal ? 'del plano' : 'del espacio'}</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
                 Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
               </p>

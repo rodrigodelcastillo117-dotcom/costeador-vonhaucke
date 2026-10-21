@@ -122,7 +122,7 @@ export function fraseDe(p) {
   return t.join(', ') + '.';
 }
 
-export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano = null }) {
+export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano = null, planReal = true }) {
   // ⚠️ EL CUESTIONARIO LLEGABA EN BLANCO AUNQUE HUBIERA PLANO (2026-08-17).
   // Rodrigo: *"yo tuve que poner TODAS LAS CANTIDADES, no tuvo criterio"*. El
   // plano ya dice cuántas islas hay, de qué tamaño, cuántos privados y cuántas
@@ -168,7 +168,7 @@ export default function ProgramaProyecto({ onArmar, cargando = false, areasPlano
       </p>
       {delPlano.hayPlano && (
         <div className="prog-plano">
-          <strong>{resumenDelPlano(delPlano)}</strong>
+          <strong>{resumenDelPlano(delPlano, { planReal })}</strong>
           <span> Ya lo llené con eso; cambia lo que quieras.</span>
         </div>
       )}

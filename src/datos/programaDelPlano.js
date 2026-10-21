@@ -255,7 +255,7 @@ export function programaDelPlano(areas, opts = {}) {
  *  zonas), lo ESTIMADO (puestos inferidos por área — hay que confirmarlos) y lo
  *  SUGERIDO (sillas/gavetas/archiveros que proponemos, no que estén dibujados).
  *  Antes todo salía como "Del plano: …", incluidos 17 archiveros que nadie dibujó. */
-export function resumenDelPlano(pr) {
+export function resumenDelPlano(pr, { planReal = true } = {}) {
   if (!pr?.hayPlano) return '';
   const det = [];
   if (pr.privados) det.push(`${pr.privados} ${pr.privados === 1 ? 'privado' : 'privados'}`);
@@ -267,7 +267,8 @@ export function resumenDelPlano(pr) {
   // "~" y la petición de confirmar.
   if (contado && pr.operativos) det.unshift(`${pr.operativos} puestos operativos (contados del plano)`);
   const partes = [];
-  if (det.length) partes.push(`Del plano: ${det.join(' · ')}.`);
+  // E2E 2026-10-20: con "Todavía no hay plano" (sólo m²) decía "Del plano:" de un plano que no existe.
+  if (det.length) partes.push(`${planReal ? 'Del plano' : 'Del espacio'}: ${det.join(' · ')}.`);
   if (!contado && pr.operativos) partes.push(`Estimé ~${pr.operativos} puestos operativos por el área (confírmame el número).`);
   const sug = pr.sugeridos || {};
   const sugTxt = [];

@@ -252,6 +252,7 @@ export default function CotizadorIA({
             <ProgramaProyecto
               cargando={cargando}
               areasPlano={estado.cotizacion?.acomodo?.areasM || null}
+              planReal={!!estado.cotizacion?.acomodo?.planReal}
               onArmar={(frase) => { setTexto(frase); interpretar(frase); }} />
           )}
           {conPrograma && <div className="prog-o">o escríbelo / pégalo</div>}
