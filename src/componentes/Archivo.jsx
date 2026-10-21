@@ -195,7 +195,7 @@ function Emisiones({ cotizacionId, folio }) {
                   const marca = await cargarMarca().catch(() => null);
                   const snap = { ...r.snapshot, acomodo: await cargarImagenesAcomodo(r.snapshot.acomodo) };
                   descargarPropuesta(datosDesdeSnapshot(snap, { marca, fecha: r.snapshot.fecha || fechaCorta(r.emitida_en), borrador: false, piezas: [] }));
-                } catch (e) { alert(`No se pudo generar el PDF de la revisión ${r.revision}: ${e?.message || e}`); }
+                } catch (e) { console.error('PDF revisión:', e); alert(`No se pudo generar el PDF de la revisión ${r.revision}. Intenta de nuevo.`); }
               }}>PDF de esta revisión</button>
           )}
         </div>

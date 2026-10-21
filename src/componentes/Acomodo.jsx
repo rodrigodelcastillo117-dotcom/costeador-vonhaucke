@@ -20,6 +20,7 @@ import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 import { expandirPiezas } from '../datos/espacio.js';
 import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
 import { proponerProgramaDelPlano } from '../datos/programaRealDelPlano.js';
+import { mensajePendientePrograma } from '../datos/mensajesPrograma.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -276,8 +277,10 @@ export default function Acomodo(props) {
             </div>
             {propuestaPlano && propuestaPlano.propuesta && propuestaPlano.propuesta.pendientes && propuestaPlano.propuesta.pendientes.length > 0 && (
               <div style={{ marginTop: 8, color: '#8a5a00' }}>
-                <strong>Faltan por confirmar:</strong>{' '}
-                {propuestaPlano.propuesta.pendientes.map((x) => x.faltante?.reason || x.rol).join(', ')}
+                <strong>Faltan por confirmar:</strong>
+                {propuestaPlano.propuesta.pendientes.map((x, i) => (
+                  <div key={i} style={{ marginTop: 2 }}>⚠ {mensajePendientePrograma(x)}</div>
+                ))}
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, width: '100%' }}>

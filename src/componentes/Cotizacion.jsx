@@ -323,7 +323,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         setPdfErr(`PDF descargado como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
       }
     } catch (e) {
-      setPdfErr('No se pudo generar el PDF: ' + String(e?.message || e));
+      console.error('PDF:', e);
+      setPdfErr('No se pudo generar el PDF. Intenta de nuevo; si sigue, avísale a soporte.');
     } finally {
       setBajandoPDF(false);
     }
@@ -347,7 +348,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         setPdfErr(`Impresión abierta como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
       }
     } catch (e) {
-      setPdfErr('No se pudo abrir la impresión: ' + String(e?.message || e));
+      console.error('Impresión:', e);
+      setPdfErr('No se pudo abrir la impresión. Intenta de nuevo.');
     } finally {
       setTimeout(() => {
         document.title = prev;
