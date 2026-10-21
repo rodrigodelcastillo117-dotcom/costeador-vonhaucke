@@ -148,6 +148,38 @@ export function partidaComercialDesdeConfirmado(it) {
   };
 }
 
+/**
+ * Renglones del programa guardados ANTES de que existiera `CATALOG_LIST` (cotizaciones viejas,
+ * respaldo local) traen `SNAPSHOT_DISPLAY` + `sinPrecioAutorizado` aunque sean catálogo puro, y
+ * la propuesta no se podía emitir ("especial sin costeo"). Al abrirlos se re-evalúan con la MISMA
+ * regla que `partidaComercialDesdeConfirmado`. Sólo se promueven si el catálogo vigente confirma
+ * producto + versión + renglón de lista; si no, se dejan tal cual (fail-closed). No toca precio,
+ * cantidad ni nada más del renglón: el servidor revalida el precio contra el renglón de lista.
+ */
+export function actualizarPartidaDePrograma(p) {
+  if (!p || p.source !== 'CONFIRMADO_PROGRAMA' || p.price_status === 'CATALOG_LIST') return p;
+  const n = partidaComercialDesdeConfirmado({
+    ...p,
+    productoId: p.productoId ?? p.producto_id,
+    precio_lista_snapshot: p.precio_lista_snapshot ?? p.precioUnitario,
+  });
+  if (n.price_status !== 'CATALOG_LIST' || n.lista_precio_item_id == null) return p;
+  return {
+    ...p,
+    source_type: n.source_type, producto_id: n.producto_id, lista_precio_item_id: n.lista_precio_item_id,
+    price_status: n.price_status, precioReal: true, precioAutorizado: true, sinPrecioAutorizado: false,
+    deBanco: true, costoPendiente: false, costoDesconocido: true,
+  };
+}
+
+/** Aplica `actualizarPartidaDePrograma` a una lista; devuelve la MISMA lista si nada cambió. */
+export function actualizarPartidasDePrograma(partidas) {
+  if (!Array.isArray(partidas)) return partidas;
+  let cambio = false;
+  const out = partidas.map((p) => { const q = actualizarPartidaDePrograma(p); if (q !== p) cambio = true; return q; });
+  return cambio ? out : partidas;
+}
+
 /** Partidas confirmadas → shape Acomodo/costeo (tras aplicar). */
 export function partidasParaAcomodo(confirmacion) {
   const items = (confirmacion && Array.isArray(confirmacion.items)) ? confirmacion.items : [];
