@@ -331,6 +331,17 @@ export function rolCuartoBase(a, todos) {
   if (tipoAreaConfiable(a)) return a.tipo;
   const porNombre = rolArea(a.nombre);
   if (porNombre !== 'general') return porNombre;
+  // PASILLO POR FORMA (de raíz, para TODOS los planos): una franja larga y
+  // angosta es circulación —se llame como se llame, en otro idioma, o aunque no
+  // tenga rótulo— y NO lleva muebles. El nombre (arriba) sigue mandando; esto
+  // sólo entra cuando el nombre no dijo nada, y va ANTES del respaldo por tamaño
+  // (si no, un corredor de 44 m² caía en 'juntas' y el programa le ponía una mesa
+  // de juntas fantasma). Umbral conservador en mm (a.ancho/a.largo ya vienen en
+  // mm aquí): ancho ≤ 2.00 m y largo ≥ 5× el ancho. Una franja así no es un cuarto
+  // de trabajo; una zona más ancha (bench, open) NO se toca.
+  const largoMM = Math.max(a.ancho || 0, a.largo || 0);
+  const anchoMM = Math.min(a.ancho || 0, a.largo || 0);
+  if (anchoMM > 0 && anchoMM <= 2000 && largoMM >= anchoMM * 5) return 'servicio';
   const m2 = (a.ancho * a.largo) / 1e6;
   if (m2 <= 6) return 'servicio';
   const mayor = Math.max(...todos.map((x) => (x.ancho * x.largo) / 1e6));
