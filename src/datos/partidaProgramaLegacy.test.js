@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { actualizarPartidaDePrograma, actualizarPartidasDePrograma } from './programaRealDelPlano.js';
+import { actualizarPartidaDePrograma, actualizarPartidasDePrograma, actualizarPartidaDeBanco } from './programaRealDelPlano.js';
 import { identidadDeCatalogo } from './precioAutorizado.js';
 
 // Renglones REALES de la cotización 4048 (guardada antes de CATALOG_LIST): no se podían emitir.
@@ -46,5 +46,34 @@ describe('cotizaciones viejas: renglones del programa se re-evalúan al abrir', 
     const l = [{ nombre: 'x' }];
     expect(actualizarPartidasDePrograma(l)).toBe(l);
     expect(actualizarPartidasDePrograma(undefined)).toBe(undefined);
+  });
+});
+
+// Cotización 4048, líneas 9–16: renglones del BANCO (Voni) guardados sin identidad de catálogo.
+describe('cotizaciones viejas: renglones del banco sin identidad', () => {
+  const REFS = ['p9-silla-operativa-win-5210', 'silla-alpha', 'p9-silla-de-visita-concerto-5470', 'mj-3000x1200',
+    'p9-silla-sonata-2420-144', 'p9-recepcion-29920', 'p9-silla-operativa-gamma-e-3990', 'arch-modulor-2p-900'];
+  const viejoBanco = (piezaId, precio = 1000) => ({ piezaId, nombre: piezaId, cantidad: 2, precioUnitario: precio,
+    deBanco: true, precioReal: true, origen: 'banco', loteIA: 'ia-1' });
+  for (const ref of REFS) {
+    it(`${ref}: recibe producto, versión y renglón de lista del catálogo`, () => {
+      const cat = identidadDeCatalogo('banco', ref);
+      const q = actualizarPartidaDeBanco(viejoBanco(ref));
+      expect(q).toMatchObject({ source_type: 'banco', source_ref: ref, producto_id: cat.producto_id,
+        producto_version_id: cat.producto_version_id, lista_precio_item_id: cat.lista_precio_item_id,
+        precio_lista_snapshot: 1000, precioUnitario: 1000, cantidad: 2 });
+      expect(cat.lista_precio_item_id).toBeTruthy();
+    });
+  }
+  it('ya con identidad, sin piezaId, o que no es del banco: no se toca', () => {
+    for (const p of [{ ...viejoBanco('silla-alpha'), producto_id: 1 }, { ...viejoBanco('silla-alpha'), piezaId: null },
+      { ...viejoBanco('silla-alpha'), deBanco: false }, viejoBanco('no-existe-en-catalogo')]) {
+      expect(actualizarPartidaDeBanco(p)).toBe(p);
+    }
+  });
+  it('la lista aplica ambas reparaciones', () => {
+    const l = actualizarPartidasDePrograma([viejoBanco('silla-alpha'), { nombre: 'x' }]);
+    expect(l[0].lista_precio_item_id).toBeTruthy();
+    expect(l[1]).toEqual({ nombre: 'x' });
   });
 });
