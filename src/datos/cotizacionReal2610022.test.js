@@ -49,6 +49,8 @@ describe('A-2610022-01 · lo que faltaba entra 5% abajo del papel', () => {
     // El de junio ($9,460, 226060050) es la misma clave izquierda: queda como historial, no como otro renglón.
     expect(visible('p9-modulor-archivero-registro-lateral-9460')).toBeUndefined();
     expect(visible('p9-modulor-archivero-izq-8132').otrosPrecios).toEqual([{ precio: 9460, fuente: '226060050', mes: '2026-06' }]);
+    // La gaveta (el mismo archivero con cojín) va al mismo precio: el cojín no lo mueve (Rodrigo, 2026-10-20).
+    expect(visible('p9-modulor-gaveta-9460').precio).toBe(8132);
     // Y el price-book del Costeador da lo mismo que el catálogo.
     for (const modelo of ['cajones120izq', 'cajones120der']) {
       const fila = buscarPrecioVenta('modulor', { producto: 'archivero_h', modelo });
