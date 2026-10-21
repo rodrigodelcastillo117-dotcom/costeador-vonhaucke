@@ -202,8 +202,8 @@ function Escenarios({ proyectoId }) {
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [proyectoId]);
   // Se revisa el {error}: antes crear/seleccionar escenario fallaba en silencio
   // (RLS, red) y el botón parecía no hacer nada.
-  async function nuevo(tipo) { setErrAccion(''); const { error } = (await crearEscenario({ proyecto_id: proyectoId, nombre: tipo === 'custom' ? 'Nuevo escenario' : tipo, tipo })) || {}; if (error) { setErrAccion(`No se pudo crear el escenario: ${error.message || 'error del servidor'}.`); return; } cargar(); }
-  async function elegir(id) { setErrAccion(''); const { error } = (await seleccionarEscenario(proyectoId, id)) || {}; if (error) { setErrAccion(`No se pudo seleccionar: ${error.message || 'error del servidor'}.`); return; } cargar(); }
+  async function nuevo(tipo) { setErrAccion(''); const { error } = (await crearEscenario({ proyecto_id: proyectoId, nombre: tipo === 'custom' ? 'Nuevo escenario' : tipo, tipo })) || {}; if (error) { setErrAccion(`No se pudo crear el escenario: error del servidor.`); return; } cargar(); }
+  async function elegir(id) { setErrAccion(''); const { error } = (await seleccionarEscenario(proyectoId, id)) || {}; if (error) { setErrAccion(`No se pudo seleccionar: error del servidor.`); return; } cargar(); }
   if (estado === 'cargando') return <div className="tarjeta"><span className="ayuda">Cargando escenarios…</span></div>;
   if (estado === 'error') return <div className="alerta roja"><span className="texto">No se pudieron cargar.</span> <button className="boton" onClick={cargar}>Reintentar</button></div>;
   return (
@@ -237,7 +237,7 @@ function DealDesk({ cots, usuario = null }) {
     setErrAccion('');
     const destino = transicion(a.estado, accion);
     const { error } = (await resolverAprobacion(a.id, destino, usuario || 'direccion')) || {};
-    if (error) { setErrAccion(`No se pudo ${accion.toLowerCase()}: ${error.message || 'error del servidor'}.`); return; }
+    if (error) { setErrAccion(`No se pudo ${accion.toLowerCase()}: error del servidor.`); return; }
     cargar();
   }
   if (!cots.length) return <div className="tarjeta"><strong>Sin cotizaciones</strong><p className="ayuda">El Deal Desk opera sobre una cotización.</p></div>;
@@ -417,7 +417,7 @@ function Cierre({ proyecto, cots, onCambio }) {
       ? { etapa: 'GANADA', fecha_cierre: cierre.fecha, revision_ganadora_id: cotGanadora.id, total_final: totalFinal }
       : { etapa: 'PERDIDA', motivo_perdida: motivo, comentario_cierre: detalle || null, fecha_cierre: new Date().toISOString().slice(0, 10) }) || {};
     setGuardando(false);
-    if (error) { setErr([`No se pudo cerrar el proyecto: ${error.message || 'error del servidor'}. Intenta de nuevo.`]); return; }
+    if (error) { setErr([`No se pudo cerrar el proyecto: error del servidor. Intenta de nuevo.`]); return; }
     onCambio?.();
   }
 

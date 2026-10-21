@@ -729,7 +729,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {acomodoClienteGate.existe && !acomodoClienteGate.mostrar && (
             <div className="alerta" style={{ background:'#fff8e6', borderColor:'#d8a800', color:'#5e4700' }}>
               <span className="texto"><strong>Acomodo no certificado para cliente.</strong>{' '}
-                {(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
+                {(acomodoClienteGate.razones || []).join(' · ') || 'falta validar el acomodo con el motor espacial'}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
             </div>
           )}
                     {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
@@ -950,7 +950,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       {gate && gate.estado && (() => {
         // Lo que se muestra es la FUSIÓN servidor+local; si el servidor no respondió, se dice.
         const estadoVista = gateVista.servidorConsultado ? gateVista.estado : 'DESCONOCIDO';
-        const info = ESTADO_EMISION[estadoVista] || { tono: 'rojo', titulo: estadoVista };
+        const info = ESTADO_EMISION[estadoVista] || { tono: 'rojo', titulo: 'No se puede emitir todavía; se revisa al emitir' };
         const col = info.tono === 'verde' ? '#067647' : info.tono === 'ambar' ? '#B54708' : info.tono === 'gris' ? '#475467' : '#B42318';
         const bg = info.tono === 'verde' ? '#ECFDF3' : info.tono === 'ambar' ? '#FFFAEB' : info.tono === 'gris' ? '#F2F4F7' : '#FEF3F2';
         return (
