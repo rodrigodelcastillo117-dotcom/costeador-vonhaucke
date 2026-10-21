@@ -46,6 +46,9 @@ const FAL = { 900: { idx: '3', realW: 807 }, 1200: { idx: '4', realW: 1107 }, 15
 export const FLEX_PRODUCTOS = [
   {
     id: 'escritorio', nombre: 'Escritorio plegable',
+    // Para Voni: sin las etiquetas sólo veía cajon:['no','si'] y contestaba "la charola no es opción de
+    // la línea" (E2E 2026-10-20), aunque el FXESCCM24M19ABS rodante sí trae charola y cajón.
+    notaIA: 'cajon "si" = CON cajón Y charola (claves FXESCCA…). movil = rodante con ruedas (sólo 0.90/1.20); el 1.20 rodante con charola y cajón es FXESCCM24M19ABS.',
     selects: [
       { key: 'largo', label: 'Largo', opciones: [{ id: '900', label: '0.90 m' }, { id: '1200', label: '1.20 m' }, { id: '1500', label: '1.50 m' }] },
       { key: 'cajon', label: 'Cajón + charola', opciones: [{ id: 'no', label: 'Sin cajón' }, { id: 'si', label: 'Con cajón' }] },
