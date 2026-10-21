@@ -330,8 +330,10 @@ export const BANCO = [
     material: 'Con brazos, reclinación, base 5 pts PP, respaldo malla, tela negra', precio: 5210, fuente: '226030004' },
   { id: 'silla-win-cab', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla operativa WIN-CAB (cabecera)',
     material: 'Con brazos, reclinación, base 5 pts PP, cabecera y respaldo malla, tela negra', precio: 5900, fuente: '226030004' },
+  // Dos precios del mismo mes ($5,140 de 226030004 y $5,470 de 225080025): el plano/programa cotizaba $5,140 y
+  // Voni $5,470. Rodrigo (2026-10-20): "precio de 5470". Una sola silla, un solo precio.
   { id: 'silla-concerto', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla CONCERTO (visita 4 pts)',
-    material: 'Con brazos, estructura negra, respaldo mesh, asiento tapizado tela', precio: 5140, fuente: '226030004' },
+    material: 'Con brazos, estructura negra, respaldo mesh, asiento tapizado tela', precio: 5470, fuente: '225080025' },
   { id: 'silla-alpha', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla directiva ALPHA',
     material: 'Con brazos, control en brazos, base y estructura aluminio, mesh negro GT07-35E', precio: 11950, fuente: '226030004' },
   // GAMMA-E (estructura de polipropileno, asiento tela HM-38) ≠ GAMMA (base de aluminio, asiento mesh).
