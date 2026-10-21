@@ -223,7 +223,7 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
     : (fallas.length || statusSrv === 'FAIL') ? 'FALLA'
       : (nSin > 0 || statusSrv === 'PARTIAL') ? 'PARCIAL'
         : (pendientes.length ? 'REVISION' : 'PASS');
-  const resumen = estado === 'PASS' ? '' : (estado === 'PARCIAL' ? `parcial: faltan ${nSin} por colocar${pendientes.length ? ' · ' + pendientes.filter((p) => !p.startsWith('anclas')).join(' · ') : ''}` : pendientes.join(' · '));
+  const resumen = estado === 'PASS' ? '' : (estado === 'PARCIAL' ? `parcial: faltan ${nSin} por colocar${pendientes.filter((p) => !p.startsWith('anclas')).length ? ' · ' + pendientes.filter((p) => !p.startsWith('anclas')).join(' · ') : ''}` : pendientes.join(' · '));
   return { estado, statusServidor: statusSrv, resumen, pendientes, bloques, semantica: sem };
 }
 

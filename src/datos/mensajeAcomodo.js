@@ -19,7 +19,7 @@ export function formatearMensajeVendedor(mv) {
     const zona = m.zona && !String(m.texto).includes(String(m.zona)) ? `[${m.zona}] ` : '';
     const ver = m.evidencia?.veredicto_texto ? ` ${m.evidencia.veredicto_texto}` : '';
     return `${zona}${m.texto}${ver}`;
-  }).filter(Boolean);
+  }).filter(Boolean).filter((t, k, xs) => xs.indexOf(t) === k);   // una vez cada motivo (antes salían repetidos por kit)
   const queHacer = opciones.map((o) => o.texto).filter(Boolean).slice(0, 3);
   const sinOpcion = (!queHacer.length && mv.sin_opcion) ? mv.sin_opcion : null;
 
