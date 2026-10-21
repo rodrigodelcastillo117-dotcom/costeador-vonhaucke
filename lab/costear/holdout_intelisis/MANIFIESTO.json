@@ -1,8 +1,8 @@
 {
- "congeladoEn": "2026-10-21T00:06:40.914Z",
- "huellaTotal": "684b16513106ef73148ae34608a5d7e0e94aa32a651839e4ee917055c062a2c5",
+ "congeladoEn": "2026-10-21T01:41:07.824Z",
+ "huellaTotal": "f13fe44ee50cf60ac9f19099594f42b7fc84e6c5d1655e766a39ddbb89558805",
  "nArchivos": 118,
- "frontendSha": "64fdf0b306d61ee37526db900a14e40c05c3f539",
+ "frontendSha": "45890ef7f6260b982876f7c40964f8229b2b7254",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
   "e2e/labCostear.e2e.js": "0c4ad9fa45e7662268b1fed10cf3d4f70d955b631c5884238923aaa366edb7c0",
@@ -74,7 +74,7 @@
   "src/datos/placementTopologia.js": "570ed01a8b37d60f596ece93f77809085c56dcfd480f5bff14d1e642bb026b43",
   "src/datos/precedentesCosteo.js": "a5b303bc058db1ccd73df8e83a5abed56441b850ae8889e521ecde1ba996b2cf",
   "src/datos/precio.js": "4ad8bd7e7b77ce2483c96ccf06b81f749d176c01ee688f39f6bdee24bd7b6ca1",
-  "src/datos/precioAutorizado.js": "e37409c50f7d280df92dc6229c64d817e63352a09032bd4185eb0e910c9b862e",
+  "src/datos/precioAutorizado.js": "827978bb7e1e66aa0d26dbe3d61bf99b936aed7bd50f9d37bde47d28122c376a",
   "src/datos/preciosLinea.js": "1f880c0020459b8fc249c6a498d82490e81f2b53c244ddd75d8ba1f1ab587071",
   "src/datos/preciosVenta.js": "05fd77fcb39766c5532c2e1394074f9553e0cfe4403b5f65dcdaeec09ef70bc5",
   "src/datos/privacy4.js": "db2e23691ad8cf2cfbf485da887ae7af964e9016aaaaa2792f57510e06e67f46",
