@@ -59,6 +59,24 @@ export function rolFromRel(rel) {
   }
 }
 
+// Clase de mueble según el PRIMER sustantivo reconocible del nombre (normalizado).
+const CLASES_NOMBRE = [
+  ['silla', /silla|asiento/],
+  ['gaveta', /gaveta|pedestal|cajonera/],
+  ['guarda', /credenza|archivero|librero|armario|locker|guarda de piso/],
+  ['mesa', /mesa|table/],
+  ['recepcion', /recepci|mostrador|lobby/],
+  ['puesto', /escritorio|bench|banca|estacion|workstation/],
+];
+function claseDelNombre(nom) {
+  let mejor = null; let pos = Infinity;
+  for (const [clase, re] of CLASES_NOMBRE) {
+    const m = re.exec(nom);
+    if (m && m.index < pos) { mejor = clase; pos = m.index; }
+  }
+  return mejor;
+}
+
 // Rol funcional de un item existente: explícito, o inferido del nombre (legacy).
 export function inferRole(item) {
   if (item.relation_role) return item.relation_role;
@@ -69,19 +87,25 @@ export function inferRole(item) {
   const porId = rolPorId(bancoDe(item));          // #3: identidad de catálogo primero
   if (porId) return porId;
   const t = norm(`${item.nombre || ''} ${item.nota || ''}`);
-  const silla = /silla|asiento/.test(t);
-  if (silla && /operativ|puesto|banca|bench|open/.test(t)) return 'WORK_SEAT';
-  if (silla && /directiv|ejecutiv/.test(t)) return 'EXECUTIVE_SEAT';
-  if (silla && /visita|confidente/.test(t)) return 'VISITOR_SEAT';
-  if (silla && /junta|consejo|meeting|board/.test(t)) return 'MEETING_SEAT';
-  if (/gaveta|pedestal|cajonera/.test(t)) return 'UNDERDESK_STORAGE';
-  // VH-092: guardas de piso (credenza, archivero, librero…) son dependientes de apoyo.
-  if (/credenza|archivero|librero|armario|locker|guarda de piso/.test(t)) return 'SUPPORT_STORAGE';
-  if (/mesa|table/.test(t) && /junta|consejo|meeting|board/.test(t)) return 'ANCHOR_MEETING';
-  if (/recepci|mostrador|lobby/.test(t) && !silla) return 'ANCHOR_RECEPTION';
-  if (/escritorio|bench|banca|estacion|workstation/.test(t) && !silla) {
-    return /privad|direccion|directiv|gerenc/.test(t) ? 'ANCHOR_DESK' : 'ANCHOR_WORKSTATION';
+  // QUÉ MUEBLE ES lo dice el NOMBRE, no la nota. Cotización 4048 (E2E 2026-10-20): la banca de 12
+  // traía en la nota "confirmado por 54 sillas y 54 gavetas" y se volvía silla (y luego gaveta);
+  // la banca de 6 terminaba "sentando" a 4 bancas de 9 m encimadas y 52 sillas quedaban sin lugar.
+  // Si el nombre trae varios sustantivos ("Escritorio con cajonera", "Silla para banca") manda el
+  // que aparece PRIMERO. La nota sólo afina el destino/tipo de una silla (visita, juntas, operativa).
+  const clase = claseDelNombre(norm(item.nombre || ''));
+  if (clase === 'silla') {
+    if (/operativ|puesto|banca|bench|open/.test(t)) return 'WORK_SEAT';
+    if (/directiv|ejecutiv/.test(t)) return 'EXECUTIVE_SEAT';
+    if (/visita|confidente/.test(t)) return 'VISITOR_SEAT';
+    if (/junta|consejo|meeting|board/.test(t)) return 'MEETING_SEAT';
+    return null;
   }
+  if (clase === 'gaveta') return 'UNDERDESK_STORAGE';
+  // VH-092: guardas de piso (credenza, archivero, librero…) son dependientes de apoyo.
+  if (clase === 'guarda') return 'SUPPORT_STORAGE';
+  if (clase === 'mesa') return /junta|consejo|meeting|board/.test(t) ? 'ANCHOR_MEETING' : null;
+  if (clase === 'recepcion') return 'ANCHOR_RECEPTION';
+  if (clase === 'puesto') return /privad|direccion|directiv|gerenc/.test(t) ? 'ANCHOR_DESK' : 'ANCHOR_WORKSTATION';
   return null;
 }
 
@@ -251,8 +275,24 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   // --- ANCLAS: identidad (requirement_id) PRIMERO, luego posición legacy (#9). ---
   const anchorSlot = (rol, rel, ord) => `${rol}|${rel}|#${ord}`;
   const existAnchors = ex.filter((e) => esAncla(e.rel));
+  // Varias anclas pueden compartir requerimiento (3 bancas del mismo "operativo"). Antes un Map guardaba sólo la
+  // ÚLTIMA y las demás propuestas chocaban con ella: al "Aplicar programa detectado" el programa entraba en
+  // conflicto consigo mismo ("ya tienes 4 usuarios, el plano propone 12", E2E 2026-10-20). Ahora es una lista.
   const existByReq = new Map();
-  for (const e of existAnchors) { if (e.raw && e.raw.requirement_id) existByReq.set(String(e.raw.requirement_id), e); }
+  for (const e of existAnchors) {
+    if (!(e.raw && e.raw.requirement_id)) continue;
+    const k = String(e.raw.requirement_id);
+    if (!existByReq.has(k)) existByReq.set(k, []);
+    existByReq.get(k).push(e);
+  }
+  const tomadoPorReq = new Set();
+  const previoPorReq = (a) => {
+    const lista = a.requirement_id ? (existByReq.get(String(a.requirement_id)) || []) : [];
+    const libres = lista.filter((e) => !tomadoPorReq.has(e._i));
+    const e = libres.find((x) => String(x.banco) === String(a.bancoId)) || libres[0] || null;
+    if (e) tomadoPorReq.add(e._i);
+    return e;
+  };
   const anchorOrd = new Map();
   const anchorBySlot = new Map();
   for (const e of existAnchors) {
@@ -267,7 +307,7 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
     const ord = propAnchorOrd.get(base) || 0; propAnchorOrd.set(base, ord + 1);
     const slot = anchorSlot(rol, a.relation_role, ord);
     // #9: requirement_id (estable bajo reorden) manda; posición sólo como fallback legacy.
-    const prev = (a.requirement_id && existByReq.get(String(a.requirement_id))) || anchorBySlot.get(slot);
+    const prev = previoPorReq(a) || anchorBySlot.get(slot);
     if (prev) {
       if (String(prev.banco) === String(a.bancoId)) {
         usados.add(prev._i);                      // reutiliza: lo re-emitimos como EXISTENTE

@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import PuertaConfirmar from './PuertaConfirmar.jsx';
 import { confirmarPuertaEnArea, puertasSinConfirmar } from '../datos/puertasConfirmar.js';
+import { noEsPlanta } from '../datos/noEsPlanta.js';
 
 export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onCancelar }) {
   // VH-136: las puertas que la persona confirma aquí (bisagra/sentido/doble) se aplican sobre una
@@ -31,11 +32,12 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
     setAreasEditadas(next); setConfirmadas((n) => n + 1);
   };
   const sinConfirmar = puertasSinConfirmar(areas).filter((q) => enNivel(areas[q.areaIdx]));
-  const nivelTxt = { alta: '✓ Lectura confiable', media: '◑ Lectura con dudas', baja: '⚠ Lectura poco confiable', nula: '✗ No reconocí cuartos' }[resumen.nivel] || '';
+  const noPlanta = noEsPlanta({ ...lectura, areas });
+  const nivelTxt = noPlanta ? '✗ Esto no parece un plano de oficina' : { alta: '✓ Lectura confiable', media: '◑ Lectura con dudas', baja: '⚠ Lectura poco confiable', nula: '✗ No reconocí cuartos' }[resumen.nivel] || '';
   const puestos = visibles.reduce((s, { a }) => s + (Number.isFinite(a.puestos) ? a.puestos : 0), 0);
   const puertasPendientes = visibles.map(({ a }) => a).flatMap((a) => (a.puertasPendientes || []).map((pp) => ({ area: a.nombre || 'Área', x: Number(pp.x) || 0, y: Number(pp.y) || 0, ancho: Number(pp.ancho) || null, motivo: pp.motivo })));
   const problemasVisibles = confirmadas ? (resumen.problemas || []).filter((t) => !/puerta/i.test(t)) : (resumen.problemas || []);
-  const puedeConfirmar = visibles.length > 0;
+  const puedeConfirmar = visibles.length > 0 && !noPlanta;
   return (
     <div className="tarjeta" style={{ marginTop: 12 }} data-testid="confirmar-lectura">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -83,6 +85,11 @@ export default function ConfirmarLectura({ lectura, onConfirmar, onCorregir, onC
               {n} · {areas.filter((a) => a?.nivel === n).length} área(s)
             </button>
           ))}
+        </div>
+      )}
+      {noPlanta && (
+        <div className="alerta roja" style={{ marginTop: 8 }} data-testid="lectura-no-planta">
+          <span className="texto">Esto no parece un plano de oficina ({noPlanta.motivo}). Sube la planta arquitectónica del cliente o dibuja la oficina. Si lo que quieres es costear este mueble, usa <strong>Costear</strong>.</span>
         </div>
       )}
       {problemasVisibles.length > 0 && (

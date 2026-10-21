@@ -688,7 +688,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <CampoPct valor={maniobrasPct} max={30} onCambio={(v) => setCot({ maniobrasPct: v })} />
           </div>
           <div className="ayuda" style={{ textAlign: 'right', marginTop: -4 }}>
-            3% es lo estándar (así lo imprimen tus presupuestos). Sube con elevador, horario inhábil o acarreo largo.
+            Von Haucke no cotiza maniobras ni instalación por omisión (Dirección, 2026-10-20): déjalo en 0 salvo que el cliente las pida aparte.
           </div>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Flete (%)</label>

@@ -587,7 +587,7 @@ export function catalogoIA() {
         // terminaban como texto libre en vez de configuración trazable.
         if (p.colores) params.color = p.colores.map((x) => x?.id || x).filter(Boolean);
         const checks = (p.checks || []).map((c) => c.key);
-        return { id: p.id, nombre: p.nombre, params, checks };
+        return { id: p.id, nombre: p.nombre, params, checks, ...(p.notaIA ? { nota: p.notaIA } : {}) };
       }),
     };
   }

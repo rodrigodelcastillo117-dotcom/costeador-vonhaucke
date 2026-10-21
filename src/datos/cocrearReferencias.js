@@ -42,7 +42,9 @@ export async function referenciasComercialesCocrear(intent){
   try{
     const {data:productos,error:e1}=await nube.from('productos')
       .select('id,nombre,familia,activo')
-      .ilike('nombre',`%${termino}%`)
+      // E2E 2026-10-20: '%Escritorio%' traía "FALDON RECTO PARA ESCRITORIO…" y conductos y, ordenados por
+      // precio, la "referencia" de un escritorio de 1.60 m salía en $720–$870. El nombre EMPIEZA con el tipo.
+      .ilike('nombre',`${termino}%`)
       .neq('activo',false)
       .limit(80);
     if(e1) throw e1;
@@ -84,7 +86,11 @@ export async function referenciasComercialesCocrear(intent){
         return da-db||a.capacidad-b.capacidad||a.precio-b.precio;
       }).slice(0,5);
     }else{
-      items=items.sort((a,b)=>a.precio-b.precio).slice(0,5);
+      // Más parecido en medida primero (largo del brief vs "DE 1500 X 751" del nombre); luego precio.
+      const objetivo=Number(intent?.dimensiones?.ancho_mm)||null;
+      const largoDe=(n)=>{const m=normal(n).match(/(?:de\s+)?(\d{3,4})\s*x\s*\d{2,4}/);return m?Number(m[1]):null;};
+      const dist=(x)=>{if(!objetivo)return 0;const l=largoDe(x.nombre);return l==null?1e6:Math.abs(l-objetivo);};
+      items=items.sort((a,b)=>dist(a)-dist(b)||a.precio-b.precio).slice(0,5);
     }
 
     // Economía es sensible y RLS decide si el rol puede verla. Si no hay permiso, simplemente no aparece.

@@ -18,6 +18,7 @@
 //  Todo en METROS (es lo que devuelve `areasDeLectura` y lo que guarda `areasM`).
 // ============================================================================
 import { rolCuartoBase, rolArea, tipoAreaConfiable } from './planner.js';
+import { capacidadDeNombre } from './capacidadDeclarada.js';
 
 // El rol de un cuarto: lo que declaró el lector, su nombre, o —si ninguno de
 // los dos dice nada, "Sala 12" sin `tipo`— su TAMAÑO. Mismo criterio que usa el
@@ -178,7 +179,10 @@ export function programaDelPlano(areas, opts = {}) {
   // VH-093: si el lector CONTÓ las sillas dibujadas alrededor de la mesa (`asientos`), ésa es
   // la capacidad (DETECTADA); la regla de m²/persona queda sólo para salas sin sillas dibujadas.
   // Antes una sala de consejo con 10 sillas dibujadas salía "mesa de 4" por 22 m².
-  const salas = salasA.map((a, i) => (Number.isFinite(a.asientos) && a.asientos > 0 ? a.asientos : personasEnSala(m2Salas[i])));
+  // E2E 2026-10-20: con "Todavía no hay plano" la sala se llama "Sala de juntas (12 personas)" — lo pidió la
+  // persona — y la regla de m² la bajaba a 6 (mesa de 2.40 y 6 sillas). La capacidad DECLARADA en el nombre manda.
+  const salas = salasA.map((a, i) => (Number.isFinite(a.asientos) && a.asientos > 0 ? a.asientos
+    : (capacidadDeNombre(a.nombre) || personasEnSala(m2Salas[i]))));
   // ⚠️ "0 m²: da para 4 personas" ERA UNA CONTRADICCIÓN MUDA (auditoría
   // 2026-08-19). `personasEnSala` siempre pone un piso de 4 (Rodrigo: una
   // sala de juntas real nunca es para menos), pero eso NO distingue "sala
@@ -237,7 +241,9 @@ export function programaDelPlano(areas, opts = {}) {
     // ProgramRequirement. P0.3 la enriquecerá (evidencia/confianza); aquí no se tira.
     zonas: {
       operativo: (islasA[0] || abiertos[0]) ? { nombre: (islasA[0] || abiertos[0]).nombre, id: (islasA[0] || abiertos[0]).id || null } : null,
-      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null })),
+      // E2E 2026-10-20: con las medidas el programa escoge un escritorio que QUEPA (privado de 3.5 m
+      // recibía el módulo directivo de 3.6 m de fondo y el acomodo lo rechazaba).
+      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null, ...(Number(a.ancho) > 0 && Number(a.largo) > 0 ? { anchoM: Number(a.ancho), largoM: Number(a.largo) } : {}) })),
       juntas: salasA.map((a) => ({ nombre: a.nombre, id: a.id || null })),
       // Prueba de Rodrigo 19-oct: los puestos de la recepción del plano (quienes atienden) deciden cuántas sillas lleva.
       recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null, puestos: Number(a.puestos) > 0 ? Number(a.puestos) : null } : null; })(),
@@ -253,7 +259,7 @@ export function programaDelPlano(areas, opts = {}) {
  *  zonas), lo ESTIMADO (puestos inferidos por área — hay que confirmarlos) y lo
  *  SUGERIDO (sillas/gavetas/archiveros que proponemos, no que estén dibujados).
  *  Antes todo salía como "Del plano: …", incluidos 17 archiveros que nadie dibujó. */
-export function resumenDelPlano(pr) {
+export function resumenDelPlano(pr, { planReal = true } = {}) {
   if (!pr?.hayPlano) return '';
   const det = [];
   if (pr.privados) det.push(`${pr.privados} ${pr.privados === 1 ? 'privado' : 'privados'}`);
@@ -265,7 +271,8 @@ export function resumenDelPlano(pr) {
   // "~" y la petición de confirmar.
   if (contado && pr.operativos) det.unshift(`${pr.operativos} puestos operativos (contados del plano)`);
   const partes = [];
-  if (det.length) partes.push(`Del plano: ${det.join(' · ')}.`);
+  // E2E 2026-10-20: con "Todavía no hay plano" (sólo m²) decía "Del plano:" de un plano que no existe.
+  if (det.length) partes.push(`${planReal ? 'Del plano' : 'Del espacio'}: ${det.join(' · ')}.`);
   if (!contado && pr.operativos) partes.push(`Estimé ~${pr.operativos} puestos operativos por el área (confírmame el número).`);
   const sug = pr.sugeridos || {};
   const sugTxt = [];

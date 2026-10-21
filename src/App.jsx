@@ -77,6 +77,7 @@ import { aplicarRespaldo } from './datos/respaldo.js';
 import { crearPartida } from './datos/partida.js';
 import { partidaAutoritativaDeCosteo, partidaDeCosteo as partidaDeCosteoPura } from './datos/agregarCosteo.js';
 import { juntarIguales, costoDeBanco, margenDeBanco } from './datos/renglonesComerciales.js';
+import { identidadDeCatalogo } from './datos/precioAutorizado.js';
 import { verificarEmisionViva, registrarEmisionViva } from './datos/emisionViva.js';
 import { costeoVivoParaVoni, partidasLocalesVoni, economiaVoni } from './datos/contextoVoni.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
@@ -260,8 +261,12 @@ export default function App() {
         actualizado: null,        // VH-148: sin versión conocida hasta que el servidor la devuelva
         // No arrastrar el descuento/ajustes del cliente anterior a la nueva.
         descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
+        // E2E 2026-10-20: la propuesta nueva salía con la fecha del día en que se creó el estado del
+        // navegador ("3 de octubre" el 20). Una cotización nueva lleva la fecha de HOY.
+        fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
     }));
+    setVoniPaso(1);               // y empieza en el paso 1 (Espacio), no en la Propuesta en blanco
     borrarBorradorPedido();       // el pedido a Voni de la cotización anterior no se arrastra a la nueva
     mostrarAviso('Listo: empezaste una cotización nueva, desde cero.');
   };
@@ -1238,10 +1243,14 @@ export default function App() {
   function agregarDeBanco(item, cantidad) {
     const nombre = item.medidas ? `${item.nombre} (${item.medidas})` : item.nombre;
     // RC3: antes sembraba costo/margen a TODOS los roles; el contrato los quita al vendedor.
+    // Identidad de catálogo (Producto Maestro) ⇒ la emisión la trata como reventa con su
+    // precio de lista (P0-01) en vez de exigir un costo que una pieza comprada no tiene.
+    const ident = identidadDeCatalogo('banco', item.id);
     const partida = crearPartida({
       piezaId: item.id, nombre,
       cantidad, costoUnitario: costoDeBanco(item), costoDerivado: true, precioUnitario: item.precio,
       margen: margenDeBanco(item), deBanco: true, precioReal: true,
+      ...(ident ? { ...ident, precio_lista_snapshot: item.precio } : {}),
     }, { veCostos, origen: 'banco' });
     if (agregadoRepetido([partida])) return;
     setEstado((e) => ({

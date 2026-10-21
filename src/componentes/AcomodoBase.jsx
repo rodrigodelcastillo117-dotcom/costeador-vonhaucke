@@ -586,8 +586,10 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   // ella reportó ya no coincide con la realidad de ahora (se agregaron muebles a
   // la cotización después de acomodar). Sin esto la tarjeta decía "faltan 8" y
   // "✓ 36 de 36" al mismo tiempo.
+  // Se cuentan colocadas + sin colocar: un acomodo PARCIAL no está vencido sólo por tener pendientes
+  // (E2E 2026-10-20: "revisó ANTES de que cambiaras" salía en el primer acomodo y tapaba los ⚠).
   const vencida = !!plan?.auditoriaVencida ||
-    (!!plan?.auditoria?.length && (plan.colocacion || []).length !== piezas.length);
+    (!!plan?.auditoria?.length && ((plan.colocacion || []).length + (plan.sinColocar || []).length) !== piezas.length);
 
   // Cuántos muebles puso el proyectista con su propia mano. Es lo que el motor
   // NO va a tocar la próxima vez que se acomode.

@@ -762,12 +762,17 @@ export async function cargarCocrearSeguro(expedienteId) {
 // Lista las CO-CREACIONES guardadas (expedientes con payload cocrear). RLS aplica
 // (Dirección/Diseño ven las suyas). Liviano: sin traer el jsonb completo.
 export async function listarCocreaciones(limite = 12) {
+  // E2E 2026-10-20: la lista de Dirección estaba llena de pruebas de laboratorio "(lab 10) COC-…". Sólo las ve
+  // la cuenta de pruebas (qa-*), que es la que las crea y las reabre en la certificación.
+  let esQa = false;
+  try { const { data: u } = await nube.auth.getUser(); esQa = /^qa-/i.test(u?.user?.email || ''); } catch { esQa = false; }
   const { data, error } = await nube.from('expedientes')
     .select('id,nombre,producto_tipo,estado,actualizado,creado')
     .not('cocrear', 'is', null)
-    .order('actualizado', { ascending: false, nullsFirst: false }).limit(limite);
+    .order('actualizado', { ascending: false, nullsFirst: false }).limit(esQa ? limite : limite * 4);
   if (error) return { ok: false, error: error.message, items: [] };
-  return { ok: true, items: data || [] };
+  const items = (data || []).filter((x) => esQa || !/^\s*\(lab\b/i.test(x?.nombre || '')).slice(0, limite);
+  return { ok: true, items };
 }
 // Registra/reutiliza la ProductRevision canónica desde el expediente (una sola verdad de producto).
 export async function registrarProductoDesdeExpediente(expedienteId) {

@@ -31,7 +31,9 @@ const id = (x) => { const n = x?.id != null ? NOMBRE(x.id) : null; return n ? ` 
 const nm = (pid) => NOMBRE(pid) || (pid == null ? '?' : 'un mueble');
 const TEXTO = {
   OUTSIDE_ZONE: (i) => `Pieza${id(i)} fuera de su cuarto.`,
-  OVERLAP: (i) => `Encimado entre «${nm(i?.a)}» y «${nm(i?.b)}».`,
+  // El servidor manda el par en `id: 'A|B'` (recovery-core); `a`/`b` quedan por compatibilidad.
+  // Antes se leía sólo a/b y salía «?» y «?» (E2E 2026-10-20).
+  OVERLAP: (i) => { const [pa, pb] = String(i?.id ?? '').split('|'); return `Encimado entre «${nm(i?.a ?? (pa || null))}» y «${nm(i?.b ?? (pb || null))}».`; },
   BLOCKS_DOOR: (i) => `Pieza${id(i)} tapa una puerta.`,
   FUNCTIONAL_CLEARANCE: (i) => `Pieza${id(i)} sin espacio de uso (choca con ${i?.with_id ? `«${nm(i.with_id)}»` : 'otro elemento'}).`,
   FUNCTIONAL_GROUP_SPLIT: (i) => `Pieza${id(i)} quedó separada de su grupo (lejos de su mueble).`,

@@ -322,10 +322,14 @@ export function proponerReparacion({ areas = [], piezas = [], colocacionPrev = [
  * MUROS + CIRCULACIÓN, con derivación de estado. `requested` para cobertura.
  */
 export function evaluarRecovery(areas = [], piezas = [], colocacion = [], { minPasillo = CONTRATO.min_pasillo_mm, requested = null, repairAgotado = false } = {}) {
+  // `geo: true` = falla GEOMÉTRICA (encimado, fuera del cuarto, puerta, muro, pasillo). El selector de
+  // candidatos las cuenta aparte: un acomodo con menos piezas tiene menos fallas de GRUPO y no por eso
+  // es mejor (cotización 4048: ganaba el que colocaba 49 de 114 sobre el que colocaba 54).
+  const geo = (xs) => xs.map((i) => ({ ...i, geo: true }));
   const issues = [
-    ...invariantesBase(areas, piezas, colocacion),
-    ...invariantesMuros(areas, piezas, colocacion),
-    ...invariantesCirculacion(areas, piezas, colocacion, minPasillo),
+    ...geo(invariantesBase(areas, piezas, colocacion)),
+    ...geo(invariantesMuros(areas, piezas, colocacion)),
+    ...geo(invariantesCirculacion(areas, piezas, colocacion, minPasillo)),
     // GAP5: fallas semánticas (grupo funcional / dependiente fuera de la zona de su
     // ancla) — geometría perfecta NO basta para PASS si la semántica está mal.
     ...auditarGruposFuncionales(piezas, colocacion).map((i) => ({ ...i, severity: 'fail' })),

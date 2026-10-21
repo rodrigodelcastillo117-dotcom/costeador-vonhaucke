@@ -123,7 +123,33 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
         const identidad = esAncla(rel) ? (e.requirement_id || e.instance_id || '') : (e.anchor_instance_id || e.functional_group_id || '');
         return identidad ? `id:${identidad}` : `zona:${zonaDe(e) || ''}`;
       };
-      const ejes = new Set(candidatos.map(({ e }) => ejeDe(e)));
+      let ejes = new Set(candidatos.map(({ e }) => ejeDe(e)));
+      // E2E 2026-10-20 (Torre Norte: programa del plano + "Dime qué lleva"): con dos salas quedaban 4 mesas
+      // y 32 sillas porque nada era "evidencia de zona". Dos evidencias más, ambas deterministas:
+      //  a) ANCLA con capacidad declarada ("para 10 personas") y candidatos con capacidad: va a la ÚNICA
+      //     instancia de capacidad más cercana (empate ⇒ sigue ambiguo).
+      //  b) DEPENDIENTE cuya cantidad es EXACTAMENTE la suma de los candidatos (16 SONATA = 10 + 6): cubre
+      //     todos; se reparte una fila por instancia con su cantidad y estructura.
+      if (ejes.size > 1 && decision == null && esAncla(rel) && cantN0 === 1) {
+        const capN = Number(n.user_capacity ?? n.usuarios) || capacidadDeNombre(n.nombre, { w: n.w, rol: rel }) || capacidadDeNombre(n.nota);
+        const capE = (e) => Number(e.user_capacity ?? e.usuarios) || capacidadDeNombre(e.nombre) || null;
+        if (capN && candidatos.every(({ e }) => capE(e))) {
+          const dif = candidatos.map(({ e }) => Math.abs(capE(e) - capN));
+          const min = Math.min(...dif);
+          const ganadores = new Set(candidatos.filter((_, k) => dif[k] === min).map(({ e }) => ejeDe(e)));
+          if (ganadores.size === 1) { candidatos = candidatos.filter(({ e }) => ganadores.has(ejeDe(e))); ejes = ganadores; }
+        }
+      }
+      if (ejes.size > 1 && decision == null && !esAncla(rel)) {
+        const suma = candidatos.reduce((t, { e }) => t + Math.max(1, Number(e.cantidad) || 1), 0);
+        if (suma === cantN0) {
+          candidatos.forEach(({ e: prog, i: idxProg }, k) => {
+            const fila = filaRepartida(prog, idxProg, k === 0 ? n.id : `${n.id}#${k + 1}`);
+            salida.push({ ...fila, cantidad: Math.max(1, Number(prog.cantidad) || 1) });
+          });
+          continue;
+        }
+      }
       if (ejes.size > 1) {
         const porEje = new Map();
         for (const c of candidatos) { const k = ejeDe(c.e); if (!porEje.has(k)) porEje.set(k, c); }

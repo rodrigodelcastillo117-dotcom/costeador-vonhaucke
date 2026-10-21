@@ -1033,7 +1033,7 @@ function evaluarCandidato(areas, piezas, sol) {
     ...(i.slot != null ? { slot: i.slot } : {}), ...(i.clear != null ? { clear: i.clear } : {}), ...(i.target != null ? { target: i.target } : {}),
   }));
   return {
-    placed, hardOk, hard_issues: hardFails.length,
+    placed, hardOk, hard_issues: hardFails.length, geo_issues: hardFails.filter((i) => i.geo).length,
     sem_status: sem.status, semFail, semReview, semantic_pass, semRank, sem_issues,
     quality, quality_status, quality_components, quality_reasons,
   };
@@ -1055,7 +1055,15 @@ function evaluarCandidato(areas, piezas, sol) {
 export function mejorCandidato(a, b) {
   const x = a.eval, y = b.eval;
   if (x.hardOk !== y.hardOk) return x.hardOk ? a : b;                         // 1 HARD status
-  if (!x.hardOk && x.hard_issues !== y.hard_issues) return x.hard_issues < y.hard_issues ? a : b;
+  if (!x.hardOk) {
+    // Entre dos con falla dura: primero el que tiene MENOS fallas geométricas (encimados, fuera del
+    // cuarto, puertas), luego el MÁS COMPLETO, y sólo al final el total de fallas. Antes ganaba el que
+    // colocaba menos piezas porque así acumulaba menos fallas de grupo (4048: 49 sobre 54).
+    const gx = x.geo_issues ?? x.hard_issues, gy = y.geo_issues ?? y.hard_issues;
+    if (gx !== gy) return gx < gy ? a : b;
+    if (x.placed !== y.placed) return x.placed > y.placed ? a : b;
+    if (x.hard_issues !== y.hard_issues) return x.hard_issues < y.hard_issues ? a : b;
+  }
   const xFail = x.sem_status === 'FAIL', yFail = y.sem_status === 'FAIL';
   if (xFail !== yFail) return xFail ? b : a;                                 // 2 SEMANTIC FAIL vs no-FAIL (GAP18)
   if (x.placed !== y.placed) return x.placed > y.placed ? a : b;             // 3 COMPLETENESS

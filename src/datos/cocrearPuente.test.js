@@ -195,3 +195,17 @@ describe('Mueble nuevo: Pasar a Costear y regresar con el BOM', () => {
     expect(aplicarRetornoCosteo({}, { componentes: [] }).ok).toBe(false);
   });
 });
+
+// E2E 2026-10-20: "escritorio 1.60 en melamina nogal claro" → el despiece escalado salía en Ivory.
+describe('Cocrear · el despiece escalado respeta el material pedido', () => {
+  it('nogal ⇒ color nogal/walnut de la línea; sin material ⇒ el del padre', async () => {
+    const { bajarLineaABom } = await import('./cocrearPuente.js');
+    const intent = { dimensiones: { ancho_mm: 1600, prof_mm: 700 }, materiales: [{ material: 'nogal', tono: 'claro' }], caracteristicas: [] };
+    const r = bajarLineaABom(intent, { ruta: 'applt', productoId: 'escritorio' });
+    expect(r.ok).toBe(true);
+    expect(String(r.padre.config.color || '')).toMatch(/walnut|nogal/);
+    const sin = bajarLineaABom({ ...intent, materiales: [] }, { ruta: 'applt', productoId: 'escritorio' });
+    expect(sin.ok).toBe(true);
+    expect(String(sin.padre.config.color || '')).not.toMatch(/walnut|nogal/);
+  });
+});

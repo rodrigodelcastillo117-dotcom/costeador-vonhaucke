@@ -45,7 +45,12 @@ export function construirRespuestaAcomodo(areas = [], piezas = []) {
   const qualityPass = semEval.quality_status === 'PASS';       // fail-closed: faltante → false
   const render_ready = !!evalFinal.render_ready && semanticPass && qualityPass && !sel.quality_review_required;
   const qualityReview = !!sel.quality_review_required || !qualityPass;
-  const status = !semEval.sem_status ? 'NEEDS_REVIEW_METADATA'
+  // Una falla GEOMÉTRICA dura (encimados, fuera del cuarto, puerta tapada) nunca se publica como
+  // "revisión de calidad": es FAIL. Cotización 4048: 8 encimados salían como QUALITY_REVIEW_REQUIRED
+  // ("geometría y semántica válidas") con el acomodo encimado completo.
+  const geoFail = (evalFinal.issues || []).some((i) => i.severity === 'fail' && i.geo);
+  const status = geoFail ? 'FAIL'
+    : !semEval.sem_status ? 'NEEDS_REVIEW_METADATA'
     : (!semanticPass ? 'NEEDS_SEMANTIC_REVIEW'
       : (qualityReview ? 'QUALITY_REVIEW_REQUIRED' : evalFinal.status));
 

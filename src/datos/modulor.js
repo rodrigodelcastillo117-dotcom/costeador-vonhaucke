@@ -58,6 +58,10 @@ export const MODULOR_PRODUCTOS = [
   },
   {
     id: 'archivero_h', nombre: 'Archivero horizontal',
+    // Para Voni (catalogoIA): el "archivero registro lateral" que más se vende es ESTE (MOAHCL4I/D,
+    // 1.20 · 2 cajones + entrepaño, izquierdo o derecho). E2E 2026-10-20: Voni tomaba el otro
+    // producto que se llama "registro lateral" (MOA1CA, sin precio real) y lo cotizaba a $2,890.
+    notaIA: 'El "archivero registro lateral" de 1.20 m con 2 cajones y 1 entrepaño (MOAHCL4I izquierdo / MOAHCL4D derecho) es ESTE producto: modelo cajones120izq o cajones120der (uno por mano; si piden izquierdos y derechos van en dos renglones). Es el que más se vende.',
     selects: [{ key: 'modelo', label: 'Modelo', opciones: [
       { id: 'puertas75', label: '0.75 · 2 puertas (MOAP75)' }, { id: 'cajones75', label: '0.75 · 2 cajones (MOAC75)' },
       { id: 'corrediza120', label: '1.20 corrediza (MOAPC4)' }, { id: 'corrediza150', label: '1.50 corrediza (MOAPC5)' },
@@ -69,6 +73,7 @@ export const MODULOR_PRODUCTOS = [
   },
   {
     id: 'archivero_lateral', nombre: 'Archivero registro lateral',
+    notaIA: 'Archivero METÁLICO de lámina, 0.46 m de frente × 1.20 m de alto (MOA1CA / MOA2CA / MOA1CC1ENSP). NO es el archivero de 1.20 m de largo con 2 cajones y entrepaño, izquierdo/derecho: ése es archivero_h modelo cajones120izq / cajones120der.',
     selects: [{ key: 'modelo', label: 'Modelo', opciones: [
       { id: 'MOA1CA', label: 'MOA1CA' }, { id: 'MOA2CA', label: 'MOA2CA' }, { id: 'MOA1CC1ENSP', label: 'MOA1CC1ENSP (librero)' },
     ] }],
