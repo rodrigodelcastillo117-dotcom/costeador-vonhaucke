@@ -168,9 +168,27 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   const normZona = (z) => String(z ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
   const claveGrupo = (p) => p?.anchor_instance_id || p?.functional_group_id || null;
   const esDep = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT', 'UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
+  // D: un dependiente a más de ATTACH_MM (borde a borde) de su ancla está DESPRENDIDO. Si la pieza declara su
+  // propia tolerancia (max_anchor_distance_mm: visita 2600, credenza 3500) manda la mayor de las dos.
   const ATTACH_MM = 1200;
   const distR = (a, b) => Math.hypot(Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w))), Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h))));
-  const grupos = new Map(); // clave → {anchorArea, anchorZone, anchorRect, deps:[{id,area,zone,rect}]}
+  // Anclas colocadas. El dueño que asignó el solver (colocacion[].anchor_instance_id = id de la pieza ancla)
+  // se busca por id; sin él, se mide contra el ancla más cercana de su grupo en la misma área.
+  const anclasColocadas = colocadosValidos
+    .filter((c) => esAncla(porId.get(String(c.id)).relation_role))
+    .map((c) => { const p = porId.get(String(c.id)); return { id: String(c.id), area: Number(c.area), rect: rectDe(p, c), clave: claveGrupo(p), fg: p.functional_group_id ?? null }; });
+  const anclaPorId = new Map(anclasColocadas.map((a) => [a.id, a]));
+  const distanciaAlAncla = (d, gid) => {
+    const dueno = d.dueno != null ? anclaPorId.get(String(d.dueno)) : null;
+    if (dueno) return dueno.area === d.area ? distR(d.rect, dueno.rect) : Infinity;
+    // VH-096 (igual que el servidor): una guarda de piso sin dueño es su propio kit, no se ata a un escritorio.
+    if (d.rol === 'SUPPORT_STORAGE') return null;
+    // Varias anclas del mismo grupo (un bench por isla, N escritorios "fg:libre:…"): la más cercana. El ancla
+    // puede traer el grupo por functional_group_id aunque el dependiente use anchor_instance_id como clave.
+    const cands = anclasColocadas.filter((a) => a.area === d.area && (a.clave === gid || (d.fg != null && a.fg === d.fg)));
+    return cands.length ? Math.min(...cands.map((a) => distR(d.rect, a.rect))) : null;
+  };
+  const grupos = new Map(); // clave → {anchorArea, anchorZone, deps:[{id,area,zone,rect,rol,fg,dueno,maxMM}]}
   for (const c of colocadosValidos) {
     const pieza = porId.get(String(c.id));
     const ai = Number(c.area);
@@ -179,27 +197,32 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     if (esDep(pieza.relation_role) && !claveGrupo(pieza)) { add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) }); continue; }
     const gid = claveGrupo(pieza);
     if (!gid) continue;
-    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anchorRect: null, deps: [] });
+    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, deps: [] });
     const g = grupos.get(gid);
     if (esAncla(pieza.relation_role)) {
-      g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null; g.anchorRect = { ...r, h: r.d };
+      g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null;
       if (pieza.zone_id != null && normZona(pieza.zone_id) !== normZona(zonaDeArea(ai))) {
         add('ANCHOR_WRONG_ZONE', 'fail', { id: String(c.id), area: ai, zoneEsperada: pieza.zone_id, zonaArea: zonaDeArea(ai) });
       }
     } else {
-      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null, rect: { ...r, h: r.d } });
+      g.deps.push({
+        id: String(c.id), area: ai, zone: pieza.zone_id ?? null, rect: r, rol: pieza.relation_role,
+        fg: pieza.functional_group_id ?? null, dueno: c.anchor_instance_id ?? null, maxMM: Number(pieza.max_anchor_distance_mm) || 0,
+      });
     }
   }
   for (const [gid, g] of grupos) {
-    if (g.anchorArea == null) continue; // sin ancla colocada: lo cubre cobertura/missing
     for (const d of g.deps) {
-      if (d.area !== g.anchorArea) {
+      // Zona: sólo con ancla colocada en el grupo (sin ella lo cubre cobertura/missing).
+      if (g.anchorArea != null && d.area !== g.anchorArea) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
-      } else if (d.zone != null && g.anchorZone != null && normZona(d.zone) !== normZona(g.anchorZone)) {
+      } else if (g.anchorArea != null && d.zone != null && g.anchorZone != null && normZona(d.zone) !== normZona(g.anchorZone)) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: g.anchorZone });
-      } else if (g.anchorRect && distR(d.rect, g.anchorRect) > ATTACH_MM) {
+      } else {
+        const dist = distanciaAlAncla(d, gid);
+        const limite = Math.max(ATTACH_MM, d.maxMM);
         // D: misma zona pero DESPRENDIDO de su ancla (lejos).
-        add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid });
+        if (dist != null && dist > limite) add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid, distanciaMM: Number.isFinite(dist) ? Math.round(dist) : null, limiteMM: limite });
       }
     }
   }
