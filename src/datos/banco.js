@@ -292,6 +292,12 @@ export const BANCO = [
   { id: 'mj-2400x1200', categoria: 'Mesas de juntas', tipo: 'mesa', usuarios: 8,
     nombre: 'Mesa de juntas App LT', medidas: '2400 × 1200 mm',
     material: 'Bases metal, cubiertas melamina ABS', precio: 7870, fuente: '2508040' },
+  // Rodrigo (2026-10-20): distinta de la de $18,560 (10 personas, HDMI); es la que lleva una sala de 8.
+  // Mismo producto/precio que `p9-app-mesa-de-juntas-12540` (cotización 2610022 × 0.95), dado de alta
+  // como canónico para que el programa del plano la pueda elegir (`preferente`: ver resolverJuntas).
+  { id: 'mj-3000x1200-8p', categoria: 'Mesas de juntas', tipo: 'mesa', linea: 'App', usuarios: 8, preferente: true,
+    nombre: 'Mesa de juntas App 8 personas (2 cajas eléctricas)', medidas: '3000 × 1200 mm',
+    material: 'Cubiertas melamina ABS, estructura y acometida metálica, 2 cajas eléctricas LUM-LIS (2 contactos y 1 USB)', precio: 12540, fuente: '2610022' },
   { id: 'mj-3000x1200', categoria: 'Mesas de juntas', tipo: 'mesa', usuarios: 10,
     nombre: 'Mesa de juntas App LT (con caja eléctrica)', medidas: '3000 × 1200 mm',
     material: 'Cubiertas melamina ABS, caja eléctrica LUM-LIS HDMI-N al centro, estructura metálica', precio: 18560, fuente: '226030004' },
