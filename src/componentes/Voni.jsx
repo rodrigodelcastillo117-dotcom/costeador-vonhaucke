@@ -19,6 +19,7 @@ import { areasDelNivelUsado } from '../datos/planoLeido.js';
 import { proponerProgramaDelPlano, aplicarPrograma, claveRecomendacion } from '../datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from '../datos/reconciliarPartidas.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
+import { mensajePendientePrograma } from '../datos/mensajesPrograma.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
@@ -446,7 +447,7 @@ export default function Voni({
                 <div style={{ marginTop: 8, color: '#8a5a00' }}>
                   <div style={{ fontWeight: 700 }}>Pendiente de confirmar (no se sustituye solo)</div>
                   {pendientesPrograma.map((p, i) => (
-                    <div key={i}>⚠ {p.rol}{p.faltante?.requested?.model ? ` · ${p.faltante.requested.model}` : ''} — {p.faltante?.reason || 'NEEDS_CONFIRMATION'}</div>
+                    <div key={i} style={{ marginTop: 4 }}>⚠ {mensajePendientePrograma(p)}</div>
                   ))}
                 </div>
               )}
