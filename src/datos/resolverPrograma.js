@@ -456,7 +456,21 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
   };
 
   const nOp = Math.max(0, Math.floor(Number(programa.operativos) || 0));
-  if (nOp > 0) {
+  // Varios open space, cada uno con su conteo (y la suma cuadra con el total): una banca POR cuarto, en su zona.
+  const porZona = Array.isArray(brief.operativosPorZona) ? brief.operativosPorZona.filter((o) => Number(o?.puestos) > 0) : [];
+  const usarPorZona = porZona.length >= 2 && porZona.reduce((s, o) => s + Math.floor(Number(o.puestos)), 0) === nOp;
+  if (nOp > 0 && usarPorZona) {
+    porZona.forEach((o, i) => {
+      const zone_id = o.zone_id || null;
+      const n = Math.floor(Number(o.puestos));
+      const reqId = requirementId(zone_id, 'operativo', i);
+      requerimientos.push({ requirement_id: reqId, zone_id, evidence: null, rol: 'operativo', anchor_role: 'ANCHOR_WORKSTATION', capacidad: n, preferred_line: linea });
+      const op = resolverOperativos(n, { linea, requirement_id: reqId, zone_id, evidence: null });
+      if (op.incompleto) incompletos.push(op.incompleto);
+      op.resoluciones.forEach((ancla) => integrarAncla(ancla, { storageRequested, seatModels: { work: brief.operativoSeatModel } }, 'OPERATIVO_NO_RESUELTO'));
+      if (op.faltante > 0) incompletos.push({ code: 'OPERATIVO_NO_RESUELTO', faltante: op.faltante });
+    });
+  } else if (nOp > 0) {
     const zone_id = brief.operativoZoneId || null;
     const evidence = brief.operativoEvidence || null;
     const reqId = requirementId(zone_id, 'operativo', 0);
