@@ -1,8 +1,8 @@
 {
- "congeladoEn": "2026-10-21T00:06:40.914Z",
- "huellaTotal": "684b16513106ef73148ae34608a5d7e0e94aa32a651839e4ee917055c062a2c5",
+ "congeladoEn": "2026-10-21T01:46:43.632Z",
+ "huellaTotal": "d6692fcd51ee038148670bceb96d7968e2dffdff4e2881db2e8e06fe13dd09a5",
  "nArchivos": 118,
- "frontendSha": "64fdf0b306d61ee37526db900a14e40c05c3f539",
+ "frontendSha": "2e7ee4755f0cd60f45e8620fd732e2894df22794",
  "archivos": {
   "e2e/hojaControl.js": "a175e3e5a434120c939e141446aa09af8bc74c00c449a3554d231b813b85bdcc",
   "e2e/labCostear.e2e.js": "0c4ad9fa45e7662268b1fed10cf3d4f70d955b631c5884238923aaa366edb7c0",
@@ -36,7 +36,7 @@
   "src/datos/cocrear.js": "308e60aaaeb9bcd21f28dfb218dc2b467c6d0541bedc9f822273a8ab1ff294f4",
   "src/datos/cocrearServidor.js": "b71a2d931cf67dbe973c39ce1bbe653fc6ba3900a4cbaa9e337be9c11d633192",
   "src/datos/colorMelamina.js": "fa17f1f750b131e2181b959fc9a7add26c113e3d585642616237c03c0712beb1",
-  "src/datos/confirmarPrograma.js": "bb42e8d66310eed05b59c9d27fc440d99497a84d830838a66774b70a5b0c1ece",
+  "src/datos/confirmarPrograma.js": "7c37bf127ebad64aa939cd47fa996d80a11e6071d18b818fada171591e61a5c6",
   "src/datos/conflictoGuardado.js": "eb5c363ed31a4cd5dcd291c10afb8d8234b8347cb8a60b183a20c1b196d0dce3",
   "src/datos/conservarConfirmados.js": "7d58989e985dca783ff055c02607b2436dfcba00b39a834c86c192858c97096b",
   "src/datos/costeoServidor.js": "1e1a55e212911ac8e8550abc17edb6bc7b30f8f1d80c7b42ff4f45f69e87085a",
