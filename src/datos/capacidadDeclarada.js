@@ -5,7 +5,8 @@
 // Módulo sin dependencias: lo usan espacio.js, reconciliarPartidas.js y confirmarPrograma.js.
 export function capacidadDeNombre(nombre = '', { w = null, rol = null } = {}) {
   const t = String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const m = t.match(/(\d+)\s*(usuarios?|puestos?|personas?|plazas?|lugares?|users?|seats?)\b/);
+  // "OPEN SPACE 01 (8 PAX)" (plano real, 21-oct): PAX = personas en planos de arquitectura.
+  const m = t.match(/(\d+)\s*(usuarios?|puestos?|personas?|plazas?|lugares?|users?|seats?|pax)\b/);
   if (m && Number(m[1]) > 0) return Number(m[1]);
   if (rol === 'ANCHOR_WORKSTATION' && /\b(doble|double)\b/.test(t) && Number(w) > 0) return 2 * Math.max(1, Math.round(Number(w) / 1500));
   return null;

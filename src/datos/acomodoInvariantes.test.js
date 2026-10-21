@@ -359,3 +359,39 @@ describe('acomodoInvariantes · dependiente desprendido de su ancla (D)', () => 
     expect(desprendidos(r)).toHaveLength(0);
   });
 });
+
+// E2E prod 2026-10-20 (cotización 4048): 54 WIN en UN grupo libre (`fg:libre:open`, sin anchor_instance_id)
+// para 5 bancas en dos open spaces. Se comparaba cada silla contra la ÚLTIMA banca del grupo y las bien
+// puestas en el otro cuarto salían DEPENDENT_WRONG_ZONE ("una silla/guarda en otro cuarto que su mueble").
+describe('acomodoInvariantes · grupo con varias anclas en varios cuartos', () => {
+  const payload = () => ({
+    requested: 4,
+    areas: [{ nombre: 'OPEN 1', ancho: 8000, largo: 4000 }, { nombre: 'OPEN 2', ancho: 8000, largo: 4000 }],
+    piezas: [
+      { id: 'b1', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'fg:libre:open' },
+      { id: 'b2', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'fg:libre:open' },
+      { id: 'w1', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'fg:libre:open' },
+      { id: 'w2', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'fg:libre:open' },
+    ],
+  });
+  const plan = (w1Area = 0) => ({
+    colocacion: [
+      { id: 'b1', area: 0, x: 0, y: 0 }, { id: 'w1', area: w1Area, x: 0, y: 1500 },
+      { id: 'b2', area: 1, x: 0, y: 0 }, { id: 'w2', area: 1, x: 0, y: 1500 },
+    ],
+    render_ready: true, layoutSpec: { status: 'PASS', validation: { render_ready: true } },
+  });
+  const cds = (r) => r.issues.map((i) => i.code);
+
+  it('cada silla junto a una banca del grupo en SU cuarto → sin WRONG_ZONE ni DETACHED', () => {
+    const r = evaluarInvariantesAcomodo({ payload: payload(), plan: plan() });
+    expect(cds(r)).not.toContain('DEPENDENT_WRONG_ZONE');
+    expect(cds(r)).not.toContain('DEPENDENT_DETACHED');
+    expect(r.status).toBe('PASS');
+  });
+  it('silla en un cuarto SIN ninguna banca del grupo → DEPENDENT_WRONG_ZONE', () => {
+    const p = payload(); p.areas.push({ nombre: 'SALA', ancho: 4000, largo: 4000 });
+    const r = evaluarInvariantesAcomodo({ payload: p, plan: plan(2) });
+    expect(cds(r)).toContain('DEPENDENT_WRONG_ZONE');
+  });
+});

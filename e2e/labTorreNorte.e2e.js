@@ -49,6 +49,8 @@ test.describe('LAB · plano Torre Norte', () => {
     // 1) Subir el PDF (ambas láminas en un archivo) SIN hoja de respuestas.
     const t0 = Date.now();
     await page.getByTestId('cotizar-plano').setInputFiles(PLANO);
+    // 21-oct: con partidas iniciales la app pregunta si el plano es para este proyecto (sí: es el mismo lab).
+    await page.getByTestId('plano-proyecto-este').click({ timeout: 10000 }).catch(() => {});
     const gate = page.getByTestId('confirmar-lectura');
     // Cierre v3: el rechazo de la validación geométrica determinista (incluso tras el reintento automático) es un
     // resultado explícito, no un tiempo agotado: se reconoce y el caso reprueba con ese motivo.

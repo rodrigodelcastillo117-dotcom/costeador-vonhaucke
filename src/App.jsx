@@ -26,7 +26,7 @@ const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
-import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
+import { aplicarPrograma, partidaComercialDesdeConfirmado, actualizarPartidasDePrograma } from './datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from './datos/reconciliarPartidas.js';
 import { fusionarAcomodo } from './datos/acomodoEstado.js';
 import { aplicarCompartido } from './datos/aplicarCompartido.js';
@@ -208,7 +208,12 @@ function aplicarDireccion(estado, datos) {
 }
 
 export default function App() {
-  const [estado, setEstado] = useState(cargar);
+  // Renglones del programa guardados antes de CATALOG_LIST se re-evalúan al arrancar (si no, no se emiten).
+  const [estado, setEstado] = useState(() => {
+    const est = cargar();
+    const partidas = actualizarPartidasDePrograma(est.cotizacion?.partidas);
+    return partidas === est.cotizacion?.partidas ? est : { ...est, cotizacion: { ...est.cotizacion, partidas } };
+  });
   const [pestania, setPestania] = useState('inicio');
   const [voniAbierto, setVoniAbierto] = useState(false);
   const [inicioVista, setInicioVista] = useState('home'); // sub-vista del Inicio (home/costear/cotizar)
@@ -255,6 +260,9 @@ export default function App() {
       ...e,
       cotizacion: {
         ...e.cotizacion, partidas: [], acomodo: null, cliente: '', folio: '',
+        // 21-oct: el "pedido" que interpretó Voni (programaBrief) es de ESA cotización. Se quedaba pegado y el
+        // programa del siguiente plano pedía los Eclipse de la anterior ("ESCRITORIO_SOLICITADO_NO_CANONICO").
+        programaBrief: null,
         // Bloque 1: el id de la nube vive en el estado (persiste al recargar). Una
         // cotización nueva = sin id y con clave de creación propia (idempotencia).
         id: null, claveCreacion: claveCreacionNueva(),
@@ -1464,7 +1472,8 @@ export default function App() {
                 // VH-148: la versión desde la que se edita (cadena tal cual; null con la RPC vieja).
                 actualizado: typeof full.actualizado === 'string' ? full.actualizado : null,
                 cliente: full.cliente || '', folio: full.folio || '',
-                partidas: full.partidas || [], acomodo: full.acomodo || null,
+                partidas: actualizarPartidasDePrograma(full.partidas || []), acomodo: full.acomodo || null,
+                programaBrief: full.programaBrief ?? null,   // el pedido de ESTA cotización, nunca el de la que estaba abierta
                 descuentoPct: full.totales?.descuentoPct ?? estado.cotizacion.descuentoPct,
                 contingenciaPct: full.totales?.contingenciaPct ?? estado.cotizacion.contingenciaPct,
                 maniobrasPct: full.totales?.maniobrasPct ?? estado.cotizacion.maniobrasPct,
@@ -1474,8 +1483,13 @@ export default function App() {
               };
               // Lo que se acaba de abrir YA está en la nube: no se reescribe (ni se pisa la
               // economía que este rol no ve) hasta que el usuario edite algo.
-              fijarFirmaComoGuardada({ ...estado, cotizacion: cotAbierta });
-              baseNube.current = comparables(cotAbierta);   // VH-148: desde aquí se edita
+              // EXCEPCIÓN: la reparación de renglones viejos (actualizarPartidasDePrograma) SÍ tiene que
+              // subir. La firma y la base son las de lo que hay en el SERVIDOR; si la reparación cambió algo,
+              // el autoguardado lo sube. Antes se firmaba lo reparado y nunca se guardaba: la emisión comparaba
+              // el renglón reparado contra el guardado y decía "no corresponde a lo que se costeó" (4048, 20-oct).
+              const cotServidor = { ...cotAbierta, partidas: full.partidas || [] };
+              fijarFirmaComoGuardada({ ...estado, cotizacion: cotServidor });
+              baseNube.current = comparables(cotServidor);   // VH-148: desde aquí se edita
               setEstado((e) => ({ ...e, cotizacion: cotAbierta }));
               irA('cotizacion');
               mostrarAviso(`Abierto: ${full.cliente || c.cliente || 'sin cliente'}`);
@@ -1544,6 +1558,7 @@ export default function App() {
             onAgregarItems={agregarItemsProyecto}
             onGuardarAcomodo={guardarAcomodo}
             onAplicarPrograma={aplicarProgramaDetectado}
+            onEmpezarDeCero={descartarProyecto}
             onIr={irA}
           />
         )}

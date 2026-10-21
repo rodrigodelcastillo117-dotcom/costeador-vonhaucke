@@ -23,6 +23,7 @@ import { requirementsDeBrief } from '../datos/programaBrief.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
+import { mensajePendientePrograma } from '../datos/mensajesPrograma.js';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
@@ -166,7 +167,7 @@ const etiquetaSlot = (slot) => {
 
 export default function Voni({
   estado, setEstado, soloVentas = false, veCostos = false,
-  onAgregarItems, onGuardarAcomodo, onIr, onAplicarPrograma,
+  onAgregarItems, onGuardarAcomodo, onIr, onAplicarPrograma, onEmpezarDeCero,
   paso, setPaso,
 }) {
   const cot = estado.cotizacion || {};
@@ -193,6 +194,10 @@ export default function Voni({
 
   // VH-043: la lectura NO se usa hasta que la persona la confirme (mandato §4).
   const [lecturaPendiente, setLecturaPendiente] = useState(null);
+  // 21-oct: Rodrigo subió el plano de un proyecto NUEVO con la 4048 abierta (168 piezas) y el programa "no
+  // duplicó" contra ella: ninguna banca, privados pidiendo los Eclipse de la 4048. Con un proyecto abierto,
+  // ANTES de leer se pregunta (en la app, no con confirm(): el navegador integrado lo cancela solo).
+  const [planoEnEspera, setPlanoEnEspera] = useState(null);
   async function subirPlanoAqui(file) {
     setErrorPlano(''); setNotaPlano(''); setLecturaPendiente(null); setLeyendoPlano(true);
     const r = await leerPlanoDeArchivo(file);
@@ -231,7 +236,7 @@ export default function Voni({
   // Rodrigo probó una versión con "1.1, 1.2… hasta el 7" y la tumbó: "son 7
   // clicks que no valen la pena... debería ser 1 con TODO el mobiliario".
   const [subpaso2, setSubpaso2] = useState('describir');
-  const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); setSubpaso2('describir'); };
+  const vaciar = () => { setCot({ partidas: [], acomodo: null, programaBrief: null }); setConfVaciar(false); setSubpaso2('describir'); };
 
   // Cada pantalla de Voni (cambio de paso, o el sub-paso 2a/2b) empieza
   // ARRIBA. Sin esto, llegar al paso 2 podía abrir donde se había quedado el
@@ -384,9 +389,27 @@ export default function Voni({
             onChange={(e) => {
               const f = e.target.files?.[0]; e.target.value = '';
               if (!f) return;              // canceló el diálogo: quedarse en el paso 1
+              if (hay && onEmpezarDeCero) { setPlanoEnEspera(f); return; }
               subirPlanoAqui(f);
             }}
           />
+          {planoEnEspera && (
+            <div className="tarjeta" style={{ marginTop: 12 }} data-testid="plano-proyecto-abierto">
+              <strong>Tienes un proyecto abierto{cot.cliente ? ` (${cot.cliente})` : ''} con {partidas.length} renglón{partidas.length === 1 ? '' : 'es'}. ¿Este plano es para ese proyecto?</strong>
+              <div className="ayuda" style={{ marginTop: 4 }}>Si es de otro cliente u otra oficina, empieza uno nuevo: el abierto queda guardado en Presupuestos anteriores. Si lo agregas a éste, el programa del plano sólo suma lo que le falte a lo que ya tiene.</div>
+              <div className="fila-botones" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <button className="boton primario" style={{ minHeight: 44 }} data-testid="plano-proyecto-nuevo"
+                  onClick={() => { const f = planoEnEspera; setPlanoEnEspera(null); onEmpezarDeCero(); subirPlanoAqui(f); }}>
+                  Es un proyecto nuevo
+                </button>
+                <button className="boton" style={{ minHeight: 44 }} data-testid="plano-proyecto-este"
+                  onClick={() => { const f = planoEnEspera; setPlanoEnEspera(null); subirPlanoAqui(f); }}>
+                  Es para este proyecto
+                </button>
+                <button className="boton fantasma" style={{ minHeight: 44 }} onClick={() => setPlanoEnEspera(null)}>Cancelar</button>
+              </div>
+            </div>
+          )}
           {leyendoPlano && <Cargando voni titulo="Voni está leyendo el plano"
             mensajes={['Midiendo los cuartos…', 'Sacando las áreas…', 'Contando privados y salas…']} />}
           {errorPlano && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorPlano}</span></div>}
@@ -495,7 +518,7 @@ export default function Voni({
                 <div style={{ marginTop: 8, color: '#8a5a00' }}>
                   <div style={{ fontWeight: 700 }}>Pendiente de confirmar (no se sustituye solo)</div>
                   {pendientesPrograma.map((p, i) => (
-                    <div key={i}>⚠ {p.rol}{p.faltante?.requested?.model ? ` · ${p.faltante.requested.model}` : ''} — {p.faltante?.reason || 'NEEDS_CONFIRMATION'}</div>
+                    <div key={i} style={{ marginTop: 4 }}>⚠ {mensajePendientePrograma(p)}</div>
                   ))}
                 </div>
               )}

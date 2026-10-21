@@ -278,9 +278,13 @@ export function resolverPrivado(req = {}) {
 
 // --- JUNTAS: respeta dimensiones pedidas y capacidad; nunca finge cobertura. ---
 // req: { requirement_id, zone_id, ord, requested_dimensions:{w,d}, requested_line }
+const PREFERENTE_DESDE = 7;
+// Misma capacidad: primero la `preferente` (mesa de 8 con caja eléctrica).
+const porUsuariosYPreferencia = (a, b) => (a.usuarios - b.usuarios) || ((b.preferente ? 1 : 0) - (a.preferente ? 1 : 0));
+
 export function resolverJuntas(capacidad, req = {}) {
   const { requirement_id = 'req:z:juntas:0', zone_id = null, evidence = null, ord = 0,
-    requested_dimensions = null, requested_line = null } = req;
+    requested_dimensions = null, requested_line = null, zona_dims = null } = req;
   const base = { requirement_id, zone_id, evidence, ord };
   const cap = Math.max(1, Math.floor(Number(capacidad) || 0));
   const porCapacidad = JUNTAS.slice().sort((a, b) => a.usuarios - b.usuarios);
@@ -292,7 +296,7 @@ export function resolverJuntas(capacidad, req = {}) {
       return needsConfirm({ requirement_id, zone_id, rol: 'juntas', relation_role: 'ANCHOR_MEETING' },
         { reason: 'MESA_SOLICITADA_NO_CANONICA', requested: { dimensions: requested_dimensions, line: requested_line } });
     }
-    const mesa = found.slice().sort((a, b) => a.usuarios - b.usuarios).find((m) => m.usuarios >= cap);
+    const mesa = found.slice().sort(porUsuariosYPreferencia).find((m) => m.usuarios >= cap);
     if (!mesa) {
       return needsConfirm({ requirement_id, zone_id, rol: 'juntas', relation_role: 'ANCHOR_MEETING' },
         { reason: 'DIM_NO_CUBRE_CAPACIDAD', requested: { dimensions: requested_dimensions }, capacidad: cap });
@@ -301,7 +305,18 @@ export function resolverJuntas(capacidad, req = {}) {
   }
 
   // #9: sólo por capacidad. Si NINGUNA mesa cubre, NO finge con la más grande.
-  const cubre = porCapacidad.find((m) => m.usuarios >= cap);
+  // Dirección (2026-10-20): una sala de 7–8 lleva la mesa App de 8 personas CON caja eléctrica
+  // (`preferente`), no la App LT 2.40 sin caja. Para 5–6 sigue la 2.40 (la de 3.00 m es grande para ellos).
+  // Con medidas de la sala, la preferente sólo si CABE (mesa + 0.60 m por cabecera a lo largo y
+  // + 1.20 m por lado a lo ancho: silla y paso); si no, la 2.40 de siempre. Sin medidas: la preferente.
+  const A = Number(zona_dims?.anchoM) * 1000, B = Number(zona_dims?.largoM) * 1000;
+  const cabeEnSala = (m) => {
+    if (!(A > 0 && B > 0)) return true;
+    const wd = medidasAwd(m.medidas); if (!wd) return false;
+    return wd.w + 1200 <= Math.max(A, B) && wd.d + 2400 <= Math.min(A, B);
+  };
+  const pref = cap >= PREFERENTE_DESDE ? porCapacidad.find((m) => m.preferente && m.usuarios >= cap && cabeEnSala(m)) : null;
+  const cubre = pref || porCapacidad.find((m) => m.usuarios >= cap && !m.preferente);
   if (!cubre) {
     const max = porCapacidad.length ? porCapacidad[porCapacidad.length - 1].usuarios : 0;
     return needsConfirm({ requirement_id, zone_id, rol: 'juntas', relation_role: 'ANCHOR_MEETING' },
@@ -441,7 +456,21 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
   };
 
   const nOp = Math.max(0, Math.floor(Number(programa.operativos) || 0));
-  if (nOp > 0) {
+  // Varios open space, cada uno con su conteo (y la suma cuadra con el total): una banca POR cuarto, en su zona.
+  const porZona = Array.isArray(brief.operativosPorZona) ? brief.operativosPorZona.filter((o) => Number(o?.puestos) > 0) : [];
+  const usarPorZona = porZona.length >= 2 && porZona.reduce((s, o) => s + Math.floor(Number(o.puestos)), 0) === nOp;
+  if (nOp > 0 && usarPorZona) {
+    porZona.forEach((o, i) => {
+      const zone_id = o.zone_id || null;
+      const n = Math.floor(Number(o.puestos));
+      const reqId = requirementId(zone_id, 'operativo', i);
+      requerimientos.push({ requirement_id: reqId, zone_id, evidence: null, rol: 'operativo', anchor_role: 'ANCHOR_WORKSTATION', capacidad: n, preferred_line: linea });
+      const op = resolverOperativos(n, { linea, requirement_id: reqId, zone_id, evidence: null });
+      if (op.incompleto) incompletos.push(op.incompleto);
+      op.resoluciones.forEach((ancla) => integrarAncla(ancla, { storageRequested, seatModels: { work: brief.operativoSeatModel } }, 'OPERATIVO_NO_RESUELTO'));
+      if (op.faltante > 0) incompletos.push({ code: 'OPERATIVO_NO_RESUELTO', faltante: op.faltante });
+    });
+  } else if (nOp > 0) {
     const zone_id = brief.operativoZoneId || null;
     const evidence = brief.operativoEvidence || null;
     const reqId = requirementId(zone_id, 'operativo', 0);
@@ -469,7 +498,7 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
     const zone_id = b.zone_id || null;
     const reqId = requirementId(zone_id, 'juntas', i);
     requerimientos.push({ requirement_id: reqId, zone_id, evidence: b.evidence || null, rol: 'juntas', anchor_role: 'ANCHOR_MEETING', capacidad, preferred_line: linea, ...b });
-    const r = resolverJuntas(capacidad, { requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_dimensions: b.requested_dimensions, requested_line: b.requested_line });
+    const r = resolverJuntas(capacidad, { requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_dimensions: b.requested_dimensions, requested_line: b.requested_line, zona_dims: b.zona_dims });
     integrarAncla(r, { capacidad, seatModels: { meeting: b.requested_models && b.requested_models.seat } }, 'JUNTAS_NO_RESUELTO');
   });
 

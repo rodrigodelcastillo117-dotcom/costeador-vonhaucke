@@ -13,7 +13,7 @@ describe('floorSpecAvisos', () => {
     expect(t).toHaveLength(3);
     expect(t[0]).toMatch(/SUPUSO/);
     expect(t[1]).toMatch(/Break/);
-    expect(t[2]).toMatch(/puertas\[0\]/);
+    expect(t[2]).toMatch(/n\.º 1 del plano/);
   });
   it('un código desconocido NO se pierde: se enseña tal cual', () => {
     const t = avisosDeValidacion({ warnings: [{ code: 'NUEVO_CODIGO', field: 'x', message: 'detalle' }] });
@@ -61,6 +61,7 @@ describe('VH-094 · avisos repetidos se resumen con conteo', () => {
     const out = avisosDeValidacion({ warnings: [{ field: 'puertas[0]', code: 'DOOR_SWING_UNVERIFIED' }, { code: 'NO_DIMENSION_AUTHORITY' }] });
     expect(out).toHaveLength(2);
     expect(out[0]).toMatch(/El plano no trae cotas/);
-    expect(out[1]).toMatch(/^Una puerta \[puertas\[0\]\]/);
+    expect(out[1]).toMatch(/^Una puerta \(n\.º 1 del plano\)/);
+    expect(out[1]).not.toMatch(/puertas\[/);
   });
 });

@@ -197,10 +197,11 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     if (esDep(pieza.relation_role) && !claveGrupo(pieza)) { add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) }); continue; }
     const gid = claveGrupo(pieza);
     if (!gid) continue;
-    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, deps: [] });
+    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anclas: [], deps: [] });
     const g = grupos.get(gid);
     if (esAncla(pieza.relation_role)) {
       g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null;
+      g.anclas.push({ area: ai, zone: pieza.zone_id ?? null });
       if (pieza.zone_id != null && normZona(pieza.zone_id) !== normZona(zonaDeArea(ai))) {
         add('ANCHOR_WRONG_ZONE', 'fail', { id: String(c.id), area: ai, zoneEsperada: pieza.zone_id, zonaArea: zonaDeArea(ai) });
       }
@@ -214,16 +215,25 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   for (const [gid, g] of grupos) {
     for (const d of g.deps) {
       // Zona: sólo con ancla colocada en el grupo (sin ella lo cubre cobertura/missing).
-      if (g.anchorArea != null && d.area !== g.anchorArea) {
-        add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
-      } else if (g.anchorArea != null && d.zone != null && g.anchorZone != null && normZona(d.zone) !== normZona(g.anchorZone)) {
-        add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: g.anchorZone });
-      } else {
-        const dist = distanciaAlAncla(d, gid);
-        const limite = Math.max(ATTACH_MM, d.maxMM);
-        // D: misma zona pero DESPRENDIDO de su ancla (lejos).
-        if (dist != null && dist > limite) add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid, distanciaMM: Number.isFinite(dist) ? Math.round(dist) : null, limiteMM: limite });
+      // Un grupo puede tener VARIAS anclas (cotización 4048: 54 WIN en un solo grupo libre para 5 bancas
+      // repartidas en dos open spaces). Antes se comparaba contra la ÚLTIMA ancla y las sillas bien puestas
+      // en la otra banca salían "en otro cuarto que su mueble". Ahora: contra las anclas de SU cuarto.
+      if (g.anclas.length) {
+        const delCuarto = g.anclas.filter((a) => a.area === d.area);
+        if (!delCuarto.length) {
+          add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
+          continue;
+        }
+        const mismaZona = delCuarto.find((a) => d.zone == null || a.zone == null || normZona(a.zone) === normZona(d.zone)) || delCuarto[0];
+        if (d.zone != null && mismaZona.zone != null && normZona(d.zone) !== normZona(mismaZona.zone)) {
+          add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: mismaZona.zone });
+          continue;
+        }
       }
+      const dist = distanciaAlAncla(d, gid);
+      const limite = Math.max(ATTACH_MM, d.maxMM);
+      // D: misma zona pero DESPRENDIDO de su ancla (lejos).
+      if (dist != null && dist > limite) add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid, distanciaMM: Number.isFinite(dist) ? Math.round(dist) : null, limiteMM: limite });
     }
   }
 

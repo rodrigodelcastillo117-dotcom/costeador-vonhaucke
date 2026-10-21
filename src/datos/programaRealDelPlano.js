@@ -148,6 +148,52 @@ export function partidaComercialDesdeConfirmado(it) {
   };
 }
 
+/**
+ * Renglones del programa guardados ANTES de que existiera `CATALOG_LIST` (cotizaciones viejas,
+ * respaldo local) traen `SNAPSHOT_DISPLAY` + `sinPrecioAutorizado` aunque sean catálogo puro, y
+ * la propuesta no se podía emitir ("especial sin costeo"). Al abrirlos se re-evalúan con la MISMA
+ * regla que `partidaComercialDesdeConfirmado`. Sólo se promueven si el catálogo vigente confirma
+ * producto + versión + renglón de lista; si no, se dejan tal cual (fail-closed). No toca precio,
+ * cantidad ni nada más del renglón: el servidor revalida el precio contra el renglón de lista.
+ */
+export function actualizarPartidaDePrograma(p) {
+  if (!p || p.source !== 'CONFIRMADO_PROGRAMA' || p.price_status === 'CATALOG_LIST') return p;
+  const n = partidaComercialDesdeConfirmado({
+    ...p,
+    productoId: p.productoId ?? p.producto_id,
+    precio_lista_snapshot: p.precio_lista_snapshot ?? p.precioUnitario,
+  });
+  if (n.price_status !== 'CATALOG_LIST' || n.lista_precio_item_id == null) return p;
+  return {
+    ...p,
+    source_type: n.source_type, producto_id: n.producto_id, lista_precio_item_id: n.lista_precio_item_id,
+    price_status: n.price_status, precioReal: true, precioAutorizado: true, sinPrecioAutorizado: false,
+    deBanco: true, costoPendiente: false, costoDesconocido: true,
+  };
+}
+
+/**
+ * Lo mismo para renglones del BANCO agregados antes de que se les pegara la identidad de catálogo
+ * (Voni / "agregar del banco" antes de PR #70; cotización 4048, líneas 9–16: WIN, ALPHA, CONCERTO,
+ * mesa, SONATA, recepción, GAMMA-E, archivero). La emisión decía "falta confirmar el costo con
+ * Diseño/Dirección". Se pega la MISMA identidad que hoy pone `agregarDeBanco`/CotizadorIA, sólo si
+ * el catálogo vigente trae producto + versión + renglón de lista. Precio y cantidad no se tocan.
+ */
+export function actualizarPartidaDeBanco(p) {
+  if (!p || p.deBanco !== true || p.producto_id != null || p.piezaId == null) return p;
+  const ident = identidadDeCatalogo('banco', p.piezaId);
+  if (!ident || ident.lista_precio_item_id == null) return p;
+  return { ...p, ...ident, precio_lista_snapshot: p.precio_lista_snapshot ?? p.precioUnitario };
+}
+
+/** Aplica ambas reparaciones a una lista; devuelve la MISMA lista si nada cambió. */
+export function actualizarPartidasDePrograma(partidas) {
+  if (!Array.isArray(partidas)) return partidas;
+  let cambio = false;
+  const out = partidas.map((p) => { const q = actualizarPartidaDeBanco(actualizarPartidaDePrograma(p)); if (q !== p) cambio = true; return q; });
+  return cambio ? out : partidas;
+}
+
 /** Partidas confirmadas → shape Acomodo/costeo (tras aplicar). */
 export function partidasParaAcomodo(confirmacion) {
   const items = (confirmacion && Array.isArray(confirmacion.items)) ? confirmacion.items : [];
@@ -188,6 +234,9 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
   const z = programa.zonas || {};
   const briefBase = { ...(programa.brief || {}), ...(brief || {}) };
   if (z.operativo) briefBase.operativoZoneId = briefBase.operativoZoneId || z.operativo.id || z.operativo.nombre;
+  if (Array.isArray(programa.operativosPorZona) && programa.operativosPorZona.length >= 2) {
+    briefBase.operativosPorZona = programa.operativosPorZona.map((o) => ({ zone_id: o.id || o.nombre, puestos: o.puestos }));
+  }
   if (z.recepcion) briefBase.recepcionZoneId = briefBase.recepcionZoneId || z.recepcion.id || z.recepcion.nombre;
   if (z.recepcion?.puestos && !(Number(briefBase.recepcionPuestos) > 0)) briefBase.recepcionPuestos = z.recepcion.puestos;
   const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(zz.anchoM && zz.largoM ? { zona_dims: { anchoM: zz.anchoM, largoM: zz.largoM } } : {}), ...(arr[i] || {}) }));

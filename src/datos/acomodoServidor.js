@@ -59,6 +59,11 @@ const traducir1 = (x) => {
   return `Aviso del acomodo (${code ? code.toLowerCase().replace(/_/g, ' ') : 'sin detalle'})${id(x)}.`;
 };
 // Muchos avisos iguales (13 sillas "separadas de su grupo") se dicen UNA vez con cuántas y cuáles.
+// "10 piezas quedó separada" → "10 piezas quedaron separadas" (E2E 2026-10-20, cotización 4048).
+const plural = (t) => t
+  .replace(/ quedó /g, ' quedaron ').replace(/ separada /g, ' separadas ')
+  .replace(/ tapa /g, ' tapan ').replace(/ apunta /g, ' apuntan ')
+  .replace(/ no fue colocada ni declarada como no colocada/g, ' no fueron colocadas ni declaradas como no colocadas');
 const traducir = (lista) => {
   const porCodigo = new Map();
   for (const x of (Array.isArray(lista) ? lista : [])) { const k = String(x?.code || ''); if (!porCodigo.has(k)) porCodigo.set(k, []); porCodigo.get(k).push(x); }
@@ -66,7 +71,7 @@ const traducir = (lista) => {
   for (const [, xs] of porCodigo) {
     if (xs.length <= 2 || !xs[0]?.id) { xs.forEach((x) => out.push(traducir1(x))); continue; }
     const nombres = [...new Set(xs.map((x) => NOMBRE(x.id)).filter(Boolean))];
-    out.push(`${traducir1({ ...xs[0], id: null }).replace(/^Pieza/, `${xs.length} piezas`)}${nombres.length ? ` (${nombres.slice(0, 3).join(', ')}${nombres.length > 3 ? '…' : ''})` : ''}`);
+    out.push(`${plural(traducir1({ ...xs[0], id: null }).replace(/^Pieza/, `${xs.length} piezas`))}${nombres.length ? ` (${nombres.slice(0, 3).join(', ')}${nombres.length > 3 ? '…' : ''})` : ''}`);
   }
   return out;
 };
@@ -87,7 +92,13 @@ export function interpretarAcomodoServidor(r, piezas = []) {
   const revisiones = traducir(val.reviews);
   const colocacion = Array.isArray(r.plan?.colocacion) ? r.plan.colocacion : [];
   const nombre = (pid) => piezas.find((p) => p.id === pid)?.nombre || pid;
-  const noColocadas = (Array.isArray(r.noColocadas) ? r.noColocadas : []).map((n) => ({
+  // El edge recovery NO manda `noColocadas` (sí `no_cupieron` por kit y `layoutSpec.unplaced`). Sin esta
+  // derivación `sinColocar` salía vacío: "Todas las piezas colocadas" no se marcaba ⚠ y la revisión de Voni
+  // se daba por VENCIDA en el primer acomodo (106 + 0 ≠ 114, cotización 4048, E2E 2026-10-20).
+  const colocadas = new Set(colocacion.map((c) => String(c?.id)));
+  const listaServidor = Array.isArray(r.noColocadas) ? r.noColocadas
+    : piezas.filter((p) => p?.id != null && !colocadas.has(String(p.id))).map((p) => ({ id: p.id }));
+  const noColocadas = listaServidor.map((n) => ({
     id: n?.id, nombre: nombre(n?.id), motivo: n?.motivo || (Array.isArray(n?.codigos) ? n.codigos.join(', ') : ''),
   }));
   const total = Number.isFinite(r.total) ? r.total : piezas.length;
@@ -105,7 +116,10 @@ export function interpretarAcomodoServidor(r, piezas = []) {
   const puertasOk = puertas ? puertas.total > 0 && (puertas.status === 'VERIFIED' || puertas.verificadas === true) : null;
   const avisos = [];
   if (estado === 'SIN_VALIDACION') avisos.push('El servidor no devolvió validación del acomodo: revisa el plano antes de usarlo.');
-  if (noColocadas.length) avisos.push(`${noColocadas.length} mueble(s) sin colocar: ${noColocadas.map((n) => n.nombre).join(', ')}.`);
+  if (noColocadas.length) {
+    const nombres = [...new Set(noColocadas.map((n) => n.nombre))];
+    avisos.push(`${noColocadas.length} mueble(s) sin colocar: ${nombres.slice(0, 6).join(', ')}${nombres.length > 6 ? '…' : ''}.`);
+  }
   avisos.push(...revisiones);
   if (puertas && puertas.total === 0) avisos.push('El servidor acomodó sin puertas: nadie verificó accesos ni barridos.');
   else if (puertasOk === false) avisos.push('Hay puertas cuyo barrido el servidor no pudo verificar.');
