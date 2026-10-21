@@ -261,8 +261,12 @@ export default function App() {
         actualizado: null,        // VH-148: sin versión conocida hasta que el servidor la devuelva
         // No arrastrar el descuento/ajustes del cliente anterior a la nueva.
         descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
+        // E2E 2026-10-20: la propuesta nueva salía con la fecha del día en que se creó el estado del
+        // navegador ("3 de octubre" el 20). Una cotización nueva lleva la fecha de HOY.
+        fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
     }));
+    setVoniPaso(1);               // y empieza en el paso 1 (Espacio), no en la Propuesta en blanco
     borrarBorradorPedido();       // el pedido a Voni de la cotización anterior no se arrastra a la nueva
     mostrarAviso('Listo: empezaste una cotización nueva, desde cero.');
   };

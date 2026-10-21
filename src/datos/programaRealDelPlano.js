@@ -190,7 +190,7 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
   if (z.operativo) briefBase.operativoZoneId = briefBase.operativoZoneId || z.operativo.id || z.operativo.nombre;
   if (z.recepcion) briefBase.recepcionZoneId = briefBase.recepcionZoneId || z.recepcion.id || z.recepcion.nombre;
   if (z.recepcion?.puestos && !(Number(briefBase.recepcionPuestos) > 0)) briefBase.recepcionPuestos = z.recepcion.puestos;
-  const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(arr[i] || {}) }));
+  const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(zz.anchoM && zz.largoM ? { zona_dims: { anchoM: zz.anchoM, largoM: zz.largoM } } : {}), ...(arr[i] || {}) }));
   briefBase.privados = mezclarZona(briefBase.privados, z.privados || []);
   briefBase.juntas = mezclarZona(briefBase.juntas, z.juntas || []);
   const entrada = {

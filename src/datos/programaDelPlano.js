@@ -237,7 +237,9 @@ export function programaDelPlano(areas, opts = {}) {
     // ProgramRequirement. P0.3 la enriquecerá (evidencia/confianza); aquí no se tira.
     zonas: {
       operativo: (islasA[0] || abiertos[0]) ? { nombre: (islasA[0] || abiertos[0]).nombre, id: (islasA[0] || abiertos[0]).id || null } : null,
-      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null })),
+      // E2E 2026-10-20: con las medidas el programa escoge un escritorio que QUEPA (privado de 3.5 m
+      // recibía el módulo directivo de 3.6 m de fondo y el acomodo lo rechazaba).
+      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null, ...(Number(a.ancho) > 0 && Number(a.largo) > 0 ? { anchoM: Number(a.ancho), largoM: Number(a.largo) } : {}) })),
       juntas: salasA.map((a) => ({ nombre: a.nombre, id: a.id || null })),
       // Prueba de Rodrigo 19-oct: los puestos de la recepción del plano (quienes atienden) deciden cuántas sillas lleva.
       recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null, puestos: Number(a.puestos) > 0 ? Number(a.puestos) : null } : null; })(),

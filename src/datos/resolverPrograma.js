@@ -244,7 +244,7 @@ export function resolverOperativos(nUsuarios, { linea = LINEA_DEFAULT, requireme
 // req: { requirement_id, zone_id, ord, requested_models:{anchor}, requested_line, requested_dimensions }
 export function resolverPrivado(req = {}) {
   const { requirement_id = 'req:z:privado:0', zone_id = null, evidence = null, ord = 0,
-    requested_models = null, requested_line = null, requested_dimensions = null } = req;
+    requested_models = null, requested_line = null, requested_dimensions = null, zona_dims = null } = req;
   const base = { requirement_id, zone_id, evidence, ord };
   const model = requested_models && requested_models.anchor;
   if (model || requested_line || requested_dimensions) {
@@ -257,7 +257,19 @@ export function resolverPrivado(req = {}) {
     }
     return anclaDesde(found[0], 'privado', 'ANCHOR_DESK', base);
   }
-  // Sin pedido específico: directivo canónico por defecto.
+  // Sin pedido específico: el escritorio más completo que QUEPA en el cuarto (si se conocen sus medidas),
+  // dejando 1.20 m para la silla al fondo. E2E 2026-10-20: un privado de 3.5 × 4 m recibía el módulo
+  // directivo 1.80 × 2.40 (3.6 m con la silla) y el acomodo decía "no cabe". Sin medidas: el de siempre.
+  const deseables = ['dir-1800x2400', 'ger-1800x1800', 'ger-1500x1800', 'ger-1800x750', 'ger-1500x750'];
+  const A = Number(zona_dims?.anchoM) * 1000, B = Number(zona_dims?.largoM) * 1000;
+  if (A > 0 && B > 0) {
+    // Como lo acomoda el servidor: el fondo (más la silla) va hacia el lado CORTO del cuarto.
+    const corto = Math.min(A, B), largo = Math.max(A, B);
+    const cabe = (e) => { const wd = medidasAwd(e.medidas); if (!wd) return false;
+      return wd.w <= largo && wd.d + 1200 <= corto; };
+    const elegido = deseables.map((id) => ESCRITORIOS.find((e) => e.id === id)).find((e) => e && cabe(e));
+    if (elegido) return anclaDesde(elegido, 'privado', 'ANCHOR_DESK', base);
+  }
   const prod = ESCRITORIOS.find((e) => /^dir-/.test(e.id))
     || ESCRITORIOS.find((e) => /directivo/i.test(e.nombre || ''))
     || ESCRITORIOS[0];
@@ -446,7 +458,7 @@ export function resolverPrograma(programa = {}, { linea = LINEA_DEFAULT } = {}) 
     const zone_id = b.zone_id || null;
     const reqId = requirementId(zone_id, 'privado', i);
     requerimientos.push({ requirement_id: reqId, zone_id, evidence: b.evidence || null, rol: 'privado', anchor_role: 'ANCHOR_DESK', capacidad: 1, preferred_line: linea, ...b });
-    const r = resolverPrivado({ requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_models: b.requested_models, requested_line: b.requested_line, requested_dimensions: b.requested_dimensions });
+    const r = resolverPrivado({ requirement_id: reqId, zone_id, evidence: b.evidence || null, requested_models: b.requested_models, requested_line: b.requested_line, requested_dimensions: b.requested_dimensions, zona_dims: b.zona_dims });
     integrarAncla(r, { seatModels: { executive: b.requested_models && b.requested_models.seat }, visitors: b.requested_visitors }, 'PRIVADO_NO_RESUELTO');
   }
 

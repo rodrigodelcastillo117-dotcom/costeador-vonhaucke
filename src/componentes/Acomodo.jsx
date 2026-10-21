@@ -283,7 +283,7 @@ export default function Acomodo(props) {
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, width: '100%' }}>
               <select value={lineaOperativa} onChange={(e) => setLineaOperativa(e.target.value)}
                 style={{ minHeight: 40, width: 'min(100%, 320px)', borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
-                <option value="applt">APP LT · 1.50 m por puesto</option>
+                <option value="applt">APP LT · módulos de 1.20 m por puesto</option>
               </select>
               <button type="button"
                 onClick={() => props.onAplicarPrograma?.(propuestaPlano.propuesta)}
