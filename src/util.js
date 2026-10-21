@@ -190,6 +190,7 @@ export function selloPartida(pt) {
   // AUTORIDAD DE PRECIO NUEVA (#8): manda sobre el legacy. La etiqueta jamás debe
   // contradecir el gate económico (price_status). Sólo después cae al legacy.
   if (pt.price_status === 'AUTHORIZED_REAL') return { tipo: 'firme', texto: 'Firme', nota: 'Precio autorizado (validado por el servidor).' };
+  if (pt.price_status === 'CATALOG_LIST') return { tipo: 'firme', texto: 'Firme', nota: 'Precio de lista del catálogo; el servidor lo revalida al emitir.' };
   if (pt.price_status === 'SIN_PRECIO' || (pt.sinPrecioAutorizado && pt.precioUnitario == null)) {
     return { tipo: 'sin_precio', texto: 'Sin precio', nota: 'Producto resuelto sin precio; el servidor debe autorizarlo antes de emitir.' };
   }

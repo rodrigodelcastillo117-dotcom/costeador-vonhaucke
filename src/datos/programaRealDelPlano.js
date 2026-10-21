@@ -15,6 +15,7 @@
 import { programaDelPlano } from './programaDelPlano.js';
 import { resolverPrograma } from './resolverPrograma.js';
 import { confirmarPrograma } from './confirmarPrograma.js';
+import { identidadDeCatalogo } from './precioAutorizado.js';
 
 // Nombre que describe el ROL real en palabras que coherencia/ruteo legacy aún
 // entienden. NO es la autoridad semántica (esa es relation_role); sólo etiqueta.
@@ -78,11 +79,23 @@ function aPartidaAcomodo(it) {
  * NO usa partidaDeCosteo (dominio de costeo): no inventa costo, no calcula BOM
  * vacío, no deriva margen. Conserva la semántica estructural a NIVEL SUPERIOR
  * (no escondida en config) para que Acomodo/coherencia/spatial la lean directo.
- * Precio: snapshot de DISPLAY (nunca $0; nunca FIRME); el servidor lo revalida.
+ * Precio: snapshot de DISPLAY (nunca $0); el servidor lo revalida al emitir.
+ *
+ * REVENTA DE CATÁLOGO (prueba E2E 2026-10-20, Rodrigo: "que funcione"): si el producto
+ * trae identidad completa (producto + versión) y precio de lista, ES un producto de
+ * catálogo comprado/fabricado en serie, no un especial. Antes se marcaba `costoPendiente`
+ * ("especial sin costeo") y la propuesta NO se podía emitir aunque fuera puro catálogo.
+ * Ahora: precio de lista del catálogo (`CATALOG_LIST`) y costo DESCONOCIDO (no pendiente):
+ * la emisión toma la política de reventa (P0-01) y el servidor revalida precio e item.
+ * Sin identidad o sin precio sigue fail-closed como antes.
  */
 export function partidaComercialDesdeConfirmado(it) {
   const snap = Number(it.precio_lista_snapshot) > 0 ? Number(it.precio_lista_snapshot) : null;
   const sinPrecio = it.price_status === 'SIN_PRECIO' || snap == null;
+  const esId = (x) => x != null && /^[0-9]+$/.test(String(x));
+  const reventa = !sinPrecio && esId(it.productoId) && esId(it.producto_version_id);
+  const cat = reventa ? identidadDeCatalogo('banco', it.source_ref || it.bancoId) : null;
+  const catOk = cat && Number(cat.producto_id) === Number(it.productoId) && Number(cat.producto_version_id) === Number(it.producto_version_id);
   return {
     id: it.id || it.instance_id || `${it.relation_role}:${it.bancoId}`,
     // identidad de producto (top-level)
@@ -91,6 +104,11 @@ export function partidaComercialDesdeConfirmado(it) {
     source_ref: it.source_ref || it.bancoId,
     productoId: it.productoId || null,
     producto_version_id: it.producto_version_id || null,
+    ...(reventa ? {
+      source_type: 'banco',
+      producto_id: Number(it.productoId),
+      lista_precio_item_id: catOk ? cat.lista_precio_item_id : (it.lista_precio_item_id ?? null),
+    } : {}),
     nombre: it.nombre,
     w: it.w ?? null,
     d: it.d ?? null,
@@ -111,16 +129,18 @@ export function partidaComercialDesdeConfirmado(it) {
     // TRES COMPUERTAS (top-level)
     product_status: it.product_status ?? 'RESOLVED',
     identity_status: it.identity_status ?? (it.productoId ? 'RESOLVED' : 'MISSING'),
-    price_status: it.price_status ?? (snap ? 'SNAPSHOT_DISPLAY' : 'SIN_PRECIO'),
-    // PRECIO (#6): display, NUNCA $0 inventado, NUNCA firme hasta autoridad.
+    price_status: reventa ? 'CATALOG_LIST' : (it.price_status ?? (snap ? 'SNAPSHOT_DISPLAY' : 'SIN_PRECIO')),
+    // PRECIO (#6): NUNCA $0 inventado. Reventa: precio de lista del catálogo (el servidor lo revalida).
     precioUnitario: sinPrecio ? null : snap,
     precio_lista_snapshot: snap,
-    precioReal: false,
-    precioAutorizado: false,
-    sinPrecioAutorizado: true,
-    // COSTO (#7): desconocido/pendiente; jamás inventado ni 0.
+    precioReal: reventa,
+    precioAutorizado: reventa,
+    sinPrecioAutorizado: !reventa,
+    deBanco: reventa,
+    // COSTO (#7): jamás inventado ni 0. Reventa: desconocido (no bloquea); sin identidad: pendiente.
     costoUnitario: null,
-    costoPendiente: true,
+    costoPendiente: !reventa,
+    ...(reventa ? { costoDesconocido: true } : {}),
     margen: null,
     // config SÓLO para configuración adicional
     config: { usuarios: it.usuarios ?? null },
