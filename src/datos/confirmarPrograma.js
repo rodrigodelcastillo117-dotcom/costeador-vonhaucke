@@ -275,8 +275,24 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
   // --- ANCLAS: identidad (requirement_id) PRIMERO, luego posición legacy (#9). ---
   const anchorSlot = (rol, rel, ord) => `${rol}|${rel}|#${ord}`;
   const existAnchors = ex.filter((e) => esAncla(e.rel));
+  // Varias anclas pueden compartir requerimiento (3 bancas del mismo "operativo"). Antes un Map guardaba sólo la
+  // ÚLTIMA y las demás propuestas chocaban con ella: al "Aplicar programa detectado" el programa entraba en
+  // conflicto consigo mismo ("ya tienes 4 usuarios, el plano propone 12", E2E 2026-10-20). Ahora es una lista.
   const existByReq = new Map();
-  for (const e of existAnchors) { if (e.raw && e.raw.requirement_id) existByReq.set(String(e.raw.requirement_id), e); }
+  for (const e of existAnchors) {
+    if (!(e.raw && e.raw.requirement_id)) continue;
+    const k = String(e.raw.requirement_id);
+    if (!existByReq.has(k)) existByReq.set(k, []);
+    existByReq.get(k).push(e);
+  }
+  const tomadoPorReq = new Set();
+  const previoPorReq = (a) => {
+    const lista = a.requirement_id ? (existByReq.get(String(a.requirement_id)) || []) : [];
+    const libres = lista.filter((e) => !tomadoPorReq.has(e._i));
+    const e = libres.find((x) => String(x.banco) === String(a.bancoId)) || libres[0] || null;
+    if (e) tomadoPorReq.add(e._i);
+    return e;
+  };
   const anchorOrd = new Map();
   const anchorBySlot = new Map();
   for (const e of existAnchors) {
@@ -291,7 +307,7 @@ export function confirmarPrograma(propuesta, { existentes = [], sustituir = [], 
     const ord = propAnchorOrd.get(base) || 0; propAnchorOrd.set(base, ord + 1);
     const slot = anchorSlot(rol, a.relation_role, ord);
     // #9: requirement_id (estable bajo reorden) manda; posición sólo como fallback legacy.
-    const prev = (a.requirement_id && existByReq.get(String(a.requirement_id))) || anchorBySlot.get(slot);
+    const prev = previoPorReq(a) || anchorBySlot.get(slot);
     if (prev) {
       if (String(prev.banco) === String(a.bancoId)) {
         usados.add(prev._i);                      // reutiliza: lo re-emitimos como EXISTENTE
