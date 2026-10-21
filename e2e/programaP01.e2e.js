@@ -77,7 +77,7 @@ test.describe('E2E P0.1 · caso roto de Rodrigo (navegador real)', () => {
     await page.getByText(/^Muebles$/).first().click();
 
     // El panel del programa detectado DEBE aparecer con el APP LT por agregar.
-    await expect(page.getByText(/Programa detectado del plano/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Programa detectado del (plano|espacio)/i)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Por agregar/i)).toBeVisible();
     await expect(page.getByText(/App LT 10 usuarios|6000|Bench operativo/i).first()).toBeVisible();
     // Drift pendiente, nunca sustituido en la propuesta.

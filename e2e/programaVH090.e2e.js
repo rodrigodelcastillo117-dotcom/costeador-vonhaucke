@@ -48,7 +48,7 @@ test.describe('VH-091 · conflicto programa-vs-programa con salida', () => {
     await page.getByTestId('home-cotizar').click();
     await page.getByText(/^Muebles$/).first().click();
 
-    await expect(page.getByText(/Programa detectado del plano/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Programa detectado del (plano|espacio)/i)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Conflicto \(decide tú\)/i)).toBeVisible();
     // Nunca el id interno en pantalla: etiqueta humana + nombres.
     await expect(page.getByText(/Mesa de juntas 1: ya tienes/i)).toBeVisible();

@@ -130,7 +130,7 @@ test.describe('E2E P0.1 · gate J — el writer de ProgramBrief (navegador real)
 
     // CONSUMO en Voni paso 2: el brief (Drift) + FloorSpec → privado PENDIENTE,
     // y el bench App LT "Por agregar". Esto NO aparecería sin consumir el brief.
-    await expect(page.getByText(/Programa detectado del plano/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Programa detectado del (plano|espacio)/i)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Pendiente de confirmar/i)).toBeVisible();
     await expect(page.getByText(/drift/i).first()).toBeVisible();
     await expect(page.getByText(/App LT 10 usuarios|6000|Bench operativo/i).first()).toBeVisible();
