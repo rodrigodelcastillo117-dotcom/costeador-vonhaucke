@@ -250,34 +250,39 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     const p = porId.get(String(c.id));
     if (!esDep(p.relation_role)) continue;
     const dRect = rectPorId.get(String(c.id));
-    // El vínculo RESUELTO por el solver viaja en la COLOCACIÓN (c.anchor_instance_id = id REAL del
-    // ancla que se le asignó). Es el MISMO valor que el servidor usa tras el kit-solver, que reescribe
-    // la pieza (recovery-core.js:159 lee p.anchor_instance_id YA reescrito). El programa, en cambio, trae
-    // en la pieza un token de REQUERIMIENTO (inst:req:…) que NO es una pieza colocada; por eso la
-    // colocación MANDA y el token de la pieza queda sólo como respaldo (planes a mano / fixtures directos).
     const decl = c.anchor_instance_id != null ? String(c.anchor_instance_id)
       : (p.anchor_instance_id != null ? String(p.anchor_instance_id) : null);
-    if (!decl) {
-      // Sin ancla DECLARADA. VH-096: SUPPORT_STORAGE suelta exenta (servidor recovery-core.js:165).
-      if (p.relation_role === 'SUPPORT_STORAGE') continue;
-      // DATOS LEGACY (sólo functional_group_id, sin anchor_instance_id): el servidor sería ESTRICTO
-      // (UNASSIGNED), pero para NO voltear goldens conservamos la INFERENCIA por grupo — contra el
-      // ancla del MISMO grupo en SU cuarto (la más cercana) — y la MARCAMOS `inferida:true` para no
-      // esconder la ambigüedad. Sin grupo ya lo cubrió DEPENDENT_UNASSIGNED arriba.
-      const fg = p.functional_group_id != null ? String(p.functional_group_id) : null;
-      if (!fg) continue;
-      const mismasArea = (anclasColocadasPorGrupo.get(fg) || []).map((id) => rectPorId.get(id)).filter((a) => a && a.area === dRect.area);
-      if (!mismasArea.length) continue; // ningún ancla del grupo en su área: es problema de ZONA (ya cubierto), no de distancia.
-      const dMin = Math.min(...mismasArea.map((a) => distR(dRect, a)));
-      if (dMin > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area, inferida: true });
+    // (1) VÍNCULO FUERTE — el token declarado resuelve a un ANCLA COLOCADA (su id/instance, o el
+    //     placement id que el solver REAL escribe en la colocación: recovery-core.js reescribe la pieza
+    //     y corre el invariante sobre ese id). Es el mismo que ve el servidor → se evalúa EXACTO como él
+    //     (recovery-core.js:167-169): misma área + distancia ≤ 1200 contra ESA ancla, nunca otra.
+    if (decl) {
+      const anc = (() => { const id = anclaPorClave.get(decl); return id != null ? rectPorId.get(id) : null; })();
+      if (anc && esAncla(anc.rol)) {
+        if (anc.area !== dRect.area || distR(dRect, anc) > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area });
+        continue;
+      }
+      // El token NO es un placement colocado: es un token de REQUERIMIENTO pre-solver (inst:req:…) que el
+      // cliente recibe cuando el edge no reescribe las piezas (p. ej. acomodo mockeado / sin kit-solver del
+      // lado del cliente). NO es "ancla no colocada": el vínculo real viaja en el functional_group_id, que
+      // el programa comparte entre el ancla y sus dependientes. Caemos a esa inferencia (abajo).
+    }
+    // (2) VH-096: SUPPORT_STORAGE suelta (sin vínculo resoluble) es un kit propio, exenta (servidor :165).
+    if (p.relation_role === 'SUPPORT_STORAGE') continue;
+    // (3) INFERENCIA POR GRUPO — el ancla y sus dependientes comparten functional_group_id en el programa,
+    //     aunque los tokens de instancia difieran (inst:req: vs fg:req:). Se mide contra el ancla del MISMO
+    //     grupo en SU área y se marca `inferida:true` para no esconder que el vínculo se infirió.
+    const fg = p.functional_group_id != null ? String(p.functional_group_id) : null;
+    if (!fg) {
+      // Había un ancla DECLARADA que no resolvió ni como placement ni por grupo → de verdad no colocada.
+      // (Sin `decl`, es un dependiente sin dueño: ya lo cubrió DEPENDENT_UNASSIGNED en el primer pase; no se duplica.)
+      if (decl) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), motivo: 'ancla no colocada' });
       continue;
     }
-    // CON anchor_instance_id: contra ESA ancla específica (servidor recovery-core.js:167-169):
-    // existe + es rol ANCHOR_* + misma área + distancia ≤ 1200. Si no, DETACHED.
-    const ancColocId = anclaPorClave.get(decl);
-    const anc = ancColocId != null ? rectPorId.get(ancColocId) : null;
-    if (!anc || !esAncla(anc.rol)) { add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), motivo: 'ancla no colocada' }); continue; }
-    if (anc.area !== dRect.area || distR(dRect, anc) > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area });
+    const mismasArea = (anclasColocadasPorGrupo.get(fg) || []).map((id) => rectPorId.get(id)).filter((a) => a && a.area === dRect.area);
+    if (!mismasArea.length) continue; // ningún ancla del grupo en su área: es problema de ZONA (ya cubierto), no de distancia.
+    const dMin = Math.min(...mismasArea.map((a) => distR(dRect, a)));
+    if (dMin > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area, inferida: true });
   }
 
   // --- Señales de REVIEW (no-fail) heredadas del edge ---

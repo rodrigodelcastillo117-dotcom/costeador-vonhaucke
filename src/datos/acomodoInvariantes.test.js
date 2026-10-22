@@ -521,4 +521,52 @@ describe('acomodoInvariantes · ACOM01 DEPENDENT_DETACHED (paridad servidor)', (
     expect(norm(cliente)).toEqual(norm(servidor));
     expect(norm(servidor)).toEqual(['orph|DEPENDENT_UNASSIGNED', 'seatFar|DEPENDENT_DETACHED', 'seatGhost|DEPENDENT_DETACHED'].sort());
   });
+
+  // ---- Regresión del E2E acomodoP02 (navegador real) --------------------------------------------
+  // El cliente corre sobre las piezas del PROGRAMA (pre-solver): el dependiente trae un token de
+  // REQUERIMIENTO (anchor_instance_id = 'inst:req:…') que NO es un id de colocación, y comparte
+  // functional_group_id con su ancla. El servidor sólo ve las piezas ya REESCRITAS por el kit-solver
+  // (anchor = placement id), así que el cliente no puede resolver el token como placement; debe caer a
+  // la inferencia por grupo (vínculo compartido), NO declarar 'ancla no colocada'. Antes de este fix el
+  // cliente marcaba DEPENDENT_DETACHED falso y el layout válido NO persistía (E2E rojo).
+  const BANCA_FG = (id, fg) => ({ id, w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', functional_group_id: fg, zone_id: 'Z' });
+  const SILLA_TOK = (id, tok, fg) => ({ id, w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: tok, functional_group_id: fg, zone_id: 'Z' });
+
+  it('16 · token pre-solver (inst:req) NO resoluble + MISMO functional_group_id, silla en rango → PASS (vínculo por grupo, sin DETACHED)', () => {
+    const r = ev(
+      [BANCA_FG('b-1', 'fg:req:OPERATIVA:operativo:0:#0'),
+       SILLA_TOK('w-1', 'inst:req:OPERATIVA:operativo:0:#0', 'fg:req:OPERATIVA:operativo:0:#0'),
+       SILLA_TOK('w-2', 'inst:req:OPERATIVA:operativo:0:#0', 'fg:req:OPERATIVA:operativo:0:#0')],
+      [{ id: 'b-1', area: 0, x: 0, y: 0, rot: 0 },
+       { id: 'w-1', area: 0, x: 0, y: 1500, rot: 0 },     // dy = 1500-1200 = 300 ≤ 1200
+       { id: 'w-2', area: 0, x: 2000, y: 1500, rot: 0 }], // dentro del bench en x, dy=300
+    );
+    expect(detached(r)).toHaveLength(0);
+    expect(r.status).toBe('PASS');
+  });
+
+  it('17 · token pre-solver NO resoluble + MISMO grupo, silla LEJOS del ancla del grupo → DETACHED inferida:true', () => {
+    const r = ev(
+      [BANCA_FG('b-1', 'g'), SILLA_TOK('w-1', 'inst:req:g', 'g')],
+      [{ id: 'b-1', area: 0, x: 0, y: 0, rot: 0 },
+       { id: 'w-1', area: 0, x: 0, y: 6000, rot: 0 }],    // dy = 6000-1200 = 4800 > 1200
+    );
+    const d = detached(r);
+    expect(d).toHaveLength(1);
+    expect(d[0].id).toBe('w-1');
+    expect(d[0].inferida).toBe(true);
+    expect(r.status).toBe('FAIL');
+  });
+
+  it('18 · token pre-solver NO resoluble y SIN grupo → DETACHED "ancla no colocada" (no se infiere de la nada)', () => {
+    const r = ev(
+      [{ id: 'b-1', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'Z' },
+       { id: 'w-1', w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: 'inst:req:huerfano', zone_id: 'Z' }],
+      [{ id: 'b-1', area: 0, x: 0, y: 0, rot: 0 }, { id: 'w-1', area: 0, x: 0, y: 1500, rot: 0 }],
+    );
+    const d = detached(r);
+    expect(d).toHaveLength(1);
+    expect(d[0].motivo).toBe('ancla no colocada');
+    expect(r.status).toBe('FAIL');
+  });
 });
