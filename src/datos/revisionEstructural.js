@@ -234,6 +234,29 @@ export function medidasDe(texto = '') {
   const enM = /\d\s*m\b/.test(t) && !/mm/.test(t) && crudos.every((n) => n < 50);
   return crudos.map((n) => (enM ? n * 1000 : n)).filter((n) => n >= 50 && n <= 20000).slice(0, 3);
 }
+/**
+ * Huella en PLANTA (largo×ancho) del mueble, para acotar qué tan grande puede ser una
+ * pieza de tablero. Es la medida contra la que el validador (1) compara cada panel.
+ * Robusta a dos casos que daban un falso "pieza más grande que el mueble":
+ *  (a) mueble REDONDO ("Ø1800", "redonda", "circular"): su huella es diámetro×diámetro,
+ *      no diámetro×alto. Una cubierta en dos medias lunas de 1800×900 cabe en Ø1800.
+ *  (b) una dimensión rotulada como ALTO/altura: es vertical, no es parte de la planta,
+ *      así que no debe contar como el "ancho" del mueble. (Mesa de consejo redonda
+ *      Ø1.80 m × 0.75 alto daba el falso bloqueo; lab en vivo 2026-10-22.)
+ * Para un mueble rectangular con la altura SIN rotular (1500×600×740) se conserva el
+ * comportamiento anterior (las dos medidas mayores), así que no cambia ningún caso bueno.
+ */
+export function huellaDelMueble(texto = '') {
+  const t = String(texto || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const redondo = /ø|\bdiam|\bredond|\bcircular\b/.test(t);
+  // Quita la dimensión rotulada como alto/altura (vertical: fuera de la planta). Consume la
+  // unidad vaya antes o después del rótulo ("740 mm alto" y "740 alto mm"), para no dejar un
+  // "mm" suelto que confundiría la detección de metros de medidasDe.
+  const sinAlto = String(texto || '').replace(/\d+(?:[.,]\d+)?\s*(?:mm|cm|m)?\s*(?:de\s+)?(?:alto|altura)\s*(?:mm|cm|m)?\b/gi, ' ');
+  const plan = medidasDe(sinAlto).sort((a, b) => b - a);
+  if (redondo) return plan.length ? [plan[0], plan[0]] : [];
+  return plan.slice(0, 2);
+}
 const ROL_PANEL = new Set(['cubierta', 'lateral', 'entrepano', 'puerta', 'faldon', 'frente_cajon', 'respaldo', 'fondo']);
 const FAM_NO_ES_PIEZA = new Set(['pintura_polvo', 'acabado_liquido', 'acabado_metal', 'tornilleria', 'adhesivo', 'tapacanto', 'soldadura', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'iluminacion', 'electrico']);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
@@ -245,7 +268,9 @@ function cuantosPide(texto, rx) {
 
 function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGenerales, fam, obs }) {
   // (1) MEDIDAS IMPOSIBLES: una pieza de tablero más grande que el mueble completo.
-  const gen = medidasDe(medidasGenerales).sort((a, b) => b - a);
+  // La huella (largo×ancho en planta) ignora la altura rotulada y, en muebles redondos,
+  // es diámetro×diámetro (ver huellaDelMueble) — así una media luna no se marca imposible.
+  const gen = huellaDelMueble(medidasGenerales);
   if (gen.length >= 2) {
     const tol = 60;   // cantos, sobrepuestos y vuelos razonables
     for (const c of conRol) {
