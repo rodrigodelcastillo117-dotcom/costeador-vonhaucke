@@ -75,15 +75,39 @@ case "$CASO" in
       pw e2e/labRecorridos.e2e.js ;;
   holdout-*)
     # Cierre ChatGPT v3 (Release/Holdout): corrida del holdout Intelisis sobre el SHA CONGELADO del MANIFIESTO (entorno
-    # limpio, deps verificadas) con las Edge RC exactas; después se verifica con congelar_holdout --verificar.
+    # limpio, deps verificadas) con las Edge RC exactas; DESPUÉS se verifica de verdad con congelar_holdout --verificar.
+    # P1-HO-01: antes la rama terminaba en el pw y PASABA sin verificar nada contra el MANIFIESTO congelado. Ahora la
+    # corrida es sólo la mitad: la certificación del holdout es el exit de `congelar_holdout --verificar`, nunca el del pw.
     h="${CASO#holdout-}"
     SHA_H=$(node -e "console.log(require('./lab/costear/holdout_intelisis/MANIFIESTO.json').frontendSha)")
+    # --corrida lee el directorio ENTERO (una subcarpeta = una hoja). Se aísla de "$OUT/pw" (artefactos de Playwright) y
+    # de los logs sueltos: la corrida vive en "$OUT/corrida/<hoja>" y nada más cuelga de "$OUT/corrida".
+    CORRIDA="$OUT/corrida"; mkdir -p "$CORRIDA"
     node scripts/prepararEntornoHoldout.mjs ../envh "$SHA_H" > "$OUT/prep.log" 2>&1 || { echo "preparación holdout falló"; tail -20 "$OUT/prep.log"; exit 3; }
     cd ../envh
     export VITE_ANALIZAR_MUEBLE_FN=analizar-mueble-rc VITE_COSTEAR_FN=costear-servidor-rc
     echo "$SHA_H" > "$OUT/GIT_SHA"
-    LAB_HOJA="lab/costear/ciego_erp/hojas/$h.json" LAB_OUT="$OUT/$h" LAB_COSTEAR_NOMBRE="LAB holdout $h $(date +%m%d-%H%M)" \
-      LAB_COSTEAR_FN=costear-servidor-rc LAB_GIT_SHA="$(git rev-parse --short HEAD)" pw e2e/labCostear.e2e.js ;;
+    LAB_HOJA="lab/costear/ciego_erp/hojas/$h.json" LAB_OUT="$CORRIDA/$h" LAB_COSTEAR_NOMBRE="LAB holdout $h $(date +%m%d-%H%M)" \
+      LAB_COSTEAR_FN=costear-servidor-rc LAB_GIT_SHA="$(git rev-parse --short HEAD)" pw e2e/labCostear.e2e.js; rc=$?
+    [ "$rc" = 0 ] || { echo "holdout $h: la corrida (labCostear.e2e.js) falló (exit $rc) → NO_VERIFICADO"; exit "$rc"; }
+    # Verificación REAL contra el MANIFIESTO congelado. Se corre desde "$RAIZ" (el checkout del PR / FINAL_SHA, que trae el
+    # MANIFIESTO autoritativo con frontendSha), NO desde ../envh: ahí el MANIFIESTO es el que quedó commiteado en el SHA
+    # viejo. Fail-closed: `congelar_holdout --verificar` devuelve NO_VERIFICADO (exit 2) si falta cualquiera de las huellas
+    # (base, Edge, modelos, llamadas, binario, corrida, integridad git, modelos esperados / frontendSha del MANIFIESTO),
+    # CAMBIO (exit 1) si algo cambió respecto al congelamiento (p. ej. un archivo congelado como revisionEstructural.js), y
+    # 0 SOLO si todo coincide. Las huellas FRESCAS de base, Edge y modelos observados se MIDEN fuera de este runner (SQL de
+    # solo lectura y la lista de Edge / ai_eventos: lab/costear/holdout_intelisis/{huellas_db.sql,modelos_observados.sql});
+    # quien las mide deja los JSON y pasa sus rutas por HOLDOUT_DB / HOLDOUT_EDGES / HOLDOUT_MODELOS. Sin ellas → NO_VERIFICADO.
+    cd "$RAIZ"
+    VFLAGS=(--verificar --corrida "$CORRIDA")
+    for par in "db:${HOLDOUT_DB:-}" "edges:${HOLDOUT_EDGES:-}" "modelos:${HOLDOUT_MODELOS:-}"; do
+      flag="${par%%:*}"; ruta="${par#*:}"
+      if [ -n "$ruta" ] && [ -f "$ruta" ]; then VFLAGS+=("--$flag" "$ruta");
+      elif [ -n "$ruta" ]; then echo "holdout: la ruta de --$flag no existe ($ruta); se verifica sin ella → NO_VERIFICADO"; fi
+    done
+    node scripts/congelar_holdout.mjs "${VFLAGS[@]}"; vr=$?
+    [ "$vr" = 0 ] || { echo "HOLDOUT $h NO CERTIFICADO (congelar_holdout --verificar exit $vr: NO_VERIFICADO o CAMBIO)"; exit "$vr"; }
+    echo "holdout $h CERTIFICADO: corrida idéntica al MANIFIESTO congelado (código, base, Edge, modelos, llamadas y binario)" ;;
   concurrencia)
     # P1-REL-02: control optimista A–L contra el deployment (usar como "concurrencia~preview").
     LAB_CONC_OPT=1 LAB_OUT="$OUT" pw e2e/labControlOptimista.e2e.js ;;
