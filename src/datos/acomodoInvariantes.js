@@ -18,6 +18,8 @@ const EPS = 1; // mm
 // 2026-10-17: misma geometría de puertas que el solver (una sola verdad): barrido real de una puerta
 // verificada y su cuadro conservador duplicado ignorado. Precedente de import: acomodoAudit.js.
 import { poligonoBarridoPuerta, bloqueaPuertaEspacial, areaSinCuadrosDuplicados } from '../../supabase/functions/acomodar-espacio-recovery/spatial-core.js';
+// Regla CANÓNICA del vínculo dependiente→ancla, compartida 1:1 con el servidor (recovery-core.js).
+import { indexarAnclas, evaluarVinculoDependiente } from './acomodoVinculo.js';
 
 const ORDEN = { PASS: 0, REVIEW_REQUIRED: 1, PARTIAL: 2, NEEDS_REVIEW: 3, FAIL: 4 };
 const peor = (a, b) => (ORDEN[a] >= ORDEN[b] ? a : b);
@@ -168,12 +170,6 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   const normZona = (z) => String(z ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
   const claveGrupo = (p) => p?.anchor_instance_id || p?.functional_group_id || null;
   const esDep = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT', 'UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
-  // ATTACH_MM FIJO a 1200 mm: PARIDAD con el servidor (recovery-core.js:148 usa 1200 fijo). NO se
-  // usa max_anchor_distance_mm/perfil: divergir del edge (que no se puede tocar) rompería la paridad.
-  const ATTACH_MM = 1200;
-  // Distancia borde-a-borde entre rects {x,y,w,h}. Misma fórmula que distRects() del servidor
-  // (recovery-core.js:151-155) con d≡h (profundidad 2D). El rect ahora trae su `h` CORRECTO.
-  const distR = (a, b) => Math.hypot(Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w))), Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h))));
   // Agrupación SÓLO para los chequeos de ZONA (ANCHOR_WRONG_ZONE / DEPENDENT_WRONG_ZONE por
   // área/zona), que el servidor NO modela y que aquí se conservan SIN relajar. El DETACHED por
   // distancia/ancla DECLARADA se evalúa aparte (abajo), en paridad con invariantesRelacionales().
@@ -181,13 +177,10 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   for (const c of colocadosValidos) {
     const pieza = porId.get(String(c.id));
     const ai = Number(c.area);
-    // D (P0.2b): dependiente SIN dueño declarado (ni anchor_instance_id ni grupo).
-    // VH-096: una SUPPORT_STORAGE SUELTA (credenza/archivero) es un kit propio, NO un dependiente
-    // sin ancla — exenta, igual que el servidor (recovery-core.js:165).
-    if (esDep(pieza.relation_role) && !claveGrupo(pieza)) {
-      if (pieza.relation_role !== 'SUPPORT_STORAGE') add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) });
-      continue;
-    }
+    // Dependiente SIN dueño declarado: su veredicto (DEPENDENT_UNASSIGNED, o exención de
+    // SUPPORT_STORAGE suelta) lo decide la REGLA CANÓNICA compartida (abajo). Aquí sólo se
+    // excluye de la agrupación por zona para no duplicar el issue.
+    if (esDep(pieza.relation_role) && !claveGrupo(pieza)) continue;
     const gid = claveGrupo(pieza);
     if (!gid) continue;
     if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anclas: [], deps: [] });
@@ -220,69 +213,26 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     }
   }
 
-  // --- D (PARIDAD SERVIDOR) · DEPENDIENTE UNIDO A SU ANCLA DECLARADA ----------
-  // Réplica fiel de invariantesRelacionales() del servidor (recovery-core.js:156-172). El bug previo:
-  //   (1) guardaba el rect como `{ ...r, h: r.d }` y rectDe() NO trae `.d` → `h` undefined → la
-  //       distancia salía NaN → `NaN > 1200` SIEMPRE falso → el DETACHED jamás disparaba; y
-  //   (2) medía contra la ancla "más cercana del cuarto", no contra la DECLARADA por anchor_instance_id
-  //       (permitía "buscar otra ancla para pasar").
-  // Aquí: rect REAL (su `h`) y SIEMPRE contra la ancla DECLARADA (la pieza cuya instancia === ese
-  // valor), NUNCA otra. Límite 1200 mm EXACTO. Mismos códigos/motivo que el servidor.
-  const rectPorId = new Map();          // idColoc → {x,y,w,h,area,rol}
-  const anclaPorClave = new Map();      // identidad de un ANCLA COLOCADA → su idColoc: id, instance_id y (fallback) su propio anchor_instance_id (tokens de grupo de fixtures/legacy). Primero gana.
-  const anclasColocadasPorGrupo = new Map(); // functional_group_id → [idColoc] (SÓLO para la inferencia legacy marcada)
-  for (const c of colocadosValidos) {
+  // --- D · VÍNCULO DEPENDIENTE → ANCLA (REGLA CANÓNICA compartida con el servidor) ----------
+  // Usa EXACTAMENTE la misma función pura que invariantesRelacionales() del edge
+  // (src/datos/acomodoVinculo.js: evaluarVinculoDependiente): navegador y servidor concluyen idéntico.
+  // Distancia máxima = la ESPECÍFICA del programa (max_anchor_distance_mm) con piso 1200 mm; el ancla se
+  // resuelve por id/instance/placement y, si el token es pre-solver, por functional_group_id compartido.
+  // No relaja overlap ni circulación (eso vive en los otros chequeos).
+  const vinc = (c) => {
     const p = porId.get(String(c.id));
-    const rr = rectDe(p, c);
-    rectPorId.set(String(c.id), { x: rr.x, y: rr.y, w: rr.w, h: rr.h, area: Number(c.area), rol: p.relation_role });
-    if (esAncla(p.relation_role)) {
-      for (const k of [p.id, p.instance_id, p.anchor_instance_id]) {
-        if (k != null && !anclaPorClave.has(String(k))) anclaPorClave.set(String(k), String(c.id));
-      }
-      if (p.functional_group_id != null) {
-        const fg = String(p.functional_group_id);
-        if (!anclasColocadasPorGrupo.has(fg)) anclasColocadasPorGrupo.set(fg, []);
-        anclasColocadasPorGrupo.get(fg).push(String(c.id));
-      }
-    }
-  }
+    const r = rectDe(p, c);
+    return {
+      idColoc: String(c.id), rect: { x: r.x, y: r.y, w: r.w, h: r.h }, area: Number(c.area), rol: p.relation_role,
+      id: p.id, instance_id: p.instance_id, anchor_instance_id: p.anchor_instance_id, functional_group_id: p.functional_group_id,
+      declared: c.anchor_instance_id != null ? c.anchor_instance_id : (p.anchor_instance_id != null ? p.anchor_instance_id : null),
+      max_anchor_distance_mm: p.max_anchor_distance_mm,
+    };
+  };
+  const idxAnclas = indexarAnclas(colocadosValidos.map(vinc));
   for (const c of colocadosValidos) {
-    const p = porId.get(String(c.id));
-    if (!esDep(p.relation_role)) continue;
-    const dRect = rectPorId.get(String(c.id));
-    const decl = c.anchor_instance_id != null ? String(c.anchor_instance_id)
-      : (p.anchor_instance_id != null ? String(p.anchor_instance_id) : null);
-    // (1) VÍNCULO FUERTE — el token declarado resuelve a un ANCLA COLOCADA (su id/instance, o el
-    //     placement id que el solver REAL escribe en la colocación: recovery-core.js reescribe la pieza
-    //     y corre el invariante sobre ese id). Es el mismo que ve el servidor → se evalúa EXACTO como él
-    //     (recovery-core.js:167-169): misma área + distancia ≤ 1200 contra ESA ancla, nunca otra.
-    if (decl) {
-      const anc = (() => { const id = anclaPorClave.get(decl); return id != null ? rectPorId.get(id) : null; })();
-      if (anc && esAncla(anc.rol)) {
-        if (anc.area !== dRect.area || distR(dRect, anc) > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area });
-        continue;
-      }
-      // El token NO es un placement colocado: es un token de REQUERIMIENTO pre-solver (inst:req:…) que el
-      // cliente recibe cuando el edge no reescribe las piezas (p. ej. acomodo mockeado / sin kit-solver del
-      // lado del cliente). NO es "ancla no colocada": el vínculo real viaja en el functional_group_id, que
-      // el programa comparte entre el ancla y sus dependientes. Caemos a esa inferencia (abajo).
-    }
-    // (2) VH-096: SUPPORT_STORAGE suelta (sin vínculo resoluble) es un kit propio, exenta (servidor :165).
-    if (p.relation_role === 'SUPPORT_STORAGE') continue;
-    // (3) INFERENCIA POR GRUPO — el ancla y sus dependientes comparten functional_group_id en el programa,
-    //     aunque los tokens de instancia difieran (inst:req: vs fg:req:). Se mide contra el ancla del MISMO
-    //     grupo en SU área y se marca `inferida:true` para no esconder que el vínculo se infirió.
-    const fg = p.functional_group_id != null ? String(p.functional_group_id) : null;
-    if (!fg) {
-      // Había un ancla DECLARADA que no resolvió ni como placement ni por grupo → de verdad no colocada.
-      // (Sin `decl`, es un dependiente sin dueño: ya lo cubrió DEPENDENT_UNASSIGNED en el primer pase; no se duplica.)
-      if (decl) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), motivo: 'ancla no colocada' });
-      continue;
-    }
-    const mismasArea = (anclasColocadasPorGrupo.get(fg) || []).map((id) => rectPorId.get(id)).filter((a) => a && a.area === dRect.area);
-    if (!mismasArea.length) continue; // ningún ancla del grupo en su área: es problema de ZONA (ya cubierto), no de distancia.
-    const dMin = Math.min(...mismasArea.map((a) => distR(dRect, a)));
-    if (dMin > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area, inferida: true });
+    const issue = evaluarVinculoDependiente(vinc(c), idxAnclas);
+    if (issue) { const { code, severity, ...meta } = issue; add(code, severity, meta); }
   }
 
   // --- Señales de REVIEW (no-fail) heredadas del edge ---
