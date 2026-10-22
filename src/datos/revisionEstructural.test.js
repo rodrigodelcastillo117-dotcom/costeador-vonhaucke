@@ -173,3 +173,36 @@ describe('huella del mueble: redondos y altura rotulada no disparan un falso "pi
     expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);
   });
 });
+
+// P1-COST-01 · test #6 · PARIDAD cliente/servidor. costear-servidor/index.ts importa el MISMO
+// `revisarEstructura` de este módulo y deriva sus bloqueos con `o.nivel === 'blocker'`. Por tanto
+// el veredicto es idéntico por construcción (un solo módulo, no dos implementaciones). Este test
+// reproduce EXACTAMENTE esa derivación del servidor y comprueba que cliente y servidor coinciden:
+// la mesa redonda NO bloquea en ninguno; una pieza realmente mayor bloquea en ambos.
+describe('P1-COST-01 · paridad cliente/servidor del veredicto estructural (módulo compartido)', () => {
+  // Misma derivación que costear-servidor/index.ts: bloqueos = observaciones con nivel 'blocker'.
+  const bloqueosServidor = (r) => (r.observaciones || []).filter((o) => o.nivel === 'blocker').map((o) => o.regla || o.mensaje);
+  const mesaRedonda = {
+    descripcion: 'Mesa de juntas redonda para 12, base central tipo araña, electrificación.',
+    medidasGenerales: '1800 Ø x 750 alto mm',
+    componentes: [
+      { nombre: 'Cubierta circular Ø1800 (2 tramos pegados)', insumoId: 'melamina', largoMM: 1800, anchoMM: 900 },
+      { nombre: 'Columna central PTR', insumoId: 'ptr', largoMM: 750, anchoMM: 100 },
+    ],
+  };
+  const oversizeReal = {
+    descripcion: 'Mesa redonda Ø1200.',
+    medidasGenerales: '1200 Ø x 740 alto mm',
+    componentes: [{ nombre: 'Cubierta', insumoId: 'melamina', largoMM: 1600, anchoMM: 800 }],
+  };
+  it('mesa redonda: ni cliente ni servidor marcan medida_imposible (mismo veredicto: costeable)', () => {
+    const r = revisarEstructura(mesaRedonda);
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(false); // cliente
+    expect(bloqueosServidor(r)).not.toContain('medida_imposible');                    // servidor (misma función)
+  });
+  it('oversize real: cliente y servidor lo bloquean por igual (mismo veredicto: rechazo)', () => {
+    const r = revisarEstructura(oversizeReal);
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);    // cliente
+    expect(bloqueosServidor(r)).toContain('medida_imposible');                         // servidor
+  });
+});
