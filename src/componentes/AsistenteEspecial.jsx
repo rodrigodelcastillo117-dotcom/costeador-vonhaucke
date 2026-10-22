@@ -1295,7 +1295,11 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           {analisis?.informe && (
             <div className="ia-informe-bloque">
               <div className="ia-informe-titulo">Auditoría técnica de industrialización</div>
-              <InformeIA motor={resumenMotor(resultado)} informe={analisis.informe} />
+              {/* UX simple: el detalle del informe técnico se pliega; en avanzado open=true + summary oculto ⇒ idéntico. */}
+              <details open={!simple}>
+                <summary className="ayuda" data-testid="ver-ingenieria-informe" style={{ cursor: 'pointer', display: simple ? 'list-item' : 'none', margin: '4px 0' }}>Ver ingeniería (detalle del informe)</summary>
+                <InformeIA motor={resumenMotor(resultado)} informe={analisis.informe} />
+              </details>
             </div>
           )}
           <div className="chips">
@@ -1417,12 +1421,17 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           <div className="ayuda columna-texto" style={{ marginTop: 6 }}>
             {(NIVELES_DIFICULTAD.find(([k]) => k === (b.dificultad ?? 'normal')) || [])[2]}
           </div>
-          <div className="ayuda columna-texto" style={{ marginTop: 10 }}>
-            Cubiertas 15% MO · metal/madera/general 20% MO (indirectos ×3) · cristal y compra-venta 1% MO (indirectos 5%).
-            Verificado contra las hojas de costo reales de Alba (Alpura, bench) al centavo. La dificultad multiplica la
-            mano de obra (y con ella los indirectos); Normal = la fórmula de siempre.
-          </div>
-          <div className="ayuda columna-texto" style={{ marginTop: 8 }}>Para costos con horas exactas por proceso, usa el Costeador detallado.</div>
+          {/* UX simple: la explicación detallada de la fórmula es "ingeniería" — se pliega en modo simple.
+              open={!simple} + summary oculto en avanzado ⇒ render idéntico a hoy. */}
+          <details className="ingenieria-mo" open={!simple} style={{ textAlign: 'left' }}>
+            <summary className="ayuda" data-testid="ver-ingenieria-mo" style={{ cursor: 'pointer', display: simple ? 'list-item' : 'none', margin: '8px 0' }}>Ver ingeniería (cómo se calcula la mano de obra)</summary>
+            <div className="ayuda columna-texto" style={{ marginTop: 10 }}>
+              Cubiertas 15% MO · metal/madera/general 20% MO (indirectos ×3) · cristal y compra-venta 1% MO (indirectos 5%).
+              Verificado contra las hojas de costo reales de Alba (Alpura, bench) al centavo. La dificultad multiplica la
+              mano de obra (y con ella los indirectos); Normal = la fórmula de siempre.
+            </div>
+            <div className="ayuda columna-texto" style={{ marginTop: 8 }}>Para costos con horas exactas por proceso, usa el Costeador detallado.</div>
+          </details>
         </div>
       )}
 
