@@ -56,6 +56,14 @@ export const BASE = Object.freeze({
   editor_v2: true,
   // N15 PDF premium (propuesta desde snapshot inmutable).
   proposal_v2: true,
+
+  // ---- Pase UX "simple afuera, riguroso adentro" ----
+  // Flujo COSTEAR simplificado: presentación nueva (4 pasos, 1 CTA primario,
+  // lenguaje humano, ingeniería en "Ver ingeniería") sobre el MISMO motor, gates
+  // y economía server-side. Default false → riesgo cero en producción; se prende
+  // por ?ff=costear_simple o vh_flags (QA). El código viejo (modo avanzado) queda
+  // intacto como default.
+  costear_simple: false,
 });
 
 export const NOMBRES_FLAG = Object.freeze(Object.keys(BASE));
@@ -74,6 +82,7 @@ export const DESCRIPCION_FLAG = Object.freeze({
   scope_v2: 'N5 — alcance de edificio (ScopeModel) en UI',
   editor_v2: 'N7 — editor libre de planos (undo/redo/zoom/pan)',
   proposal_v2: 'N15 — PDF premium desde snapshot inmutable',
+  costear_simple: 'Pase UX — flujo COSTEAR simplificado (mismo motor/gates, sólo presentación)',
 });
 
 function leerStorage(storage) {
