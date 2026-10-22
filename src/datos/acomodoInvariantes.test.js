@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { evaluarInvariantesAcomodo, derivarValidez } from './acomodoInvariantes.js';
+// PARIDAD: el MISMO contrato del servidor que replicamos (recovery-core.js:156-172).
+import { invariantesRelacionales } from '../../supabase/functions/acomodar-espacio-recovery/recovery-core.js';
 
 // Payload canónico (mm) — dos áreas, un grupo operativo (ancla+silla) y una junta.
 function payloadBase() {
@@ -304,5 +306,219 @@ describe('acomodoInvariantes · grupo con varias anclas en varios cuartos', () =
     const p = payload(); p.areas.push({ nombre: 'SALA', ancho: 4000, largo: 4000 });
     const r = evaluarInvariantesAcomodo({ payload: p, plan: plan(2) });
     expect(cds(r)).toContain('DEPENDENT_WRONG_ZONE');
+  });
+});
+
+// ============================================================================
+//  ACOM01 · DEPENDENT_DETACHED en PARIDAD con el servidor (recovery-core.js:156-172).
+//  Datos con convención de PRODUCCIÓN (kit-solver): dependiente.anchor_instance_id === id
+//  del ancla. Antes el cliente NUNCA fallaba por distancia (rect con h undefined → NaN) y
+//  medía contra "la más cercana del cuarto", no contra la ancla DECLARADA. Aquí se verifica:
+//  medir el rect REAL, SIEMPRE contra la ancla declarada, límite 1200 EXACTO, y mismos
+//  códigos/motivo que invariantesRelacionales() del servidor.
+// ============================================================================
+describe('acomodoInvariantes · ACOM01 DEPENDENT_DETACHED (paridad servidor)', () => {
+  const AREA = (extra = {}) => ({ nombre: 'OPEN', zone_id: 'Z', ancho: 20000, largo: 10000, ...extra });
+  const BANCA = (id, extra = {}) => ({ id, w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', zone_id: 'Z', ...extra });
+  const DESK = (id, extra = {}) => ({ id, w: 1800, d: 800, relation_role: 'ANCHOR_DESK', zone_id: 'Z', ...extra });
+  const SILLA = (id, anc, extra = {}) => ({ id, w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: anc, zone_id: 'Z', ...extra });
+  const ev = (piezas, colocacion, areas = [AREA()]) =>
+    evaluarInvariantesAcomodo({ payload: { requested: piezas.length, areas, piezas }, plan: { colocacion } });
+  const detached = (r) => r.issues.filter((i) => i.code === 'DEPENDENT_DETACHED');
+
+  it('1 · silla pegada a SU banca (≤1200, misma área) → PASS, sin DETACHED', () => {
+    // banca en (0,0): x[0,6000] y[0,1200]. silla en (0,1500): dy=300 ≤ 1200.
+    const r = ev([BANCA('b1'), SILLA('s1', 'b1')], [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 0, y: 1500, rot: 0 },
+    ]);
+    expect(detached(r)).toHaveLength(0);
+    expect(r.status).toBe('PASS');
+  });
+
+  it('2 · silla de OTRA banca (pegada a b2 pero declarada a b1) → DETACHED FAIL', () => {
+    // b1 x[0,6000]; silla pegada a b2 en (8000,1500): a b1 dx=2000 → >1200. NUNCA "buscar otra ancla".
+    const r = ev([BANCA('b1'), BANCA('b2'), SILLA('s1', 'b1')], [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'b2', area: 0, x: 8000, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 8000, y: 1500, rot: 0 },
+    ]);
+    expect(detached(r)).toHaveLength(1);
+    expect(detached(r)[0].id).toBe('s1');
+    expect(r.status).toBe('FAIL');
+  });
+
+  it('3 · silla en OTRO cuarto que su banca → DETACHED FAIL', () => {
+    const r = ev([BANCA('b1'), SILLA('s1', 'b1')], [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 's1', area: 1, x: 0, y: 0, rot: 0 },
+    ], [AREA(), AREA({ nombre: 'OPEN2' })]);
+    expect(detached(r)).toHaveLength(1);
+    expect(r.status).toBe('FAIL');
+  });
+
+  it("4 · ancla DECLARADA no colocada → DETACHED motivo 'ancla no colocada'", () => {
+    // b1 existe en piezas pero NO en la colocación.
+    const r = ev([BANCA('b1'), SILLA('s1', 'b1')], [
+      { id: 's1', area: 0, x: 0, y: 1500, rot: 0 },
+    ]);
+    const d = detached(r);
+    expect(d).toHaveLength(1);
+    expect(d[0].motivo).toBe('ancla no colocada');
+    expect(r.status).toBe('FAIL');
+  });
+
+  it("5 · ancla inexistente (anchor_instance_id apunta a nada) → DETACHED 'ancla no colocada'", () => {
+    const r = ev([BANCA('b1'), SILLA('s1', 'fantasma')], [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 0, y: 1500, rot: 0 },
+    ]);
+    const d = detached(r);
+    expect(d).toHaveLength(1);
+    expect(d[0].motivo).toBe('ancla no colocada');
+    expect(r.status).toBe('FAIL');
+  });
+
+  it('6 · visitante JUSTO dentro del límite (dist = 1200) → PASS', () => {
+    // escritorio x[0,1800] y[0,800]. visitante en (0,2000): dy = 2000-800 = 1200 (inclusivo).
+    const r = ev([DESK('d1'), { id: 'v1', w: 600, d: 600, relation_role: 'VISITOR_SEAT', anchor_instance_id: 'd1', zone_id: 'Z' }], [
+      { id: 'd1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'v1', area: 0, x: 0, y: 2000, rot: 0 },
+    ]);
+    expect(detached(r)).toHaveLength(0);
+    expect(r.status).toBe('PASS');
+  });
+
+  it('7 · visitante JUSTO fuera del límite (dist = 1201) → DETACHED FAIL', () => {
+    const r = ev([DESK('d1'), { id: 'v1', w: 600, d: 600, relation_role: 'VISITOR_SEAT', anchor_instance_id: 'd1', zone_id: 'Z' }], [
+      { id: 'd1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'v1', area: 0, x: 0, y: 2001, rot: 0 }, // dy = 1201 > 1200
+    ]);
+    expect(detached(r)).toHaveLength(1);
+    expect(r.status).toBe('FAIL');
+  });
+
+  it('8 · gaveta junto a SU escritorio (≤1200) → PASS', () => {
+    // escritorio y[0,800]; gaveta en (0,900): dy=100 (adyacente, sin solape → sólo probamos el vínculo).
+    const r = ev([DESK('d1'), { id: 'g1', w: 400, d: 500, relation_role: 'UNDERDESK_STORAGE', anchor_instance_id: 'd1', zone_id: 'Z' }], [
+      { id: 'd1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'g1', area: 0, x: 0, y: 900, rot: 0 },
+    ]);
+    expect(detached(r)).toHaveLength(0);
+    expect(r.status).toBe('PASS');
+  });
+
+  it('9 · gaveta contra OTRO escritorio (declarada a d1, pegada a d2) → DETACHED FAIL', () => {
+    const r = ev([DESK('d1'), DESK('d2'), { id: 'g1', w: 400, d: 500, relation_role: 'UNDERDESK_STORAGE', anchor_instance_id: 'd1', zone_id: 'Z' }], [
+      { id: 'd1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'd2', area: 0, x: 6000, y: 0, rot: 0 },
+      { id: 'g1', area: 0, x: 6000, y: 900, rot: 0 }, // a d1: dx = 6000-1800 = 4200 > 1200
+    ]);
+    expect(detached(r)).toHaveLength(1);
+    expect(detached(r)[0].id).toBe('g1');
+    expect(r.status).toBe('FAIL');
+  });
+
+  it('10 · varias bancas del MISMO producto: cada silla a SU banca declarada → PASS', () => {
+    const r = ev([BANCA('b1'), BANCA('b2'), SILLA('s1', 'b1'), SILLA('s2', 'b2')], [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'b2', area: 0, x: 8000, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 0, y: 1500, rot: 0 },    // junto a b1
+      { id: 's2', area: 0, x: 8000, y: 1500, rot: 0 }, // junto a b2
+    ]);
+    expect(detached(r)).toHaveLength(0);
+    expect(r.status).toBe('PASS');
+  });
+
+  it('11 · reordenar piezas/colocación NO cambia el ownership (mismo veredicto)', () => {
+    const piezas = [BANCA('b1'), BANCA('b2'), SILLA('s1', 'b1')];
+    const coloc = [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'b2', area: 0, x: 8000, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 8000, y: 1500, rot: 0 }, // pegada a b2, declarada a b1 → DETACHED
+    ];
+    const antes = detached(ev(piezas, coloc)).map((i) => `${i.id}|${i.code}`).sort();
+    const r2 = ev([...piezas].reverse(), [...coloc].reverse());
+    const despues = detached(r2).map((i) => `${i.id}|${i.code}`).sort();
+    expect(antes).toEqual(['s1|DEPENDENT_DETACHED']);
+    expect(despues).toEqual(antes); // la identidad es por id del ancla, no por orden ni cercanía
+  });
+
+  it('12 · CERO falsos PASS: ningún escenario desprendido devuelve PASS', () => {
+    const escenarios = [
+      // silla lejísimos de su banca (misma área)
+      [[BANCA('b1'), SILLA('s', 'b1')], [{ id: 'b1', area: 0, x: 0, y: 0 }, { id: 's', area: 0, x: 0, y: 6000 }]],
+      // silla en otra área
+      [[BANCA('b1'), SILLA('s', 'b1')], [{ id: 'b1', area: 0, x: 0, y: 0 }, { id: 's', area: 1, x: 0, y: 0 }], [AREA(), AREA({ nombre: 'X' })]],
+      // ancla no colocada
+      [[BANCA('b1'), SILLA('s', 'b1')], [{ id: 's', area: 0, x: 0, y: 1500 }]],
+      // ancla inexistente
+      [[SILLA('s', 'nada')], [{ id: 's', area: 0, x: 0, y: 1500 }]],
+    ];
+    for (const [piezas, coloc, areas] of escenarios) {
+      const r = ev(piezas, coloc, areas);
+      expect(r.status, JSON.stringify(coloc)).not.toBe('PASS');
+      expect(detached(r).length, JSON.stringify(coloc)).toBeGreaterThan(0);
+    }
+  });
+
+  it('13 · LEGACY (sólo functional_group_id, sin anchor_instance_id) lejos → DETACHED marcado inferida:true', () => {
+    const piezas = [
+      { id: 'b1', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'g', zone_id: 'Z' },
+      { id: 's1', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'g', zone_id: 'Z' },
+    ];
+    const r = ev(piezas, [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 0, y: 6000, rot: 0 }, // dy = 6000-1200 = 4800 > 1200
+    ]);
+    const d = detached(r);
+    expect(d).toHaveLength(1);
+    expect(d[0].inferida).toBe(true); // no esconde que el dueño se INFIRIÓ por grupo (no declarado)
+    expect(r.status).toBe('FAIL');
+  });
+
+  it('14 · LEGACY dentro de rango → sin DETACHED (goldens no se voltean)', () => {
+    const piezas = [
+      { id: 'b1', w: 6000, d: 1200, relation_role: 'ANCHOR_WORKSTATION', functional_group_id: 'g', zone_id: 'Z' },
+      { id: 's1', w: 600, d: 600, relation_role: 'WORK_SEAT', functional_group_id: 'g', zone_id: 'Z' },
+    ];
+    const r = ev(piezas, [
+      { id: 'b1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 's1', area: 0, x: 0, y: 1500, rot: 0 }, // dy = 300
+    ]);
+    expect(detached(r)).toHaveLength(0);
+    expect(r.status).toBe('PASS');
+  });
+
+  it('15 · PARIDAD byte-for-byte: MISMO fixture por el servidor y por el cliente → MISMO conjunto de códigos', () => {
+    // Convención de producción: dependiente.anchor_instance_id === id del ancla.
+    const piezas = [
+      { id: 'deskA', w: 1800, d: 800, relation_role: 'ANCHOR_DESK', zone_id: 'Z' },
+      { id: 'seatOK', w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: 'deskA', zone_id: 'Z' },   // ≤1200 → OK
+      { id: 'seatFar', w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: 'deskA', zone_id: 'Z' },  // >1200 → DETACHED
+      { id: 'seatGhost', w: 600, d: 600, relation_role: 'WORK_SEAT', anchor_instance_id: 'noExiste', zone_id: 'Z' }, // ancla no colocada
+      { id: 'stor', w: 900, d: 450, relation_role: 'SUPPORT_STORAGE', zone_id: 'Z' },                             // suelto → exento (VH-096)
+      { id: 'orph', w: 600, d: 600, relation_role: 'VISITOR_SEAT', zone_id: 'Z' },                               // sin ancla ni grupo → UNASSIGNED
+    ];
+    const colocacion = [
+      { id: 'deskA', area: 0, x: 0, y: 0, rot: 0 },        // x[0,1800] y[0,800]
+      { id: 'seatOK', area: 0, x: 0, y: 1000, rot: 0 },    // dy = 200 ≤ 1200
+      { id: 'seatFar', area: 0, x: 5000, y: 0, rot: 0 },   // dx = 3200 > 1200
+      { id: 'seatGhost', area: 0, x: 10000, y: 0, rot: 0 },
+      { id: 'stor', area: 0, x: 0, y: 3000, rot: 0 },
+      { id: 'orph', area: 0, x: 0, y: 5000, rot: 0 },
+    ];
+    const norm = (arr) => arr.map((i) => `${i.id}|${i.code}`).sort();
+    const REL = new Set(['DEPENDENT_DETACHED', 'DEPENDENT_UNASSIGNED']);
+
+    const servidor = invariantesRelacionales(piezas, colocacion);
+    const cliente = evaluarInvariantesAcomodo({
+      payload: { requested: piezas.length, areas: [AREA({ ancho: 30000, largo: 12000 })], piezas },
+      plan: { colocacion },
+    }).issues.filter((i) => REL.has(i.code));
+
+    // El servidor sólo emite DEPENDENT_*; el cliente los emite idénticos (mismos id+code).
+    expect(norm(cliente)).toEqual(norm(servidor));
+    expect(norm(servidor)).toEqual(['orph|DEPENDENT_UNASSIGNED', 'seatFar|DEPENDENT_DETACHED', 'seatGhost|DEPENDENT_DETACHED'].sort());
   });
 });

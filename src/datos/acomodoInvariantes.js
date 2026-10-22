@@ -168,35 +168,44 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   const normZona = (z) => String(z ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
   const claveGrupo = (p) => p?.anchor_instance_id || p?.functional_group_id || null;
   const esDep = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT', 'UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
+  // ATTACH_MM FIJO a 1200 mm: PARIDAD con el servidor (recovery-core.js:148 usa 1200 fijo). NO se
+  // usa max_anchor_distance_mm/perfil: divergir del edge (que no se puede tocar) rompería la paridad.
   const ATTACH_MM = 1200;
+  // Distancia borde-a-borde entre rects {x,y,w,h}. Misma fórmula que distRects() del servidor
+  // (recovery-core.js:151-155) con d≡h (profundidad 2D). El rect ahora trae su `h` CORRECTO.
   const distR = (a, b) => Math.hypot(Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w))), Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h))));
-  const grupos = new Map(); // clave → {anchorArea, anchorZone, anchorRect, deps:[{id,area,zone,rect}]}
+  // Agrupación SÓLO para los chequeos de ZONA (ANCHOR_WRONG_ZONE / DEPENDENT_WRONG_ZONE por
+  // área/zona), que el servidor NO modela y que aquí se conservan SIN relajar. El DETACHED por
+  // distancia/ancla DECLARADA se evalúa aparte (abajo), en paridad con invariantesRelacionales().
+  const grupos = new Map(); // clave → {anchorArea, anchorZone, anclas:[{area,zone}], deps:[{id,area,zone}]}
   for (const c of colocadosValidos) {
     const pieza = porId.get(String(c.id));
     const ai = Number(c.area);
-    const r = rectDe(pieza, c);
     // D (P0.2b): dependiente SIN dueño declarado (ni anchor_instance_id ni grupo).
-    if (esDep(pieza.relation_role) && !claveGrupo(pieza)) { add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) }); continue; }
+    // VH-096: una SUPPORT_STORAGE SUELTA (credenza/archivero) es un kit propio, NO un dependiente
+    // sin ancla — exenta, igual que el servidor (recovery-core.js:165).
+    if (esDep(pieza.relation_role) && !claveGrupo(pieza)) {
+      if (pieza.relation_role !== 'SUPPORT_STORAGE') add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) });
+      continue;
+    }
     const gid = claveGrupo(pieza);
     if (!gid) continue;
-    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anchorRect: null, anclas: [], deps: [] });
+    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anclas: [], deps: [] });
     const g = grupos.get(gid);
     if (esAncla(pieza.relation_role)) {
-      g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null; g.anchorRect = { ...r, h: r.d };
-      g.anclas.push({ area: ai, zone: pieza.zone_id ?? null, rect: { ...r, h: r.d } });
+      g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null;
+      g.anclas.push({ area: ai, zone: pieza.zone_id ?? null });
       if (pieza.zone_id != null && normZona(pieza.zone_id) !== normZona(zonaDeArea(ai))) {
         add('ANCHOR_WRONG_ZONE', 'fail', { id: String(c.id), area: ai, zoneEsperada: pieza.zone_id, zonaArea: zonaDeArea(ai) });
       }
     } else {
-      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null, rect: { ...r, h: r.d } });
+      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null });
     }
   }
   for (const [gid, g] of grupos) {
-    if (g.anchorArea == null) continue; // sin ancla colocada: lo cubre cobertura/missing
+    if (g.anchorArea == null) continue; // sin ancla colocada: lo cubre cobertura/missing + el DETACHED de abajo
     for (const d of g.deps) {
-      // Un grupo puede tener VARIAS anclas (cotización 4048: 54 WIN en un solo grupo libre para 5 bancas
-      // repartidas en dos open spaces). Antes se comparaba contra la ÚLTIMA ancla y las sillas bien puestas
-      // en la otra banca salían "en otro cuarto que su mueble". Ahora: contra las anclas de SU cuarto.
+      // Un grupo puede tener VARIAS anclas (cotización 4048): el dependiente pertenece a las de SU cuarto.
       const delCuarto = g.anclas.filter((a) => a.area === d.area);
       if (!delCuarto.length) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
@@ -205,11 +214,70 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
       const cercana = delCuarto.find((a) => d.zone == null || a.zone == null || normZona(a.zone) === normZona(d.zone)) || delCuarto[0];
       if (d.zone != null && cercana.zone != null && normZona(d.zone) !== normZona(cercana.zone)) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: cercana.zone });
-      } else if (distR(d.rect, cercana.rect) > ATTACH_MM) {
-        // D: misma zona pero DESPRENDIDO de su ancla (lejos).
-        add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid });
+      }
+      // El DETACHED por DISTANCIA ya NO se mide aquí (medía NaN y contra "la más cercana"): ahora lo
+      // hace el pase de paridad de abajo, SIEMPRE contra la ancla DECLARADA.
+    }
+  }
+
+  // --- D (PARIDAD SERVIDOR) · DEPENDIENTE UNIDO A SU ANCLA DECLARADA ----------
+  // Réplica fiel de invariantesRelacionales() del servidor (recovery-core.js:156-172). El bug previo:
+  //   (1) guardaba el rect como `{ ...r, h: r.d }` y rectDe() NO trae `.d` → `h` undefined → la
+  //       distancia salía NaN → `NaN > 1200` SIEMPRE falso → el DETACHED jamás disparaba; y
+  //   (2) medía contra la ancla "más cercana del cuarto", no contra la DECLARADA por anchor_instance_id
+  //       (permitía "buscar otra ancla para pasar").
+  // Aquí: rect REAL (su `h`) y SIEMPRE contra la ancla DECLARADA (la pieza cuya instancia === ese
+  // valor), NUNCA otra. Límite 1200 mm EXACTO. Mismos códigos/motivo que el servidor.
+  const rectPorId = new Map();          // idColoc → {x,y,w,h,area,rol}
+  const anclaPorClave = new Map();      // identidad de un ANCLA COLOCADA → su idColoc: id, instance_id y (fallback) su propio anchor_instance_id (tokens de grupo de fixtures/legacy). Primero gana.
+  const anclasColocadasPorGrupo = new Map(); // functional_group_id → [idColoc] (SÓLO para la inferencia legacy marcada)
+  for (const c of colocadosValidos) {
+    const p = porId.get(String(c.id));
+    const rr = rectDe(p, c);
+    rectPorId.set(String(c.id), { x: rr.x, y: rr.y, w: rr.w, h: rr.h, area: Number(c.area), rol: p.relation_role });
+    if (esAncla(p.relation_role)) {
+      for (const k of [p.id, p.instance_id, p.anchor_instance_id]) {
+        if (k != null && !anclaPorClave.has(String(k))) anclaPorClave.set(String(k), String(c.id));
+      }
+      if (p.functional_group_id != null) {
+        const fg = String(p.functional_group_id);
+        if (!anclasColocadasPorGrupo.has(fg)) anclasColocadasPorGrupo.set(fg, []);
+        anclasColocadasPorGrupo.get(fg).push(String(c.id));
       }
     }
+  }
+  for (const c of colocadosValidos) {
+    const p = porId.get(String(c.id));
+    if (!esDep(p.relation_role)) continue;
+    const dRect = rectPorId.get(String(c.id));
+    // El vínculo RESUELTO por el solver viaja en la COLOCACIÓN (c.anchor_instance_id = id REAL del
+    // ancla que se le asignó). Es el MISMO valor que el servidor usa tras el kit-solver, que reescribe
+    // la pieza (recovery-core.js:159 lee p.anchor_instance_id YA reescrito). El programa, en cambio, trae
+    // en la pieza un token de REQUERIMIENTO (inst:req:…) que NO es una pieza colocada; por eso la
+    // colocación MANDA y el token de la pieza queda sólo como respaldo (planes a mano / fixtures directos).
+    const decl = c.anchor_instance_id != null ? String(c.anchor_instance_id)
+      : (p.anchor_instance_id != null ? String(p.anchor_instance_id) : null);
+    if (!decl) {
+      // Sin ancla DECLARADA. VH-096: SUPPORT_STORAGE suelta exenta (servidor recovery-core.js:165).
+      if (p.relation_role === 'SUPPORT_STORAGE') continue;
+      // DATOS LEGACY (sólo functional_group_id, sin anchor_instance_id): el servidor sería ESTRICTO
+      // (UNASSIGNED), pero para NO voltear goldens conservamos la INFERENCIA por grupo — contra el
+      // ancla del MISMO grupo en SU cuarto (la más cercana) — y la MARCAMOS `inferida:true` para no
+      // esconder la ambigüedad. Sin grupo ya lo cubrió DEPENDENT_UNASSIGNED arriba.
+      const fg = p.functional_group_id != null ? String(p.functional_group_id) : null;
+      if (!fg) continue;
+      const mismasArea = (anclasColocadasPorGrupo.get(fg) || []).map((id) => rectPorId.get(id)).filter((a) => a && a.area === dRect.area);
+      if (!mismasArea.length) continue; // ningún ancla del grupo en su área: es problema de ZONA (ya cubierto), no de distancia.
+      const dMin = Math.min(...mismasArea.map((a) => distR(dRect, a)));
+      if (dMin > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area, inferida: true });
+      continue;
+    }
+    // CON anchor_instance_id: contra ESA ancla específica (servidor recovery-core.js:167-169):
+    // existe + es rol ANCHOR_* + misma área + distancia ≤ 1200. Si no, DETACHED.
+    const ancColocId = anclaPorClave.get(decl);
+    const anc = ancColocId != null ? rectPorId.get(ancColocId) : null;
+    if (!anc || !esAncla(anc.rol)) { add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), motivo: 'ancla no colocada' }); continue; }
+    if (anc.area !== dRect.area || distR(dRect, anc) > ATTACH_MM) add('DEPENDENT_DETACHED', 'fail', { id: String(c.id), area: dRect.area });
   }
 
   // --- Señales de REVIEW (no-fail) heredadas del edge ---
