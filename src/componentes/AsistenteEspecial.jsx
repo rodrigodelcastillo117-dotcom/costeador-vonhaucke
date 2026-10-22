@@ -91,7 +91,13 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
   return [...byKey.values()];
 }
 
-export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null, semillaCocrear = null, onVolverCocrear = null }) {
+// Pase UX "simple afuera": nombres humanos de los 4 pasos del flujo COSTEAR
+// (Empezar → Esto entendí → Decisiones → Resultado). Sólo cambia la PRESENTACIÓN;
+// la máquina de estados (`paso` 0..3) y los handlers del motor son los mismos.
+const PASOS_SIMPLE = ['Empezar', 'Esto entendí', 'Decisiones', 'Resultado'];
+
+export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado', onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null, semillaCocrear = null, onVolverCocrear = null }) {
+  const simple = modo === 'simple';
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
@@ -1010,11 +1016,22 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
 
   return (
     <div className="asistente">
-      <div className="progreso">
-        {Array.from({ length: N_PASOS }).map((_, i) => (
-          <span key={i} className={`punto ${i <= paso ? 'activo' : ''}`} />
-        ))}
-      </div>
+      {simple ? (
+        <div className="progreso-simple" data-testid="costear-simple-pasos" aria-label={`Paso ${paso + 1} de ${N_PASOS}: ${PASOS_SIMPLE[paso] || ''}`}
+          style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 6, fontSize: 13 }}>
+          {PASOS_SIMPLE.map((n, i) => (
+            <span key={i} style={{ fontWeight: i === paso ? 700 : 400, opacity: i <= paso ? 1 : 0.45 }}>
+              {i + 1}. {n}{i < PASOS_SIMPLE.length - 1 ? ' ›' : ''}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="progreso">
+          {Array.from({ length: N_PASOS }).map((_, i) => (
+            <span key={i} className={`punto ${i <= paso ? 'activo' : ''}`} />
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <button className="boton fantasma" onClick={() => (paso === 0 ? onInicio() : setPaso(paso - 1))}>
           ‹ {paso === 0 ? 'Inicio' : 'Atrás'}
