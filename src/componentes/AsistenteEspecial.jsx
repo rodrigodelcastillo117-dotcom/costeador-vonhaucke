@@ -1485,13 +1485,18 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             </>
           )}
           <div className="espacio" />
-          <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
-            Material {pesos2(resultado.materialTotal)} · Mano de obra {pesos2(resultado.manoObra)} · Fábrica {pesos2(resultado.indirectosFabrica)}
-          </div>
-          {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
-          <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
-            Método de costeo: <strong>{formulaActual === FORMULA_ALBA_V1 ? `Alba V1${b.dificultad && b.dificultad !== 'normal' ? ` · dificultad ×${factorDificultad(b.dificultad)}` : ''}` : esHistoricoLegacy ? 'Legacy 55 (histórico)' : formulaActual}</strong>
-          </div>
+          {/* UX simple: el desglose y el método son "ingeniería" — se pliegan en modo simple (open={!simple}).
+              En modo avanzado open=true + summary oculto ⇒ render idéntico a hoy. No cambia ninguna cifra ni lógica. */}
+          <details className="ingenieria-costeo" open={!simple} style={{ textAlign: 'left' }}>
+            <summary className="ayuda" data-testid="ver-ingenieria-costeo" style={{ cursor: 'pointer', display: simple ? 'list-item' : 'none', margin: '6px 0' }}>Ver ingeniería (método y desglose del costo)</summary>
+            <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
+              Material {pesos2(resultado.materialTotal)} · Mano de obra {pesos2(resultado.manoObra)} · Fábrica {pesos2(resultado.indirectosFabrica)}
+            </div>
+            {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
+            <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
+              Método de costeo: <strong>{formulaActual === FORMULA_ALBA_V1 ? `Alba V1${b.dificultad && b.dificultad !== 'normal' ? ` · dificultad ×${factorDificultad(b.dificultad)}` : ''}` : esHistoricoLegacy ? 'Legacy 55 (histórico)' : formulaActual}</strong>
+            </div>
+          </details>
           {esHistoricoLegacy && (
             <div className="alerta" style={{ marginTop: 8, textAlign: 'left', border: '1px solid #8a6d00', borderRadius: 8, padding: 10 }}>
               <span className="texto">Costo histórico — calculado con <strong>Legacy55</strong>. No se recalcula solo. </span>
