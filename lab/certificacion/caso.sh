@@ -8,6 +8,8 @@
 #   cocrearrc-<n>    igual, costeando con costear-servidor-rc (motor de la rama)
 #   plano-<Cn>       labTorreNorte con el plano sintético Cn de lab/planos/gen_corpus.py (lectura → acomodo → PDF → reabrir)
 #   planorc-<Cn>     igual, con el lector de planos RC (VITE_LEER_PLANO_FN=leer-plano-rc)
+#   acomodorc-<Cn>   igual, con el SOLVER DE ACOMODO contra el edge RC (VITE_ACOMODAR_FN=acomodar-espacio-recovery-rc):
+#                    certifica ACOM-02 en el edge RC VIVO antes de promover (sólo vite dev, DEV=true; sin variante ~preview)
 #   texto | manual   labCotizarFlujo (Voni por texto / banco de precios)
 set -u
 cd "$(dirname "$0")/../.."
@@ -46,9 +48,16 @@ case "$CASO" in
     if [ "${CASO#cocrearrc-}" != "$CASO" ]; then export VITE_COSTEAR_FN=costear-servidor-rc; n="${CASO#cocrearrc-}"; else n="${CASO#cocrear-}"; fi
     LAB_SUFIJO=_ci LAB_COC_BAJAR_BOM=1 bash lab/noche/cocrear10/correr.sh "$n"; rc=$?
     cp -R lab/noche/cocrear10/*_ci "$OUT/" 2>/dev/null; exit $rc ;;
-  plano-*|planorc-*)
+  plano-*|planorc-*|acomodorc-*)
     # planorc-<Cn>: el MISMO plano leído con el lector RC (leer-plano-rc → leer-plano-core-rc), para medir antes de promoverlo.
-    if [ "${CASO#planorc-}" != "$CASO" ]; then export VITE_LEER_PLANO_FN=leer-plano-rc; c="${CASO#planorc-}"; else c="${CASO#plano-}"; fi
+    # acomodorc-<Cn>: el MISMO plano (lector productivo) pero el SOLVER DE ACOMODO contra el edge RC
+    #   (VITE_ACOMODAR_FN=acomodar-espacio-recovery-rc) → certifica que ACOM-02 corre en el edge RC VIVO. Sólo surte efecto
+    #   contra vite dev (DEV=true): FN_ACOMODAR ignora VITE_* en build/preview, por eso NO existe acomodorc~preview.
+    case "$CASO" in
+      planorc-*)   export VITE_LEER_PLANO_FN=leer-plano-rc;              c="${CASO#planorc-}";;
+      acomodorc-*) export VITE_ACOMODAR_FN=acomodar-espacio-recovery-rc; c="${CASO#acomodorc-}";;
+      *)                                                                  c="${CASO#plano-}";;
+    esac
     (cd lab/planos && python3 gen_corpus.py > "$OUT/corpus.log" 2>&1) || { echo "gen_corpus falló"; cat "$OUT/corpus.log"; exit 3; }
     d=$(ls -d lab/planos/${c}_* | head -1)
     [ -f "$d/plano.pdf" ] || { echo "no hay $c"; exit 3; }
