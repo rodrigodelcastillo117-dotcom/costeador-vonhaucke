@@ -91,7 +91,13 @@ export function fusionarPreguntas(prev, incoming, confKeysSet, norm) {
   return [...byKey.values()];
 }
 
-export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null, semillaCocrear = null, onVolverCocrear = null }) {
+// Pase UX "simple afuera": nombres humanos de los 4 pasos del flujo COSTEAR
+// (Empezar → Esto entendí → Decisiones → Resultado). Sólo cambia la PRESENTACIÓN;
+// la máquina de estados (`paso` 0..3) y los handlers del motor son los mismos.
+const PASOS_SIMPLE = ['Empezar', 'Esto entendí', 'Decisiones', 'Resultado'];
+
+export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado', onVerDetalle, onInicio, onBiblioteca, expedienteInicial, onAgregarInsumo = null, semillaCocrear = null, onVolverCocrear = null }) {
+  const simple = modo === 'simple';
   const insumos = estado.insumos;
   const [paso, setPaso] = useState(0);
   const [analizando, setAnalizando] = useState(false);
@@ -1010,11 +1016,22 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
 
   return (
     <div className="asistente">
-      <div className="progreso">
-        {Array.from({ length: N_PASOS }).map((_, i) => (
-          <span key={i} className={`punto ${i <= paso ? 'activo' : ''}`} />
-        ))}
-      </div>
+      {simple ? (
+        <div className="progreso-simple" data-testid="costear-simple-pasos" aria-label={`Paso ${paso + 1} de ${N_PASOS}: ${PASOS_SIMPLE[paso] || ''}`}
+          style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 6, fontSize: 13 }}>
+          {PASOS_SIMPLE.map((n, i) => (
+            <span key={i} style={{ fontWeight: i === paso ? 700 : 400, opacity: i <= paso ? 1 : 0.45 }}>
+              {i + 1}. {n}{i < PASOS_SIMPLE.length - 1 ? ' ›' : ''}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="progreso">
+          {Array.from({ length: N_PASOS }).map((_, i) => (
+            <span key={i} className={`punto ${i <= paso ? 'activo' : ''}`} />
+          ))}
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
         <button className="boton fantasma" onClick={() => (paso === 0 ? onInicio() : setPaso(paso - 1))}>
           ‹ {paso === 0 ? 'Inicio' : 'Atrás'}
@@ -1278,7 +1295,11 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
           {analisis?.informe && (
             <div className="ia-informe-bloque">
               <div className="ia-informe-titulo">Auditoría técnica de industrialización</div>
-              <InformeIA motor={resumenMotor(resultado)} informe={analisis.informe} />
+              {/* UX simple: el detalle del informe técnico se pliega; en avanzado open=true + summary oculto ⇒ idéntico. */}
+              <details open={!simple}>
+                <summary className="ayuda" data-testid="ver-ingenieria-informe" style={{ cursor: 'pointer', display: simple ? 'list-item' : 'none', margin: '4px 0' }}>Ver ingeniería (detalle del informe)</summary>
+                <InformeIA motor={resumenMotor(resultado)} informe={analisis.informe} />
+              </details>
             </div>
           )}
           <div className="chips">
@@ -1405,12 +1426,17 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
           <div className="ayuda columna-texto" style={{ marginTop: 6 }}>
             {(NIVELES_DIFICULTAD.find(([k]) => k === (b.dificultad ?? 'normal')) || [])[2]}
           </div>
-          <div className="ayuda columna-texto" style={{ marginTop: 10 }}>
-            Cubiertas 15% MO · metal/madera/general 20% MO (indirectos ×3) · cristal y compra-venta 1% MO (indirectos 5%).
-            Verificado contra las hojas de costo reales de Alba (Alpura, bench) al centavo. La dificultad multiplica la
-            mano de obra (y con ella los indirectos); Normal = la fórmula de siempre.
-          </div>
-          <div className="ayuda columna-texto" style={{ marginTop: 8 }}>Para costos con horas exactas por proceso, usa el Costeador detallado.</div>
+          {/* UX simple: la explicación detallada de la fórmula es "ingeniería" — se pliega en modo simple.
+              open={!simple} + summary oculto en avanzado ⇒ render idéntico a hoy. */}
+          <details className="ingenieria-mo" open={!simple} style={{ textAlign: 'left' }}>
+            <summary className="ayuda" data-testid="ver-ingenieria-mo" style={{ cursor: 'pointer', display: simple ? 'list-item' : 'none', margin: '8px 0' }}>Ver ingeniería (cómo se calcula la mano de obra)</summary>
+            <div className="ayuda columna-texto" style={{ marginTop: 10 }}>
+              Cubiertas 15% MO · metal/madera/general 20% MO (indirectos ×3) · cristal y compra-venta 1% MO (indirectos 5%).
+              Verificado contra las hojas de costo reales de Alba (Alpura, bench) al centavo. La dificultad multiplica la
+              mano de obra (y con ella los indirectos); Normal = la fórmula de siempre.
+            </div>
+            <div className="ayuda columna-texto" style={{ marginTop: 8 }}>Para costos con horas exactas por proceso, usa el Costeador detallado.</div>
+          </details>
         </div>
       )}
 
@@ -1473,13 +1499,18 @@ export default function AsistenteEspecial({ estado, rol = null, onVerDetalle, on
             </>
           )}
           <div className="espacio" />
-          <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
-            Material {pesos2(resultado.materialTotal)} · Mano de obra {pesos2(resultado.manoObra)} · Fábrica {pesos2(resultado.indirectosFabrica)}
-          </div>
-          {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
-          <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
-            Método de costeo: <strong>{formulaActual === FORMULA_ALBA_V1 ? `Alba V1${b.dificultad && b.dificultad !== 'normal' ? ` · dificultad ×${factorDificultad(b.dificultad)}` : ''}` : esHistoricoLegacy ? 'Legacy 55 (histórico)' : formulaActual}</strong>
-          </div>
+          {/* UX simple: el desglose y el método son "ingeniería" — se pliegan en modo simple (open={!simple}).
+              En modo avanzado open=true + summary oculto ⇒ render idéntico a hoy. No cambia ninguna cifra ni lógica. */}
+          <details className="ingenieria-costeo" open={!simple} style={{ textAlign: 'left' }}>
+            <summary className="ayuda" data-testid="ver-ingenieria-costeo" style={{ cursor: 'pointer', display: simple ? 'list-item' : 'none', margin: '6px 0' }}>Ver ingeniería (método y desglose del costo)</summary>
+            <div className="ayuda columna-texto" style={{ textAlign: 'left' }}>
+              Material {pesos2(resultado.materialTotal)} · Mano de obra {pesos2(resultado.manoObra)} · Fábrica {pesos2(resultado.indirectosFabrica)}
+            </div>
+            {/* Método de costeo — discreto. Alba V1 para producto nuevo; histórico legacy al reabrir. */}
+            <div className="ayuda columna-texto" style={{ textAlign: 'left', marginTop: 2, opacity: 0.8 }}>
+              Método de costeo: <strong>{formulaActual === FORMULA_ALBA_V1 ? `Alba V1${b.dificultad && b.dificultad !== 'normal' ? ` · dificultad ×${factorDificultad(b.dificultad)}` : ''}` : esHistoricoLegacy ? 'Legacy 55 (histórico)' : formulaActual}</strong>
+            </div>
+          </details>
           {esHistoricoLegacy && (
             <div className="alerta" style={{ marginTop: 8, textAlign: 'left', border: '1px solid #8a6d00', borderRadius: 8, padding: 10 }}>
               <span className="texto">Costo histórico — calculado con <strong>Legacy55</strong>. No se recalcula solo. </span>

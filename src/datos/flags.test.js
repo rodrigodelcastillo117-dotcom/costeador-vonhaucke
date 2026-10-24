@@ -48,4 +48,14 @@ describe('flags', () => {
     expect(t.layout_v2).toBe(false);
     expect(t.render_v2).toBe(true);
   });
+
+  // Pase UX: el flujo COSTEAR simplificado nace APAGADO en producción (riesgo cero).
+  // Se prende sólo por ?ff=costear_simple o por vh_flags (QA). El modo avanzado de hoy
+  // queda intacto como default mientras el flag está en false.
+  it('costear_simple: default false (fail-closed), se prende por URL o storage', () => {
+    expect(BASE.costear_simple).toBe(false);
+    expect(flagActivo('costear_simple', { storage: { getItem: () => null }, search: '' })).toBe(false);
+    expect(flagActivo('costear_simple', { storage: { getItem: () => null }, search: '?ff=costear_simple' })).toBe(true);
+    expect(flagActivo('costear_simple', { storage: stor({ costear_simple: true }), search: '' })).toBe(true);
+  });
 });
