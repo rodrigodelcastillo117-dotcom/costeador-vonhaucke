@@ -1364,6 +1364,11 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                     {est.badgeTipo === 'confirmar' && difiereDeLoPedido(est.cambio) && (
                       <>{' '}<button type="button" className="chip" data-testid="confirmar-con-diferencia" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, c.insumoId, { confirmado: true })}>Acepto esta diferencia</button></>
                     )}
+                    {/* Cierre ChatGPT (COC-01): las piezas que la IA infirió/supuso no entran al "Confirmar los N" en bloque y el
+                        aviso dice "confírmalas una por una"; re-elegir el mismo material no dispara cambio. Este botón lo hace. */}
+                    {est.badgeTipo === 'confirmar' && !difiereDeLoPedido(est.cambio) && c.insumoId && (
+                      <>{' '}<button type="button" className="chip" data-testid="confirmar-material" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, c.insumoId, { confirmado: true })}>Confirmar este material</button></>
+                    )}
                   </div>
                 )}
                 {est.pendiente && !c._match?.sinPrecioCertificado && (

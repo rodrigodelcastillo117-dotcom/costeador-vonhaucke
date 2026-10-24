@@ -39,7 +39,7 @@ export async function resolverModoDocumento({ probEmision = [], bloqueoExcluidas
       ui.verPorque?.();
       const titulo = estadoGate === 'DESCONOCIDO'
         ? 'No se pudo verificar la emisión'
-        : ((ESTADO_EMISION[estadoGate] || {}).titulo || estadoGate);
+        : ((ESTADO_EMISION[estadoGate] || {}).titulo || 'No se puede emitir todavía; se revisa al emitir');
       razones.push(titulo);
     }
   }

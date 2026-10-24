@@ -26,7 +26,7 @@ const Asistente = lazy(() => import('./componentes/Asistente.jsx'));
 const AsistenteEspecial = lazy(() => import('./componentes/AsistenteEspecial.jsx'));
 const Biblioteca = lazy(() => import('./componentes/Biblioteca.jsx'));
 const CosteadorLinea = lazy(() => import('./componentes/CosteadorLinea.jsx'));
-import { aplicarPrograma, partidaComercialDesdeConfirmado } from './datos/programaRealDelPlano.js';
+import { aplicarPrograma, partidaComercialDesdeConfirmado, actualizarPartidasDePrograma } from './datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from './datos/reconciliarPartidas.js';
 import { fusionarAcomodo } from './datos/acomodoEstado.js';
 import { aplicarCompartido } from './datos/aplicarCompartido.js';
@@ -68,6 +68,7 @@ import {
   controlOptimistaActivo, esperadoParaGuardar, conflictoDesdeResultado, respaldoConflicto, aplicarFilaServidor,
   camposMezcla, mezclarRespaldo, resumenDiferencias, confirmacionRecuperar, confirmacionDescartar,
   leerRespaldoConflicto, guardarRespaldoConflicto, descartarRespaldoConflicto, retirarRespaldoRecuperado, ETIQUETAS_CAMPO,
+  marcarConflictoAbierto, leerConflictoAbierto, CONFIRMACION_REAPLICAR,
 } from './datos/conflictoGuardado.js';
 import ConflictoGuardado from './componentes/ConflictoGuardado.jsx';
 import RespaldoConflicto from './componentes/RespaldoConflicto.jsx';
@@ -76,13 +77,16 @@ import { aplicarRespaldo } from './datos/respaldo.js';
 import { crearPartida } from './datos/partida.js';
 import { partidaAutoritativaDeCosteo, partidaDeCosteo as partidaDeCosteoPura } from './datos/agregarCosteo.js';
 import { juntarIguales, costoDeBanco, margenDeBanco } from './datos/renglonesComerciales.js';
+import { identidadDeCatalogo } from './datos/precioAutorizado.js';
 import { verificarEmisionViva, registrarEmisionViva } from './datos/emisionViva.js';
 import { costeoVivoParaVoni, partidasLocalesVoni, economiaVoni } from './datos/contextoVoni.js';
 import { normalizarRol, veCostosCosteo } from './datos/roles.js';
 import { guardarRevision, snapshotEmitido } from './datos/revisiones.js';
 import { cargar, guardar, razonDeArranqueEnBlanco, PARAMS_SENSIBLES } from './almacen.js';
 import { leerBorradorCosteo, guardarBorradorCosteo, borrarBorradorCosteo } from './datos/borradorCosteo.js';
+import { borrarBorradorPedido } from './datos/borradorPedido.js';
 import { crearSeguroDobleClic, firmaAgregado } from './datos/dobleClic.js';
+import { insumosCompartibles } from './datos/insumosCompartibles.js';
 import { leerConfig, escribirConfig, suscribirConfig, leerDireccion, escribirDireccion, sesionActual, alCambiarSesion, entrar, salir, miPermiso, costearServidor, evaluarEmision, solicitarAprobacionSnapshot, CARRIL_RC } from './nube.js';
 import { modeloParaPieza, pendientesDeCosteo } from './motor/calculo.js';
 import { idNuevo } from './util.js';
@@ -160,7 +164,8 @@ function compartidoSeguro(estado) {
   const p = { ...estado.parametros };
   for (const f of PARAMS_SENSIBLES) delete p[f];
   return {
-    insumos: estado.insumos,
+    // Cierre v3: los insumos ERP elegidos a mano se quedan en ESTA computadora; no se escriben en la config de todos.
+    insumos: insumosCompartibles(estado.insumos),
     piezas: estado.piezas,
     parametros: p,
   };
@@ -203,7 +208,12 @@ function aplicarDireccion(estado, datos) {
 }
 
 export default function App() {
-  const [estado, setEstado] = useState(cargar);
+  // Renglones del programa guardados antes de CATALOG_LIST se re-evalúan al arrancar (si no, no se emiten).
+  const [estado, setEstado] = useState(() => {
+    const est = cargar();
+    const partidas = actualizarPartidasDePrograma(est.cotizacion?.partidas);
+    return partidas === est.cotizacion?.partidas ? est : { ...est, cotizacion: { ...est.cotizacion, partidas } };
+  });
   const [pestania, setPestania] = useState('inicio');
   const [voniAbierto, setVoniAbierto] = useState(false);
   const [inicioVista, setInicioVista] = useState('home'); // sub-vista del Inicio (home/costear/cotizar)
@@ -250,14 +260,22 @@ export default function App() {
       ...e,
       cotizacion: {
         ...e.cotizacion, partidas: [], acomodo: null, cliente: '', folio: '',
+        // 21-oct: el "pedido" que interpretó Voni (programaBrief) es de ESA cotización. Se quedaba pegado y el
+        // programa del siguiente plano pedía los Eclipse de la anterior ("ESCRITORIO_SOLICITADO_NO_CANONICO").
+        programaBrief: null,
         // Bloque 1: el id de la nube vive en el estado (persiste al recargar). Una
         // cotización nueva = sin id y con clave de creación propia (idempotencia).
         id: null, claveCreacion: claveCreacionNueva(),
         actualizado: null,        // VH-148: sin versión conocida hasta que el servidor la devuelva
         // No arrastrar el descuento/ajustes del cliente anterior a la nueva.
         descuentoPct: 0, contingenciaPct: 0, maniobrasPct: 0, fletePct: 0,
+        // E2E 2026-10-20: la propuesta nueva salía con la fecha del día en que se creó el estado del
+        // navegador ("3 de octubre" el 20). Una cotización nueva lleva la fecha de HOY.
+        fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
     }));
+    setVoniPaso(1);               // y empieza en el paso 1 (Espacio), no en la Propuesta en blanco
+    borrarBorradorPedido();       // el pedido a Voni de la cotización anterior no se arrastra a la nueva
     mostrarAviso('Listo: empezaste una cotización nueva, desde cero.');
   };
 
@@ -503,7 +521,13 @@ export default function App() {
   const [conflicto, setConflicto] = useState(null);
   const conflictoRef = useRef(null);
   const [resolviendoConflicto, setResolviendoConflicto] = useState(false);
-  const fijarConflicto = (c) => { conflictoRef.current = c; setConflicto(c); };
+  // P1-REL-02: el conflicto abierto se marca en esta computadora para que sobreviva a recargar (ver efecto de abajo).
+  const fijarConflicto = (c, id = idCotizacion.current) => {
+    conflictoRef.current = c; setConflicto(c);
+    // La marca lleva la BASE de la fusión (lo que esta pestaña sabía del servidor): si se recarga a media resolución, el
+    // respaldo que se haga después sigue sabiendo qué cambió la persona (sin base, todo sería "choque").
+    if (controlOptimistaActivo()) marcarConflictoAbierto(typeof localStorage === 'undefined' ? null : localStorage, id ?? null, c ? { ...c, base: baseNube.current } : null);
+  };
   // VH-148 · BASE de la fusión de tres vías: lo que esta pestaña sabe que está en el servidor (campos
   // comparables de la cotización al abrirla, al cargar la versión del servidor y tras cada guardado
   // confirmado). Viaja dentro del respaldo de conflicto para que "Recuperar mis cambios" sepa qué
@@ -733,6 +757,8 @@ export default function App() {
   async function reaplicarMisCambios() {
     const c = conflictoRef.current;
     if (!c) return;
+    // P1-REL-02: reemplaza lo de la otra persona con el documento completo: sólo con confirmación explícita.
+    if (!confirm(CONFIRMACION_REAPLICAR)) return;
     setResolviendoConflicto(true);
     try {
       let esperado = c.actualizadoServidor;
@@ -744,6 +770,25 @@ export default function App() {
       setResolviendoConflicto(false);
     }
   }
+
+  // P1-REL-02 · recargar con un conflicto SIN RESOLVER: antes lo local se reenviaba, el aviso reaparecía y la versión del
+  // servidor no se mostraba. Ahora, con la sesión lista, se respalda lo local y se carga la versión del servidor (lo mismo
+  // que "Ver la versión del servidor"); recuperar lo propio sigue siendo una decisión explícita (tarjeta de respaldo).
+  const conflictoRecargaHecho = useRef(false);
+  useEffect(() => {
+    if (!controlOptimista || conflictoRecargaHecho.current || !sesion?.user?.email) return;
+    const id = idCotizacion.current ?? estado.cotizacion?.id ?? null;
+    let pendiente = null;
+    try { pendiente = leerConflictoAbierto(localStorage, id); } catch { pendiente = null; }
+    if (!pendiente) return;
+    conflictoRecargaHecho.current = true;
+    if (!baseNube.current && pendiente.base) baseNube.current = pendiente.base;   // la base sobrevive a la recarga
+    if (!conflictoRef.current) { conflictoRef.current = pendiente; setConflicto(pendiente); }
+    verVersionDelServidor().then(() => {
+      if (!conflictoRef.current) mostrarAviso('Recargaste con un conflicto sin resolver: en pantalla está la versión del servidor y tus cambios quedaron respaldados en esta computadora.', 9000);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [controlOptimista, sesion?.user?.email, idAbierta]);
 
   // Cambió la persona (salir / entrar otro correo): lo "ya guardado" era de la sesión
   // anterior. Se olvida la firma para que el siguiente guardado vaya al servidor y éste
@@ -832,6 +877,7 @@ export default function App() {
   async function hacerLogout() {
     await salir();
     borrarBorradorCosteo(localStorage);   // R-05: el borrador técnico no se queda en una computadora sin sesión
+    borrarBorradorPedido();               // el pedido a Voni a medio escribir tampoco (datos/borradorPedido.js)
     setPestania('inicio');
     // Al salir se borra de esta computadora todo lo de Direccion.
     setEstado((e) => limpiarSensibles(e));
@@ -1012,6 +1058,9 @@ export default function App() {
     // VH-091: `opts.sustituir` = slots cuyo conflicto la persona resolvió a favor del propuesto.
     const sustituir = Array.isArray(opts.sustituir) ? opts.sustituir : [];
     const mantenerAmbos = Array.isArray(opts.mantenerAmbos) ? opts.mantenerAmbos : [];
+    const repartir = Array.isArray(opts.repartir) ? opts.repartir : [];
+    const roles = opts.roles && typeof opts.roles === 'object' ? opts.roles : {};
+    const destinos = opts.destinos && typeof opts.destinos === 'object' ? opts.destinos : {};
     const decisiones = opts.decisiones && typeof opts.decisiones === 'object' ? opts.decisiones : {};
     // Piloto automático: `opts.sinNuevas` = sólo fusiona duplicados y vincula lo ya descrito; NO agrega
     // productos nuevos al proyecto (agregar renglones comerciales sigue siendo decisión de la persona).
@@ -1019,14 +1068,14 @@ export default function App() {
     // P1: recomendaciones de casa agregadas por línea (claves); nunca entran solas.
     const incluir = Array.isArray(opts.incluir) ? opts.incluir : [];
     // Vista para la UI (contra el estado actual): conflictos y pendientes a mostrar.
-    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos, incluir });
+    const vista = aplicarPrograma(propuesta, { existentes: estado.cotizacion?.partidas || [], sustituir, mantenerAmbos, repartir, roles, destinos, incluir });
     if (aplicandoProgramaRef.current) {
       return { confirmadas: 0, conflictos: vista.conflictos || [], pendientes: propuesta.pendientes || [] };
     }
     aplicandoProgramaRef.current = true;
     setEstado((prev) => {
       const existentes0 = prev.cotizacion?.partidas || [];
-      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir, mantenerAmbos, incluir });
+      const { confirmacion } = aplicarPrograma(propuesta, { existentes: existentes0, sustituir, mantenerAmbos, repartir, roles, destinos, incluir });
       // VH-091: los sustituidos por decisión explícita salen del proyecto.
       const fuera = new Set((confirmacion.reemplazados || []).map(String));
       const existentes = fuera.size ? existentes0.filter((p) => !fuera.has(String(p.id))) : existentes0;
@@ -1202,10 +1251,14 @@ export default function App() {
   function agregarDeBanco(item, cantidad) {
     const nombre = item.medidas ? `${item.nombre} (${item.medidas})` : item.nombre;
     // RC3: antes sembraba costo/margen a TODOS los roles; el contrato los quita al vendedor.
+    // Identidad de catálogo (Producto Maestro) ⇒ la emisión la trata como reventa con su
+    // precio de lista (P0-01) en vez de exigir un costo que una pieza comprada no tiene.
+    const ident = identidadDeCatalogo('banco', item.id);
     const partida = crearPartida({
       piezaId: item.id, nombre,
       cantidad, costoUnitario: costoDeBanco(item), costoDerivado: true, precioUnitario: item.precio,
       margen: margenDeBanco(item), deBanco: true, precioReal: true,
+      ...(ident ? { ...ident, precio_lista_snapshot: item.precio } : {}),
     }, { veCostos, origen: 'banco' });
     if (agregadoRepetido([partida])) return;
     setEstado((e) => ({
@@ -1401,6 +1454,15 @@ export default function App() {
               // trae la cotización COMPLETA por id (seller-safe) para poder re-editarla.
               // Si la nube falla, se cae a lo que traía la tarjeta (degradación suave).
               const full = (await cargarCotizacionCompleta(c.id)) || c;
+              // P1-REL-02: abrir desde la lista con un conflicto sin resolver ya NO tira lo local: primero se respalda (la
+              // misma pila que "Ver la versión del servidor"), y el respaldo se ofrece al volver a esa cotización.
+              if (conflictoRef.current) {
+                const idPrevio = idCotizacion.current ?? estado.cotizacion?.id ?? null;
+                let ok = false;
+                try { ok = guardarRespaldoConflicto(localStorage, idPrevio, respaldoConflicto(estado, conflictoRef.current, { base: baseNube.current })); } catch { ok = false; }
+                if (!ok && !confirm('No se pudo guardar una copia de tus cambios sin guardar. Si abres este presupuesto, se pierden. ¿Abrir de todos modos?')) return;
+                fijarConflicto(null, idPrevio);
+              }
               epocaCot.current += 1;          // invalida guardados en vuelo de la anterior
               idCotizacion.current = c.id;   // seguir editando ESE, no crear otro
               fijarConflicto(null);           // VH-148: se abre otra cotización; el conflicto anterior ya no aplica
@@ -1410,7 +1472,8 @@ export default function App() {
                 // VH-148: la versión desde la que se edita (cadena tal cual; null con la RPC vieja).
                 actualizado: typeof full.actualizado === 'string' ? full.actualizado : null,
                 cliente: full.cliente || '', folio: full.folio || '',
-                partidas: full.partidas || [], acomodo: full.acomodo || null,
+                partidas: actualizarPartidasDePrograma(full.partidas || []), acomodo: full.acomodo || null,
+                programaBrief: full.programaBrief ?? null,   // el pedido de ESTA cotización, nunca el de la que estaba abierta
                 descuentoPct: full.totales?.descuentoPct ?? estado.cotizacion.descuentoPct,
                 contingenciaPct: full.totales?.contingenciaPct ?? estado.cotizacion.contingenciaPct,
                 maniobrasPct: full.totales?.maniobrasPct ?? estado.cotizacion.maniobrasPct,
@@ -1420,8 +1483,13 @@ export default function App() {
               };
               // Lo que se acaba de abrir YA está en la nube: no se reescribe (ni se pisa la
               // economía que este rol no ve) hasta que el usuario edite algo.
-              fijarFirmaComoGuardada({ ...estado, cotizacion: cotAbierta });
-              baseNube.current = comparables(cotAbierta);   // VH-148: desde aquí se edita
+              // EXCEPCIÓN: la reparación de renglones viejos (actualizarPartidasDePrograma) SÍ tiene que
+              // subir. La firma y la base son las de lo que hay en el SERVIDOR; si la reparación cambió algo,
+              // el autoguardado lo sube. Antes se firmaba lo reparado y nunca se guardaba: la emisión comparaba
+              // el renglón reparado contra el guardado y decía "no corresponde a lo que se costeó" (4048, 20-oct).
+              const cotServidor = { ...cotAbierta, partidas: full.partidas || [] };
+              fijarFirmaComoGuardada({ ...estado, cotizacion: cotServidor });
+              baseNube.current = comparables(cotServidor);   // VH-148: desde aquí se edita
               setEstado((e) => ({ ...e, cotizacion: cotAbierta }));
               irA('cotizacion');
               mostrarAviso(`Abierto: ${full.cliente || c.cliente || 'sin cliente'}`);
@@ -1490,6 +1558,7 @@ export default function App() {
             onAgregarItems={agregarItemsProyecto}
             onGuardarAcomodo={guardarAcomodo}
             onAplicarPrograma={aplicarProgramaDetectado}
+            onEmpezarDeCero={descartarProyecto}
             onIr={irA}
           />
         )}

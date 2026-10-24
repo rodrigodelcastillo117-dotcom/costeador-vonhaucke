@@ -14,7 +14,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { catalogoIA, costearItem } from '../datos/lineas.js';
 import { BANCO } from '../datos/banco.js';
 import { briefDePropuesta } from '../datos/programaBrief.js';
-import { autorizadoPorRef } from '../datos/precioAutorizado.js';
+import { identidadDeCatalogo } from '../datos/precioAutorizado.js';
 import { cotizarTexto } from '../nube.js';
 import ProgramaProyecto from './ProgramaProyecto.jsx';
 import { anotar } from '../datos/aprendizaje.js';
@@ -26,6 +26,7 @@ const resumenCorto = (t) => {
   return s.length > 90 ? s.slice(0, 90) + '…' : s;
 };
 import Cargando from './Cargando.jsx';
+import { leerBorradorPedido, guardarBorradorPedido } from '../datos/borradorPedido.js';
 
 // Un botón que dice "Ejemplo 1" no le dice nada a nadie: se nombran por el
 // tipo de proyecto, para que el vendedor reconozca el suyo.
@@ -46,7 +47,9 @@ export default function CotizadorIA({
   estado, onAgregarItems, onIr, verCotizacion = false, conPrograma = false,
   pantalla = 'todo', onListo, soloVentas = false,
 }) {
-  const [texto, setTexto] = useState('');
+  // El pedido a medio escribir sobrevive cambiar de paso, "‹ Atrás" y recargar (datos/borradorPedido.js).
+  const [texto, setTexto] = useState(() => leerBorradorPedido());
+  useEffect(() => { guardarBorradorPedido(texto); }, [texto]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState('');
   const [resultado, setResultado] = useState(null);
@@ -136,19 +139,12 @@ export default function CotizadorIA({
           nota: b.nota || null, confianza: 'alta', avisos: [], sugerido: !!b.sugerido,
         };
         if (!soloVentas) { partidaBanco.costoUnitario = 0; partidaBanco.margen = null; }
-        else {
-          partidaBanco.sellerSafe = true;
-          // LÍNEA V2: identidad de Producto Maestro (banco: source_ref == id de la pieza).
-          const idv2 = autorizadoPorRef(pieza.id);
-          if (idv2) {
-            partidaBanco.source_type = 'banco';
-            partidaBanco.source_ref = idv2.source_ref;
-            partidaBanco.producto_id = idv2.producto_id;
-            partidaBanco.producto_version_id = idv2.producto_version_id;
-            partidaBanco.lista_precio_item_id = idv2.lista_precio_item_id;
-            partidaBanco.precio_lista_snapshot = pieza.precio;  // precio de display (banco), no snapshot
-          }
-        }
+        else partidaBanco.sellerSafe = true;
+        // LÍNEA V2: identidad de Producto Maestro (banco: source_ref == id de la pieza) para
+        // TODOS los roles. Antes sólo el vendedor la llevaba; Dirección quedaba en el camino
+        // legacy con costo 0 y la emisión decía "falta confirmar el costo" (E2E 2026-10-20).
+        const idv2 = identidadDeCatalogo('banco', pieza.id);
+        if (idv2) Object.assign(partidaBanco, idv2, { precio_lista_snapshot: pieza.precio });
         costados.push(partidaBanco);
       }
       // Se marca ANTES de tocar las partidas: el useEffect de arriba compara
@@ -256,6 +252,7 @@ export default function CotizadorIA({
             <ProgramaProyecto
               cargando={cargando}
               areasPlano={estado.cotizacion?.acomodo?.areasM || null}
+              planReal={!!estado.cotizacion?.acomodo?.planReal}
               onArmar={(frase) => { setTexto(frase); interpretar(frase); }} />
           )}
           {conPrograma && <div className="prog-o">o escríbelo / pégalo</div>}

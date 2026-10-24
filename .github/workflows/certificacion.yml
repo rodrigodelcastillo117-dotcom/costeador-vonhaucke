@@ -1,0 +1,98 @@
+name: Certificación (labs reales contra producción)
+
+# Corre los laboratorios reales (IA, Edge y base de PRODUCCIÓN, cuenta QA) de los tres flujos: Costear, Cocrear y Cotizar
+# (planos con acomodo, texto y manual). Sólo en PRs con la etiqueta `certificar`: cada corrida gasta llamadas de IA.
+# Un job por caso (fail-fast apagado): la evidencia de cada uno queda como artefacto `cert-<caso>`.
+on:
+  pull_request:
+    types: [labeled, synchronize]
+
+concurrency:
+  group: certificacion-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  # La lista de casos vive en lab/certificacion/casos.json (para medir sólo lo necesario en cada corrida).
+  # Casos posibles: costear-<hoja>, cocrear-<1..8>, plano-<C1..C6>, planorc-<C1..C6>, texto, manual.
+  plan:
+    if: contains(github.event.pull_request.labels.*.name, 'certificar')
+    runs-on: ubuntu-latest
+    outputs:
+      casos: ${{ steps.leer.outputs.casos }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # P1-LAB-COC-09: el gate falla solo. Un spec que falla en el 1.er intento y pasaría en el 2.º debe REPROBAR bajo la
+      # configuración de certificación; si "pasa", la certificación no corre.
+      - name: Meta-prueba — la certificación no admite reintentos
+        run: |
+          set +e
+          CI=1 CERTIFICACION=1 LAB_META=1 E2E_BASE_URL=http://127.0.0.1:9 npx playwright test e2e/labMetaReintento.e2e.js --workers=1 --reporter=line
+          rc=$?
+          set -e
+          if [ "$rc" = 0 ]; then echo "::error::un primer intento FAIL quedó en verde: la certificación admite reintentos"; exit 1; fi
+          echo "OK: el primer intento FAIL reprobó (exit $rc) — retries=0 en certificación"
+      - id: leer
+        run: echo "casos=$(tr -d '\n' < lab/certificacion/casos.json)" >> "$GITHUB_OUTPUT"
+  caso:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      # La IA tiene un límite de 40 análisis por hora por usuario (analizar-mueble): pocos casos a la vez.
+      max-parallel: 2
+      matrix:
+        caso: ${{ fromJSON(needs.plan.outputs.casos) }}
+    env:
+      TEST_EMAIL: ${{ secrets.TEST_EMAIL }}
+      TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # P1-REL-01: se prueba EXACTAMENTE el commit del PR (el FINAL_SHA), no el merge sintético con la base.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Holdout: el SHA congelado del MANIFIESTO tiene que estar en el clon (prepararEntornoHoldout + git diff).
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Dependencias
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          pip install matplotlib
+      - name: Caso ${{ matrix.caso }}
+        run: bash lab/certificacion/caso.sh ${{ matrix.caso }}
+      # Seguridad (19-oct): nada de la evidencia lleva la contraseña/correo de la cuenta QA (error-context de Playwright).
+      - name: Tachar secretos de la evidencia
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, pathlib
+          secretos = [s for s in (os.environ.get('TEST_PASSWORD'), os.environ.get('TEST_EMAIL')) if s and len(s) >= 4]
+          for p in pathlib.Path('lab/certificacion/ci').rglob('*'):
+              if not p.is_file() or p.suffix.lower() not in ('.md', '.txt', '.json', '.log', '.html', '.yml'):
+                  continue
+              t = p.read_text(errors='ignore'); n = t
+              for s in secretos: n = n.replace(s, '•••')
+              if n != t: p.write_text(n)
+          PY
+      - name: Evidencia
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cert-${{ matrix.caso }}
+          path: lab/certificacion/ci/${{ matrix.caso }}
+          if-no-files-found: warn
+          retention-days: 14

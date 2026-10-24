@@ -214,7 +214,7 @@ export default function Inicio({ estado, onIr, onAgregarArticulo, veCostos = fal
             </button>
             {onDescartar && (
               <button className="retomar-tirar" onClick={() => {
-                if (!confirm(`¿Descartar esta cotización completa?\n\nSe borran ${nPartidas} renglón${nPartidas === 1 ? '' : 'es'} y el acomodo. No se puede deshacer.`)) return;
+                if (!confirm(`¿Descartar esta cotización completa?\n\nSe borran ${nPartidas} ${nPartidas === 1 ? 'renglón' : 'renglones'} y el acomodo. No se puede deshacer.`)) return;
                 onDescartar();
               }}>Empezar de cero</button>
             )}

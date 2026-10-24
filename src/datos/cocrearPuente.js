@@ -92,7 +92,27 @@ export function envolventeBase(producto, config) {
  * El PADRE: el despiece real del producto de línea en la medida de catálogo más cercana a la pedida.
  * @returns {{ok:true, ruta, linea, productoId, productoNombre, nombre, config, componentes, base, claves}|{ok:false, motivo}}
  */
-export function padreDeLinea({ ruta, productoId, dims = {} } = {}, registro = LINEAS_REG) {
+// Color de melamina de la línea que corresponde al material que pidió el concepto ("nogal claro" ⇒
+// Walnut / Nogal Neo). E2E 2026-10-20: se pidió nogal y el despiece escalado salió en "Melamina 28 Ivory"
+// (el color por omisión del padre). Sin coincidencia: el del padre, como antes.
+const COLOR_DE_MATERIAL = {
+  nogal: /nogal|walnut/, roble: /roble|oak/, encino: /encino/, maple: /maple/, fresno: /fresno|ash/, cerezo: /cerezo/,
+  blanco: /blanco|white|frosty/, negro: /black|ebano/, gris: /gris|grey|humo/,
+};
+export function colorDeMaterial(producto, materiales = []) {
+  const colores = (producto?.colores || []).map((c) => (typeof c === 'string' ? { id: c, label: c } : c)).filter((c) => c && c.id);
+  if (!colores.length) return null;
+  for (const m of (Array.isArray(materiales) ? materiales : [])) {
+    const k = String(m?.material || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const re = COLOR_DE_MATERIAL[k];
+    if (!re) continue;
+    const hit = colores.find((c) => re.test(`${c.id} ${c.label || ''}`.toLowerCase()));
+    if (hit) return hit.id;
+  }
+  return null;
+}
+
+export function padreDeLinea({ ruta, productoId, dims = {}, materiales = [] } = {}, registro = LINEAS_REG) {
   const l = registro?.[ruta];
   const p = l?.productos?.find((x) => x.id === productoId);
   if (!l || !p) return { ok: false, motivo: 'Ese producto de línea no existe en la app.' };
@@ -101,6 +121,8 @@ export function padreDeLinea({ ruta, productoId, dims = {} } = {}, registro = LI
   }
   const d = dimsDe(dims);
   const sel = Array.isArray(p.diametros) && p.diametros.length ? { diametroMM: d.ancho_mm } : { largoMM: d.ancho_mm, fondoMM: d.prof_mm };
+  const color = colorDeMaterial(p, materiales);
+  if (color) sel.color = color;
   let config, g;
   try {
     config = configDesde(p, sel);
@@ -296,7 +318,7 @@ export function bajarLineaABom(intent, { ruta, productoId, dificultad } = {}, { 
   if (!intent) return { ok: false, motivo: 'No hay concepto que bajar a BOM.' };
   const nueva = dimsDe(intent.dimensiones || {});
   if (!pos(nueva.ancho_mm)) return { ok: false, motivo: 'Falta el ancho del mueble: sin medida no hay despiece (no se inventa).' };
-  const padre = padreDeLinea({ ruta, productoId, dims: nueva }, registro);
+  const padre = padreDeLinea({ ruta, productoId, dims: nueva, materiales: intent.materiales }, registro);
   if (!padre.ok) return padre;
   const cambia = EJES.some((k) => pos(padre.base[k]) && pos(nueva[k]) && Math.abs(padre.base[k] - nueva[k]) >= 1);
   if (!cambia) {

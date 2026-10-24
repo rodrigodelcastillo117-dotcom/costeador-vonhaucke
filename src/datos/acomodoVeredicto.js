@@ -91,10 +91,14 @@ const TEXTO_INVARIANTE = {
   DEPENDENT_DETACHED: 'una silla/guarda lejos de su mueble',
   DEPENDENT_UNASSIGNED: 'silla/guarda sin mueble que la reciba',
 };
-const textoInvariante = (i) => {
+// Prueba de Rodrigo 19-oct: el aviso decía «p-1792455947285-3-1» (id interno). Se dice el NOMBRE del mueble cuando se conoce.
+const textoInvariante = (i, nombreDe = null) => {
   const code = String(i?.code || '');
   const base = TEXTO_INVARIANTE[code] || code.toLowerCase().replace(/_/g, ' ');
-  const n = Array.isArray(i?.ids) && i.ids.length ? ` (${i.ids.slice(0, 3).join(', ')}${i.ids.length > 3 ? '…' : ''})` : (i?.id != null ? ` («${i.id}»)` : '');
+  // Lab de recorridos 19-oct: un par encimado viaja como "a|b"; cada id se nombra (nunca el id en pantalla).
+  const uno = (id) => (nombreDe && nombreDe.get(String(id))) || (/^p-\d{6,}/.test(String(id)) ? 'un mueble' : String(id));
+  const nom = (id) => String(id).split('|').map(uno).join('» y «');
+  const n = Array.isArray(i?.ids) && i.ids.length ? ` (${i.ids.slice(0, 3).map(nom).join(', ')}${i.ids.length > 3 ? '…' : ''})` : (i?.id != null ? ` («${nom(i.id)}»)` : '');
   return `${base}${n}`;
 };
 
@@ -125,6 +129,8 @@ export function notasCapacidad(layoutSpec) {
 }
 
 export function explicarAcomodo({ plan = null, evaluacion = null, programaListo = true, motivoPrograma = '', referencias = [], preliminar = false, nombresSinColocar = [], huellasEstandar = 0, bancas = null } = {}) {
+  const nombreDe = new Map((Array.isArray(plan?.piezas) ? plan.piezas : []).filter((p) => p && p.id != null && p.nombre).map((p) => [String(p.id), String(p.nombre)]));
+  const tInv = (x) => textoInvariante(x, nombreDe);
   const spec = plan?.layoutSpec || null;
   const statusSrv = String(spec?.status || '').toUpperCase() || null;
   const issues = (evaluacion?.issues || plan?.invariantes?.issues || spec?.validation?.issues || []).filter(Boolean);
@@ -143,12 +149,12 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   // 1 · Geometría (dentro del cuarto, cuartos válidos, sin fantasmas).
   const geoF = porClase(fallas, 'geometria');
   bloques.push({ clave: 'geometria', titulo: 'Geometría', ok: !plan ? null : geoF.length === 0,
-    texto: !plan ? 'sin acomodo todavía' : geoF.length ? uniq(geoF.map(textoInvariante)).join(' · ') : 'todos los muebles dentro de su cuarto' });
+    texto: !plan ? 'sin acomodo todavía' : geoF.length ? uniq(geoF.map(tInv)).join(' · ') : 'todos los muebles dentro de su cuarto' });
   // 2 · Colisiones y circulación.
   const colF = porClase(fallas, 'colisiones'); const colR = porClase(revisiones, 'colisiones');
   // ok sólo cuando no hay fallas NI revisiones pendientes (una puerta sin verificar no está validada).
   bloques.push({ clave: 'colisiones', titulo: 'Colisiones y circulación', ok: !plan ? null : (colF.length === 0 && colR.length === 0),
-    texto: !plan ? '—' : colF.length ? uniq(colF.map(textoInvariante)).join(' · ') : (colR.length ? `sin colisiones; por revisar: ${uniq(colR.map(textoInvariante)).join(' · ')}` : 'sin encimados ni puertas tapadas') });
+    texto: !plan ? '—' : colF.length ? uniq(colF.map(tInv)).join(' · ') : (colR.length ? `sin colisiones; por revisar: ${uniq(colR.map(tInv)).join(' · ')}` : 'sin encimados ni puertas tapadas') });
   // 3 · Programa comercial.
   bloques.push({ clave: 'programa', titulo: 'Programa comercial', ok: !!programaListo,
     texto: programaListo ? 'anclas del programa confirmadas' : (motivoPrograma || 'programa incompleto') });
@@ -160,7 +166,7 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   const textoAnclas = !plan ? '—' : anclasOk ? 'cada silla y guarda tiene su mueble y su lugar'
     : uniq([
       nSin ? `${nSin} sin colocar${nombres.length ? `: ${nombres.slice(0, 4).join(', ')}${nombres.length > 4 ? '…' : ''}` : ''}` : '',
-      ...ancF.map(textoInvariante),
+      ...ancF.map(tInv),
     ]).join(' · ');
   bloques.push({ clave: 'anclas', titulo: 'Anclas y dependientes', ok: !plan ? null : anclasOk,
     texto: capNotas.length ? `${textoAnclas} · ${capNotas.join(' · ')}` : textoAnclas, capacidad: capNotas });
@@ -211,13 +217,13 @@ export function explicarAcomodo({ plan = null, evaluacion = null, programaListo 
   if (quality && !pendientes.length) pendientes.push(quality);
   // Otras revisiones (no clasificadas) del agregador o del edge: se dicen, nunca se pierden.
   const otrasR = revisiones.filter((i) => claseDe(i.code) === 'otros');
-  if (otrasR.length) pendientes.push(`por revisar: ${uniq(otrasR.map(textoInvariante)).join(' · ')}`);
+  if (otrasR.length) pendientes.push(`por revisar: ${uniq(otrasR.map(tInv)).join(' · ')}`);
   if (!pendientes.length && plan && (statusSrv === 'REVIEW_REQUIRED' || statusSrv === 'NEEDS_REVIEW')) pendientes.push('observaciones del servidor por revisar');
   const estado = !plan ? 'SIN_PLAN'
     : (fallas.length || statusSrv === 'FAIL') ? 'FALLA'
       : (nSin > 0 || statusSrv === 'PARTIAL') ? 'PARCIAL'
         : (pendientes.length ? 'REVISION' : 'PASS');
-  const resumen = estado === 'PASS' ? '' : (estado === 'PARCIAL' ? `parcial: faltan ${nSin} por colocar${pendientes.length ? ' · ' + pendientes.filter((p) => !p.startsWith('anclas')).join(' · ') : ''}` : pendientes.join(' · '));
+  const resumen = estado === 'PASS' ? '' : (estado === 'PARCIAL' ? `parcial: faltan ${nSin} por colocar${pendientes.filter((p) => !p.startsWith('anclas')).length ? ' · ' + pendientes.filter((p) => !p.startsWith('anclas')).join(' · ') : ''}` : pendientes.join(' · '));
   return { estado, statusServidor: statusSrv, resumen, pendientes, bloques, semantica: sem };
 }
 

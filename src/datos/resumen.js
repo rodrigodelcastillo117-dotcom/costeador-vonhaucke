@@ -67,6 +67,7 @@ export function resumenPorArea(partidas, acomodo) {
     .find(cubre) || acomodo?.areas || [];
   if (!partidas?.length) return [];
 
+  const puestosDeNombre = (nombre) => { const m = /(\d+)\s*(?:usuario|puesto|persona|plaza)s?\b/i.exec(String(nombre || '')); return m ? Number(m[1]) : 1; };
   const porPartida = Object.fromEntries(partidas.map((p) => [p.id, p]));
   // area -> id de partida -> cuántas piezas de esa partida cayeron ahí
   const cuenta = new Map();
@@ -97,6 +98,29 @@ export function resumenPorArea(partidas, acomodo) {
     colocadasPorPartida[pid] = (colocadasPorPartida[pid] || 0) + 1;
   }
   const areasConEscritorio = [...escritoriosPorArea.keys()].sort((a, b) => a - b);
+  // Puestos OPERATIVOS por cuarto (bancas / estaciones): "8 usuarios" en el nombre de la banca.
+  const esOperativo = (p) => p && (p.relation_role === 'ANCHOR_WORKSTATION' || /\b(banca|bench|estaci|operativ)/i.test(p.nombre || ''));
+  const puestosPorArea = new Map();
+  for (const c of colocacion) {
+    const p = porPartida[partidaDe(c.id)];
+    if (!p || tipoDe(p) !== 'escritorio' || !esOperativo(p)) continue;
+    const n = Number(p.user_capacity ?? p.usuarios) || puestosDeNombre(p.nombre);
+    const k = c.area ?? 0;
+    puestosPorArea.set(k, (puestosPorArea.get(k) || 0) + n);
+  }
+  const totalPuestos = [...puestosPorArea.values()].reduce((t, n) => t + n, 0);
+  // Reparte `falta` entre las áreas con escritorio: hasta llenar los puestos operativos de cada cuarto
+  // (proporcional a ellos); el sobrante, como antes. null si no hay puestos operativos colocados.
+  const repartirPorPuestos = (falta) => {
+    if (!totalPuestos) return null;
+    const pesos = areasConEscritorio.map((k) => puestosPorArea.get(k) || 0);
+    const enPuestos = Math.min(falta, totalPuestos);
+    const base = repartirEntero(enPuestos, pesos);
+    const sobra = falta - enPuestos;
+    if (sobra <= 0) return base;
+    const extra = repartirEntero(sobra, areasConEscritorio.map((k) => escritoriosPorArea.get(k)));
+    return base.map((x, j) => x + extra[j]);
+  };
   const bajoCubierta = new Map();      // area -> pid -> cuántas
   const repartidas = {};               // pid -> cuántas quedaron ubicadas así
   if (areasConEscritorio.length) {
@@ -104,7 +128,11 @@ export function resumenPorArea(partidas, acomodo) {
       if (!vaBajoEscritorio(p)) continue;
       const falta = (p.cantidad || 0) - (colocadasPorPartida[p.id] || 0);
       if (falta <= 0) continue;
-      const trozos = repartirEntero(falta, areasConEscritorio.map((k) => escritoriosPorArea.get(k)));
+      // E2E 2026-10-20 (Torre Norte): 16 MOX para 2 bancas de 8 quedaban 11 en Operativa y 5 en la Oficina
+      // Dirección, porque se repartían por número de escritorios (2 bancas : 1 escritorio). Primero se llenan
+      // los PUESTOS de las bancas/estaciones operativas de cada cuarto; sólo lo que sobre sigue la regla vieja.
+      const porPuestos = repartirPorPuestos(falta);
+      const trozos = porPuestos || repartirEntero(falta, areasConEscritorio.map((k) => escritoriosPorArea.get(k)));
       areasConEscritorio.forEach((k, j) => {
         if (!trozos[j]) return;
         if (!bajoCubierta.has(k)) bajoCubierta.set(k, new Map());

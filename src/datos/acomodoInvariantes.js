@@ -52,7 +52,9 @@ function dentroDelArea(rect, area) {
   const W = Number(area?.ancho) || 0, H = Number(area?.largo) || 0;
   if (rect.x < -EPS || rect.y < -EPS || rect.x + rect.w > W + EPS || rect.y + rect.h > H + EPS) return false;
   if (Array.isArray(area?.poly) && area.poly.length >= 3) {
-    const esquinas = [[rect.x, rect.y], [rect.x + rect.w, rect.y], [rect.x, rect.y + rect.h], [rect.x + rect.w, rect.y + rect.h]];
+    // Prueba de Rodrigo 19-oct: una pieza PEGADA al muro tiene esquinas exactamente sobre el contorno y el rayo las
+    // contaba "fuera". Esquinas 1 mm hacia adentro, como el servidor (spatial-core.rectDentroPoligono).
+    const esquinas = [[rect.x + EPS, rect.y + EPS], [rect.x + rect.w - EPS, rect.y + EPS], [rect.x + EPS, rect.y + rect.h - EPS], [rect.x + rect.w - EPS, rect.y + rect.h - EPS]];
     if (!esquinas.every(([x, y]) => puntoEnPoligono(x, y, area.poly))) return false;
   }
   return true;
@@ -177,10 +179,11 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     if (esDep(pieza.relation_role) && !claveGrupo(pieza)) { add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) }); continue; }
     const gid = claveGrupo(pieza);
     if (!gid) continue;
-    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anchorRect: null, deps: [] });
+    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anchorRect: null, anclas: [], deps: [] });
     const g = grupos.get(gid);
     if (esAncla(pieza.relation_role)) {
       g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null; g.anchorRect = { ...r, h: r.d };
+      g.anclas.push({ area: ai, zone: pieza.zone_id ?? null, rect: { ...r, h: r.d } });
       if (pieza.zone_id != null && normZona(pieza.zone_id) !== normZona(zonaDeArea(ai))) {
         add('ANCHOR_WRONG_ZONE', 'fail', { id: String(c.id), area: ai, zoneEsperada: pieza.zone_id, zonaArea: zonaDeArea(ai) });
       }
@@ -191,11 +194,18 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   for (const [gid, g] of grupos) {
     if (g.anchorArea == null) continue; // sin ancla colocada: lo cubre cobertura/missing
     for (const d of g.deps) {
-      if (d.area !== g.anchorArea) {
+      // Un grupo puede tener VARIAS anclas (cotización 4048: 54 WIN en un solo grupo libre para 5 bancas
+      // repartidas en dos open spaces). Antes se comparaba contra la ÚLTIMA ancla y las sillas bien puestas
+      // en la otra banca salían "en otro cuarto que su mueble". Ahora: contra las anclas de SU cuarto.
+      const delCuarto = g.anclas.filter((a) => a.area === d.area);
+      if (!delCuarto.length) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
-      } else if (d.zone != null && g.anchorZone != null && normZona(d.zone) !== normZona(g.anchorZone)) {
-        add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: g.anchorZone });
-      } else if (g.anchorRect && distR(d.rect, g.anchorRect) > ATTACH_MM) {
+        continue;
+      }
+      const cercana = delCuarto.find((a) => d.zone == null || a.zone == null || normZona(a.zone) === normZona(d.zone)) || delCuarto[0];
+      if (d.zone != null && cercana.zone != null && normZona(d.zone) !== normZona(cercana.zone)) {
+        add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: cercana.zone });
+      } else if (distR(d.rect, cercana.rect) > ATTACH_MM) {
         // D: misma zona pero DESPRENDIDO de su ancla (lejos).
         add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid });
       }

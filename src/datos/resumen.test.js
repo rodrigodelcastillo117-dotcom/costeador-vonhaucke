@@ -31,10 +31,11 @@ describe('resumen por área', () => {
   it('agrupa por cuarto y da el TOTAL de cada uno', () => {
     const operativa = r.find((b) => b.nombre === 'Sala Operativa');
     expect(operativa).toBeTruthy();
-    // 2 bancas + 6 archiveros + las 3 gavetas que van bajo esas cubiertas
-    expect(operativa.total).toBe(2 * 28540 + 6 * 7722 + 3 * 4100);
+    // 2 bancas de 10 + 6 archiveros + las 4 gavetas: van bajo los 20 PUESTOS de las bancas
+    // (E2E 2026-10-20: antes se repartían por número de escritorios y una caía en Dirección).
+    expect(operativa.total).toBe(2 * 28540 + 6 * 7722 + 4 * 4100);
     const direccion = r.find((b) => b.nombre === 'Dirección');
-    expect(direccion.total).toBe(31500 + 4100);   // su escritorio y su gaveta
+    expect(direccion.total).toBe(31500);   // su escritorio
   });
 
   it('dice los m² del área', () => {
@@ -55,7 +56,7 @@ describe('resumen por área', () => {
   it('las gavetas se ubican con los escritorios a los que sirven', () => {
     expect(r.find((b) => b.sinUbicar)).toBeUndefined();
     const gavetas = r.flatMap((b) => b.renglones.filter((x) => /Gaveta/.test(x.nombre)).map((x) => [b.nombre, x.cantidad]));
-    // 4 gavetas repartidas entre los 2 escritorios de la Operativa y el 1 de Dirección.
+    // 4 gavetas bajo los puestos de las bancas de la Operativa.
     expect(gavetas.reduce((s, [, n]) => s + n, 0)).toBe(4);
     expect(gavetas.every(([nombre]) => nombre === 'Sala Operativa' || nombre === 'Dirección')).toBe(true);
     expect(r.flatMap((b) => b.renglones).find((x) => /Gaveta/.test(x.nombre)).bajoCubierta).toBe(true);
@@ -110,5 +111,23 @@ describe('resumen por área · precio desconocido', () => {
     expect(r[0].renglones[0].importe).toBeNull();
     expect(r[0].total).toBeNull();
     expect(r[0].incompleto).toBe(true);
+  });
+});
+
+// E2E 2026-10-20 (Torre Norte): 16 MOX para 2 bancas de 8 — quedaban 11 en Operativa y 5 en Dirección.
+describe('gavetas bajo la cubierta · llenan primero los puestos de las bancas', () => {
+  const partidas = [
+    { id: 'b', nombre: 'Banca doble APP LT 1.50 · 8 usuarios · ocupa 6.00 × 1.20 m', cantidad: 2, precioUnitario: 26145 },
+    { id: 'e', nombre: 'Eclipse Escritorio Directivo 2.10 m · mano Derecha', cantidad: 1, precioUnitario: 81470 },
+    { id: 'g', nombre: 'Mox · Gaveta pedestal 3 cajones · frentes melamina', cantidad: 16, precioUnitario: 2189 },
+  ];
+  const acomodo = { areas: [{ nombre: 'OPERATIVA' }, { nombre: 'OFICINA DIRECCIÓN' }], plan: { colocacion: [
+    { id: 'b-1', area: 0, x: 0, y: 0 }, { id: 'b-2', area: 0, x: 0, y: 2000 }, { id: 'e-1', area: 1, x: 0, y: 0 },
+  ] } };
+  it('las 16 van a OPERATIVA y ninguna a la oficina de dirección', () => {
+    const r = resumenPorArea(partidas, acomodo);
+    const gav = (n) => (r.find((b) => b.nombre === n)?.renglones || []).filter((x) => /Gaveta/.test(x.nombre)).reduce((t, x) => t + x.cantidad, 0);
+    expect(gav('OPERATIVA')).toBe(16);
+    expect(gav('OFICINA DIRECCIÓN')).toBe(0);
   });
 });

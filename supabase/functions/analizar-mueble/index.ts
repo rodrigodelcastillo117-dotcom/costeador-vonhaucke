@@ -10,7 +10,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 // P0.COSTEO: plan de petición PURO (informe diferido en 1ª pasada de texto + right-size).
-import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL } from "./requestPlan.js";
+import { schemaSinInforme, planPass, normalizarPropuesta, NOTA_TEXTO_INICIAL, despiecePrevioTexto } from "./requestPlan.js";
 // P0.COSTEO · Commit 2: config de modelo centralizada (fail-closed) + telemetría pura.
 import { resolverModelo, resolverModeloVisual } from "./modelConfig.js";
 import { modalidadDe, mapProviderError, telemetriaExtra, crearAcumuladorProveedor } from "./telemetria.js";
@@ -38,9 +38,10 @@ const SCHEMA = {
           material_solicitado: { type: "string", description: "El MATERIAL que realmente pidio el usuario, en palabras (p.ej. 'superficie solida azul', 'acero inoxidable 304', 'MDF 19 mm'). SIEMPRE llenalo con lo que el texto/imagen indica, aunque el catalogo no lo tenga. Es lo que permite detectar sustituciones indebidas." },
           material_match: { type: "string", enum: ["EXACT", "NOT_AVAILABLE", "SUBSTITUTE_SUGGESTED"], description: "EXACT: el insumoId es de la MISMA familia que material_solicitado. NOT_AVAILABLE: el catalogo no tiene esa familia (insumoId=''). SUBSTITUTE_SUGGESTED: hay un material de otra familia que PODRIA servir pero NO lo aplicaste al id (insumoId='' y lo explicas en nota) — requiere confirmacion humana." },
           forma: { type: "string", enum: ["area", "lineal", "pieza"] },
-          largoMM: { type: "number" },
+          largoMM: { type: "number", description: "Largo de UNA pieza en mm (en 'lineal': el largo de cada tramo, no el total)." },
           anchoMM: { type: "number" },
-          cantidad: { type: "number" },
+          cantidad: { type: "number", description: "NÚMERO DE PIEZAS (entero). En 'lineal' NUNCA pongas aquí los metros: van en metrosTotales." },
+          metrosTotales: { type: "number", description: "Sólo forma='lineal': metros TOTALES = largoMM/1000 × cantidad (p. ej. 2 tramos de 2000 mm = 4). 0 si no aplica." },
           hojas: { type: "number", description: "Para forma='area' (tableros/laminas/acrilicos): FRACCION DE HOJA estandar que consume el TOTAL de esta pieza x cantidad (1 = una hoja entera 1.22x2.44 de tablero, o 3x10 de lamina). Es lo que el motor usa para costear; estimala conservadora a partir de las cotas. 0 si no aplica (lineal/pieza)." },
           confianza: { type: "string", enum: ["alta", "media", "baja"] },
           nota: { type: "string" },
@@ -301,7 +302,8 @@ Deno.serve(async (req) => {
     "  · UNA PREGUNTA = UN SOLO DATO con su 'question_key' estable. NUNCA juntes dos cantidades: '¿cuántos cajones y cuántas puertas?' está MAL; son dos (cantidad_cajones, cantidad_puertas).\n" +
     "  · DETECTA TODAS las confirmaciones críticas EN ESTA PRIMERA PASADA y devuélvelas JUNTAS. No las vayas soltando de a poco en pasadas siguientes.\n" +
     "  · NO repitas una pregunta cuyo question_key ya venga en RESPUESTAS CONFIRMADAS.\n" +
-    "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' (metros); herrajes/comprados forma='pieza'.\n" +
+    "DESPIECE 'piezas' (para el motor): tableros/cristal forma='area' con largoMM/anchoMM; metal/canto/tela forma='lineal' con largoMM = largo de CADA tramo, cantidad = NÚMERO de tramos (entero) y metrosTotales = largoMM/1000 × cantidad (2 tramos de 2000 mm → largoMM 2000, cantidad 2, metrosTotales 4); herrajes/comprados forma='pieza'.\n" +
+    "PIEZA MÁS GRANDE QUE LA HOJA (auditoría 2026-10-20, recepción curva de 2.80 m): ninguna pieza forma='area' puede exceder el formato de compra de su material (tablero/melamina/MDF 2440×1220 mm, salvo que el catálogo diga otro; lámina 3050×1220; cristal según su formato). Si el mueble es más grande, DIVIDE la pieza en tramos que quepan (p. ej. frente de 2800 → 2 tramos de 1400) con la misma cantidad total y dilo en 'razonamiento' ('2 tramos por largo > hoja'). No la dejes como una sola pieza imposible de cortar.\n" +
     "FRACCION DE HOJA (clave para que el costo cuadre): en cada pieza forma='area' da ADEMAS 'hojas' = la fraccion de hoja estandar que consume el TOTAL (pieza x cantidad). El motor cuesta hojas x precio_de_hoja; si solo mandas area, el costo oscila. Piensa cuantas piezas caben en una hoja 1.22x2.44 (tablero) o 3x10 ft (lamina) y saca la fraccion. SE CONSERVADOR: no infles; ante la duda, menos hojas, no mas.\n" +
     "RETAIL / EXHIBIDORES: si es un exhibidor/mueble de tienda, mapea a los materiales retail del catalogo cuando existan (kit LED 5000K, MDF Walnut 16/25 mm, laminado Walnut, acrilico cristal/traslucido, perfil de canto ABS, logotipo acrilico, impresion en estireno). El KIT LED y los graficos/logos/impresiones son COMPRADOS ya hechos (seccion 'graficos'): van forma='pieza', NO llevan hojas.\n\n" +
     "CATALOGO DE MATERIALES (id — nombre [seccion, unidad]):\n" + cat +
@@ -332,9 +334,8 @@ Deno.serve(async (req) => {
     textoTarea += `\n\nINTENCION DEL USUARIO (texto, prioriza como intención; la imagen es evidencia geométrica):\n"${desc}"`;
   }
   if (esRevision) {
-    const previo = (revisar.piezas || []).map((p: any) =>
-      `- ${p.cantidad}x ${p.nombre} [${p.insumoId || 'SIN MATERIAL'}] ${p.forma} ${p.largoMM || 0}x${p.anchoMM || 0} hojas=${p.hojas ?? 0} (${p.confianza})`
-    ).join("\n");
+    // Certificación 18-oct: renglones sin ambigüedad (piezas × medida = total). Antes "2x … lineal 2800x0" se leía como 2.8 m.
+    const previo = despiecePrevioTexto(revisar.piezas || []);
     textoTarea = `VERIFICA Y CORRIGE este despiece que generaste de este MISMO plano, contra las COTAS escritas (lee de nuevo las hojas). Devuelve el despiece COMPLETO corregido con 'razonamiento' por pieza:\n\n${previo}\n\n` +
       "⛔ VERIFICACIÓN SILENCIOSA: 'preguntas' DEBE ser []. NO abras una ronda nueva de confirmaciones. Puedes corregir cantidades, detectar inconsistencias, bajar 'confianza' y dejar supuestos; si algo queda sin resolver, DÉJALO como supuesto (confianza baja) y NO preguntes. Solo excepción: un BLOQUEADOR DURO nuevo que impida calcular — máx 1, con question_key nuevo.";
   }

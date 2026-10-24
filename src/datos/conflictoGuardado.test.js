@@ -5,6 +5,7 @@ import {
   controlOptimistaActivo, esperadoParaGuardar, esConflictoGuardado, actualizadoDeError, horaDe,
   mensajeConflicto, conflictoDesdeResultado, claveRespaldoConflicto, respaldoConflicto, aplicarFilaServidor,
   CLAVE_FLAG_LOCAL, VERSION_RESPALDO_CONFLICTO,
+  guardarRespaldoConflicto, leerRespaldoConflicto, marcarConflictoAbierto, leerConflictoAbierto,
 } from './conflictoGuardado.js';
 
 const storageCon = (obj) => ({ getItem: (k) => (k in obj ? obj[k] : null) });
@@ -119,5 +120,31 @@ describe('aplicarFilaServidor: la fila del servidor encima de lo local, misma pr
     const copia = JSON.parse(JSON.stringify(local));
     aplicarFilaServidor(local, fila);
     expect(local).toEqual(copia);
+  });
+});
+
+// Cierre v3 (lab A–L contra la preview): recargar mientras "Ver la versión del servidor" cargaba re-respaldaba el MISMO
+// documento encima y sin base; "Recuperar" pisaba lo de la otra persona y el primer respaldo quedaba huérfano.
+describe('respaldo duplicado tras recargar', () => {
+  const mem = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k) }; };
+  const cot = { id: 7, cliente: 'Tradeco B', folio: '', partidas: [] };
+  it('el mismo documento no se apila y conserva su base', () => {
+    const st = mem();
+    expect(guardarRespaldoConflicto(st, 7, respaldoConflicto({ cotizacion: cot }, { actualizadoServidor: 'v1' }, { base: { ...cot, cliente: 'Tradeco' } }))).toBe(true);
+    expect(guardarRespaldoConflicto(st, 7, respaldoConflicto({ cotizacion: cot }, { actualizadoServidor: 'v1' }))).toBe(true);   // sin base
+    const r = leerRespaldoConflicto(st, 7);
+    expect(r.anteriores).toBeUndefined();
+    expect(r.base.cliente).toBe('Tradeco');
+  });
+  it('un documento DISTINTO sí se apila (no se pierde nada)', () => {
+    const st = mem();
+    guardarRespaldoConflicto(st, 7, respaldoConflicto({ cotizacion: cot }, {}, { base: cot }));
+    guardarRespaldoConflicto(st, 7, respaldoConflicto({ cotizacion: { ...cot, folio: 'X' } }, {}));
+    expect(leerRespaldoConflicto(st, 7).anteriores).toHaveLength(1);
+  });
+  it('la marca de conflicto abierto conserva la base', () => {
+    const st = mem();
+    marcarConflictoAbierto(st, 7, { actualizadoServidor: 'v2', base: { cliente: 'Tradeco' } });
+    expect(leerConflictoAbierto(st, 7).base.cliente).toBe('Tradeco');
   });
 });

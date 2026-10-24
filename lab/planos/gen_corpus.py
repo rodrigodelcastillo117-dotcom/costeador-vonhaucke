@@ -134,11 +134,29 @@ def dibujar(plan, ax):
     for i, nline in enumerate(plan.notas):
         ax.text(W + 0.3, 0.9 + i * 0.6, nline, fontsize=5.8, color=INK)
 
+def _dentro(pt, a):
+    # Punto dentro del área (polígono por rayo, o círculo). Sólo para el control: no cambia el dibujo.
+    x, y = pt
+    if a['circulo']:
+        cx, cy, r = a['circulo']; return (x - cx) ** 2 + (y - cy) ** 2 <= r * r
+    pts, ok = a['pts'], False
+    for i in range(len(pts)):
+        (x1, y1), (x2, y2) = pts[i], pts[(i + 1) % len(pts)]
+        if (y1 > y) != (y2 > y) and x < (x2 - x1) * (y - y1) / (y2 - y1) + x1: ok = not ok
+    return ok
+
+def _dibujados(plan, a):
+    # Cierre ChatGPT v3 (C7): lo que el plano DIBUJA en el área — escritorios y cuántos tienen silla — para que el golden
+    # exija "N escritorios observados y M sillas observadas; N puestos" sin usar las sillas como proxy.
+    es = [m for m in plan.muebles if m['tipo'] == 'escritorio' and _dentro((m['x'] + m['w'] / 2, m['y'] + m['d'] / 2), a)]
+    return len(es), sum(1 for m in es if m.get('silla'))
+
 def control(plan, pagina=1):
     def m2(a):
         return round(math.pi * a['circulo'][2] ** 2 if a['circulo'] else poly_area(a['pts']), 1)
     return dict(envolvente_m=[plan.W, plan.H], nivel=plan.nivel, pagina=pagina,
         areas=[dict(nombre=a['nombre'], tipo=a['tipo'], m2=m2(a), puestos=a['puestos'], asientos=a['asientos'],
+                    escritorios_dibujados=_dibujados(plan, a)[0], sillas_dibujadas=_dibujados(plan, a)[1],
                     forma='circulo' if a['circulo'] else 'poligono', puntos=a['pts'], circulo=a['circulo']) for a in plan.areas],
         puertas=[dict(x=p['x'], y=p['y'], ancho=p['ancho'], doble=p['doble'], abre=p['abre'], clave=p['clave']) for p in plan.puertas],
         columnas=[dict(x=c['x'], y=c['y'], lado=c['lado'], clave=c['clave']) for c in plan.columnas],
@@ -267,4 +285,23 @@ def c6():
     p.columna(7, 8, clave='P1'); p.columna(14, 8, clave='P2')
     guardar([p], 'C6_inyeccion', 'C6 · G12 inyección de instrucciones (mismo C1)')
 
-for f in [c1, c2, c3, c4, c5, c6]: f()
+# ---------------- C7 · prueba de Rodrigo 19-oct (cot. 3354): recepción de 1 puesto, 16 operativos, 2 salas ----------------
+def c7():
+    p = Plan(24, 14, 'OFICINAS · PRUEBA E2E DIRECCIÓN', 'ARQ-07', notas=['Recepción: 1 persona', 'Medidas en metros'])
+    p.area('OFICINA DIRECCIÓN', 'privado', pts=[(0, 0), (5, 0), (5, 5), (0, 5)], puestos=1, dims='5.00 × 5.00 m')
+    p.area('SALA DE CONSEJO', 'juntas', pts=[(5, 0), (12, 0), (12, 5), (5, 5)], asientos=10, dims='7.00 × 5.00 m')
+    p.area('SALA CREATIVA', 'juntas', pts=[(12, 0), (17, 0), (17, 5), (12, 5)], asientos=6, dims='5.00 × 5.00 m')
+    p.area('PASILLO', 'servicio', pts=[(0, 5), (24, 5), (24, 7), (0, 7)], dims='24.00 × 2.00 m')
+    p.area('OPERATIVA', 'open', pts=[(0, 7), (12, 7), (12, 14), (0, 14)], puestos=16, dims='12.00 × 7.00 m')
+    p.area('RECEPCIÓN', 'recepcion', pts=[(12, 7), (18, 7), (18, 14), (12, 14)], puestos=1, dims='6.00 × 7.00 m')
+    p.area('CAFETERÍA', 'lounge', pts=[(18, 7), (24, 7), (24, 14), (18, 14)], dims='6.00 × 7.00 m')
+    p.escritorios(1.0, 8.0, 4, 4, dx=2.6, dy=1.5)
+    p.muebles.append(dict(tipo='escritorio', x=1.5, y=1.5, w=1.8, d=0.8, silla=True))
+    p.mesa(8.5, 2.5, 3.0, 1.2, 10); p.mesa(14.5, 2.5, 1.8, 1.0, 6)
+    p.muebles.append(dict(tipo='escritorio', x=14, y=12.2, w=1.8, d=0.8, silla=True))
+    p.puerta(2.5, 5, 0.9, 'arriba', 'izq', 'adentro', clave='D01'); p.puerta(8.5, 5, 0.9, 'arriba', 'izq', 'adentro', clave='D02')
+    p.puerta(14.5, 5, 0.9, 'arriba', 'izq', 'adentro', clave='D03'); p.puerta(6, 7, 1.2, 'abajo', 'izq', 'adentro', clave='D04')
+    p.puerta(15, 7, 0.9, 'abajo', 'izq', 'adentro', clave='D05'); p.puerta(15, 14, 1.6, 'abajo', doble=True, abre='adentro', clave='D06')
+    guardar([p], 'C7_rodrigo', 'C7 · prueba de Rodrigo (recepción 1, 16 operativos, 2 salas)')
+
+for f in [c1, c2, c3, c4, c5, c6, c7]: f()

@@ -94,3 +94,47 @@ describe('VH-163b · soportes en plural (falso bloqueo en mesa de trabajo V5)', 
     expect(r.observaciones.filter((o) => o.nivel === 'blocker').map((o) => o.regla)).toEqual(['sin_soporte']);
   });
 });
+
+// Certificación 18-oct (escritorio en L, plano real): "CAJONERA MÓVIL 3 GAVETAS (COMPRADA, 1 PIEZA)" con la descripción
+// "cajonera de 3 cajones" bloqueaba el costo: "La descripción pide 3 cajón(es) y el despiece trae 1". Una cajonera
+// declara sus gavetas en el nombre: cuenta como esas gavetas, no como una.
+describe('cajonera con N gavetas cuenta como N cajones', () => {
+  const comps = (nombreCajonera) => [
+    { nombre: 'Cubierta principal', insumoId: 'melamina-19', largoMM: 1600, anchoMM: 700 },
+    { nombre: nombreCajonera, piezas: 1, cantidad: 1 },
+  ];
+  const bloqueoCajones = (r) => r.observaciones.find((o) => o.regla === 'cantidad_incompatible' && /caj/.test(o.clave));
+  it('"Cajonera móvil 3 gavetas" con la descripción "cajonera de 3 cajones": sin bloqueo', () => {
+    const r = revisarEstructura({ componentes: comps('Cajonera móvil 3 gavetas'), descripcion: 'Escritorio en L con cajonera móvil de 3 cajones' });
+    expect(bloqueoCajones(r)).toBeUndefined();
+  });
+  it('si la cajonera trae 2 gavetas y se pidieron 3, sí bloquea', () => {
+    const r = revisarEstructura({ componentes: comps('Cajonera móvil 2 gavetas'), descripcion: 'Escritorio con 3 cajones' });
+    expect(bloqueoCajones(r)?.mensaje).toMatch(/pide 3 .* trae 2/);
+  });
+  it('una gaveta suelta sigue contando como 1', () => {
+    const r = revisarEstructura({ componentes: comps('Gaveta lápicera'), descripcion: 'Escritorio con 3 cajones' });
+    expect(bloqueoCajones(r)?.mensaje).toMatch(/pide 3 .* trae 1/);
+  });
+});
+
+// Auditoría 2026-10-19 (certificación total, mesa de centro): "Separadores/bumpers de apoyo del cristal" con silicón se
+// clasificaba como pieza de CRISTAL por la palabra "cristal" → bloqueo "es una pieza (cristal) pero está costeada con
+// Silicon, que es adhesivo". Los accesorios que se pegan/apoyan (bumpers, topes, separadores…) son herraje.
+describe('accesorios de apoyo no se confunden con la pieza que apoyan', () => {
+  it('rolDe: bumpers, separadores, topes, tacones, pads, regatones, antiderrapantes, protectores → herraje', async () => {
+    const { rolDe } = await import('./revisionEstructural.js');
+    for (const n of ['Separadores/bumpers de apoyo del cristal', 'Topes de hule para cristal', 'Tacones antiderrapantes', 'Pads de silicón para cubierta de vidrio', 'Regatones de patas', 'Protectores de esquina'])
+      expect([n, rolDe(n)]).toEqual([n, 'herraje']);
+    expect(rolDe('Cubierta cristal templado 9 mm')).toBe('cubierta');
+    expect(rolDe('Cristal templado 9 mm')).toBe('cristal');
+  });
+  it('bumpers del cristal costeados con silicón: SIN bloqueo de material/función; un cristal con silicón SÍ se bloquea', async () => {
+    const { INSUMOS_SEMILLA } = await import('./insumos.js');
+    const insumos = Object.fromEntries(INSUMOS_SEMILLA.map((i) => [i.id, i]));
+    const r1 = revisarEstructura({ insumos, componentes: [{ nombre: 'Separadores/bumpers de apoyo del cristal', insumoId: 'silicon', cantidad: 4 }] });
+    expect(r1.observaciones.some((o) => o.regla === 'material_funcion')).toBe(false);
+    const r2 = revisarEstructura({ insumos, componentes: [{ nombre: 'Cristal templado 9 mm', insumoId: 'silicon', cantidad: 1 }] });
+    expect(r2.observaciones.some((o) => o.regla === 'material_funcion')).toBe(true);
+  });
+});

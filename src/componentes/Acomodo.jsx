@@ -20,6 +20,7 @@ import { marcarDestinoPartida } from '../datos/destinoAcomodo.js';
 import { expandirPiezas } from '../datos/espacio.js';
 import { validarCoherenciaPrograma } from '../datos/coherenciaPrograma.js';
 import { proponerProgramaDelPlano } from '../datos/programaRealDelPlano.js';
+import { mensajePendientePrograma } from '../datos/mensajesPrograma.js';
 
 const esSugerida = (p) => !!p?.sugeridoPlano || String(p?.id || '').startsWith('sug-');
 const norm = (s = '') => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -276,14 +277,16 @@ export default function Acomodo(props) {
             </div>
             {propuestaPlano && propuestaPlano.propuesta && propuestaPlano.propuesta.pendientes && propuestaPlano.propuesta.pendientes.length > 0 && (
               <div style={{ marginTop: 8, color: '#8a5a00' }}>
-                <strong>Faltan por confirmar:</strong>{' '}
-                {propuestaPlano.propuesta.pendientes.map((x) => x.faltante?.reason || x.rol).join(', ')}
+                <strong>Faltan por confirmar:</strong>
+                {propuestaPlano.propuesta.pendientes.map((x, i) => (
+                  <div key={i} style={{ marginTop: 2 }}>⚠ {mensajePendientePrograma(x)}</div>
+                ))}
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginTop: 12, width: '100%' }}>
               <select value={lineaOperativa} onChange={(e) => setLineaOperativa(e.target.value)}
                 style={{ minHeight: 40, width: 'min(100%, 320px)', borderRadius: 8, padding: '0 12px', border: '1px solid #8bbcaf', background: '#fff', color: '#174f45', fontWeight: 700 }}>
-                <option value="applt">APP LT · 1.50 m por puesto</option>
+                <option value="applt">APP LT · módulos de 1.20 m por puesto</option>
               </select>
               <button type="button"
                 onClick={() => props.onAplicarPrograma?.(propuestaPlano.propuesta)}

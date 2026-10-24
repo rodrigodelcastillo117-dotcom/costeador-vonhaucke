@@ -15,6 +15,7 @@
 import { programaDelPlano } from './programaDelPlano.js';
 import { resolverPrograma } from './resolverPrograma.js';
 import { confirmarPrograma } from './confirmarPrograma.js';
+import { identidadDeCatalogo } from './precioAutorizado.js';
 
 // Nombre que describe el ROL real en palabras que coherencia/ruteo legacy aún
 // entienden. NO es la autoridad semántica (esa es relation_role); sólo etiqueta.
@@ -78,11 +79,23 @@ function aPartidaAcomodo(it) {
  * NO usa partidaDeCosteo (dominio de costeo): no inventa costo, no calcula BOM
  * vacío, no deriva margen. Conserva la semántica estructural a NIVEL SUPERIOR
  * (no escondida en config) para que Acomodo/coherencia/spatial la lean directo.
- * Precio: snapshot de DISPLAY (nunca $0; nunca FIRME); el servidor lo revalida.
+ * Precio: snapshot de DISPLAY (nunca $0); el servidor lo revalida al emitir.
+ *
+ * REVENTA DE CATÁLOGO (prueba E2E 2026-10-20, Rodrigo: "que funcione"): si el producto
+ * trae identidad completa (producto + versión) y precio de lista, ES un producto de
+ * catálogo comprado/fabricado en serie, no un especial. Antes se marcaba `costoPendiente`
+ * ("especial sin costeo") y la propuesta NO se podía emitir aunque fuera puro catálogo.
+ * Ahora: precio de lista del catálogo (`CATALOG_LIST`) y costo DESCONOCIDO (no pendiente):
+ * la emisión toma la política de reventa (P0-01) y el servidor revalida precio e item.
+ * Sin identidad o sin precio sigue fail-closed como antes.
  */
 export function partidaComercialDesdeConfirmado(it) {
   const snap = Number(it.precio_lista_snapshot) > 0 ? Number(it.precio_lista_snapshot) : null;
   const sinPrecio = it.price_status === 'SIN_PRECIO' || snap == null;
+  const esId = (x) => x != null && /^[0-9]+$/.test(String(x));
+  const reventa = !sinPrecio && esId(it.productoId) && esId(it.producto_version_id);
+  const cat = reventa ? identidadDeCatalogo('banco', it.source_ref || it.bancoId) : null;
+  const catOk = cat && Number(cat.producto_id) === Number(it.productoId) && Number(cat.producto_version_id) === Number(it.producto_version_id);
   return {
     id: it.id || it.instance_id || `${it.relation_role}:${it.bancoId}`,
     // identidad de producto (top-level)
@@ -91,6 +104,11 @@ export function partidaComercialDesdeConfirmado(it) {
     source_ref: it.source_ref || it.bancoId,
     productoId: it.productoId || null,
     producto_version_id: it.producto_version_id || null,
+    ...(reventa ? {
+      source_type: 'banco',
+      producto_id: Number(it.productoId),
+      lista_precio_item_id: catOk ? cat.lista_precio_item_id : (it.lista_precio_item_id ?? null),
+    } : {}),
     nombre: it.nombre,
     w: it.w ?? null,
     d: it.d ?? null,
@@ -111,21 +129,69 @@ export function partidaComercialDesdeConfirmado(it) {
     // TRES COMPUERTAS (top-level)
     product_status: it.product_status ?? 'RESOLVED',
     identity_status: it.identity_status ?? (it.productoId ? 'RESOLVED' : 'MISSING'),
-    price_status: it.price_status ?? (snap ? 'SNAPSHOT_DISPLAY' : 'SIN_PRECIO'),
-    // PRECIO (#6): display, NUNCA $0 inventado, NUNCA firme hasta autoridad.
+    price_status: reventa ? 'CATALOG_LIST' : (it.price_status ?? (snap ? 'SNAPSHOT_DISPLAY' : 'SIN_PRECIO')),
+    // PRECIO (#6): NUNCA $0 inventado. Reventa: precio de lista del catálogo (el servidor lo revalida).
     precioUnitario: sinPrecio ? null : snap,
     precio_lista_snapshot: snap,
-    precioReal: false,
-    precioAutorizado: false,
-    sinPrecioAutorizado: true,
-    // COSTO (#7): desconocido/pendiente; jamás inventado ni 0.
+    precioReal: reventa,
+    precioAutorizado: reventa,
+    sinPrecioAutorizado: !reventa,
+    deBanco: reventa,
+    // COSTO (#7): jamás inventado ni 0. Reventa: desconocido (no bloquea); sin identidad: pendiente.
     costoUnitario: null,
-    costoPendiente: true,
+    costoPendiente: !reventa,
+    ...(reventa ? { costoDesconocido: true } : {}),
     margen: null,
     // config SÓLO para configuración adicional
     config: { usuarios: it.usuarios ?? null },
     source: 'CONFIRMADO_PROGRAMA',
   };
+}
+
+/**
+ * Renglones del programa guardados ANTES de que existiera `CATALOG_LIST` (cotizaciones viejas,
+ * respaldo local) traen `SNAPSHOT_DISPLAY` + `sinPrecioAutorizado` aunque sean catálogo puro, y
+ * la propuesta no se podía emitir ("especial sin costeo"). Al abrirlos se re-evalúan con la MISMA
+ * regla que `partidaComercialDesdeConfirmado`. Sólo se promueven si el catálogo vigente confirma
+ * producto + versión + renglón de lista; si no, se dejan tal cual (fail-closed). No toca precio,
+ * cantidad ni nada más del renglón: el servidor revalida el precio contra el renglón de lista.
+ */
+export function actualizarPartidaDePrograma(p) {
+  if (!p || p.source !== 'CONFIRMADO_PROGRAMA' || p.price_status === 'CATALOG_LIST') return p;
+  const n = partidaComercialDesdeConfirmado({
+    ...p,
+    productoId: p.productoId ?? p.producto_id,
+    precio_lista_snapshot: p.precio_lista_snapshot ?? p.precioUnitario,
+  });
+  if (n.price_status !== 'CATALOG_LIST' || n.lista_precio_item_id == null) return p;
+  return {
+    ...p,
+    source_type: n.source_type, producto_id: n.producto_id, lista_precio_item_id: n.lista_precio_item_id,
+    price_status: n.price_status, precioReal: true, precioAutorizado: true, sinPrecioAutorizado: false,
+    deBanco: true, costoPendiente: false, costoDesconocido: true,
+  };
+}
+
+/**
+ * Lo mismo para renglones del BANCO agregados antes de que se les pegara la identidad de catálogo
+ * (Voni / "agregar del banco" antes de PR #70; cotización 4048, líneas 9–16: WIN, ALPHA, CONCERTO,
+ * mesa, SONATA, recepción, GAMMA-E, archivero). La emisión decía "falta confirmar el costo con
+ * Diseño/Dirección". Se pega la MISMA identidad que hoy pone `agregarDeBanco`/CotizadorIA, sólo si
+ * el catálogo vigente trae producto + versión + renglón de lista. Precio y cantidad no se tocan.
+ */
+export function actualizarPartidaDeBanco(p) {
+  if (!p || p.deBanco !== true || p.producto_id != null || p.piezaId == null) return p;
+  const ident = identidadDeCatalogo('banco', p.piezaId);
+  if (!ident || ident.lista_precio_item_id == null) return p;
+  return { ...p, ...ident, precio_lista_snapshot: p.precio_lista_snapshot ?? p.precioUnitario };
+}
+
+/** Aplica ambas reparaciones a una lista; devuelve la MISMA lista si nada cambió. */
+export function actualizarPartidasDePrograma(partidas) {
+  if (!Array.isArray(partidas)) return partidas;
+  let cambio = false;
+  const out = partidas.map((p) => { const q = actualizarPartidaDeBanco(actualizarPartidaDePrograma(p)); if (q !== p) cambio = true; return q; });
+  return cambio ? out : partidas;
 }
 
 /** Partidas confirmadas → shape Acomodo/costeo (tras aplicar). */
@@ -168,8 +234,12 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
   const z = programa.zonas || {};
   const briefBase = { ...(programa.brief || {}), ...(brief || {}) };
   if (z.operativo) briefBase.operativoZoneId = briefBase.operativoZoneId || z.operativo.id || z.operativo.nombre;
+  if (Array.isArray(programa.operativosPorZona) && programa.operativosPorZona.length >= 2) {
+    briefBase.operativosPorZona = programa.operativosPorZona.map((o) => ({ zone_id: o.id || o.nombre, puestos: o.puestos }));
+  }
   if (z.recepcion) briefBase.recepcionZoneId = briefBase.recepcionZoneId || z.recepcion.id || z.recepcion.nombre;
-  const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(arr[i] || {}) }));
+  if (z.recepcion?.puestos && !(Number(briefBase.recepcionPuestos) > 0)) briefBase.recepcionPuestos = z.recepcion.puestos;
+  const mezclarZona = (arr = [], zonas = []) => zonas.map((zz, i) => ({ zone_id: zz.id || zz.nombre, ...(zz.anchoM && zz.largoM ? { zona_dims: { anchoM: zz.anchoM, largoM: zz.largoM } } : {}), ...(arr[i] || {}) }));
   briefBase.privados = mezclarZona(briefBase.privados, z.privados || []);
   briefBase.juntas = mezclarZona(briefBase.juntas, z.juntas || []);
   const entrada = {
@@ -186,14 +256,14 @@ export function proponerProgramaDelPlano(areas, { linea = 'App LT', brief = null
 /** Clave estable de una recomendación (rol + instancia del ancla) para agregarla por línea. */
 export const claveRecomendacion = (r) => `${r.relation_role}|${r.anchor_instance_id || r.instance_id || r.bancoId}`;
 
-export function aplicarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], incluir = [] } = {}) {
+export function aplicarPrograma(propuesta, { existentes = [], sustituir = [], mantenerAmbos = [], repartir = [], roles = {}, destinos = {}, incluir = [] } = {}) {
   // P1: `incluir` = claves de recomendaciones de casa que la persona agrega (por línea). Pasan a la propuesta
   // comercial como 'requested'; las demás recomendaciones siguen fuera.
   const inc = new Set((Array.isArray(incluir) ? incluir : []).map(String));
   const propuestaEf = inc.size && Array.isArray(propuesta?.recomendaciones)
     ? { ...propuesta, partidas: [...(propuesta.partidas || []), ...propuesta.recomendaciones.filter((r) => inc.has(claveRecomendacion(r))).map((r) => ({ ...r, inclusion: 'requested' }))] }
     : propuesta;
-  const confirmacion = confirmarPrograma(propuestaEf, { existentes, sustituir, mantenerAmbos });
+  const confirmacion = confirmarPrograma(propuestaEf, { existentes, sustituir, mantenerAmbos, repartir, roles, destinos });
   return {
     confirmacion,
     partidas: partidasParaAcomodo(confirmacion),

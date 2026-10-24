@@ -170,3 +170,31 @@ describe('acomodoPayload · construirPayloadAcomodo (P0.2 obj 1/2/3)', () => {
     expect(construirPayloadAcomodo({ partidas: PARTIDAS, areasM: AREAS_M, floorSpecEstado: null }).ok).toBe(true);
   });
 });
+
+// Prueba de Rodrigo 2026-10-19 (cotización 3354): dos mesas de juntas y 16 sillas SONATA descritas sin sala; el plano
+// trae SALA DE CONSEJO (7 × 5, 10 asientos) y SALA CREATIVA (6 × 5, 6 asientos). VH-096 mandaba TODO a la PRIMERA sala
+// de juntas: las dos mesas acababan en la de consejo y la creativa quedaba vacía.
+describe('muebles sin sala: una mesa por sala de juntas; las sillas siguen a su mesa', () => {
+  const areasM = [
+    { nombre: 'OFICINA DIRECCIÓN', tipo: 'privado', x: 0, y: 0, ancho: 5, largo: 5, puestos: 1 },
+    { nombre: 'SALA DE CONSEJO', tipo: 'juntas', x: 5, y: 0, ancho: 7, largo: 5, asientos: 10 },
+    { nombre: 'SALA CREATIVA', tipo: 'juntas', x: 12, y: 0, ancho: 6, largo: 5, asientos: 6 },
+  ];
+  const partidas = [
+    { id: 'm24', nombre: 'Mesa de juntas APP LT 2.40 × 1.20', bancoId: 'linea-mesa_juntas', cantidad: 1, w: 2400, d: 1200, precioUnitario: 1 },
+    { id: 'm18', nombre: 'Mesa de juntas APP LT 1.80 × 1.20', bancoId: 'linea-mesa_juntas', cantidad: 1, w: 1800, d: 1200, precioUnitario: 1 },
+    { id: 'son', nombre: 'Silla · SONATA', bancoId: 'p9-silla-sonata-2420-144', cantidad: 14, precioUnitario: 1 },
+  ];
+  it('2.40 → SALA DE CONSEJO, 1.80 → SALA CREATIVA; las sillas sin sala fija', () => {
+    const r = construirPayloadAcomodo({ partidas, areasM });
+    expect(r.ok).toBe(true);
+    const zona = (pref) => r.piezas.filter((p) => p.id.startsWith(pref)).map((p) => p.zone_id);
+    expect(zona('m24-')).toEqual(['SALA DE CONSEJO']);
+    expect(zona('m18-')).toEqual(['SALA CREATIVA']);
+    expect(new Set(zona('son-'))).toEqual(new Set([undefined]));
+  });
+  it('con UNA sola sala de juntas todo sigue yendo a esa sala (sin cambio)', () => {
+    const r = construirPayloadAcomodo({ partidas, areasM: areasM.slice(0, 2) });
+    expect(new Set(r.piezas.map((p) => p.zone_id))).toEqual(new Set(['SALA DE CONSEJO']));
+  });
+});

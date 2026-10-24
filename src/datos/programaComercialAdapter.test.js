@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { resolverPrograma } from './resolverPrograma.js';
 import { aplicarPrograma, partidaComercialDesdeConfirmado } from './programaRealDelPlano.js';
+import { bloqueosDeEmision } from './senales.js';
+import { evaluarEmisionLocal } from './emision.js';
+import { selloPartida } from '../util.js';
 
 const brief10 = { operativos: 10, brief: { operativosStorage: true, operativoSeatModel: 'win' } };
 
@@ -21,7 +24,8 @@ describe('adapter comercial (#5): la semántica estructural sobrevive a cotizaci
     expect(p.requirement_id).toBeTruthy();
     expect(p.product_status).toBe('RESOLVED');
     expect(p.identity_status).toBe('RESOLVED');
-    expect(p.price_status).toBe('SNAPSHOT_DISPLAY');
+    // Producto de catálogo con identidad completa ⇒ precio de lista del catálogo (reventa P0-01).
+    expect(p.price_status).toBe('CATALOG_LIST');
     expect(p.w).toBe(6000); expect(p.d).toBe(1200); expect(p.usuarios).toBe(10);
   });
 
@@ -34,20 +38,44 @@ describe('adapter comercial (#5): la semántica estructural sobrevive a cotizaci
   });
 });
 
-describe('adapter comercial (#6): price authority nunca se contamina', () => {
+describe('adapter comercial (#6): precio de catálogo, nunca contaminado ni inventado', () => {
   const prop = resolverPrograma(brief10, { linea: 'App LT' });
   const conf = aplicarPrograma(prop, { existentes: [] }).confirmacion;
   const p = partidaComercialDesdeConfirmado(conf.confirmadas.find((i) => i.relation_role === 'ANCHOR_WORKSTATION'));
 
-  it('snapshot de DISPLAY, nunca firme, nunca $0, costo pendiente', () => {
-    expect(p.precioUnitario).toBe(28540);            // display
+  it('catálogo con identidad: precio de lista (firme), costo DESCONOCIDO, nunca $0 ni costo inventado', () => {
+    expect(p.precioUnitario).toBe(28540);            // precio de lista del catálogo
     expect(p.precio_lista_snapshot).toBe(28540);
-    expect(p.precioReal).toBe(false);                // NO firme
-    expect(p.precioAutorizado).toBe(false);
-    expect(p.sinPrecioAutorizado).toBe(true);
+    expect(p.precioReal).toBe(true);
+    expect(p.precioAutorizado).toBe(true);
+    expect(p.sinPrecioAutorizado).toBe(false);
     expect(p.costoUnitario).toBeNull();              // sin costo inventado
-    expect(p.costoPendiente).toBe(true);
+    expect(p.costoPendiente).toBe(false);            // NO es un especial sin costeo
+    expect(p.costoDesconocido).toBe(true);           // reventa: costo interno no se conoce
     expect(p.margen).toBeNull();
+    // identidad que lee el servidor (snake_case) + el item exacto de la lista (VH-AUD-205)
+    expect(Number.isInteger(p.producto_id)).toBe(true);
+    expect(p.producto_version_id).toBeTruthy();
+    expect(p.lista_precio_item_id).toBeTruthy();
+    expect(p.source_type).toBe('banco');
+    expect(selloPartida(p).tipo).toBe('firme');
+  });
+
+  // E2E 2026-10-20: con el programa del plano ningún renglón de catálogo se podía emitir
+  // ("producto especial/nuevo sin costeo autorizado" en los 14 renglones).
+  it('un programa de puro catálogo NO trae bloqueos locales de emisión', () => {
+    const partidas = conf.confirmadas.map(partidaComercialDesdeConfirmado);
+    expect(partidas.length).toBeGreaterThan(2);
+    expect(bloqueosDeEmision(partidas)).toEqual([]);
+    expect(evaluarEmisionLocal({ partidas }).estado).toBe('ALLOWED');
+  });
+
+  it('sin identidad sigue fail-closed: referencia, costo pendiente, bloquea la emisión', () => {
+    const sinId = partidaComercialDesdeConfirmado({ bancoId: 'x', nombre: 'X', cantidad: 1, precio_lista_snapshot: 5000 });
+    expect(sinId.price_status).toBe('SNAPSHOT_DISPLAY');
+    expect(sinId.sinPrecioAutorizado).toBe(true);
+    expect(sinId.costoPendiente).toBe(true);
+    expect(bloqueosDeEmision([sinId]).map((b) => b.code)).toContain('COSTO_PENDIENTE');
   });
 
   it('precio desconocido → null, JAMÁS 0', () => {

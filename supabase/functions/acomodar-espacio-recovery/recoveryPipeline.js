@@ -18,8 +18,15 @@ import { mensajeVendedor } from './opciones.js';
 // GAP28: las opciones se verifican con el MISMO contrato del pipeline final
 // (resolverKitsMulti → hard → semantic → quality). El verifier NO llama a
 // mensajeVendedor, así que no hay recursión.
-function mensajeSerializable(areas, piezas, sol) {
-  const m = mensajeVendedor(areas, piezas, sol, { resolver: resolverKitsMulti });
+// Laboratorio de recorridos 19-oct (546 en producción): cuando algo no cabe, cada opción sugerida re-corría el multi
+// COMPLETO (6 estrategias); con dos mesas de más eran ~0.4 s locales sólo en opciones y la edge pasaba de 2 s de CPU.
+// Las simulaciones usan la estrategia GANADORA del acomodo principal (y la base): misma verificación (HARD ∧ SEMANTIC ∧
+// QUALITY del pipeline), menos órdenes de búsqueda. Puede encontrar menos opciones; nunca anuncia una no verificada.
+function mensajeSerializable(areas, piezas, sol, cacheEstatico) {
+  const g = sol?.seleccion?.ganador_orden;
+  const ganadora = g == null || g === 'row' ? undefined : g;
+  const estrategias = ganadora === undefined ? [undefined] : [ganadora, undefined];
+  const m = mensajeVendedor(areas, piezas, sol, { resolver: (as, ps) => resolverKitsMulti(as, ps, { cacheEstatico, estrategias }) });
   return { pendientes: m.pendientes, motivos: m.motivos, opciones: m.opciones.map((o) => ({ id: o.id, texto: o.texto })), sin_opcion: m.sin_opcion, hay_pendientes: m.hay_pendientes };
 }
 
@@ -28,7 +35,10 @@ export function construirRespuestaAcomodo(areasIn = [], piezas = []) {
   // duplicado (obstáculo tipo 'puerta' del cliente) se ignora en TODO el pipeline (solver, duro, juez).
   const areas = (Array.isArray(areasIn) ? areasIn : []).map(areaSinCuadrosDuplicados);
   // GANADOR del pipeline multi-candidato (jueces en capas HARD→SEMANTIC→COMPLETENESS→QUALITY).
-  const sol = resolverKitsMulti(areas, piezas);
+  // 2026-10-19: veredicto estático por posición compartido entre el multi y las simulaciones de opciones
+  // (mismas áreas, misma petición). C2 curvo pasaba de 2 s de CPU y la edge respondía 546.
+  const cacheEstatico = new WeakMap();
+  const sol = resolverKitsMulti(areas, piezas, { cacheEstatico });
   const colocacion = sol.colocacion;
   const piezasAsign = sol.piezas;
   const sel = sol.seleccion || {};
@@ -37,7 +47,7 @@ export function construirRespuestaAcomodo(areasIn = [], piezas = []) {
   const evalFinal = evaluarRecovery(areas, piezasAsign, colocacion, { requested: piezas.length });
   const val = validarColocacion(areas, piezasAsign, colocacion, 1);
   const doors = auditarPuertas(areas);
-  const mensaje = mensajeSerializable(areas, piezasAsign, sol);
+  const mensaje = mensajeSerializable(areas, piezasAsign, sol, cacheEstatico);
 
   // GATE de publicación sobre el GANADOR (contrato FINAL, FAIL-CLOSED · GAP34):
   //   render_ready ⇔ HARD PASS (evaluarRecovery) ∧ SEMANTIC PASS (GAP18: sólo 'PASS')
@@ -48,7 +58,12 @@ export function construirRespuestaAcomodo(areasIn = [], piezas = []) {
   const qualityPass = semEval.quality_status === 'PASS';       // fail-closed: faltante → false
   const render_ready = !!evalFinal.render_ready && semanticPass && qualityPass && !sel.quality_review_required;
   const qualityReview = !!sel.quality_review_required || !qualityPass;
-  const status = !semEval.sem_status ? 'NEEDS_REVIEW_METADATA'
+  // Una falla GEOMÉTRICA dura (encimados, fuera del cuarto, puerta tapada) nunca se publica como
+  // "revisión de calidad": es FAIL. Cotización 4048: 8 encimados salían como QUALITY_REVIEW_REQUIRED
+  // ("geometría y semántica válidas") con el acomodo encimado completo.
+  const geoFail = (evalFinal.issues || []).some((i) => i.severity === 'fail' && i.geo);
+  const status = geoFail ? 'FAIL'
+    : !semEval.sem_status ? 'NEEDS_REVIEW_METADATA'
     : (!semanticPass ? 'NEEDS_SEMANTIC_REVIEW'
       : (qualityReview ? 'QUALITY_REVIEW_REQUIRED' : evalFinal.status));
 

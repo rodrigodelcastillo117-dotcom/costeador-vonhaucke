@@ -4,6 +4,7 @@
 //  IA, Acomodo, Propuesta al cliente) en un solo flujo guiado, con sello
 //  Firme/Estimado por renglón y "no tengo planos" siempre a la mano.
 // ============================================================================
+import { textoReparto } from '../datos/textoReparto.js';
 import { useMemo, useState, useRef, useEffect } from 'react';
 import CotizadorIA from './CotizadorIA.jsx';
 import Acomodo from './Acomodo.jsx';
@@ -19,10 +20,10 @@ import { areasDelNivelUsado } from '../datos/planoLeido.js';
 import { proponerProgramaDelPlano, aplicarPrograma, claveRecomendacion } from '../datos/programaRealDelPlano.js';
 import { reconciliarNuevasConPrograma } from '../datos/reconciliarPartidas.js';
 import { requirementsDeBrief } from '../datos/programaBrief.js';
-import { mensajePendientePrograma } from '../datos/mensajesPrograma.js';
 import Cargando from './Cargando.jsx';
 import EstoEntendi from './EstoEntendi.jsx';
 import { costoImplicito } from '../datos/preciosVenta.js';
+import { mensajePendientePrograma } from '../datos/mensajesPrograma.js';
 import ConfirmarCandado from './ConfirmarCandado.jsx';
 
 // ⚠️ EL ESPACIO VA PRIMERO (2026-08-17). Antes era: muebles → espacio →
@@ -93,7 +94,7 @@ function ConflictoPrograma({ c, onConservar, onSustituir, onAmbos }) {
     ['Precio de lista', money(e.precio), money(p.precio)],
   ];
   return (
-    <div className="tarjeta" style={{ marginTop: 8, border: '1px solid #e0b4b4', background: '#fff8f8' }} data-testid="conflicto-programa">
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0b4b4', background: '#fff8f8' }} data-testid="conflicto-programa">
       <div style={{ fontWeight: 700 }}>✗ {etiquetaSlot(c.slot)}: ya tienes un producto en este lugar y el plano propone otro.</div>
       <table style={{ width: '100%', marginTop: 6, fontSize: 14, borderCollapse: 'collapse' }}>
         <thead><tr><th style={{ textAlign: 'left' }}></th><th style={{ textAlign: 'left' }}>Lo que ya tienes</th><th style={{ textAlign: 'left' }}>Lo que propone el plano</th></tr></thead>
@@ -109,6 +110,53 @@ function ConflictoPrograma({ c, onConservar, onSustituir, onAmbos }) {
   );
 }
 
+// Prueba de Rodrigo 19-oct: un renglón (p. ej. 16 sillas WIN) que el plano reparte entre varios muebles del mismo tipo
+// (dos bancos de 8). No es un "producto distinto en el mismo lugar": se explica así y "Repartir" sí aplica la decisión.
+// VH-AUD-202: una silla cuyo uso depende del destino (CONCERTO) y el programa pide juntas Y visita: decide la persona.
+const USO_SILLA = { MEETING_SEAT: 'Son de la sala de juntas', VISITOR_SEAT: 'Son de visita (privados)' };
+function RolAmbiguoPrograma({ c, onElegir, onDejar }) {
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="rol-ambiguo-programa">
+      <div style={{ fontWeight: 700 }}>Tienes {c.cantidad} × {c.fila_nombre || 'silla'} y el plano pide sillas de ese modelo en la sala de juntas y como visita. ¿Para qué son las que ya tienes?</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>Mientras no lo decidas no se agregan sillas de ese uso, para no duplicarlas.</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onElegir && (c.opciones || []).map((r) => (
+          <button key={r} type="button" className="boton primario" style={{ minHeight: 34 }} onClick={() => onElegir(r)}>{USO_SILLA[r] || r}</button>
+        ))}
+        <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onDejar}>Dejarlo como está</button>
+      </div>
+    </div>
+  );
+}
+// P1-PROG-01: una fila sin destino que podría ir a dos zonas: la persona elige (nunca se asigna sola a la primera).
+function DestinoAmbiguoPrograma({ c, onElegir, onDejar }) {
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="destino-ambiguo-programa">
+      <div style={{ fontWeight: 700 }}>Tienes {c.cantidad} × {c.fila_nombre || 'pieza'} sin zona, y el plano lo pide en más de un lugar. ¿A dónde va?</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>Mientras no lo decidas no se agrega esa pieza en esas zonas, para no duplicarla.</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onElegir && (c.opciones || []).map((z) => (
+          <button key={z} type="button" className="boton primario" style={{ minHeight: 44 }} onClick={() => onElegir(z)}>Va en {z}</button>
+        ))}
+        <button type="button" className="boton fantasma" style={{ minHeight: 44 }} onClick={onDejar}>Dejarlo como está</button>
+      </div>
+    </div>
+  );
+}
+function RepartoPrograma({ grupo, onRepartir, onDejar }) {
+  const t = textoReparto(grupo);
+  return (
+    <div className="tarjeta nota-clara" style={{ marginTop: 8, border: '1px solid #e0c9a0', background: '#fffaf0' }} data-testid="reparto-programa">
+      <div style={{ fontWeight: 700 }}>{t.titulo}</div>
+      <div className="ayuda" style={{ marginTop: 4 }}>{t.ayuda}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {onRepartir && <button type="button" className="boton primario" style={{ minHeight: 34 }} onClick={onRepartir}>{t.boton}</button>}
+        <button type="button" className="boton fantasma" style={{ minHeight: 34 }} onClick={onDejar}>Dejarlo como está</button>
+      </div>
+    </div>
+  );
+}
+
 // VH-091: "juntas|ANCHOR_MEETING|#0" → "Mesa de juntas 1" (nunca el id interno en pantalla).
 const etiquetaSlot = (slot) => {
   const [rol, rel, ord] = String(slot || '').split('|');
@@ -119,7 +167,7 @@ const etiquetaSlot = (slot) => {
 
 export default function Voni({
   estado, setEstado, soloVentas = false, veCostos = false,
-  onAgregarItems, onGuardarAcomodo, onIr, onAplicarPrograma,
+  onAgregarItems, onGuardarAcomodo, onIr, onAplicarPrograma, onEmpezarDeCero,
   paso, setPaso,
 }) {
   const cot = estado.cotizacion || {};
@@ -146,6 +194,10 @@ export default function Voni({
 
   // VH-043: la lectura NO se usa hasta que la persona la confirme (mandato §4).
   const [lecturaPendiente, setLecturaPendiente] = useState(null);
+  // 21-oct: Rodrigo subió el plano de un proyecto NUEVO con la 4048 abierta (168 piezas) y el programa "no
+  // duplicó" contra ella: ninguna banca, privados pidiendo los Eclipse de la 4048. Con un proyecto abierto,
+  // ANTES de leer se pregunta (en la app, no con confirm(): el navegador integrado lo cancela solo).
+  const [planoEnEspera, setPlanoEnEspera] = useState(null);
   async function subirPlanoAqui(file) {
     setErrorPlano(''); setNotaPlano(''); setLecturaPendiente(null); setLeyendoPlano(true);
     const r = await leerPlanoDeArchivo(file);
@@ -154,18 +206,19 @@ export default function Voni({
     if (!r.areas.length) { if (r.nota) setNotaPlano(r.nota); return; }   // nada reconocido: que lo intente de nuevo
     setLecturaPendiente(r);
   }
-  function confirmarLectura(editada) {
+  function confirmarLectura(editada, { nivel } = {}) {
     // VH-136: la compuerta puede entregar las áreas con puertas ya confirmadas por la persona.
     const r = (editada && Array.isArray(editada.areas)) ? editada : lecturaPendiente; if (!r) return;
     // Si la persona confirmó las puertas pendientes en la compuerta, los avisos de puerta ya no aplican.
     const puertasConfirmadas = !!(editada && Array.isArray(editada.areas));
     const problemas = (r.resumen?.problemas || []).filter((t) => !(puertasConfirmadas && /puerta/i.test(t)));
-    // L1: documento con varias plantas → se usa la primera (las áreas de otros niveles no se mezclan en la misma planta).
+    // L1: documento con varias plantas → se usa el nivel que eligió la persona (los otros no se mezclan en la misma planta).
     const niveles = Array.isArray(r.resumen?.niveles) ? r.resumen.niveles : [];
-    const areasUsadas = areasDelNivelUsado(r.areas, niveles);
+    const areasUsadas = areasDelNivelUsado(r.areas, niveles, nivel);
+    const nivelUsado = niveles.length > 1 ? (niveles.includes(nivel) ? nivel : niveles[0]) : null;
     const confirmada = { en: new Date().toISOString(), nivel: r.resumen?.nivel || null, m2: r.resumen?.m2 ?? null,
       cuartos: areasUsadas.length, cotas: r.resumen?.cotas ?? null, problemas,
-      ...(niveles.length > 1 ? { nivelUsado: niveles[0], nivelesDocumento: niveles } : {}),
+      ...(niveles.length > 1 ? { nivelUsado, nivelesDocumento: niveles } : {}),
       ...(r.resumen?.columnas ? { columnas: r.resumen.columnas } : {}),
       ...(puertasConfirmadas ? { puertasConfirmadasPorPersona: true } : {}),
       servidor: r.resumen?.servidor || null };   // VH-064: veredicto determinista del servidor
@@ -183,7 +236,7 @@ export default function Voni({
   // Rodrigo probó una versión con "1.1, 1.2… hasta el 7" y la tumbó: "son 7
   // clicks que no valen la pena... debería ser 1 con TODO el mobiliario".
   const [subpaso2, setSubpaso2] = useState('describir');
-  const vaciar = () => { setCot({ partidas: [], acomodo: null }); setConfVaciar(false); setSubpaso2('describir'); };
+  const vaciar = () => { setCot({ partidas: [], acomodo: null, programaBrief: null }); setConfVaciar(false); setSubpaso2('describir'); };
 
   // Cada pantalla de Voni (cambio de paso, o el sub-paso 2a/2b) empieza
   // ARRIBA. Sin esto, llegar al paso 2 podía abrir donde se había quedado el
@@ -233,7 +286,7 @@ export default function Voni({
   const ambiguasPrograma = conciliacion.ambiguas || [];
   // VH-090: existentes del usuario que cubren el programa y aún no están vinculados (sin instance/anchor).
   const reutilizadosPrograma = reconPrograma
-    ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id; })
+    ? (reconPrograma.confirmacion.enriquecidos || []).filter((e) => { const p = partidas.find((x) => String(x.id) === String(e.id)); return p && !p.instance_id && !p.anchor_instance_id && !(Number(p.repartido_entre) > 0); })
     : [];
   const conflictosPrograma = reconPrograma ? reconPrograma.conflictos : [];
 
@@ -336,9 +389,27 @@ export default function Voni({
             onChange={(e) => {
               const f = e.target.files?.[0]; e.target.value = '';
               if (!f) return;              // canceló el diálogo: quedarse en el paso 1
+              if (hay && onEmpezarDeCero) { setPlanoEnEspera(f); return; }
               subirPlanoAqui(f);
             }}
           />
+          {planoEnEspera && (
+            <div className="tarjeta" style={{ marginTop: 12 }} data-testid="plano-proyecto-abierto">
+              <strong>Tienes un proyecto abierto{cot.cliente ? ` (${cot.cliente})` : ''} con {partidas.length} renglón{partidas.length === 1 ? '' : 'es'}. ¿Este plano es para ese proyecto?</strong>
+              <div className="ayuda" style={{ marginTop: 4 }}>Si es de otro cliente u otra oficina, empieza uno nuevo: el abierto queda guardado en Presupuestos anteriores. Si lo agregas a éste, el programa del plano sólo suma lo que le falte a lo que ya tiene.</div>
+              <div className="fila-botones" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <button className="boton primario" style={{ minHeight: 44 }} data-testid="plano-proyecto-nuevo"
+                  onClick={() => { const f = planoEnEspera; setPlanoEnEspera(null); onEmpezarDeCero(); subirPlanoAqui(f); }}>
+                  Es un proyecto nuevo
+                </button>
+                <button className="boton" style={{ minHeight: 44 }} data-testid="plano-proyecto-este"
+                  onClick={() => { const f = planoEnEspera; setPlanoEnEspera(null); subirPlanoAqui(f); }}>
+                  Es para este proyecto
+                </button>
+                <button className="boton fantasma" style={{ minHeight: 44 }} onClick={() => setPlanoEnEspera(null)}>Cancelar</button>
+              </div>
+            </div>
+          )}
           {leyendoPlano && <Cargando voni titulo="Voni está leyendo el plano"
             mensajes={['Midiendo los cuartos…', 'Sacando las áreas…', 'Contando privados y salas…']} />}
           {errorPlano && <div className="alerta roja" style={{ marginTop: 12 }}><span className="texto">{errorPlano}</span></div>}
@@ -386,8 +457,8 @@ export default function Voni({
             </div>
           )}
           {propuestaPrograma && (faltantesPrograma.length > 0 || conflictosPrograma.length > 0 || pendientesPrograma.length > 0 || duplicadosPrograma.length > 0 || ambiguasPrograma.length > 0 || recomendacionesCasa.length > 0) && (
-            <div className="tarjeta no-imprimir" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
-              <strong style={{ color: '#174f45' }}>✨ Programa detectado del plano</strong>
+            <div className="tarjeta no-imprimir nota-clara" data-testid="programa-detectado" style={{ borderColor: '#8bbcaf', background: '#eef6f3' }}>
+              <strong style={{ color: '#174f45' }}>✨ Programa detectado {cot.acomodo?.planReal ? 'del plano' : 'del espacio'}</strong>
               <p className="ayuda" style={{ marginTop: 4 }}>
                 Productos reales del catálogo. Se agrega SÓLO lo que falta (no duplica lo ya cotizado). El precio lo revalida el servidor al emitir.
               </p>
@@ -405,7 +476,7 @@ export default function Voni({
                   {recomendacionesCasa.map((r) => (
                     <div key={claveRecomendacion(r)} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 3 }} data-testid="recomendacion-casa">
                       <span>➕ {r.cantidad}× {r.nombre}{r.zone_id ? ` · ${r.zone_id}` : ''} <span className="ayuda" style={{ display: 'inline' }}>· {r.regla}</span></span>
-                      <button type="button" className="boton fantasma" style={{ minHeight: 30 }} disabled={!onAplicarPrograma}
+                      <button type="button" className="boton fantasma" style={{ minHeight: 44 }} disabled={!onAplicarPrograma}
                         onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { incluir: [claveRecomendacion(r)] })}>Agregar</button>
                     </div>
                   ))}
@@ -426,7 +497,7 @@ export default function Voni({
                     <div key={a.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 }} data-testid="ambigua-programa" data-id={a.id}>
                       <span>⇄ <b>{a.nombre}</b>{a.cantidad > 1 ? ` ×${a.cantidad}` : ''}{a.zonaActual ? ` (hoy en ${a.zonaActual})` : ''} {a.motivo === 'CANTIDAD_MAYOR_QUE_LUGAR' ? 'tiene más unidades que lugar; ¿mover una a…?' : 'es para:'}</span>
                       {a.opciones.map((o) => (
-                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 30 }}
+                        <button key={o.id} type="button" className="boton fantasma" style={{ minHeight: 44 }}
                           onClick={() => onAplicarPrograma?.(propuestaPrograma.propuesta, { decisiones: { [a.id]: o.id } })}>
                           {o.zona || o.nombre}
                         </button>
@@ -454,7 +525,32 @@ export default function Voni({
               {conflictosPrograma.length > 0 && (
                 <div style={{ marginTop: 8, color: '#8a1f1f' }}>
                   <div style={{ fontWeight: 700 }}>Conflicto (decide tú)</div>
-                  {conflictosPrograma.filter((c) => !conflictosConservados.has(c.slot)).map((c, i) => (
+                  {(() => {
+                    // SPLIT_REQUIRED agrupado por renglón: una tarjeta por renglón, con su propia decisión.
+                    const grupos = new Map();
+                    for (const c of conflictosPrograma) {
+                      if (c.code !== 'SPLIT_REQUIRED' || conflictosConservados.has(c.slot)) continue;
+                      const k = String(c.fila_id ?? c.slot);
+                      if (!grupos.has(k)) grupos.set(k, []);
+                      grupos.get(k).push(c);
+                    }
+                    return [...grupos.entries()].map(([k, g]) => (
+                      <RepartoPrograma key={`rep-${k}`} grupo={g}
+                        onDejar={() => setConflictosConservados((prev) => new Set([...prev, ...g.map((c) => c.slot)]))}
+                        onRepartir={onAplicarPrograma && g[0].fila_id != null ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { repartir: [g[0].fila_id] }) : null} />
+                    ));
+                  })()}
+                  {conflictosPrograma.filter((c) => c.code === 'DESTINO_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c) => (
+                    <DestinoAmbiguoPrograma key={`dest-${c.slot}`} c={c}
+                      onDejar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                      onElegir={onAplicarPrograma && c.fila_id != null ? (z) => onAplicarPrograma?.(propuestaPrograma.propuesta, { destinos: { [c.fila_id]: z } }) : null} />
+                  ))}
+                  {conflictosPrograma.filter((c) => c.code === 'ROL_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c) => (
+                    <RolAmbiguoPrograma key={`rol-${c.slot}`} c={c}
+                      onDejar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
+                      onElegir={onAplicarPrograma && c.fila_id != null ? (r) => onAplicarPrograma?.(propuestaPrograma.propuesta, { roles: { [c.fila_id]: r } }) : null} />
+                  ))}
+                  {conflictosPrograma.filter((c) => c.code !== 'SPLIT_REQUIRED' && c.code !== 'ROL_AMBIGUO' && c.code !== 'DESTINO_AMBIGUO' && !conflictosConservados.has(c.slot)).map((c, i) => (
                     <ConflictoPrograma key={i} c={c}
                       onConservar={() => setConflictosConservados((prev) => new Set([...prev, c.slot]))}
                       onSustituir={onAplicarPrograma ? () => onAplicarPrograma?.(propuestaPrograma.propuesta, { sustituir: [c.slot] }) : null}

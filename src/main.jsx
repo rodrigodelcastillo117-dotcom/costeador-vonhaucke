@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import SinPantallaBlanca from './componentes/SinPantallaBlanca.jsx';
 import { registrarError } from './datos/telemetria.js';
+import { instalarRecargaPorVersion } from './datos/versionNueva.js';
+import { crearAvisoErrorTardio } from './avisoErrorTardio.js';
 import './fuentes.css';
 import './estilos.css';
 import './demoGuardrails.css';
@@ -18,7 +20,8 @@ import './runtimeGuardrails.js';
 //  Aquí hay dos capas más:
 //   1) un error boundary que envuelve TODO, incluido App;
 //   2) enganches a `error` y `unhandledrejection` que escriben el fallo dentro
-//      de la página aunque React ni siquiera haya arrancado.
+//      de la página aunque React ni siquiera haya arrancado;
+//   3) ya montada la app, esos mismos enganches enseñan un aviso que no toca la app (ver abajo).
 //  El objetivo no es esconder el bug: es que SIEMPRE se pueda leer y copiar.
 // ============================================================================
 
@@ -43,12 +46,23 @@ function pintarFallo(titulo, detalle) {
   caja.querySelector('#vh-recargar').onclick = () => { window.location.reload(); };
 }
 
+// 3) DESPUÉS de montar (#raiz ya tiene la app), pintarFallo no hace nada: un error de un botón quedaba sólo en
+//    la consola ("le piqué y no hizo nada"). Ahí entra un aviso NO destructivo encima de la app, fuera de #raiz
+//    (src/avisoErrorTardio.js). Nadie llama preventDefault: el error sigue en la consola y en la telemetría,
+//    con la misma referencia (`ref`) que ve la persona.
+const avisoTardio = crearAvisoErrorTardio({ doc: document });
+
 window.addEventListener('error', (e) => {
-  registrarError(e?.error || e?.message, { origen: 'window.onerror', archivo: e?.filename, linea: e?.lineno });
+  const ref = avisoTardio.notificar(e?.error ?? e?.message);
+  registrarError(e?.error || e?.message, { origen: 'window.onerror', archivo: e?.filename, linea: e?.lineno, ...(ref ? { ref } : {}) });
   pintarFallo('Error al cargar', `${e.message}\n${e.filename}:${e.lineno}:${e.colno}\n\n${e.error?.stack || ''}`);
 });
+// Pestaña abierta desde antes de un deploy: sus archivos de pantalla ya no existen (404). Se recarga una vez
+// para traer la versión publicada, en vez de que cada pantalla caiga en "se atoró" (src/datos/versionNueva.js).
+instalarRecargaPorVersion(window);
 window.addEventListener('unhandledrejection', (e) => {
-  registrarError(e?.reason, { origen: 'unhandledrejection' });
+  const ref = avisoTardio.notificar(e?.reason);
+  registrarError(e?.reason, { origen: 'unhandledrejection', ...(ref ? { ref } : {}) });
   pintarFallo('Error al cargar (promesa)', String(e.reason?.stack || e.reason));
 });
 

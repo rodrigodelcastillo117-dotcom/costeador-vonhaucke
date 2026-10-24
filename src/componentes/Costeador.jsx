@@ -504,6 +504,11 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                   if (est.badge) return (
                     <div className="pieza-match-alerta" data-testid="alerta-material" data-tono="ambar" style={{ background: '#fff8e5', border: '1px solid #e9cf8a', borderRadius: 8, padding: '6px 10px', margin: '6px 0', fontSize: 13, color: '#7a5a00', fontWeight: 600 }}>
                       🟡 {est.badge}{c._match?.solicitado ? <> — pediste <b>{c._match.solicitado}</b>.</> : ''}
+                      {/* Cierre ChatGPT (COC-01): un material PROPUESTO se confirma aquí, pieza por pieza (re-elegir el mismo
+                          en el selector no dispara cambio, y la pieza quedaba sin forma de confirmarse). */}
+                      {est.badgeTipo === 'confirmar' && c.insumoId && (
+                        <>{' '}<button type="button" className="chip" data-testid="confirmar-material" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, c.insumoId, { confirmado: true })}>Confirmar este material</button></>
+                      )}
                     </div>
                   );
                   if (est.pendiente && est.pendienteMsg) return (
@@ -672,7 +677,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             </div>
           ) : (
             <div style={{ marginTop: 14 }}>
-              <div className="ayuda" style={{ marginBottom: 6, color: '#8a6d00' }}>Simulación manual (no oficial). El costo oficial se calcula con Alba V1; mover estos factores simula escenarios.</div>
+              <div className="ayuda" style={{ marginBottom: 6, color: '#e0b84a' }}>Simulación manual (no oficial). El costo oficial se calcula con Alba V1; mover estos factores simula escenarios.</div>
               <label className="etiqueta">Factor de material directo</label>
               <div className="masmenos" style={{ marginBottom: 8 }}>
                 <input type="range" min="1" max="99" value={costeo.factorDirecta ?? 55}

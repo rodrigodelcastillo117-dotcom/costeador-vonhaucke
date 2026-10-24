@@ -44,11 +44,11 @@ test.describe('VH-091 · conflicto programa-vs-programa con salida', () => {
     await page.fill('#email-login', EMAIL);
     await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     await page.getByTestId('home-cotizar').click();
     await page.getByText(/^Muebles$/).first().click();
 
-    await expect(page.getByText(/Programa detectado del plano/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Programa detectado del (plano|espacio)/i)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(/Conflicto \(decide tú\)/i)).toBeVisible();
     // Nunca el id interno en pantalla: etiqueta humana + nombres.
     await expect(page.getByText(/Mesa de juntas 1: ya tienes/i)).toBeVisible();

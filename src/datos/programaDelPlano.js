@@ -18,6 +18,7 @@
 //  Todo en METROS (es lo que devuelve `areasDeLectura` y lo que guarda `areasM`).
 // ============================================================================
 import { rolCuartoBase, rolArea, tipoAreaConfiable } from './planner.js';
+import { capacidadDeNombre } from './capacidadDeclarada.js';
 
 // El rol de un cuarto: lo que declaró el lector, su nombre, o —si ninguno de
 // los dos dice nada, "Sala 12" sin `tipo`— su TAMAÑO. Mismo criterio que usa el
@@ -118,7 +119,7 @@ export function programaDelPlano(areas, opts = {}) {
   // que lo rodea.
   const nombresConIslas = new Set(zonas.map((z) => z.dentroDe));
   const abiertos = lista.filter((a) => !esZona(a) && rolDe(a, lista) === 'open' && !nombresConIslas.has(a.nombre));
-  const islasA = zonas.length ? zonas : abiertos;
+  let islasA = zonas.length ? zonas : abiertos;
 
   const avisos = [];
   let operativos = 0, porIsla = 0;
@@ -129,14 +130,30 @@ export function programaDelPlano(areas, opts = {}) {
   // puesto donde el plano dibujaba 4 → el total se iba al piso. La geometría
   // queda sólo de respaldo para islas sin conteo (planos sin mobiliario claro).
   let contado = false;
+  let operativosPorZona = null;   // [{nombre,id,puestos}] cuando hay VARIOS open space, cada uno con su conteo
+  // 21-oct: "OPEN SPACE 01 (8 PAX)" sin escritorios dibujados. La capacidad escrita en el nombre del
+  // cuarto es evidencia del plano (como en las salas): manda sobre la estimación por geometría.
+  const puestosDe = (a) => (Number.isFinite(a.puestos) && a.puestos > 0 ? a.puestos : (capacidadDeNombre(a.nombre) || 0));
   if (islasA.length) {
-    const explicitas = islasA.filter((a) => Number.isFinite(a.puestos) && a.puestos > 0);
+    const explicitas = islasA.filter((a) => puestosDe(a) > 0);
     contado = explicitas.length > 0;
-    const cuentas = islasA.map((a) => (Number.isFinite(a.puestos) && a.puestos > 0
-      ? a.puestos
-      : puestosPorIsla(a, largoPuesto)));
+    // Recorrido plano→reabrir (lab 19-oct): si el plano CUENTA escritorios en unas áreas abiertas, una área abierta SIN
+    // escritorios dibujados (p. ej. "ÁREA SIN ROTULAR") no se llena por geometría: se le estimaban 8 puestos y se le
+    // mandaban los bancos. Queda fuera del conteo y se dice, para que la persona confirme si lleva puestos.
+    if (contado && explicitas.length < islasA.length) {
+      const sinConteo = islasA.filter((a) => !explicitas.includes(a));
+      avisos.push(`${sinConteo.map((a) => `«${a.nombre}»`).join(', ')}: parece espacio abierto pero no tiene escritorios dibujados; no le puse puestos. Si lleva, dímelo.`);
+      islasA = explicitas.slice().sort((x, y) => puestosDe(y) - puestosDe(x));
+    }
+    const cuentas = islasA.map((a) => (puestosDe(a) > 0 ? puestosDe(a) : puestosPorIsla(a, largoPuesto)));
     operativos = cuentas.reduce((s, n) => s + n, 0);
     porIsla = cuentas[0] || 0;
+    // 21-oct: 3 open space de 8 PAX se componían como UN total (24 → 2 bancas de 12) y una banca de 7.20 m no
+    // cabe en un open space de 6.6 m. Con ≥2 cuartos abiertos SEPARADOS (no islas de un mismo cuarto), cada
+    // uno con su conteo, cada cuarto lleva su banca. Islas dentro de un cuarto: como siempre (un total).
+    if (!zonas.length && islasA.length >= 2 && islasA.every((a) => puestosDe(a) > 0)) {
+      operativosPorZona = islasA.map((a, i) => ({ nombre: a.nombre, id: a.id || null, puestos: cuentas[i] }));
+    }
     // ⚠️ EL AVISO QUE FALTABA. Con 1.80 m por puesto, una isla de 4.5 m da 2 por
     // hilera (4 por isla), no 3 (6): 32 personas en vez de 48. Antes esto no se
     // decía en ningún lado y el proyectista descubría el hueco al final.
@@ -170,7 +187,10 @@ export function programaDelPlano(areas, opts = {}) {
   // VH-093: si el lector CONTÓ las sillas dibujadas alrededor de la mesa (`asientos`), ésa es
   // la capacidad (DETECTADA); la regla de m²/persona queda sólo para salas sin sillas dibujadas.
   // Antes una sala de consejo con 10 sillas dibujadas salía "mesa de 4" por 22 m².
-  const salas = salasA.map((a, i) => (Number.isFinite(a.asientos) && a.asientos > 0 ? a.asientos : personasEnSala(m2Salas[i])));
+  // E2E 2026-10-20: con "Todavía no hay plano" la sala se llama "Sala de juntas (12 personas)" — lo pidió la
+  // persona — y la regla de m² la bajaba a 6 (mesa de 2.40 y 6 sillas). La capacidad DECLARADA en el nombre manda.
+  const salas = salasA.map((a, i) => (Number.isFinite(a.asientos) && a.asientos > 0 ? a.asientos
+    : (capacidadDeNombre(a.nombre) || personasEnSala(m2Salas[i]))));
   // ⚠️ "0 m²: da para 4 personas" ERA UNA CONTRADICCIÓN MUDA (auditoría
   // 2026-08-19). `personasEnSala` siempre pone un piso de 4 (Rodrigo: una
   // sala de juntas real nunca es para menos), pero eso NO distingue "sala
@@ -217,6 +237,7 @@ export function programaDelPlano(areas, opts = {}) {
 
   return {
     operativos,
+    ...(operativosPorZona ? { operativosPorZona } : {}),
     privados: privados.length,
     juntas: salas.length ? Math.max(...salas) : 0,
     salas,
@@ -229,9 +250,12 @@ export function programaDelPlano(areas, opts = {}) {
     // ProgramRequirement. P0.3 la enriquecerá (evidencia/confianza); aquí no se tira.
     zonas: {
       operativo: (islasA[0] || abiertos[0]) ? { nombre: (islasA[0] || abiertos[0]).nombre, id: (islasA[0] || abiertos[0]).id || null } : null,
-      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null })),
-      juntas: salasA.map((a) => ({ nombre: a.nombre, id: a.id || null })),
-      recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null } : null; })(),
+      // E2E 2026-10-20: con las medidas el programa escoge un escritorio que QUEPA (privado de 3.5 m
+      // recibía el módulo directivo de 3.6 m de fondo y el acomodo lo rechazaba).
+      privados: privados.map((a) => ({ nombre: a.nombre, id: a.id || null, ...(Number(a.ancho) > 0 && Number(a.largo) > 0 ? { anchoM: Number(a.ancho), largoM: Number(a.largo) } : {}) })),
+      juntas: salasA.map((a) => ({ nombre: a.nombre, id: a.id || null, ...(Number(a.ancho) > 0 && Number(a.largo) > 0 ? { anchoM: Number(a.ancho), largoM: Number(a.largo) } : {}) })),
+      // Prueba de Rodrigo 19-oct: los puestos de la recepción del plano (quienes atienden) deciden cuántas sillas lleva.
+      recepcion: (() => { const a = lista.find((x) => rolDe(x, lista) === 'recepcion'); return a ? { nombre: a.nombre, id: a.id || null, puestos: Number(a.puestos) > 0 ? Number(a.puestos) : null } : null; })(),
     },
     islas: islasA.length,
     porIsla,
@@ -244,7 +268,7 @@ export function programaDelPlano(areas, opts = {}) {
  *  zonas), lo ESTIMADO (puestos inferidos por área — hay que confirmarlos) y lo
  *  SUGERIDO (sillas/gavetas/archiveros que proponemos, no que estén dibujados).
  *  Antes todo salía como "Del plano: …", incluidos 17 archiveros que nadie dibujó. */
-export function resumenDelPlano(pr) {
+export function resumenDelPlano(pr, { planReal = true } = {}) {
   if (!pr?.hayPlano) return '';
   const det = [];
   if (pr.privados) det.push(`${pr.privados} ${pr.privados === 1 ? 'privado' : 'privados'}`);
@@ -256,7 +280,8 @@ export function resumenDelPlano(pr) {
   // "~" y la petición de confirmar.
   if (contado && pr.operativos) det.unshift(`${pr.operativos} puestos operativos (contados del plano)`);
   const partes = [];
-  if (det.length) partes.push(`Del plano: ${det.join(' · ')}.`);
+  // E2E 2026-10-20: con "Todavía no hay plano" (sólo m²) decía "Del plano:" de un plano que no existe.
+  if (det.length) partes.push(`${planReal ? 'Del plano' : 'Del espacio'}: ${det.join(' · ')}.`);
   if (!contado && pr.operativos) partes.push(`Estimé ~${pr.operativos} puestos operativos por el área (confírmame el número).`);
   const sug = pr.sugeridos || {};
   const sugTxt = [];

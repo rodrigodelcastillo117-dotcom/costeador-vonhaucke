@@ -36,4 +36,7 @@ esac
 # LAB_SUFIJO (p.ej. _postfix) separa una re-corrida de la corrida original (carpeta y etiqueta del expediente).
 D="$D${LAB_SUFIJO:-}"; export LAB_COC_ID="$LAB_COC_ID${LAB_SUFIJO:+b}"
 export LAB_OUT="lab/noche/cocrear10/$D"; mkdir -p "$LAB_OUT"
-PW_EXECUTABLE=${PW_EXECUTABLE:-/opt/pw-browsers/chromium} npx playwright test e2e/labCocrear.e2e.js --workers=1 --reporter=list 2>&1 | tee "$LAB_OUT/run.log"
+# P1-LAB-COC-09: sin reintentos (un primer intento FAIL es FAIL). playwright.config también lo fuerza con LAB_*.
+PW_EXECUTABLE=${PW_EXECUTABLE:-/opt/pw-browsers/chromium} npx playwright test e2e/labCocrear.e2e.js --workers=1 --retries=0 --reporter=list 2>&1 | tee "$LAB_OUT/run.log"
+# El veredicto del caso es el de Playwright, no el de tee (antes un FAIL dejaba el job en verde).
+exit "${PIPESTATUS[0]}"

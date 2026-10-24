@@ -68,11 +68,17 @@ export const BANCO = [
   { id: 'p9-ergonova-4-recepcion-14859', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Ergonova 4', usuarios: 1, nombre: "Ergonova 4 · Recepción", descripcion: "Modulo recepcion linea Ergonova 4 1 usuario", medidas: '1520 × 840 mm', material: "cubiertas en melamina canto ABS, soportería y estructuras metálicas, gajos metálicos, cuerpo de gaveta metáli…", precio: 14859, fuente: '226030018' },
   { id: 'p9-ergonova-4-recepcion-16585', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Ergonova 4', usuarios: 1, nombre: "Ergonova 4 · Recepción", descripcion: "Modulo recepcion 1 usuario", medidas: '1815 × 834 mm', material: "estructura metálica, melamina ABS, gajos (caras) en lámina, gavetas cuerpo en lámina, frentes en ABS, gavetas…", precio: 16585, fuente: '226030134', clave: 'E4R1188BAAA7371' },
   { id: 'p9-modulor-archivero-7230', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Archivero", descripcion: "Archivero con 2 puertas verticales y 1 entrepaño modelo Modulor con cer…", medidas: '900 × 420 × 750 mm', material: "melamina canto ABS, metálico, cerradura, cubierta", precio: 7230, fuente: '226030134', clave: 'MDAPCU3ABS' },
-  { id: 'p9-modulor-archivero-registro-lateral-9460', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Archivero registro lateral", descripcion: "Archivero registro lateral con 2 cajones y 1 entrepaño modelo Modulor", medidas: '1200 × 448 × 582 mm', material: "metálico, frentes en melamina canto ABS, jaladeras, cerradura", precio: 9460, fuente: '226060050' },
+  { id: 'p9-modulor-archivero-registro-lateral-9460', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Archivero registro lateral", descripcion: "Archivero registro lateral con 2 cajones y 1 entrepaño modelo Modulor", medidas: '1200 × 448 × 582 mm', material: "metálico, frentes en melamina canto ABS, jaladeras, cerradura", precio: 9460, fuente: '226060050', clave: 'MOAHCL4IABSJ' },
   { id: 'p9-modulor-archivero-registro-lateral-10272', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Archivero registro lateral", descripcion: "Archivero registro lateral con 2 cajones y 1 entrepaño modelo Modulor", medidas: '1200 × 448 × 582 mm', material: "cuerpo metálico, frentes en melamina con canto ABS, melamina canto ABS (frentes), cajón papelero, cajón archi…", precio: 10272, fuente: '226010047', clave: 'MOGARC56N51343' },
   { id: 'p9-modulor-credenza-13040', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Credenza", descripcion: "Credenza con 4 puertas verticales y 2 entrepaños modelo Modulor", medidas: '1800 × 750 mm', material: "cubierta y puertas en melamina canto ABS, metálica, 2 entrepaños, jaladeras, cerraduras", precio: 13040, fuente: '226020037', clave: 'MOAPDCU6ABS' },
   { id: 'p9-modulor-credenza-16050', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Credenza", descripcion: "Credenza con 4 puertas verticales y 2 entrepaños modelo Modulor", medidas: '1800 × 750 mm', material: "melamina canto ABS, metálica, melamina ABS, jaladeras, cerraduras", precio: 16050, fuente: '225080025', clave: 'MOAPDCU6ABS' },
-  { id: 'p9-modulor-gaveta-9460', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Gaveta", descripcion: "Archivero registro lateral con 2 cajones y 1 entrepaño modelo Modulor", medidas: '1200 × 448 × 582 mm', material: "metálico, frentes en melamina canto ABS, cojín tapizado en tela sobre gaveta, cojín tapizado sobre gaveta, ja…", precio: 9460, fuente: '226060050' },
+  // Mismo archivero registro lateral con cojín encima: "el cojín no mueve el precio". Rodrigo (2026-10-20)
+  // la iguala a los archiveros de A-2610022-01: $8,132 (antes $9,460, 226060050).
+  { id: 'p9-modulor-gaveta-9460', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Gaveta", descripcion: "Archivero registro lateral con 2 cajones y 1 entrepaño modelo Modulor", medidas: '1200 × 448 × 582 mm', material: "metálico, frentes en melamina canto ABS, cojín tapizado en tela sobre gaveta, cojín tapizado sobre gaveta, ja…", precio: 8132, fuente: '2610022' },
+  // Cotización real A-2610022-01 (oct-2026) a $8,560, cargada 5% abajo (Rodrigo): $8,132.
+  // La izquierda hace grupo por clave con el de 226060050 ($9,460, jun-2026) y manda la más reciente.
+  { id: 'p9-modulor-archivero-izq-8132', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Archivero registro lateral izquierdo", descripcion: "Archivero registro lateral con 2 cajones y 1 entrepaño modelo Modulor, izquierdo, con cajón papelero y cajón archivero", medidas: '1200 × 582 × 448 mm', material: "metálico, frentes en melamina canto ABS, cajón papelero, cajón archivero, jaladeras, cerradura", precio: 8132, fuente: '2610022', clave: 'MOAHCL4IABSJ' },
+  { id: 'p9-modulor-archivero-der-8132', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Modulor', nombre: "Modulor · Archivero registro lateral derecho", descripcion: "Archivero registro lateral con 2 cajones y 1 entrepaño modelo Modulor, derecho, con cajón papelero y cajón archivero", medidas: '1200 × 582 × 448 mm', material: "metálico, frentes en melamina canto ABS, cajón papelero, cajón archivero, jaladeras, cerradura", precio: 8132, fuente: '2610022', clave: 'MOAHCL4DABSJ' },
   { id: 'p9-mox-gaveta-pedestal-3780', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Mox', nombre: "Mox · Gaveta pedestal", descripcion: "Gaveta pedestal con 1 cajon archivero y 2 cajones papeleros modelo Mox…", medidas: '380 × 455 × 720 mm', material: "metalica, 3 jaladeras, cerradura", precio: 3780, fuente: '225120019', clave: 'MOXGAP3FL' },
   { id: 'p9-mox-gaveta-rodante-3160', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Mox', usuarios: 1, nombre: "Mox · Gaveta rodante", descripcion: "Gaveta rodante con 1 cajon archivero y 1 cajon papelero modelo Mox con…", medidas: '380 × 580 × 460 mm', material: "melamina, metálica, frentes planos, tapa en melamina, cantos ABS, 1 cajón archivero, 1 cajón papelero", precio: 3160, fuente: '226050047' },
   { id: 'p9-mox-gaveta-rodante-3210', categoria: 'Guardas y archivo', tipo: 'guarda', linea: 'Mox', nombre: "Mox · Gaveta rodante", descripcion: "Gaveta rodante con 1 cajon archivero y 1 papelero linea Mox", medidas: '380 × 460 × 580 mm', material: "cuerpo metálico, frentes y tapa en melamina canto ABS, melamina ABS, jaladeras, cerradura, ruedas", precio: 3210, fuente: '226030018' },
@@ -94,6 +100,7 @@ export const BANCO = [
   { id: 'p9-accents-cubierta-7210', categoria: 'Mesas y complementos', tipo: 'mesa', linea: 'Accents', nombre: "Accents · Cubierta", descripcion: "Mesa cuadrada modelo Accents", medidas: '600 × 600 × 400 mm', material: "cristal satinado 9 mm, estructura metálica", precio: 7210, fuente: '226060050' },
   { id: 'p9-alba-cubierta-4730', categoria: 'Mesas y complementos', tipo: 'mesa', linea: 'Alba', usuarios: 2, nombre: "Alba · Cubierta", descripcion: "Modulo mesa 2 usuarios", medidas: '900 × 900 mm', material: "melamina canto ABS, bases ALBA", precio: 4730, fuente: '226060050' },
   { id: 'p9-alba-mesa-alta-barra-5170', categoria: 'Mesas y complementos', tipo: 'mesa', linea: 'Alba', usuarios: 4, nombre: "Alba · Mesa alta / barra", descripcion: "Modulo mesa alta , 4 usuarios, modelo Alba, cubierta cuadrada ondulada…", medidas: '1200 × 1200 mm', material: "cubierta cuadrada ondulada melamina cantos ABS, estructura metálica, patas ALBA ABPATA90M", precio: 5170, fuente: '226020037', clave: 'ABPATA90M' },
+  { id: 'p9-alba-mesa-alta-20037', categoria: 'Mesas y complementos', tipo: 'mesa', linea: 'Alba', usuarios: 10, nombre: "Alba · Mesa alta", descripcion: "Módulo mesa alta Alba de 4000 × 1030 × 1200 mm, 10 usuarios", medidas: '4000 × 1030 mm', material: "cubierta en melamina cantos ABS, estructura metálica", precio: 20037.4, fuente: '2610022' },
   { id: 'p9-app-pata-3360', categoria: 'Mesas y complementos', tipo: 'mesa', linea: 'App', usuarios: 1, nombre: "App · Pata", descripcion: "Modulo mesa , 1 usuario; modelo App; cubierta en melamina canto abs (op…", medidas: '1500 × 600 mm', material: "melamina, canto ABS, estructura metalica, pata tubular con rodaja, OPG", precio: 3360, fuente: '225120019', clave: 'TAPG1156AB001' },
   { id: 'p9-app-lt-biombo-1550', categoria: 'Mesas y complementos', tipo: 'mesa', linea: 'App LT', nombre: "App LT · Biombo", descripcion: "Biombo divisor modelo apps lt con soportes", medidas: '580 × 39 × 400 mm', material: "cristal transparente 6 mm templado, cantos pulidos, cristal transparente, soportes", precio: 1550, fuente: '225120019', clave: 'ATBIOCRTRA580' },
   { id: 'p9-app-lt-cubierta-5700', categoria: 'Mesas y complementos', tipo: 'mesa', linea: 'App LT', usuarios: 1, nombre: "App LT · Cubierta", descripcion: "Modulo varios 1 usuarios", medidas: '1800 × 900 mm', material: "melamina ABS, estructura metálica, melamina canto ABS", precio: 5700, fuente: '225080025', clave: 'TATV1189AB0001' },
@@ -117,6 +124,8 @@ export const BANCO = [
   { id: 'p9-app-escritorio-gerencial-21750', categoria: 'Escritorios', tipo: 'especial', linea: 'App', usuarios: 1, nombre: "App · Escritorio gerencial", descripcion: "Modulo gerente 1 usuario; modelo App; cubiertas en melamina abs", medidas: '1800 × 1500 mm', material: "melamina canto ABS, archiveros cuerpo en lámina, frentes en melamina ABS, estructura metálica, caja eléctrica…", precio: 21750, fuente: '226060050' },
   { id: 'p9-app-mesa-de-juntas-21350', categoria: 'Mesas de juntas', tipo: 'especial', linea: 'App', usuarios: 6, nombre: "App · Mesa de juntas", descripcion: "Modulo mesa de juntas", medidas: '1800 × 900 mm', material: "cubierta melamina canto ABS, estructura metálica, caja eléctrica BE01820M24Z01U572, organizador vertical en e…", precio: 21350, fuente: '226020037', clave: 'TAPS6189AB02' },
   { id: 'p9-app-mesa-de-juntas-31340', categoria: 'Mesas de juntas', tipo: 'especial', linea: 'App', usuarios: 10, nombre: "App · Mesa de juntas", descripcion: "Modulo mesa de juntas ; 10 usuarios; modelo App; cubiertas melamina can…", medidas: '2400 × 1500 mm', material: "cubiertas melamina canto ABS, 2 cajas eléctricas E2X (BE02511E2X33Z0872), acometida (CIDUAPED), pata universal", precio: 31340, fuente: '226020037', clave: 'TAPS102415ABCA01' },
+  { id: 'p9-app-mesa-de-juntas-12540', categoria: 'Mesas de juntas', tipo: 'mesa', linea: 'App', usuarios: 8, nombre: "App · Mesa de juntas", descripcion: "Módulo mesa de juntas de 3000 × 1200 mm, 8 usuarios, modelo App", medidas: '3000 × 1200 mm', material: "cubiertas en melamina ABS, estructura y acometida metálica, 2 cajas eléctricas LUM-LIS (2 contactos y 1 USB)", precio: 12540, fuente: '2610022' },
+  { id: 'p9-app-mesa-de-juntas-redonda-14630', categoria: 'Mesas de juntas', tipo: 'mesa', linea: 'App', usuarios: 6, nombre: "App · Mesa de juntas redonda", descripcion: "Módulo mesa de juntas redonda de Ø 1500 mm, 6 usuarios, modelo App", medidas: 'Ø 1500 mm', material: "cubierta en melamina ABS, estructura metálica, caja eléctrica LUM-LIS (2 contactos y 1 USB), maneja cables", precio: 14630, fuente: '2610022' },
   { id: 'p9-app-lt-bench-doble-4840', categoria: 'Componentes y refacciones', tipo: 'especial', linea: 'App LT', nombre: "App LT · Bench doble", descripcion: "Cubierta cuadrada modelo apps lt", medidas: '1200 × 1200 mm', material: "melamina, canto ABS, caja electrica \"LUM-LIS-N\" al centro", precio: 4840, fuente: '225120019', clave: 'ATCUMJ44ABSLISN' },
   { id: 'p9-app-lt-bench-doble-10596', categoria: 'Operativos / Bench', tipo: 'especial', linea: 'App LT', usuarios: 2, nombre: "App LT · Bench doble", descripcion: "Modulo operativo , 2 usuarios; (bench doble) modelo App LT; cubiertas e…", medidas: '1500 × 1200 mm', material: "cubiertas en melamina ABS, estructura metálica, patas tipo U, cristal transparente 6 mm (biombo), melamina AB…", precio: 10596, fuente: '226010047', clave: 'TATO21512ABCT01' },
   { id: 'p9-app-lt-bench-doble-17600', categoria: 'Operativos / Bench', tipo: 'especial', linea: 'App LT', usuarios: 6, nombre: "App LT · Bench doble", descripcion: "Modulo operativo , 6 usuarios; (bench doble) modelo App LT; cubiertas e…", medidas: '3600 × 1200 mm', material: "melamina ABS, estructura metálica, patas tipo U, cristal transparente 6 mm, biombo divisor sobre cubierta en …", precio: 17600, fuente: '226030134', clave: 'TATO63612ABCRT01' },
@@ -283,6 +292,12 @@ export const BANCO = [
   { id: 'mj-2400x1200', categoria: 'Mesas de juntas', tipo: 'mesa', usuarios: 8,
     nombre: 'Mesa de juntas App LT', medidas: '2400 × 1200 mm',
     material: 'Bases metal, cubiertas melamina ABS', precio: 7870, fuente: '2508040' },
+  // Rodrigo (2026-10-20): distinta de la de $18,560 (10 personas, HDMI); es la que lleva una sala de 8.
+  // Mismo producto/precio que `p9-app-mesa-de-juntas-12540` (cotización 2610022 × 0.95), dado de alta
+  // como canónico para que el programa del plano la pueda elegir (`preferente`: ver resolverJuntas).
+  { id: 'mj-3000x1200-8p', categoria: 'Mesas de juntas', tipo: 'mesa', linea: 'App', usuarios: 8, preferente: true,
+    nombre: 'Mesa de juntas App 8 personas (2 cajas eléctricas)', medidas: '3000 × 1200 mm',
+    material: 'Cubiertas melamina ABS, estructura y acometida metálica, 2 cajas eléctricas LUM-LIS (2 contactos y 1 USB)', precio: 12540, fuente: '2610022' },
   { id: 'mj-3000x1200', categoria: 'Mesas de juntas', tipo: 'mesa', usuarios: 10,
     nombre: 'Mesa de juntas App LT (con caja eléctrica)', medidas: '3000 × 1200 mm',
     material: 'Cubiertas melamina ABS, caja eléctrica LUM-LIS HDMI-N al centro, estructura metálica', precio: 18560, fuente: '226030004' },
@@ -321,12 +336,17 @@ export const BANCO = [
     material: 'Con brazos, reclinación, base 5 pts PP, respaldo malla, tela negra', precio: 5210, fuente: '226030004' },
   { id: 'silla-win-cab', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla operativa WIN-CAB (cabecera)',
     material: 'Con brazos, reclinación, base 5 pts PP, cabecera y respaldo malla, tela negra', precio: 5900, fuente: '226030004' },
+  // Dos precios del mismo mes ($5,140 de 226030004 y $5,470 de 225080025): el plano/programa cotizaba $5,140 y
+  // Voni $5,470. Rodrigo (2026-10-20): "precio de 5470". Una sola silla, un solo precio.
   { id: 'silla-concerto', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla CONCERTO (visita 4 pts)',
-    material: 'Con brazos, estructura negra, respaldo mesh, asiento tapizado tela', precio: 5140, fuente: '226030004' },
+    material: 'Con brazos, estructura negra, respaldo mesh, asiento tapizado tela', precio: 5470, fuente: '225080025' },
   { id: 'silla-alpha', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla directiva ALPHA',
     material: 'Con brazos, control en brazos, base y estructura aluminio, mesh negro GT07-35E', precio: 11950, fuente: '226030004' },
+  // GAMMA-E (estructura de polipropileno, asiento tela HM-38) ≠ GAMMA (base de aluminio, asiento mesh).
+  // Era $4,140 (2508040) mientras el banco la daba a $3,990: el plano y Voni cotizaban la misma silla
+  // a dos precios. Precio vigente: $3,990 (226050047, y así se vendió en A-2610022-01, oct-2026).
   { id: 'silla-gamma-e', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla operativa GAMMA-E',
-    material: 'Con brazos, reclinable, estructura PP, respaldo mesh, tela HM-38', precio: 4140, fuente: '2508040' },
+    material: 'Con brazos, reclinable, estructura PP, respaldo mesh, tela HM-38', precio: 3990, fuente: '226050047' },
   { id: 'silla-sonata', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla SONATA (visita 4 pts)',
     material: 'Sin brazos, respaldo y asiento en polipropileno', precio: 2420, fuente: '2508040' },
   { id: 'silla-etivtui', categoria: 'Sillería', tipo: 'silla', nombre: 'Silla de visita ETIVTUI',
@@ -387,6 +407,7 @@ export const BANCO_FUENTES = {
   '226020037': 'NDT Global piso 11 · jul 2026',
   '225120019': 'PrestigeMotors · dic 2025',
   '225080025': 'Módulo App LT 4U · mar 2026',
+  '2610022': 'Propuesta gral A-2610022-01 · oct 2026 (cargada 5% abajo)',
 };
 
 
@@ -417,7 +438,7 @@ const MES_FUENTE = {
   '225120019': '2025-12', '226010047': '2026-01', '225080025': '2026-03',
   '2508040': '2026-03', '226030004': '2026-03', '226030018': '2026-05',
   '226050047': '2026-05', '226050048': '2026-05', '226060050': '2026-06',
-  '226030134': '2026-06', '226020037': '2026-07',
+  '226030134': '2026-06', '226020037': '2026-07', '2610022': '2026-10',
 };
 const fechaDe = (p) => MES_FUENTE[p.fuente] || '0000-00';
 
@@ -487,4 +508,14 @@ export function bancoUnico(lista = BANCO) {
     });
   }
   return out;
+}
+
+// Orden de los grupos (tipo de mueble) en la pantalla del banco. Sin búsqueda: el orden fijo de BANCO_CATEGORIAS.
+// Con búsqueda: el de la lista ya ordenada por relevancia (cada grupo entra donde aparece su mejor resultado). Antes
+// se pintaba SIEMPRE en orden fijo y eso deshacía la relevancia: "archivero" ponía arriba un escritorio gerencial
+// (su descripción menciona la palabra) y "Agregar" metía ese escritorio a la cotización (certificación 18-oct, M1).
+export function categoriasEnOrden(listaOrdenada, consulta) {
+  const presentes = [...new Set(listaOrdenada.map((p) => p.categoria))];
+  if (String(consulta || '').trim()) return presentes;
+  return BANCO_CATEGORIAS.filter((c) => presentes.includes(c));
 }

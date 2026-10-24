@@ -37,6 +37,23 @@ export function autorizadoPorRef(ref) {
   };
 }
 
+/**
+ * Campos de identidad de catálogo (Producto Maestro) para una partida de BANCO o LÍNEA,
+ * listos para pegarse al renglón. Con ellos la emisión toma el camino de REVENTA DE
+ * CATÁLOGO (P0-01: precio de lista vigente, sin costo interno) en lugar de pedir un costo
+ * que un producto comprado/revendido no tiene. Sin match → null (la partida queda igual).
+ * Prueba E2E 2026-10-20: sin esto Dirección no podía emitir ni una silla del banco.
+ */
+export function identidadDeCatalogo(sourceType, ref) {
+  const a = autorizadoPorRef(ref);
+  if (!a || a.producto_id == null || a.producto_version_id == null) return null;
+  return {
+    source_type: sourceType, source_ref: a.source_ref,
+    producto_id: a.producto_id, producto_version_id: a.producto_version_id,
+    lista_precio_item_id: a.lista_precio_item_id,
+  };
+}
+
 /** ¿Existe identidad de Producto Maestro para este source_ref? */
 export function hayIdentidad(ref) {
   return ref != null && IDS[String(ref)] != null;

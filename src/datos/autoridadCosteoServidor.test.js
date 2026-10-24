@@ -196,3 +196,11 @@ describe('P1-03b · con precio_id del catálogo no se re-elige en JS', () => {
     expect(r.precios[0]).toMatchObject({ precio_id: 11, eleccion: 'recalculada' });
   });
 });
+
+describe('cierre ChatGPT · el aviso nombra el insumo sin precio certificado', () => {
+  it('"1 de 2 insumo(s) sin precio certificado: Tornillería (incluida)."', async () => {
+    const { estadoBaseServidor } = await import('./autoridadCosteoServidor.js');
+    const s = estadoBaseServidor({ emision: { emitible: true, componentesIgnorados: [], detalleInsumos: [] }, usados: ['m16', 'tornilleria'], noCertificados: ['tornilleria'], costoUnitario: 100, nombreDe: (id) => ({ tornilleria: 'Tornillería (incluida)' })[id] });
+    expect(s.warnings.join(' ')).toMatch(/1 de 2 insumo\(s\) sin precio certificado: Tornillería \(incluida\)\./);
+  });
+});

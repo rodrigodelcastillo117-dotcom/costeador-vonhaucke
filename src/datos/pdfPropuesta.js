@@ -20,6 +20,7 @@ import { jsPDF } from 'jspdf/dist/jspdf.es.min.js';
 import { resolverImagenesAcomodo } from './imagenStorage.js';
 import { sinEconomia, esClientSafe } from './economia.js';
 import { deCentavosEnteros } from '../motor/dinero.js';
+import { nombreConUso } from './nombreConUso.js';
 
 const A4 = { w: 210, h: 297 };
 const M = { izq: 16, der: 16, arriba: 16, abajo: 18 };
@@ -339,7 +340,7 @@ function hojaPlano(doc, { acomodo, partidas, piezas }, A4, M, ANCHO, ROJO, TINTA
     // Antes se tomaba splitTextToSize(...)[0] y la leyenda quedaba cortada a la
     // mitad de la palabra: «... (2». Se recorta el NOMBRE y el conteo va entero.
     const cola = `  (${veces} en el plano)`;
-    const nom = acortarNombre(T(pt.nombre), (t) => doc.getTextWidth(t + cola) <= colW - 12);
+    const nom = acortarNombre(T(nombreConUso(pt)), (t) => doc.getTextWidth(t + cola) <= colW - 12);
     doc.text(nom + cola, cx + 7, ly);
     col = 1 - col;
     if (col === 0) ly += 5.4;
@@ -711,7 +712,8 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
 
   for (const pt of partidas) {
     // 8 mm de aire contra la columna del render: a 4 mm el texto se veía pegado.
-    const nombre = doc.splitTextToSize(T(pt.nombre || ''), COL.desc - 8);
+    // Cierre ChatGPT: una CONCERTO de juntas dice su uso ("Silla CONCERTO · Sala de Consejo"), no "visita".
+    const nombre = doc.splitTextToSize(T(nombreConUso(pt) || ''), COL.desc - 8);
     const img = fotos?.[pt.id] || null;
     const altoFila = Math.max(nombre.length * 4.4 + 4, img ? 25 : 11);
     if (y + altoFila > A4.h - M.abajo) { pie(); doc.addPage(); y = M.arriba; encabezado(); }

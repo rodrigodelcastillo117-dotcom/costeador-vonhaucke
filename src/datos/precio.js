@@ -54,6 +54,18 @@ export function pisoMargenDe(par) {
 }
 
 /**
+ * Costo unitario OFICIAL de una respuesta de costear-servidor, o null si no hay uno usable.
+ * Certificación 19-oct (Cocrear paso 9): `Number(null)` es 0 y el panel decía "Costo del servidor: $0.00" con el
+ * despiece incompleto. Un costo ausente, no numérico o ≤ 0 NO es un costo: es "incompleto".
+ */
+export function costoOficialServidor(servidor) {
+  const cu = servidor?.costo?.costoUnitario;
+  if (cu == null || cu === '') return null;
+  const n = Number(cu);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
  * @param costo  costo OFICIAL unitario (el del servidor cuando se registra o se emite)
  * @returns {{precio:number|null, margen:number|null, piso:number, motivo:string|null}}
  */

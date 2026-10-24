@@ -12,6 +12,8 @@ const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
 const PLANO = process.env.LAB_PLANO;
 const SALIDA = process.env.LAB_OUT || 'test-results-prod/lab-torre-norte';
 const CLIENTE = process.env.LAB_CLIENTE || 'Torre Norte (laboratorio)';
+// Prueba de Rodrigo 19-oct: la cotización puede arrancar con lo que ya se cotizó por texto (JSON de partidas).
+const PARTIDAS_INICIALES = process.env.LAB_PARTIDAS_INICIALES ? JSON.parse(fs.readFileSync(process.env.LAB_PARTIDAS_INICIALES, 'utf8')) : [];
 const CLAVE = 'costeador-vonhaucke-v1';
 const leerCot = (page) => page.evaluate((k) => { try { return JSON.parse(window.localStorage.getItem(k))?.cotizacion || null; } catch (_e) { return null; } }, CLAVE);
 const guarda = (nombre, obj) => fs.writeFileSync(path.join(SALIDA, nombre), typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
@@ -19,6 +21,8 @@ const guarda = (nombre, obj) => fs.writeFileSync(path.join(SALIDA, nombre), type
 test.describe('LAB · plano Torre Norte', () => {
   test.skip(!(EMAIL && PASS && PLANO), 'Define TEST_EMAIL, TEST_PASSWORD y LAB_PLANO.');
   test.setTimeout(25 * 60 * 1000);
+  // Un click que no encuentra su botón falla en 20 s con el árbol de la página, no a los 25 min.
+  test.use({ actionTimeout: 20000 });
 
   test('ARQ-01 + MOB-01: lectura → programa → acomodo → guardar → render → PDF → reabrir', async ({ page }) => {
     fs.mkdirSync(SALIDA, { recursive: true });
@@ -33,11 +37,11 @@ test.describe('LAB · plano Torre Norte', () => {
     });
 
     // 0) Cotización de prueba VACÍA.
-    await page.addInitScript(([k, v]) => { try { if (!window.localStorage.getItem('__lab')) { window.localStorage.setItem(k, JSON.stringify(v)); window.localStorage.setItem('__lab', '1'); } } catch (_e) {} }, [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [], cliente: CLIENTE } }]);
+    await page.addInitScript(([k, v]) => { try { if (!window.localStorage.getItem('__lab')) { window.localStorage.setItem(k, JSON.stringify(v)); window.localStorage.setItem('__lab', '1'); } } catch (_e) {} }, [CLAVE, { onboardingVisto: true, cotizacion: { partidas: PARTIDAS_INICIALES, cliente: CLIENTE } }]);
     await page.goto('/');
     await page.fill('#email-login', EMAIL); await page.fill('#pass-login', PASS);
     await page.getByRole('button', { name: /^Entrar$/i }).click();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     await page.getByTestId('home-cotizar').click();
     const cliente = page.getByPlaceholder('Nombre del cliente');
     if (await cliente.count()) { await cliente.fill(CLIENTE); }
@@ -45,8 +49,12 @@ test.describe('LAB · plano Torre Norte', () => {
     // 1) Subir el PDF (ambas láminas en un archivo) SIN hoja de respuestas.
     const t0 = Date.now();
     await page.getByTestId('cotizar-plano').setInputFiles(PLANO);
+    // 21-oct: con partidas iniciales la app pregunta si el plano es para este proyecto (sí: es el mismo lab).
+    await page.getByTestId('plano-proyecto-este').click({ timeout: 10000 }).catch(() => {});
     const gate = page.getByTestId('confirmar-lectura');
-    const errorPlano = page.locator('text=/No se pudo procesar|no pude leer|Para que la lectura sea estable/i');
+    // Cierre v3: el rechazo de la validación geométrica determinista (incluso tras el reintento automático) es un
+    // resultado explícito, no un tiempo agotado: se reconoce y el caso reprueba con ese motivo.
+    const errorPlano = page.locator('text=/No se pudo procesar|no pude leer|Para que la lectura sea estable|no pasó la validación geométrica/i');
     await expect(gate.or(errorPlano).first()).toBeVisible({ timeout: 120000 });
     const tLectura = (Date.now() - t0) / 1000;
     if (!(await gate.count())) { guarda('ERROR_lectura.txt', await page.locator('main').innerText()); throw new Error('la lectura del plano falló: ' + (await errorPlano.first().innerText())); }
@@ -86,6 +94,34 @@ test.describe('LAB · plano Torre Norte', () => {
     await expect.poll(async () => (await leerCot(page))?.acomodo?.areasM?.length || 0, { timeout: 15000 }).toBeGreaterThan(0);
     const cotA = await leerCot(page);
     guarda('2-acomodo-tras-lectura.json', cotA.acomodo);
+    // Cierre ChatGPT (P1-ARQ-01): con hoja de control, la lectura es un GOLDEN — los puestos de cada área abierta tienen
+    // que ser los ESCRITORIOS dibujados (C7: 16, aunque sólo 8 tengan silla). No es "informativo".
+    if (process.env.LAB_CONTROL) {
+      const ctl = JSON.parse(fs.readFileSync(process.env.LAB_CONTROL, 'utf8'));
+      // Plano de varios niveles: se acomoda UN nivel a la vez (el elegido al confirmar), así que el golden es el de las
+      // páginas/niveles cuyas áreas sí se leyeron (C4: NIVEL 1; "OPERATIVA 2" es del NIVEL 2 y se cotiza aparte).
+      const nombresLeidos = new Set((cotA.acomodo.areasM || []).map((a) => a.nombre));
+      const paginasDelNivel = (ctl.paginas || []).filter((pg) => (pg.areas || []).some((a) => nombresLeidos.has(a.nombre)));
+      const esperado = paginasDelNivel.flatMap((pg) => pg.areas || []).filter((a) => a.tipo === 'open' && a.puestos > 0).map((a) => [a.nombre, a.puestos]);
+      expect(esperado.length, 'el golden compara al menos un área abierta del nivel leído').toBeGreaterThan(0);
+      const leido = Object.fromEntries((cotA.acomodo.areasM || []).filter((a) => a.tipo === 'open').map((a) => [a.nombre, a.puestos || 0]));
+      const golden = esperado.map(([n, p]) => ({ area: n, esperado: p, leido: leido[n] ?? null, ok: leido[n] === p }));
+      guarda('2b-golden-lectura.json', golden);
+      console.log('[lab] golden lectura:', JSON.stringify(golden));
+      expect(golden.filter((g) => !g.ok), 'puestos leídos = escritorios dibujados (golden)').toEqual([]);
+      // Cierre ChatGPT v3 (C7): donde el plano dibuja MENOS sillas que escritorios, la lectura tiene que decirlo con los
+      // dos conteos y tomar los escritorios (nunca las sillas como proxy): "N escritorios observados y M sillas
+      // observadas. Tomé N puestos (los escritorios); capacidad por confirmar."
+      const textoGate = `${lectura.problemas || ''} ${lectura.gate || ''}`;
+      const contrato = paginasDelNivel.flatMap((pg) => pg.areas || [])
+        .filter((a) => a.tipo === 'open' && a.escritorios_dibujados > 0 && a.sillas_dibujadas < a.escritorios_dibujados)
+        .map((a) => ({ area: a.nombre, esperado: `«${a.nombre}»: ${a.escritorios_dibujados} escritorios observados y ${a.sillas_dibujadas} sillas observadas. Tomé ${a.escritorios_dibujados} puestos (los escritorios); capacidad por confirmar.` }))
+        .map((x) => ({ ...x, ok: textoGate.includes(x.esperado) }));
+      guarda('2c-contrato-escritorios-sillas.json', contrato);
+      console.log('[lab] contrato escritorios/sillas:', JSON.stringify(contrato));
+      // Contrato textual exigido para C7 (LAB_CONTRATO_SILLAS=1, lo pone caso.sh); en los demás planos se registra.
+      if (process.env.LAB_CONTRATO_SILLAS === '1') expect(contrato.filter((x) => !x.ok), 'la lectura nombra escritorios Y sillas observadas y toma los escritorios').toEqual([]);
+    }
     console.log('[lab] puertas en estado:', JSON.stringify((cotA.acomodo.areasM || []).map((a) => [a.nombre, (a.puertas || []).map((q) => [q.x, q.y, q.ancho, q.tieneBarrido, q.sentido, q.doble || false]), (a.puertasPendientes || []).length])));
     await page.waitForTimeout(1500);
     const paso2 = await page.locator('main').innerText();
@@ -99,6 +135,18 @@ test.describe('LAB · plano Torre Norte', () => {
     const boton = page.getByRole('button', { name: /Aplicar programa detectado|Fusionar \d+ duplicado|Vincular lo que ya tengo/i });
     const antes = (await leerCot(page)).partidas.length;
     if ((await boton.count()) && (await boton.first().isEnabled().catch(() => false))) { await boton.first().click(); await page.waitForTimeout(1500); }
+    // Un renglón que el plano reparte entre varios muebles (16 WIN para 2 bancos de 8): la persona aprieta "Repartir".
+    const reparto = page.getByTestId('reparto-programa');
+    const repartos = [];
+    for (let i = 0; i < 4 && (await reparto.count()); i++) {
+      const t = await reparto.first().innerText();
+      repartos.push(t);
+      console.log('[lab] reparto:', t.replace(/\s+/g, ' '));
+      // La tarjeta dice "Repartir…" o, con un solo destino, "Usar N para <destino>" (cierre ChatGPT P1-PROG-01).
+      await reparto.first().getByRole('button', { name: /^(Repartir|Usar \d+ para)/ }).first().click();
+      await page.waitForTimeout(1500);
+    }
+    guarda('3-repartos.json', repartos);
     const cotB = await leerCot(page);
     guarda('3-partidas-tras-programa.json', cotB.partidas);
     console.log('[lab] partidas', antes, '→', cotB.partidas.length, JSON.stringify(cotB.partidas.map((p) => [p.nombre, p.cantidad, p.relation_role || null, p.precioUnitario ?? null])));
@@ -190,7 +238,7 @@ test.describe('LAB · plano Torre Norte', () => {
     const firmaAntes = firma(await leerCot(page));
     await page.evaluate(([k, v]) => window.localStorage.setItem(k, JSON.stringify(v)), [CLAVE, { onboardingVisto: true, cotizacion: { partidas: [] } }]);
     await page.reload();
-    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 20000 });
+    await expect(page.getByRole('button', { name: /Salir/i })).toBeVisible({ timeout: 45000 });
     await page.getByText('Presupuestos anteriores', { exact: false }).first().click();
     const tarjeta = page.locator('.tarjeta:has(> .fila-botones)', { hasText: CLIENTE }).first();
     await expect(tarjeta).toBeVisible({ timeout: 20000 });

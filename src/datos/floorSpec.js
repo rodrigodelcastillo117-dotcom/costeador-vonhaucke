@@ -26,6 +26,7 @@ import { ZONA, zonaDeCuarto } from './cuartos.js';
 export const ROL = {
   WORKSTATION: 'WORKSTATION',       // posición de trabajo (escritorio/bench)
   WORK_SEAT: 'WORK_SEAT',           // silla operativa (en zona de trabajo)
+  RECEPTION_SEAT: 'RECEPTION_SEAT', // silla de QUIEN ATIENDE la recepción (operativa anclada al módulo de recepción)
   MEETING_SEAT: 'MEETING_SEAT',     // silla en sala de juntas/consejo
   VISITOR_SEAT: 'VISITOR_SEAT',     // silla de visita
   EXECUTIVE_SEAT: 'EXECUTIVE_SEAT', // silla directiva (oficina CEO/dirección)
@@ -261,6 +262,10 @@ export function rolDePiezaAcomodo(pieza) {
   // "Silla CONCERTO (visita 4 pts)" con relation_role MEETING_SEAT es silla de juntas: el nombre
   // decía "visita" y la auditoría local la marcaba "en zona equivocada" dentro de la sala.
   const rrExpl = String(pieza?.relation_role || '').toUpperCase();
+  // Cierre ChatGPT v3 (render C1 bloqueado): la silla operativa ANCLADA a la recepción (programa: "Silla operativa
+  // GAMMA-E · RECEPCIÓN", anchor_role ANCHOR_RECEPTION) es la de la recepcionista. Como WORK_SEAT sólo cabía en
+  // OPERATIVA, el validador la marcaba "en zona equivocada" y bloqueaba el render final.
+  if (esAsiento && rrExpl === 'WORK_SEAT' && (String(pieza?.anchor_role || '').toUpperCase() === 'ANCHOR_RECEPTION' || zonaSemantica(String(pieza?.zone_id || '')) === ZONA.RECEPCION)) return ROL.RECEPTION_SEAT;
   if (rrExpl && ROL[rrExpl]) return ROL[rrExpl];
 
   // El destino explícito viaja desde la cotización/Voni y manda sobre heurísticas
@@ -312,6 +317,8 @@ export function zonaPermite(rol, zonaTipo) {
       return zonaTipo === ZONA.CEO;
     case ROL.WORK_SEAT:
       return zonaTipo === ZONA.OPERATIVA;
+    case ROL.RECEPTION_SEAT:   // sólo en la recepción (el solver no la manda a otro lado ni manda operativas aquí)
+      return zonaTipo === ZONA.RECEPCION;
     case ROL.VISITOR_SEAT:
       return [ZONA.RECEPCION, ZONA.CEO, ZONA.CONSEJO].includes(zonaTipo);
     default:

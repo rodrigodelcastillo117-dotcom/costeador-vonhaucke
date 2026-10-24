@@ -15,12 +15,18 @@
 
 const mm = (x) => (Number.isFinite(Number(x)) ? `${Math.round(Number(x))} mm` : '?');
 const zona = (w) => (w?.zone ? ` (${w.zone})` : '');
-const campo = (w) => (w?.field ? ` [${w.field}]` : '');
+// "puertas[4]" es el índice interno del modelo: a la persona se le dice "n.º 5 del plano" (Rodrigo, 21-oct:
+// "Una puerta [puertas[4]] se ubicó por supuesto"). Un campo que no sea lista[i] se enseña tal cual.
+const campo = (w) => {
+  if (!w?.field) return '';
+  const m = String(w.field).match(/^[A-Za-z_]+\[(\d+)\]$/);
+  return m ? ` (n.º ${Number(m[1]) + 1} del plano)` : ` [${w.field}]`;
+};
 
 // Avisos (REVIEW_REQUIRED): la lectura se puede usar, pero la persona debe saberlo.
 const TEXTO_AVISO = {
   NO_DIMENSION_AUTHORITY: () => 'El plano no trae cotas: las medidas son estimadas y requieren una referencia real antes de liberar.',
-  MULTI_LEVEL_DOCUMENT: (i) => `El documento trae ${(i?.niveles || []).length || 'varios'} niveles (${(i?.niveles || []).join(' · ')}): se usa el primero; los demás se cotizan como otro proyecto.`,
+  MULTI_LEVEL_DOCUMENT: (i) => `El documento trae ${(i?.niveles || []).length || 'varios'} niveles (${(i?.niveles || []).join(' · ')}): se acomoda un nivel a la vez (el que elegiste al confirmar la lectura); los demás se cotizan como otro proyecto.`,
   ASSUMED_CRITICAL_GEOMETRY: () => 'La envolvente (ancho × largo total) la SUPUSO el modelo, no la midió: confírmala antes de usar la lectura.',
   UNKNOWN_GEOMETRY_PROVENANCE: () => 'No quedó claro si la envolvente se midió o se supuso.',
   ASSUMED_ZONE_GEOMETRY: (w) => `La forma del cuarto${zona(w)} se basa en un supuesto del modelo, no en el plano.`,
@@ -29,6 +35,7 @@ const TEXTO_AVISO = {
   NO_DOORS_DETECTED: () => 'No se detectaron puertas: el acomodo no respetará accesos.',
   DOOR_SWING_UNVERIFIED: (w) => `Una puerta${campo(w)} se detectó sin bisagra ni sentido de abatimiento verificable.`,
   ASSUMED_DOOR_GEOMETRY: (w) => `Una puerta${campo(w)} se ubicó por supuesto, no por el plano.`,
+  DOOR_WIDTH_UNKNOWN: (w) => `Una puerta${campo(w)} no tiene el ancho legible en el plano: confirma la cota antes de aprobar el acomodo.`,
 };
 
 // Problemas (FAIL): el servidor rechazó la lectura; se explica qué no cuadró.
@@ -38,6 +45,8 @@ const TEXTO_PROBLEMA = {
   GRID_ENVELOPE_MISMATCH: (i) => `Las cotas no suman la envolvente${campo(i)}: suman ${mm(i?.sum_mm)} y la envolvente mide ${mm(i?.envelope_mm)} (tolerancia ${mm(i?.tolerance_mm)}).`,
   NO_AREAS: () => 'No se reconoció ningún cuarto.',
   DUPLICATE_ZONE_NAME: () => 'Dos cuartos salieron con el mismo nombre.',
+  INVALID_COLUMN: (i) => `Una columna${campo(i)} no tiene una posición o medida válida.`,
+  COLUMN_OUTSIDE_ENVELOPE: (i) => `Una columna${campo(i)} quedó fuera del contorno del plano.`,
   MISSING_ZONE_NAME: (i) => `Un cuarto${campo(i)} quedó sin nombre.`,
   INVALID_SHAPE: (i) => `Un cuarto${campo(i)} tiene una forma que no se reconoce.`,
   UNKNOWN_PARENT_ZONE: (i) => `Un cuarto${campo(i)} dice estar dentro de "${i?.value ?? '?'}", que no existe.`,

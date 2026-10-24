@@ -14,7 +14,8 @@
 //  grupo, zona, ancla, capacidad) para que el acomodo siga sabiendo qué es. Nunca
 //  se tocan precio/costo. Puro y determinista.
 // ============================================================================
-import { inferRole, esAncla, estructuraDe } from './confirmarPrograma.js';
+import { inferRole, esAncla, estructuraDe, rolFromRel } from './confirmarPrograma.js';
+import { inferirDestinoPartida } from './destinoAcomodo.js';
 import { capacidadDeNombre } from './capacidadDeclarada.js';
 
 const esDelPrograma = (p) => !!p && p.source === 'CONFIRMADO_PROGRAMA';
@@ -48,7 +49,13 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     // Idempotente: una fila que YA sustituyó a una del programa no vuelve a consumir otra
     // (p. ej. SONATA ya conciliada no se come también a CONCERTO en la segunda aplicación).
     if (!rel || n.sustituyePrograma) { salida.push(n); continue; }
-    let candidatos = ex.map((e, i) => ({ e, i })).filter(({ e, i }) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel);
+    // VH-AUD-204: si los dos destinos se conocen tienen que ser el mismo (una WIN de puestos operativos no sustituye a
+    // la silla de RECEPCIÓN del programa). El de la fila del programa sale de su ancla; el de la persona, de su texto.
+    const destN = n.anchor_role ? rolFromRel(n.anchor_role) : (inferirDestinoPartida(n) || null);
+    const destE = (e) => rolFromRel(e.anchor_role) || null;
+    const igual = (a, b) => (a === 'open' ? 'operativo' : a) === (b === 'open' ? 'operativo' : b);
+    let candidatos = ex.map((e, i) => ({ e, i })).filter(({ e, i }) => !tomados.has(i) && esDelPrograma(e) && (e.relation_role || inferRole(e)) === rel
+      && (!destN || !destE(e) || igual(destN, destE(e))));
     if (!candidatos.length) { salida.push(n); continue; }
     // 1) Identidad del requerimiento manda; 2) decisión explícita de la persona; 3) misma zona.
     const decision = decisiones && n.id != null ? decisiones[String(n.id)] : null;
@@ -95,6 +102,16 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
     if (n.requirement_id) candidatos = candidatos.filter(({ e }) => String(e.requirement_id || '') === String(n.requirement_id));
     else if (decision != null && decision !== 'repartir') candidatos = candidatos.filter(({ e }) => String(e.id) === String(decision));
     else if (zonaDe(n) && decision !== 'repartir') candidatos = candidatos.filter(({ e }) => zonaDe(e) === zonaDe(n));
+    else if (decision == null) {
+      // Recorrido plano→texto (lab 19-oct): la NOTA o el nombre de la partida nombra la sala ("Sala creativa resuelta…",
+      // "Mesa de consejo … para 10 lugares"). Si nombra exactamente UNA de las zonas candidatas, ésa es la evidencia.
+      const t = norm(`${n.nota || ''} ${n.nombre || ''}`);
+      const VACIAS = new Set(['sala', 'salas', 'de', 'del', 'la', 'las', 'el', 'los', 'y', 'oficina', 'area', 'zona', 'nivel']);
+      const claves = (z) => String(z || '').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !VACIAS.has(w));
+      const zonas = [...new Set(candidatos.map(({ e }) => zonaDe(e)).filter(Boolean))];
+      const nombradas = zonas.filter((z) => { const k = claves(z); return k.length && k.every((w) => new RegExp(`\\b${w}\\b`).test(t)); });
+      if (nombradas.length === 1) candidatos = candidatos.filter(({ e }) => zonaDe(e) === nombradas[0]);
+    }
     if (!candidatos.length) { salida.push(n); continue; }
     // Sin evidencia de zona ni decisión: si los candidatos viven en zonas/anclas distintas, es
     // ambiguo → NEEDS_REVIEW (la persona decide), no se sustituye nada.
@@ -106,7 +123,33 @@ export function reconciliarNuevasConPrograma(existentes = [], nuevas = [], { dec
         const identidad = esAncla(rel) ? (e.requirement_id || e.instance_id || '') : (e.anchor_instance_id || e.functional_group_id || '');
         return identidad ? `id:${identidad}` : `zona:${zonaDe(e) || ''}`;
       };
-      const ejes = new Set(candidatos.map(({ e }) => ejeDe(e)));
+      let ejes = new Set(candidatos.map(({ e }) => ejeDe(e)));
+      // E2E 2026-10-20 (Torre Norte: programa del plano + "Dime qué lleva"): con dos salas quedaban 4 mesas
+      // y 32 sillas porque nada era "evidencia de zona". Dos evidencias más, ambas deterministas:
+      //  a) ANCLA con capacidad declarada ("para 10 personas") y candidatos con capacidad: va a la ÚNICA
+      //     instancia de capacidad más cercana (empate ⇒ sigue ambiguo).
+      //  b) DEPENDIENTE cuya cantidad es EXACTAMENTE la suma de los candidatos (16 SONATA = 10 + 6): cubre
+      //     todos; se reparte una fila por instancia con su cantidad y estructura.
+      if (ejes.size > 1 && decision == null && esAncla(rel) && cantN0 === 1) {
+        const capN = Number(n.user_capacity ?? n.usuarios) || capacidadDeNombre(n.nombre, { w: n.w, rol: rel }) || capacidadDeNombre(n.nota);
+        const capE = (e) => Number(e.user_capacity ?? e.usuarios) || capacidadDeNombre(e.nombre) || null;
+        if (capN && candidatos.every(({ e }) => capE(e))) {
+          const dif = candidatos.map(({ e }) => Math.abs(capE(e) - capN));
+          const min = Math.min(...dif);
+          const ganadores = new Set(candidatos.filter((_, k) => dif[k] === min).map(({ e }) => ejeDe(e)));
+          if (ganadores.size === 1) { candidatos = candidatos.filter(({ e }) => ganadores.has(ejeDe(e))); ejes = ganadores; }
+        }
+      }
+      if (ejes.size > 1 && decision == null && !esAncla(rel)) {
+        const suma = candidatos.reduce((t, { e }) => t + Math.max(1, Number(e.cantidad) || 1), 0);
+        if (suma === cantN0) {
+          candidatos.forEach(({ e: prog, i: idxProg }, k) => {
+            const fila = filaRepartida(prog, idxProg, k === 0 ? n.id : `${n.id}#${k + 1}`);
+            salida.push({ ...fila, cantidad: Math.max(1, Number(prog.cantidad) || 1) });
+          });
+          continue;
+        }
+      }
       if (ejes.size > 1) {
         const porEje = new Map();
         for (const c of candidatos) { const k = ejeDe(c.e); if (!porEje.has(k)) porEje.set(k, c); }

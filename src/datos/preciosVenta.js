@@ -110,11 +110,13 @@ export const PRECIOS_VENTA = [
   // Se toma el MÁS RECIENTE (Rodrigo): en enero valía $17,120 de precio 2 y en
   // junio $15,767 — un 8% de diferencia que es movimiento de lista, no otro
   // producto: las dos descripciones son idénticas palabra por palabra.
+  // Octubre manda (A-2610022-01: $8,560 de lista, cargado 5% abajo = $8,132, Rodrigo 2026-10-20).
+  // precio 2 = 8,132 / 0.60. Antes: 15,767 (226060050, jun-2026 → $9,460.20).
   { linea: 'modulor', producto: 'archivero_h', sel: { modelo: 'cajones120izq' }, largoMM: null, fondoMM: null, usuarios: null, biombo: null,
-    lista: 15767, base: 'derivada', fecha: '2026-06-16', fuente: '226060050',
+    lista: 8132 / 0.6, base: 'derivada', fecha: '2026-10-20', fuente: '2610022 (×0.95)',
     nota: 'Clave real MOAHCL4IABSJ, 1200×582×448. En 226010047 (ene-2026) el precio 2 impreso era $17,120.' },
   { linea: 'modulor', producto: 'archivero_h', sel: { modelo: 'cajones120der' }, largoMM: null, fondoMM: null, usuarios: null, biombo: null,
-    lista: 15767, base: 'derivada', fecha: '2026-06-16', fuente: '226060050',
+    lista: 8132 / 0.6, base: 'derivada', fecha: '2026-10-20', fuente: '2610022 (×0.95)',
     nota: 'Clave real MOAHCL4DABSJ. Mano derecha e izquierda cuestan igual; el cojín tampoco mueve el precio.' },
   // Archiveros Modulor de 2 puertas: el modelo los cotizaba en ~$3,000 cuando
   // el papel dice $6,440–$8,670 de lista. Salió al costear un proyecto real

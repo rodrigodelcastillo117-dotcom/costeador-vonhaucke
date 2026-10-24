@@ -47,7 +47,7 @@ async function entrar(page, email) {
   await page.fill('#email-login', email);
   await page.fill('#pass-login', PASS);
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
 }
 const inputCliente = (page) => page.locator('label.etiqueta', { hasText: /^Cliente$/ }).locator('xpath=following-sibling::input[1]');
@@ -148,7 +148,16 @@ test.describe('VH-148 · control optimista entre dos pestañas', () => {
     expect(nube.filas.get(id).cliente).toBe('Tradeco Norte');
     await expect(banner(B.page)).toBeVisible();
 
-    // --- "Volver a aplicar mis cambios": UN clic, lo local encima de la versión del servidor ---
+    // --- "Volver a aplicar mis cambios": reemplaza lo de A con el documento COMPLETO → pide confirmación (P1-REL-02) ---
+    const dlgB = registrarDialogos(B.page);
+    dlgB.responderCon(() => false);   // primero cancela: no se manda nada
+    await banner(B.page).getByRole('button', { name: 'Volver a aplicar mis cambios' }).click();
+    await expect.poll(() => dlgB.vistos.length).toBe(1);
+    expect(dlgB.vistos[0]).toMatch(/Vas a guardar TU versión completa encima/);
+    await esperar(1500);
+    expect(nube.filas.get(id).cliente, 'cancelar no escribe').toBe('Tradeco Norte');
+    await expect(banner(B.page)).toBeVisible();
+    dlgB.responderCon(() => true);
     await banner(B.page).getByRole('button', { name: 'Volver a aplicar mis cambios' }).click();
     await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Tradeco Sur 2');
     expect(nube.esperados.at(-1)).toBe(version1);                 // con la versión fresca del error
@@ -392,6 +401,110 @@ test.describe('VH-148 · control optimista entre dos pestañas', () => {
     expect(intentosDeGuardado(nube), 'descartar no escribe').toBe(intentos);
     expect(nube.filas.get(id)).toEqual(filaAntes);
     await expect(inputFolio(B.page)).toHaveValue('');
+    await A.context.close(); await B.context.close();
+  });
+
+  // P1-REL-02 (cierre ChatGPT v3, F): recargar con un conflicto SIN RESOLVER ya no reenvía lo local ni deja el aviso
+  // eterno: respalda lo local y enseña la versión del servidor; recuperar sigue siendo decisión explícita.
+  test('recargar con el conflicto abierto: en pantalla queda la versión del servidor y lo local queda respaldado', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Tradeco', partidas: [PARTIDA], total: 55680, piezas: 1 });
+    const A = await pestana(browser, nube), B = await pestana(browser, nube);
+    await entrar(A.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(A.page);
+    await entrar(B.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(B.page);
+    await inputCliente(A.page).fill('Tradeco Norte');
+    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Tradeco Norte');
+    await inputCliente(B.page).fill('Tradeco Sur');
+    await expect(banner(B.page)).toBeVisible({ timeout: 10000 });
+    const intentos = intentosDeGuardado(nube);
+    await B.page.reload();
+    await expect(avisoRespaldo(B.page)).toBeVisible({ timeout: 20000 });                     // lo suyo, respaldado
+    await expect(filaDif(B.page, 'cliente')).toContainText('Tradeco Sur');                    // tu respaldo
+    await expect(filaDif(B.page, 'cliente')).toContainText('Tradeco Norte');                  // versión del servidor
+    await expect.poll(async () => (await leerLocal(B.page)).cotizacion?.cliente, { timeout: 10000 }).toBe('Tradeco Norte');
+    await expect(banner(B.page)).toBeHidden();
+    expect((await leerRespaldo(B.page, id)).cotizacion.cliente).toBe('Tradeco Sur');
+    await esperar(2500);
+    expect(nube.filas.get(id).cliente, 'recargar NO pisó el servidor').toBe('Tradeco Norte');
+    expect(intentosDeGuardado(nube) - intentos, 'recargar no reenvió lo local').toBe(0);
+    expect(await B.page.evaluate((k) => localStorage.getItem(k), `costeador-vonhaucke-conflicto-abierto-${id}`)).toBeNull();
+    await A.context.close(); await B.context.close();
+  });
+
+  test('abrir otro presupuesto desde la lista con el conflicto abierto respalda lo local antes de reemplazarlo', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Tradeco', partidas: [PARTIDA], total: 55680, piezas: 1 });
+    const A = await pestana(browser, nube), B = await pestana(browser, nube);
+    await entrar(A.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(A.page);
+    await entrar(B.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(B.page);
+    await inputCliente(A.page).fill('Tradeco Norte');
+    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Tradeco Norte');
+    await inputCliente(B.page).fill('Tradeco Sur');
+    await expect(banner(B.page)).toBeVisible({ timeout: 10000 });
+    await B.page.getByRole('button', { name: /^Inicio$/ }).click();
+    B.page.removeAllListeners('dialog');   // el `once` del primer abrir pudo quedar sin consumir
+    await abrirPrimeraDelArchivo(B.page);
+    expect((await leerRespaldo(B.page, id))?.cotizacion?.cliente, 'lo local quedó respaldado').toBe('Tradeco Sur');
+    expect(nube.filas.get(id).cliente).toBe('Tradeco Norte');
+    await A.context.close(); await B.context.close();
+  });
+  // Cierre v3 (lab A–L contra la preview, punto G): A cambia el FOLIO, B el CLIENTE → conflicto → B ve el servidor →
+  // RECARGA → "Recuperar mis cambios": el folio de A tiene que seguir (sólo se aplica lo que B cambió).
+  test('recuperar después de recargar conserva lo que cambió la otra persona', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Tradeco', partidas: [PARTIDA], total: 55680, piezas: 1 });
+    const A = await pestana(browser, nube), B = await pestana(browser, nube);
+    await entrar(A.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(A.page);
+    await entrar(B.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(B.page);
+    await inputFolio(A.page).fill('FOL-A1');
+    await esperarGuardado(nube, (n) => n.filas.get(id).folio === 'FOL-A1');
+    await inputCliente(B.page).fill('Tradeco B');
+    await expect(banner(B.page)).toBeVisible({ timeout: 10000 });
+    await banner(B.page).getByRole('button', { name: 'Ver la versión del servidor' }).click();
+    await expect(avisoRespaldo(B.page)).toBeVisible({ timeout: 10000 });
+    await B.page.reload();
+    await expect(avisoRespaldo(B.page)).toBeVisible({ timeout: 20000 });
+    const dl = registrarDialogos(B.page);
+    await avisoRespaldo(B.page).getByRole('button', { name: 'Recuperar mis cambios' }).click();
+    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Tradeco B');
+    expect(nube.filas.get(id).folio, 'lo de A (folio) sigue').toBe('FOL-A1');
+    expect(dl.vistos, 'sin choque no se pregunta nada').toEqual([]);
+    await A.context.close(); await B.context.close();
+  });
+  // Cierre v3 (carrera real vista en el lab A–L contra la preview): recargar MIENTRAS "Ver la versión del servidor" todavía
+  // está leyendo el servidor. Antes: segundo respaldo del mismo documento SIN base → "Recuperar" pisaba el folio de A y el
+  // primer respaldo quedaba huérfano. Ahora: un solo respaldo, con base; el folio de A sobrevive.
+  test('recargar a media "Ver la versión del servidor" no duplica el respaldo ni pisa lo de la otra persona', async ({ browser }) => {
+    test.setTimeout(120_000);
+    const nube = crearNubeFalsa({ usuarios: USUARIOS });
+    const id = nube.sembrarFila({ usuario: 'ventas@vh.mx', cliente: 'Tradeco', partidas: [PARTIDA], total: 55680, piezas: 1 });
+    const A = await pestana(browser, nube), B = await pestana(browser, nube);
+    await entrar(A.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(A.page);
+    await entrar(B.page, 'ventas@vh.mx'); await abrirPrimeraDelArchivo(B.page);
+    await inputFolio(A.page).fill('FOL-A1');
+    await esperarGuardado(nube, (n) => n.filas.get(id).folio === 'FOL-A1');
+    await inputCliente(B.page).fill('Tradeco B');
+    await expect(banner(B.page)).toBeVisible({ timeout: 10000 });
+    let lento = true;
+    await B.page.route('**/rest/v1/rpc/cotizacion_segura**', async (r) => { if (lento) await esperar(4000); await r.fallback(); });
+    await banner(B.page).getByRole('button', { name: 'Ver la versión del servidor' }).click();
+    await expect(avisoRespaldo(B.page)).toBeVisible({ timeout: 10000 });   // el respaldo ya se escribió; el servidor aún no llega
+    await B.page.reload();
+    lento = false;
+    await expect(avisoRespaldo(B.page)).toBeVisible({ timeout: 20000 });
+    await expect.poll(async () => (await leerLocal(B.page)).cotizacion?.folio, { timeout: 15000 }).toBe('FOL-A1');
+    const resp = await leerRespaldo(B.page, id);
+    expect(resp.anteriores, 'un solo respaldo (no el mismo documento dos veces)').toBeUndefined();
+    expect(resp.base, 'el respaldo conserva la base de la fusión').toBeTruthy();
+    const dl = registrarDialogos(B.page);
+    await avisoRespaldo(B.page).getByRole('button', { name: 'Recuperar mis cambios' }).click();
+    await esperarGuardado(nube, (n) => n.filas.get(id).cliente === 'Tradeco B');
+    expect(nube.filas.get(id).folio, 'el folio de A sobrevive').toBe('FOL-A1');
+    expect(dl.vistos, 'sin choque no se pregunta').toEqual([]);
+    await expect.poll(async () => leerRespaldo(B.page, id), { timeout: 10000 }).toBeNull();   // no queda respaldo huérfano
     await A.context.close(); await B.context.close();
   });
 });

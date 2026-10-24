@@ -10,7 +10,9 @@
 
 // Rol semántico de una pieza a partir de su nombre (heurística de taller, es-MX).
 const ROLES = [
-  ['herraje', /\b(herraje|tornill\w*|bisagras?|correderas?|niveladores?|jaladeras?|cerraduras?)\b/i],
+  // Auditoría 2026-10-19: accesorios que se pegan/apoyan a otra pieza ("bumpers de apoyo del cristal") son herraje, no la
+  // pieza que apoyan (antes la palabra "cristal" los volvía pieza de cristal y el silicón salía como material equivocado).
+  ['herraje', /\b(herraje|tornill\w*|bisagras?|correderas?|niveladores?|jaladeras?|cerraduras?|separador(es)?|bumpers?|topes?|tacones?|pads?|regatones?|antiderrapantes?|protectores?)\b/i],
   ['frente_cajon', /\bfrentes?\b/i],
   ['cubierta', /\b(cubierta|tapa|top|sobre|superficie)\b/i],
   ['faldon', /\bfald[oó]n\b/i],
@@ -30,7 +32,7 @@ const ROLES = [
   ['cristal', /\b(cristal|vidrio|templado)\b/i],
 ];
 
-import { familiaDeMaterial, espesoresDe } from './materialMatch.js';
+import { familiaDeMaterial, espesoresDe, FAMILIAS_ACABADO } from './materialMatch.js';
 import { REGLAS_TALLER } from './reglasTaller.js';
 
 // STRUCTURAL_LINT: etiqueta interna. Esto es un guardrail determinista (regex/heurística),
@@ -58,6 +60,34 @@ function tipoIntencion(desc = '') {
  * @param {{componentes?:Array, descripcion?:string, piezas?:number}} entrada
  * @returns {{roles: object, observaciones: Array<{nivel:string, mensaje:string, pieza?:string}>, resumen: object}}
  */
+/**
+ * SRV-01: "la IA declara TOTAL X m de un material lineal y sus renglones suman Y". Por material (insumoId) lineal, si algún
+ * renglón trae el total declarado por la IA (ia_totales_declarados_m) y NINGUNO cuadra (−5 %…+15 %) con la suma de sus
+ * renglones, se reporta en el primero del grupo. Misma tolerancia que mapIaComps. La usan el cliente y el servidor.
+ */
+export function totalesLinealesIncoherentes(componentes = [], insumos = null) {
+  const lineal = (c) => c.forma === 'lineal' || /^(m|ml|metro)s?$/i.test(String(insumos?.[c.insumoId]?.unidad || ''));
+  const grupos = new Map();
+  // Mismo material = el insumo del renglón o, si la política lo dejó pendiente de confirmar, su candidato (como el cliente,
+  // que agrupa por el insumo que pidió la IA).
+  const clave = (c) => c?.insumoId || c?._match?.candidate_insumo_id || '';
+  for (const c of componentes) {
+    const k = clave(c);
+    if (!c || c.excluida || !k || !lineal({ ...c, insumoId: k }) || !(Number(c.cantidad) > 0)) continue;
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(c);
+  }
+  const out = [];
+  for (const [material, cs] of grupos) {
+    const declarados = cs.flatMap((c) => (Array.isArray(c.ia_totales_declarados_m) ? c.ia_totales_declarados_m : [])).filter((v) => Number(v) > 0);
+    if (!declarados.length) continue;
+    const suma = Math.round(cs.reduce((s, c) => s + Number(c.cantidad), 0) * 1000) / 1000;   // igual que mapIaComps
+    if (declarados.some((v) => suma >= v * 0.95 && suma <= v * 1.15)) continue;
+    out.push({ comp: cs[0], material, dice: Math.max(...declarados), puso: suma, renglones: cs.length });
+  }
+  return out;
+}
+
 export function revisarEstructura({ componentes = [], descripcion = '', insumos = null, medidasGenerales = '', aceptadas = [], ingenieria = true } = {}) {
   const comps = Array.isArray(componentes) ? componentes.filter((c) => c && (c.nombre || c.insumoId)) : [];
   const conRol = comps.map((c) => ({ ...c, _rol: rolDe(c.nombre || c.insumoId || '') }));
@@ -205,7 +235,7 @@ export function medidasDe(texto = '') {
   return crudos.map((n) => (enM ? n * 1000 : n)).filter((n) => n >= 50 && n <= 20000).slice(0, 3);
 }
 const ROL_PANEL = new Set(['cubierta', 'lateral', 'entrepano', 'puerta', 'faldon', 'frente_cajon', 'respaldo', 'fondo']);
-const FAM_NO_ES_PIEZA = new Set(['pintura_polvo', 'tornilleria', 'adhesivo', 'tapacanto', 'soldadura', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'iluminacion', 'electrico']);
+const FAM_NO_ES_PIEZA = new Set(['pintura_polvo', 'acabado_liquido', 'acabado_metal', 'tornilleria', 'adhesivo', 'tapacanto', 'soldadura', 'herraje_bisagra', 'herraje_corredera', 'herraje_jaladera', 'herraje_nivelador', 'herraje_cerradura', 'iluminacion', 'electrico']);
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, ' ').trim();
 const NUMS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8 };
 function cuantosPide(texto, rx) {
@@ -242,13 +272,32 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
   // (2b) ACABADO COSTEADO COMO MATERIAL (lab credenza ronda 3, 2026-10-13): "Barniz chapa nogal" quedó amarrado a
   //      chapa-madera y se cobraron 3.5 m² de chapa. Un renglón que EMPIEZA por un acabado (barniz, laca, sellador,
   //      tinta, pintura) no puede costearse con un tablero/chapa/metal.
-  const RE_ACABADO = /^\s*(?:acabado\s+)?(?:barniz|laca|lacad|sellador|tinta|tintado|pintura|esmalte|poliuretano)\b/i;
+  // P1-MAT-02: la MISMA taxonomía que el motor (materialMatch): un renglón es acabado si su familia lo es.
   const FAM_MATERIAL_BASE = new Set(['melamina', 'mdf', 'laminado_hpl', 'chapa_madera', 'madera_solida', 'triplay', 'metal_lamina', 'acero_inoxidable', 'aluminio', 'cristal']);
   for (const c of comps) {
-    if (!c.insumoId || c.excluida || !RE_ACABADO.test(c.nombre || '')) continue;
+    if (!c.insumoId || c.excluida || !FAMILIAS_ACABADO.has(familiaDeMaterial(c.nombre || ''))) continue;
     const f = familiaDeMaterial((insumos && insumos[c.insumoId]?.nombre) || c.insumoId);
     if (FAM_MATERIAL_BASE.has(f)) obs.push({ nivel: 'blocker', regla: 'material_funcion', clave: `material_funcion:${c.nombre}`, pieza: c.nombre,
       mensaje: `«${c.nombre}» es un acabado pero está costeado con ${(insumos && insumos[c.insumoId]?.nombre) || c.insumoId} (${f.replace('_', ' ')}): se cobraría como material. Asígnale el insumo del acabado o quítalo si ya va incluido.` });
+  }
+  // (2c) PRECIO ATÍPICO (cierre ChatGPT v3, cocrear-4): "Tornillería y ensamble" quedó amarrada a un artículo ERP
+  //      "ARCHIVERO MÓVIL … SIN TORNILLOS" de $793,379.24 y el servidor CERTIFICÓ un librero de $1.4 M. Un renglón cuyo
+  //      insumo cuesta más de 50× la mediana del catálogo CURADO de la familia de la pieza (no ERP; mismo cálculo en
+  //      cliente y servidor) es revisión obligatoria: la persona confirma que el artículo es el correcto.
+  {
+    const curados = Object.values(insumos || {}).filter((x) => x && x.clasificacion !== 'erp' && Number(x.precio ?? x.precioBase) > 0);
+    const porFam = new Map();
+    for (const x of curados) { const f = familiaDeMaterial(x.nombre || ''); if (!f) continue; if (!porFam.has(f)) porFam.set(f, []); porFam.get(f).push(Number(x.precio ?? x.precioBase)); }
+    const mediana = (a) => { const b = [...a].sort((p, q) => p - q); const m = Math.floor(b.length / 2); return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
+    for (const c of comps) {
+      if (c.excluida || !c.insumoId || !insumos?.[c.insumoId]) continue;
+      const ins = insumos[c.insumoId]; const p = Number(ins.precio ?? ins.precioBase);
+      if (!(p > 1000)) continue;
+      const f = familiaDeMaterial(c.nombre || '') || familiaDeMaterial(c.material_solicitado || '') || familiaDeMaterial(ins.nombre || '');
+      const ref = f && porFam.has(f) ? mediana(porFam.get(f)) : null;
+      if (ref && p > 50 * ref) obs.push({ nivel: 'blocker', aceptable: true, regla: 'precio_atipico', clave: `precio_atipico:${c.nombre}`, pieza: c.nombre,
+        mensaje: `«${c.nombre}» está costeada con «${String(ins.nombre || c.insumoId).slice(0, 80)}» a $${p.toLocaleString('es-MX', { maximumFractionDigits: 2 })} por ${ins.unidad || 'unidad'}: más de 50 veces lo normal para ${f.replace(/_/g, ' ')} en el catálogo. Confirma que es el artículo correcto (o cámbialo) antes de cotizar.` });
+    }
   }
   // (3) DUPLICADOS: mismo nombre, mismas medidas y mismo material en dos renglones.
   const vistos = new Map();
@@ -260,11 +309,42 @@ function validadoresIngenieria({ conRol, comps, descripcion, insumos, medidasGen
     else vistos.set(k, c);
   }
   // (4) CANTIDADES INCOMPATIBLES con lo que dice la descripción (puertas, cajones).
-  const contar = (rol) => conRol.filter((c) => c._rol === rol && !c.excluida).reduce((s, c) => s + (Number(c.piezas) > 0 ? Number(c.piezas) : 1) * (c.largoMM ? 1 : Math.max(1, Number(c.cantidad) || 1)), 0);
-  for (const [rol, rx, nombre] of [['puerta', 'puertas?', 'puerta(s)'], ['frente_cajon', '(?:cajon(?:es)?|cajón|gavetas?)', 'cajón(es)']]) {
+  // Una CAJONERA declara sus gavetas en el nombre ("Cajonera móvil 3 gavetas"): cuenta como esas gavetas, no como una
+  // (certificación 18-oct, escritorio en L: bloqueaba "pide 3 cajón(es) y el despiece trae 1").
+  const RX_CAJONES = '(?:cajon(?:es)?|cajón|gavetas?)';
+  const unidades = (c) => (c._rol === 'gaveta' && /\bcajonera\b/i.test(c.nombre || '') ? (cuantosPide(c.nombre, RX_CAJONES) || 1) : 1);
+  const contar = (rol) => conRol.filter((c) => c._rol === rol && !c.excluida).reduce((s, c) => s + (Number(c.piezas) > 0 ? Number(c.piezas) : 1) * (c.largoMM ? 1 : Math.max(1, Number(c.cantidad) || 1)) * unidades(c), 0);
+  for (const [rol, rx, nombre] of [['puerta', 'puertas?', 'puerta(s)'], ['frente_cajon', RX_CAJONES, 'cajón(es)']]) {
     const pide = cuantosPide(descripcion, rx); const hay = rol === 'frente_cajon' ? contar('frente_cajon') + contar('gaveta') : contar(rol);
     if (pide > 0 && hay > 0 && hay !== pide) obs.push({ nivel: 'blocker', aceptable: true, regla: 'cantidad_incompatible', clave: `cantidad_incompatible:${rol}`,
       mensaje: `La descripción pide ${pide} ${nombre} y el despiece trae ${hay}. Corrige las cantidades o márcalo como revisado si la descripción estaba mal.` });
+  }
+  // (4b) LA IA SE CONTRADICE: su razonamiento declara una medida y el renglón trae otra (mapIaComps → iaIncoherencia).
+  for (const c of comps) {
+    if (c.excluida || !c.iaIncoherencia) continue;
+    const x = c.iaIncoherencia;
+    obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_incoherente:${c.nombre}`, pieza: c.nombre,
+      mensaje: x.campo === 'cantidadLineal'
+        ? `«${c.nombre}»: no queda claro si ${x.dice} son piezas o metros. Se costea como ${x.piezas} pieza(s) de ${x.largoMM} mm = ${x.puso} m. Confirma cuántas piezas lleva y de qué largo, o márcalo como revisado si ${x.puso} m es lo correcto.`
+        : x.campo === 'metrosTotales'
+        ? `«${c.nombre}»: la IA declara ${x.dice} m en total, pero ${x.piezas} pieza(s) de ${x.largoMM} mm suman ${x.puso} m. Corrige piezas o largo, o márcalo como revisado si ${x.puso} m es lo correcto.`
+        : x.campo === 'cantidadPiezas'
+        ? `«${c.nombre}»: la IA puso ${x.dice} como cantidad de una pieza de lámina/tablero (no es un número de piezas). Se costea 1 pieza de ${c.largoMM} × ${c.anchoMM} mm: confirma cuántas piezas lleva, o márcalo como revisado si es 1.`
+        : x.campo === 'largoTotal'
+        ? `«${c.nombre}»: la IA dice "largo total ${x.dice} mm" pero el renglón suma ${x.puso} mm (revisa largo × cantidad). Corrígelo, o márcalo como revisado si ${x.puso} mm es lo correcto.`
+        : `«${c.nombre}»: la IA dice ${x.dice} mm en su razonamiento pero puso ${x.puso} mm. Revisa la medida en el plano y corrígela, o márcalo como revisado si ${x.puso} mm es la correcta.` });
+  }
+  // (4c) EL TOTAL DECLARADO NO CUADRA: la IA escribe "TOTAL 7.17 m" de un material lineal y sus renglones suman otra cosa.
+  //      SRV-01: se calcula AQUÍ desde la evidencia del renglón (ia_totales_declarados_m) — misma función en cliente y
+  //      servidor —; el marcador precalculado de mapIaComps sólo cuenta si un material no trae evidencia.
+  const porEvidencia = totalesLinealesIncoherentes(comps, insumos);
+  const conEvidencia = new Set(porEvidencia.map((x) => x.material));
+  for (const c of comps) {
+    if (c.excluida) continue;
+    const x = porEvidencia.find((p) => p.comp === c) || (c.iaTotalIncoherente && !conEvidencia.has(c.iaTotalIncoherente.material) ? c.iaTotalIncoherente : null);
+    if (!x) continue;
+    obs.push({ nivel: 'blocker', aceptable: true, regla: 'ia_incoherente', clave: `ia_total_incoherente:${x.material}`, pieza: c.nombre,
+      mensaje: `La IA declara un total de ${x.dice} m de ${c.material_solicitado || x.material}, pero sus ${x.renglones} renglón(es) suman ${x.puso} m. Revisa cantidades y largos (p. ej. «${c.nombre}»), o márcalo como revisado si ${x.puso} m es lo correcto.` });
   }
   // (5) CANTIDADES IMPOSIBLES: piezas o cantidades ≤ 0 o absurdas.
   for (const c of comps) {

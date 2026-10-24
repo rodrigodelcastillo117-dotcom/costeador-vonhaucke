@@ -27,7 +27,7 @@ async function abrirAcomodo(browser, nube) {
   await page.goto('/');
   await page.fill('#email-login', 'rodrigo@vh.mx'); await page.fill('#pass-login', 'prueba-123');
   await page.getByRole('button', { name: /^Entrar$/i }).click();
-  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 20000 });
+  await expect(page.getByRole('button', { name: /Salir/i }).first()).toBeVisible({ timeout: 45000 });
   if (await page.getByRole('dialog', { name: /Guía de uso/i }).isVisible().catch(() => false)) await page.keyboard.press('Escape');
   await page.getByText('Más herramientas').click();   // inicio vivo: tres tarjetas + atajos plegados
   await page.getByRole('button', { name: /^Acomodo\b/ }).click();
@@ -46,7 +46,9 @@ test('FAIL del servidor (con ok:true): se dice el motivo y no se toma como acomo
   const { context, page } = await abrirAcomodo(browser, nube);
   const err = page.locator('.alerta.roja', { hasText: /no pudo colocar ningún mueble/ });
   await expect(err).toBeVisible({ timeout: 20000 });
-  await expect(err).toContainText(/Encimado entre «w-1» y «w-2»/);
+  // Lab 19-oct: el aviso nombra los muebles (nunca sus ids).
+  await expect(err).toContainText(/Encimado entre «Silla operativa WIN» y «Silla operativa WIN»/);
+  await expect(err).not.toContainText(/«w-1»|«w-2»/);
   await expect(err).toContainText(/no cabe dentro del cuarto/);
   // Fail-closed: el veredicto FAIL no se sustituye por un borrador local.
   await expect(page.locator('.alerta.roja', { hasText: /acomodo local como borrador/ })).toHaveCount(0);

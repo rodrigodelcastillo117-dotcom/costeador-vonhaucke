@@ -24,12 +24,20 @@ export function estadoAcomodo(r) {
   return ESTADOS.includes(s) ? s : 'SIN_VALIDACION';
 }
 
-const id = (x) => (x?.id != null ? ` «${x.id}»` : '');
+// Lab de recorridos 19-oct: los avisos del servidor nombran el MUEBLE (nunca su id) y van en palabras.
+const esIdInterno = (pid) => /^p-\d{6,}/.test(String(pid));
+let NOMBRE = (pid) => (pid == null || esIdInterno(pid) ? null : String(pid));
+const id = (x) => { const n = x?.id != null ? NOMBRE(x.id) : null; return n ? ` «${n}»` : ''; };
+const nm = (pid) => NOMBRE(pid) || (pid == null ? '?' : 'un mueble');
 const TEXTO = {
   OUTSIDE_ZONE: (i) => `Pieza${id(i)} fuera de su cuarto.`,
-  OVERLAP: (i) => `Encimado entre «${i?.a ?? '?'}» y «${i?.b ?? '?'}».`,
+  // El servidor manda el par en `id: 'A|B'` (recovery-core); `a`/`b` quedan por compatibilidad.
+  // Antes se leía sólo a/b y salía «?» y «?» (E2E 2026-10-20).
+  OVERLAP: (i) => { const [pa, pb] = String(i?.id ?? '').split('|'); return `Encimado entre «${nm(i?.a ?? (pa || null))}» y «${nm(i?.b ?? (pb || null))}».`; },
   BLOCKS_DOOR: (i) => `Pieza${id(i)} tapa una puerta.`,
-  FUNCTIONAL_CLEARANCE: (i) => `Pieza${id(i)} sin espacio de uso (choca con ${i?.with_id ? `«${i.with_id}»` : i?.collision || 'otro elemento'}).`,
+  FUNCTIONAL_CLEARANCE: (i) => `Pieza${id(i)} sin espacio de uso (choca con ${i?.with_id ? `«${nm(i.with_id)}»` : 'otro elemento'}).`,
+  FUNCTIONAL_GROUP_SPLIT: (i) => `Pieza${id(i)} quedó separada de su grupo (lejos de su mueble).`,
+  WRONG_GROUP_ANCHOR: (i) => `Pieza${id(i)} quedó junto a un mueble que no es el suyo.`,
   WRONG_EXPLICIT_ZONE: (i) => `Pieza${id(i)} quedó en «${i?.zone ?? '?'}» y se pidió «${i?.expected_zone ?? '?'}».`,
   INVALID_AREA_INDEX: (i) => `Pieza${id(i)} apunta a un cuarto que no existe.`,
   INVALID_COORDINATES: (i) => `Pieza${id(i)} con coordenadas inválidas.`,
@@ -43,13 +51,30 @@ const TEXTO = {
   TECHNICAL_STORAGE_ZONE_REVIEW: (i) => `Guarda técnica${id(i)} fuera de site/servicio: revisar.`,
   SEMANTIC_ROLE_REVIEW: (i) => `Pieza${id(i)}: el servidor no pudo confirmar que la zona la admite.`,
 };
-const traducir = (lista) => (Array.isArray(lista) ? lista : []).map((x) => {
+const traducir1 = (x) => {
   const code = String(x?.code || '').trim();
   if (TEXTO[code]) return TEXTO[code](x);
   const m = /^([A-Z_]+)_WRONG_ZONE$/.exec(code);
   if (m) return `Pieza${id(x)} (${m[1].toLowerCase().replace(/_/g, ' ')}) en una zona que no le corresponde.`;
-  return `Aviso del servidor: ${code || 'SIN_CÓDIGO'}${id(x)}`;
-});
+  return `Aviso del acomodo (${code ? code.toLowerCase().replace(/_/g, ' ') : 'sin detalle'})${id(x)}.`;
+};
+// Muchos avisos iguales (13 sillas "separadas de su grupo") se dicen UNA vez con cuántas y cuáles.
+// "10 piezas quedó separada" → "10 piezas quedaron separadas" (E2E 2026-10-20, cotización 4048).
+const plural = (t) => t
+  .replace(/ quedó /g, ' quedaron ').replace(/ separada /g, ' separadas ')
+  .replace(/ tapa /g, ' tapan ').replace(/ apunta /g, ' apuntan ')
+  .replace(/ no fue colocada ni declarada como no colocada/g, ' no fueron colocadas ni declaradas como no colocadas');
+const traducir = (lista) => {
+  const porCodigo = new Map();
+  for (const x of (Array.isArray(lista) ? lista : [])) { const k = String(x?.code || ''); if (!porCodigo.has(k)) porCodigo.set(k, []); porCodigo.get(k).push(x); }
+  const out = [];
+  for (const [, xs] of porCodigo) {
+    if (xs.length <= 2 || !xs[0]?.id) { xs.forEach((x) => out.push(traducir1(x))); continue; }
+    const nombres = [...new Set(xs.map((x) => NOMBRE(x.id)).filter(Boolean))];
+    out.push(`${plural(traducir1({ ...xs[0], id: null }).replace(/^Pieza/, `${xs.length} piezas`))}${nombres.length ? ` (${nombres.slice(0, 3).join(', ')}${nombres.length > 3 ? '…' : ''})` : ''}`);
+  }
+  return out;
+};
 
 export const TEXTO_ESTADO = TEXTO_ESTADO_SERVIDOR;
 
@@ -62,11 +87,18 @@ export function interpretarAcomodoServidor(r, piezas = []) {
   if (!r || !r.ok) return { ok: false, error: r?.error || 'No se pudo acomodar. Vuelve a intentar.', estado: 'ERROR', avisos: [] };
   const estado = estadoAcomodo(r);
   const val = r.layoutSpec?.validation || {};
+  NOMBRE = (pid) => piezas.find((p) => String(p.id) === String(pid))?.nombre || (pid == null || esIdInterno(pid) ? null : String(pid));
   const problemas = traducir(val.issues);
   const revisiones = traducir(val.reviews);
   const colocacion = Array.isArray(r.plan?.colocacion) ? r.plan.colocacion : [];
   const nombre = (pid) => piezas.find((p) => p.id === pid)?.nombre || pid;
-  const noColocadas = (Array.isArray(r.noColocadas) ? r.noColocadas : []).map((n) => ({
+  // El edge recovery NO manda `noColocadas` (sí `no_cupieron` por kit y `layoutSpec.unplaced`). Sin esta
+  // derivación `sinColocar` salía vacío: "Todas las piezas colocadas" no se marcaba ⚠ y la revisión de Voni
+  // se daba por VENCIDA en el primer acomodo (106 + 0 ≠ 114, cotización 4048, E2E 2026-10-20).
+  const colocadas = new Set(colocacion.map((c) => String(c?.id)));
+  const listaServidor = Array.isArray(r.noColocadas) ? r.noColocadas
+    : piezas.filter((p) => p?.id != null && !colocadas.has(String(p.id))).map((p) => ({ id: p.id }));
+  const noColocadas = listaServidor.map((n) => ({
     id: n?.id, nombre: nombre(n?.id), motivo: n?.motivo || (Array.isArray(n?.codigos) ? n.codigos.join(', ') : ''),
   }));
   const total = Number.isFinite(r.total) ? r.total : piezas.length;
@@ -84,7 +116,10 @@ export function interpretarAcomodoServidor(r, piezas = []) {
   const puertasOk = puertas ? puertas.total > 0 && (puertas.status === 'VERIFIED' || puertas.verificadas === true) : null;
   const avisos = [];
   if (estado === 'SIN_VALIDACION') avisos.push('El servidor no devolvió validación del acomodo: revisa el plano antes de usarlo.');
-  if (noColocadas.length) avisos.push(`${noColocadas.length} mueble(s) sin colocar: ${noColocadas.map((n) => n.nombre).join(', ')}.`);
+  if (noColocadas.length) {
+    const nombres = [...new Set(noColocadas.map((n) => n.nombre))];
+    avisos.push(`${noColocadas.length} mueble(s) sin colocar: ${nombres.slice(0, 6).join(', ')}${nombres.length > 6 ? '…' : ''}.`);
+  }
   avisos.push(...revisiones);
   if (puertas && puertas.total === 0) avisos.push('El servidor acomodó sin puertas: nadie verificó accesos ni barridos.');
   else if (puertasOk === false) avisos.push('Hay puertas cuyo barrido el servidor no pudo verificar.');

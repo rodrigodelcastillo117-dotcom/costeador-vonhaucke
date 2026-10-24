@@ -207,3 +207,24 @@ describe('FloorSpec hardening · referencias y semántica', () => {
     expect(r.issues.some((i) => i.code === 'ROL_NO_PERTENECE_A_ZONA')).toBe(true);
   });
 });
+
+// Cierre ChatGPT v3 (render C1): la silla operativa de la RECEPCIONISTA no es "zona equivocada" en la recepción.
+describe('silla operativa anclada a la recepción', () => {
+  const recep = { nombre: 'Silla operativa GAMMA-E', tipo: 'silla', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_RECEPTION', zone_id: 'RECEPCIÓN' };
+  const oper = { nombre: 'Silla operativa GAMMA-E', tipo: 'silla', relation_role: 'WORK_SEAT', anchor_role: 'ANCHOR_WORKSTATION', zone_id: 'OPERATIVA' };
+  it('es RECEPTION_SEAT y cabe sólo en recepción', () => {
+    expect(rolDePiezaAcomodo(recep)).toBe(ROL2.RECEPTION_SEAT);
+    expect(zonaPermite(ROL2.RECEPTION_SEAT, ZONA2.RECEPCION)).toBe(true);
+    expect(zonaPermite(ROL2.RECEPTION_SEAT, ZONA2.OPERATIVA)).toBe(false);
+  });
+  it('una operativa de la zona de trabajo sigue sin poder ir a la recepción', () => {
+    expect(rolDePiezaAcomodo(oper)).toBe(ROL2.WORK_SEAT);
+    expect(zonaPermite(ROL2.WORK_SEAT, ZONA2.RECEPCION)).toBe(false);
+  });
+  it('el caso real de C1 ya no da violación', () => {
+    const areas = [{ nombre: 'OPERATIVA' }, { nombre: 'RECEPCIÓN' }];
+    const byId = { a: recep, b: oper };
+    expect(violacionesSemanticas([{ id: 'a', area: 1 }, { id: 'b', area: 0 }], areas, byId)).toEqual([]);
+    expect(violacionesSemanticas([{ id: 'b', area: 1 }], areas, byId)).toHaveLength(1);
+  });
+});

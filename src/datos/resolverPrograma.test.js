@@ -244,10 +244,10 @@ describe('P1 · recomendaciones de casa (se agregan por línea, nunca solas)', (
     expect(r.partidas.some((x) => x.relation_role === 'VISITOR_SEAT')).toBe(false);
     expect(r.dependientes.some((x) => x.origen === 'regla_de_casa')).toBe(false);
   });
-  it('recepción → silla operativa + 2 visitas recomendadas; dependientes sigue en 0 (golden #11)', () => {
+  it('recepción → silla operativa OBLIGATORIA (Dirección 19-oct) y sólo las 2 visitas quedan recomendadas (#11)', () => {
     const r = resolverPrograma({ recepcion: true }, { linea: 'App LT' });
-    expect(r.dependientes).toHaveLength(0);
-    expect(r.recomendaciones.map((x) => x.relation_role).sort()).toEqual(['VISITOR_SEAT', 'WORK_SEAT']);
+    expect(r.dependientes.map((x) => [x.relation_role, x.inclusion])).toEqual([['WORK_SEAT', 'mandatory_by_rule']]);
+    expect(r.recomendaciones.map((x) => x.relation_role)).toEqual(['VISITOR_SEAT']);
   });
   it('juntas de 10 → credenza recomendada; juntas de 4 → sin credenza', () => {
     expect(resolverPrograma({ salas: [10] }).recomendaciones.some((x) => x.relation_role === 'SUPPORT_STORAGE')).toBe(true);

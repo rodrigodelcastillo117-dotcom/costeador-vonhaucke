@@ -323,7 +323,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         setPdfErr(`PDF descargado como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
       }
     } catch (e) {
-      setPdfErr('No se pudo generar el PDF: ' + String(e?.message || e));
+      console.error('PDF:', e);
+      setPdfErr('No se pudo generar el PDF. Intenta de nuevo; si sigue, avísale a soporte.');
     } finally {
       setBajandoPDF(false);
     }
@@ -347,7 +348,8 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
         setPdfErr(`Impresión abierta como BORRADOR · NO REGISTRADO. ${modo.motivo || 'Falta validación para emitir definitivo.'}`);
       }
     } catch (e) {
-      setPdfErr('No se pudo abrir la impresión: ' + String(e?.message || e));
+      console.error('Impresión:', e);
+      setPdfErr('No se pudo abrir la impresión. Intenta de nuevo.');
     } finally {
       setTimeout(() => {
         document.title = prev;
@@ -688,7 +690,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
             <CampoPct valor={maniobrasPct} max={30} onCambio={(v) => setCot({ maniobrasPct: v })} />
           </div>
           <div className="ayuda" style={{ textAlign: 'right', marginTop: -4 }}>
-            3% es lo estándar (así lo imprimen tus presupuestos). Sube con elevador, horario inhábil o acarreo largo.
+            Von Haucke no cotiza maniobras ni instalación por omisión (Dirección, 2026-10-20): déjalo en 0 salvo que el cliente las pida aparte.
           </div>
           <div className="fila-botones" style={{ justifyContent: 'flex-end', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <label className="etiqueta" style={{ margin: 0 }}>Flete (%)</label>
@@ -727,7 +729,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
           {acomodoClienteGate.existe && !acomodoClienteGate.mostrar && (
             <div className="alerta" style={{ background:'#fff8e6', borderColor:'#d8a800', color:'#5e4700' }}>
               <span className="texto"><strong>Acomodo no certificado para cliente.</strong>{' '}
-                {(acomodoClienteGate.razones || []).join(' · ') || acomodoClienteGate.estado}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
+                {(acomodoClienteGate.razones || []).join(' · ') || 'falta validar el acomodo con el motor espacial'}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
             </div>
           )}
                     {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
@@ -948,7 +950,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
       {gate && gate.estado && (() => {
         // Lo que se muestra es la FUSIÓN servidor+local; si el servidor no respondió, se dice.
         const estadoVista = gateVista.servidorConsultado ? gateVista.estado : 'DESCONOCIDO';
-        const info = ESTADO_EMISION[estadoVista] || { tono: 'rojo', titulo: estadoVista };
+        const info = ESTADO_EMISION[estadoVista] || { tono: 'rojo', titulo: 'No se puede emitir todavía; se revisa al emitir' };
         const col = info.tono === 'verde' ? '#067647' : info.tono === 'ambar' ? '#B54708' : info.tono === 'gris' ? '#475467' : '#B42318';
         const bg = info.tono === 'verde' ? '#ECFDF3' : info.tono === 'ambar' ? '#FFFAEB' : info.tono === 'gris' ? '#F2F4F7' : '#FEF3F2';
         return (

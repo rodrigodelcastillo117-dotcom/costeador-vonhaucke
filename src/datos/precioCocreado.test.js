@@ -36,3 +36,16 @@ describe('precioSugeridoCocreado', () => {
     expect(precioSugeridoCocreado(1000, { par: { margenObjetivo: 100 } }).precio).toBeNull();
   });
 });
+
+// Certificación 19-oct (Cocrear paso 9): con el despiece incompleto el servidor no trae costo y el panel decía
+// "Costo del servidor: $0.00" porque Number(null) === 0.
+import { costoOficialServidor } from './precio.js';
+describe('costoOficialServidor: null/0/vacío no es un costo', () => {
+  it.each([[undefined], [null], [{}], [{ costo: null }], [{ costo: { costoUnitario: null } }], [{ costo: { costoUnitario: 0 } }], [{ costo: { costoUnitario: '' } }], [{ costo: { costoUnitario: 'x' } }], [{ costo: { costoUnitario: -5 } }]])('%j → null', (s) => {
+    expect(costoOficialServidor(s)).toBeNull();
+  });
+  it('costo real → número', () => {
+    expect(costoOficialServidor({ costo: { costoUnitario: 4592.97 } })).toBe(4592.97);
+    expect(costoOficialServidor({ costo: { costoUnitario: '2083.14' } })).toBe(2083.14);
+  });
+});
