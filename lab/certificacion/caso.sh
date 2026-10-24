@@ -8,6 +8,8 @@
 #   cocrearrc-<n>    igual, costeando con costear-servidor-rc (motor de la rama)
 #   plano-<Cn>       labTorreNorte con el plano sintético Cn de lab/planos/gen_corpus.py (lectura → acomodo → PDF → reabrir)
 #   planorc-<Cn>     igual, con el lector de planos RC (VITE_LEER_PLANO_FN=leer-plano-rc)
+#   acomodorc-<Cn>   igual, con el SOLVER DE ACOMODO contra el edge RC (VITE_ACOMODAR_FN=acomodar-espacio-recovery-rc):
+#                    certifica ACOM-02 en el edge RC VIVO antes de promover (sólo vite dev, DEV=true; sin variante ~preview)
 #   texto | manual   labCotizarFlujo (Voni por texto / banco de precios)
 set -u
 cd "$(dirname "$0")/../.."
@@ -46,9 +48,16 @@ case "$CASO" in
     if [ "${CASO#cocrearrc-}" != "$CASO" ]; then export VITE_COSTEAR_FN=costear-servidor-rc; n="${CASO#cocrearrc-}"; else n="${CASO#cocrear-}"; fi
     LAB_SUFIJO=_ci LAB_COC_BAJAR_BOM=1 bash lab/noche/cocrear10/correr.sh "$n"; rc=$?
     cp -R lab/noche/cocrear10/*_ci "$OUT/" 2>/dev/null; exit $rc ;;
-  plano-*|planorc-*)
+  plano-*|planorc-*|acomodorc-*)
     # planorc-<Cn>: el MISMO plano leído con el lector RC (leer-plano-rc → leer-plano-core-rc), para medir antes de promoverlo.
-    if [ "${CASO#planorc-}" != "$CASO" ]; then export VITE_LEER_PLANO_FN=leer-plano-rc; c="${CASO#planorc-}"; else c="${CASO#plano-}"; fi
+    # acomodorc-<Cn>: el MISMO plano (lector productivo) pero el SOLVER DE ACOMODO contra el edge RC
+    #   (VITE_ACOMODAR_FN=acomodar-espacio-recovery-rc) → certifica que ACOM-02 corre en el edge RC VIVO. Sólo surte efecto
+    #   contra vite dev (DEV=true): FN_ACOMODAR ignora VITE_* en build/preview, por eso NO existe acomodorc~preview.
+    case "$CASO" in
+      planorc-*)   export VITE_LEER_PLANO_FN=leer-plano-rc;              c="${CASO#planorc-}";;
+      acomodorc-*) export VITE_ACOMODAR_FN=acomodar-espacio-recovery-rc; c="${CASO#acomodorc-}";;
+      *)                                                                  c="${CASO#plano-}";;
+    esac
     (cd lab/planos && python3 gen_corpus.py > "$OUT/corpus.log" 2>&1) || { echo "gen_corpus falló"; cat "$OUT/corpus.log"; exit 3; }
     d=$(ls -d lab/planos/${c}_* | head -1)
     [ -f "$d/plano.pdf" ] || { echo "no hay $c"; exit 3; }
@@ -75,15 +84,39 @@ case "$CASO" in
       pw e2e/labRecorridos.e2e.js ;;
   holdout-*)
     # Cierre ChatGPT v3 (Release/Holdout): corrida del holdout Intelisis sobre el SHA CONGELADO del MANIFIESTO (entorno
-    # limpio, deps verificadas) con las Edge RC exactas; después se verifica con congelar_holdout --verificar.
+    # limpio, deps verificadas) con las Edge RC exactas; DESPUÉS se verifica de verdad con congelar_holdout --verificar.
+    # P1-HO-01: antes la rama terminaba en el pw y PASABA sin verificar nada contra el MANIFIESTO congelado. Ahora la
+    # corrida es sólo la mitad: la certificación del holdout es el exit de `congelar_holdout --verificar`, nunca el del pw.
     h="${CASO#holdout-}"
     SHA_H=$(node -e "console.log(require('./lab/costear/holdout_intelisis/MANIFIESTO.json').frontendSha)")
+    # --corrida lee el directorio ENTERO (una subcarpeta = una hoja). Se aísla de "$OUT/pw" (artefactos de Playwright) y
+    # de los logs sueltos: la corrida vive en "$OUT/corrida/<hoja>" y nada más cuelga de "$OUT/corrida".
+    CORRIDA="$OUT/corrida"; mkdir -p "$CORRIDA"
     node scripts/prepararEntornoHoldout.mjs ../envh "$SHA_H" > "$OUT/prep.log" 2>&1 || { echo "preparación holdout falló"; tail -20 "$OUT/prep.log"; exit 3; }
     cd ../envh
     export VITE_ANALIZAR_MUEBLE_FN=analizar-mueble-rc VITE_COSTEAR_FN=costear-servidor-rc
     echo "$SHA_H" > "$OUT/GIT_SHA"
-    LAB_HOJA="lab/costear/ciego_erp/hojas/$h.json" LAB_OUT="$OUT/$h" LAB_COSTEAR_NOMBRE="LAB holdout $h $(date +%m%d-%H%M)" \
-      LAB_COSTEAR_FN=costear-servidor-rc LAB_GIT_SHA="$(git rev-parse --short HEAD)" pw e2e/labCostear.e2e.js ;;
+    LAB_HOJA="lab/costear/ciego_erp/hojas/$h.json" LAB_OUT="$CORRIDA/$h" LAB_COSTEAR_NOMBRE="LAB holdout $h $(date +%m%d-%H%M)" \
+      LAB_COSTEAR_FN=costear-servidor-rc LAB_GIT_SHA="$(git rev-parse --short HEAD)" pw e2e/labCostear.e2e.js; rc=$?
+    [ "$rc" = 0 ] || { echo "holdout $h: la corrida (labCostear.e2e.js) falló (exit $rc) → NO_VERIFICADO"; exit "$rc"; }
+    # Verificación REAL contra el MANIFIESTO congelado. Se corre desde "$RAIZ" (el checkout del PR / FINAL_SHA, que trae el
+    # MANIFIESTO autoritativo con frontendSha), NO desde ../envh: ahí el MANIFIESTO es el que quedó commiteado en el SHA
+    # viejo. Fail-closed: `congelar_holdout --verificar` devuelve NO_VERIFICADO (exit 2) si falta cualquiera de las huellas
+    # (base, Edge, modelos, llamadas, binario, corrida, integridad git, modelos esperados / frontendSha del MANIFIESTO),
+    # CAMBIO (exit 1) si algo cambió respecto al congelamiento (p. ej. un archivo congelado como revisionEstructural.js), y
+    # 0 SOLO si todo coincide. Las huellas FRESCAS de base, Edge y modelos observados se MIDEN fuera de este runner (SQL de
+    # solo lectura y la lista de Edge / ai_eventos: lab/costear/holdout_intelisis/{huellas_db.sql,modelos_observados.sql});
+    # quien las mide deja los JSON y pasa sus rutas por HOLDOUT_DB / HOLDOUT_EDGES / HOLDOUT_MODELOS. Sin ellas → NO_VERIFICADO.
+    cd "$RAIZ"
+    VFLAGS=(--verificar --corrida "$CORRIDA")
+    for par in "db:${HOLDOUT_DB:-}" "edges:${HOLDOUT_EDGES:-}" "modelos:${HOLDOUT_MODELOS:-}"; do
+      flag="${par%%:*}"; ruta="${par#*:}"
+      if [ -n "$ruta" ] && [ -f "$ruta" ]; then VFLAGS+=("--$flag" "$ruta");
+      elif [ -n "$ruta" ]; then echo "holdout: la ruta de --$flag no existe ($ruta); se verifica sin ella → NO_VERIFICADO"; fi
+    done
+    node scripts/congelar_holdout.mjs "${VFLAGS[@]}"; vr=$?
+    [ "$vr" = 0 ] || { echo "HOLDOUT $h NO CERTIFICADO (congelar_holdout --verificar exit $vr: NO_VERIFICADO o CAMBIO)"; exit "$vr"; }
+    echo "holdout $h CERTIFICADO: corrida idéntica al MANIFIESTO congelado (código, base, Edge, modelos, llamadas y binario)" ;;
   concurrencia)
     # P1-REL-02: control optimista A–L contra el deployment (usar como "concurrencia~preview").
     LAB_CONC_OPT=1 LAB_OUT="$OUT" pw e2e/labControlOptimista.e2e.js ;;

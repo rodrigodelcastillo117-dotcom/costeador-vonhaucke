@@ -907,8 +907,18 @@ describe('Q3/Q4 · pipeline real por el núcleo de la Edge: lo que pasa la prueb
     ({ atenderCosteo, costearConMotor } = await import('../../src/datos/costeoServidor.js'));
     const { partidaAutoritativaDeCosteo } = await import('../../src/datos/agregarCosteo.js');
     const { calcular, modeloParaPieza, PARAMETROS_DEFAULT } = await import('../../src/motor/calculo.js');
-    // Lo que la Edge encuentra en producción: la envoltura pública de catalogo_motor (exige service_role) y auth.role().
-    await db.exec(`create or replace function auth.role() returns text language sql stable as $$ select nullif(current_setting('request.jwt.claim.role', true), '') $$;`);
+    // Lo que la Edge encuentra en producción: la envoltura pública de catalogo_motor (exige service_role).
+    // FINAL-100 H4: el rol vive en el claim `role` del JWT (contrato vivo: auth.jwt()->>'role'). auth.jwt() lo toma
+    // del GUC request.jwt.claim.role (lo que servicioPglite fija a 'service_role'); auth.role() lo LEE de ese claim.
+    await db.exec(`
+      create or replace function auth.jwt() returns jsonb language sql stable as $$
+        select nullif(
+          coalesce(case when coalesce(current_setting('test.email', true), '') = '' then '{}'::jsonb
+                        else jsonb_build_object('email', current_setting('test.email', true)) end, '{}'::jsonb)
+          || case when coalesce(current_setting('request.jwt.claim.role', true), '') = '' then '{}'::jsonb
+                  else jsonb_build_object('role', current_setting('request.jwt.claim.role', true)) end,
+          '{}'::jsonb) $$;
+      create or replace function auth.role() returns text language sql stable as $$ select auth.jwt() ->> 'role' $$;`);
     await db.exec(funcionDeMigracion(VH088, 'public.catalogo_motor'));
     // MDF 18 blanco y nogal por m² y pintura en polvo por kg, cada uno con su precio aprobado por una persona de Dirección.
     await db.exec(`insert into public.insumos_catalogo (id, nombre, seccion, unidad_costeo, activo, clasificacion, familia, atributos) values

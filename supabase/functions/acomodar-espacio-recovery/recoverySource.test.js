@@ -63,10 +63,18 @@ describe('acomodar-espacio-recovery · fuente bajo control de código (P0.2)', (
     expect(edge).toContain("from './opciones.js'");
     expect(edge).toContain('mensaje_vendedor');
   });
-  it('validador relacional DURO (D): DEPENDENT_DETACHED/UNASSIGNED', () => {
-    expect(core).toContain("code: 'DEPENDENT_DETACHED'");
-    expect(core).toContain("code: 'DEPENDENT_UNASSIGNED'");
+  it('validador relacional DURO (D): regla CANÓNICA compartida con el cliente (DEPENDENT_DETACHED/UNASSIGNED)', () => {
+    // FINAL-100 decisión 3: la lógica del vínculo dependiente→ancla es UNA sola regla canónica
+    // compartida 1:1 con el navegador (src/datos/acomodoVinculo.js). El edge la IMPORTA y la ejecuta
+    // dentro de invariantesRelacionales; los códigos y la distancia máxima viven en el módulo compartido.
     expect(core).toContain('invariantesRelacionales');
+    expect(core).toContain('evaluarVinculoDependiente');
+    expect(core).toContain('indexarAnclas');
+    expect(core).toContain("from '../../../src/datos/acomodoVinculo.js'");
+    const vinc = fs.readFileSync('src/datos/acomodoVinculo.js', 'utf8');
+    expect(vinc).toContain("code: 'DEPENDENT_DETACHED'");
+    expect(vinc).toContain("code: 'DEPENDENT_UNASSIGNED'");
+    expect(vinc).toContain('export function maxDistanceToAnchor');
   });
 
   it('render_ready SÓLO si todo pasa (status real, no PASS con warnings)', () => {

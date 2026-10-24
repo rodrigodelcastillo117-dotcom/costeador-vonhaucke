@@ -91,11 +91,14 @@ export async function baseCatalogoAislada({ conVh088 = true } = {}) {
     create function auth.uid() returns uuid language sql stable as $$
       select case when coalesce(current_setting('test.email', true), '') = '' then null
         else md5(current_setting('test.email', true))::uuid end $$;
+    -- FINAL-100 H4: el rol vive en el claim role del JWT (contrato vivo en prod: auth.jwt()->>role).
+    -- auth.role() queda como LECTURA de ese mismo claim, sin divergir (sec02 B), por si algun SQL legacy lo invoca.
     create function auth.jwt() returns jsonb language sql stable as $$
-      select case when coalesce(current_setting('test.email', true), '') = '' then null
-        else jsonb_build_object('email', current_setting('test.email', true)) end $$;
+      select case when coalesce(current_setting('test.email', true), '') = ''
+        then jsonb_build_object('role', 'anon')
+        else jsonb_build_object('email', current_setting('test.email', true), 'role', 'authenticated') end $$;
     create function auth.role() returns text language sql stable as $$
-      select case when coalesce(current_setting('test.email', true), '') = '' then 'anon' else 'authenticated' end $$;
+      select auth.jwt() ->> 'role' $$;
     create table public.permitidos (email text primary key, rol text not null default 'vendedor');
     insert into public.permitidos values ('${DIRECCION}', 'direccion'), ('${VENDEDOR}', 'vendedor');
     create function private_api.rol_actual() returns text language sql stable as $$

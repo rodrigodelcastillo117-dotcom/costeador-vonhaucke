@@ -18,6 +18,10 @@ import {
 // GAP5 · validación SEMÁNTICA (grupos/zona) del core compartido: sus fallas entran
 // a issues, bajan status y ponen render_ready=false.
 import { auditarGruposFuncionales } from './acomodo-core.js';
+// REGLA CANÓNICA del vínculo dependiente→ancla, compartida 1:1 con el navegador
+// (src/datos/acomodoInvariantes.js importa el MISMO módulo). Precedente de import src/datos desde un
+// edge: costear-servidor/index.ts importa ../../../src/datos/revisionEstructural.js.
+import { indexarAnclas, evaluarVinculoDependiente } from '../../../src/datos/acomodoVinculo.js';
 
 export const CONTRATO = Object.freeze({
   input_version: 'ACOMODO_INPUT_V1',
@@ -145,29 +149,27 @@ export function invariantesCirculacion(areas = [], piezas = [], colocacion = [],
 }
 
 // --- D · INVARIANTE RELACIONAL (dependiente unido a su ancla) ---------------
-const ATTACH_MM = 1200;
+// REGLA CANÓNICA compartida con el navegador: MISMA función pura (src/datos/acomodoVinculo.js:
+// evaluarVinculoDependiente). La distancia máxima dependiente→ancla es la ESPECÍFICA del programa
+// (max_anchor_distance_mm) con piso 1200 mm; el ancla se resuelve por id/instance/placement y, si el
+// token es pre-solver, por functional_group_id. Veredicto idéntico al cliente (paridad en acomodoVinculo.test.js).
 const esAnclaRol = (r) => typeof r === 'string' && r.startsWith('ANCHOR_');
-const esDepRol = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT', 'UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
-function distRects(a, b) {
-  const dx = Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)));
-  const dy = Math.max(0, Math.max(a.y - (b.y + b.d), b.y - (a.y + a.d)));
-  return Math.hypot(dx, dy);
-}
 export function invariantesRelacionales(piezas = [], colocacion = []) {
   const byId = new Map(piezas.map((p) => [String(p.id), p]));
-  const rectById = new Map();
-  for (const c of colocacion) { const p = byId.get(String(c.id)); if (p) rectById.set(String(c.id), { ...rectDeColoc(p, c), area: Number(c.area), rol: p.relation_role, anchor: p.anchor_instance_id != null ? String(p.anchor_instance_id) : null }); }
-  const issues = [];
-  for (const [id, r] of rectById) {
-    if (!esDepRol(r.rol)) continue;
-    // VH-096: una guarda de piso (SUPPORT_STORAGE) SUELTA es un kit propio, no un dependiente
-    // sin ancla: credenza/archivero se colocan con su huella en su zona.
-    if (!r.anchor && r.rol === 'SUPPORT_STORAGE') continue;
-    if (!r.anchor) { issues.push({ code: 'DEPENDENT_UNASSIGNED', severity: 'fail', id }); continue; }
-    const anc = rectById.get(r.anchor);
-    if (!anc || !esAnclaRol(anc.rol)) { issues.push({ code: 'DEPENDENT_DETACHED', severity: 'fail', id, motivo: 'ancla no colocada' }); continue; }
-    if (anc.area !== r.area || distRects(r, anc) > ATTACH_MM) issues.push({ code: 'DEPENDENT_DETACHED', severity: 'fail', id, area: r.area });
+  const placed = [];
+  for (const c of colocacion) {
+    const p = byId.get(String(c.id)); if (!p) continue;
+    const rc = rectDeColoc(p, c);
+    placed.push({
+      idColoc: String(c.id), rect: { x: rc.x, y: rc.y, w: rc.w, h: rc.d }, area: Number(c.area), rol: p.relation_role,
+      id: p.id, instance_id: p.instance_id, anchor_instance_id: p.anchor_instance_id, functional_group_id: p.functional_group_id,
+      declared: c.anchor_instance_id != null ? c.anchor_instance_id : (p.anchor_instance_id != null ? p.anchor_instance_id : null),
+      max_anchor_distance_mm: p.max_anchor_distance_mm,
+    });
   }
+  const idx = indexarAnclas(placed);
+  const issues = [];
+  for (const dep of placed) { const issue = evaluarVinculoDependiente(dep, idx); if (issue) issues.push(issue); }
   return issues;
 }
 

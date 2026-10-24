@@ -30,12 +30,15 @@ describe('VH-100 · carga de costo oficial por código (P0-01)', () => {
         if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin; end if;
       end $$;
       -- user_metadata lo edita el propio usuario (supabase.auth.updateUser); el test lo deja falsificar como en la vida real.
+      -- FINAL-100 H4: el rol vive en el claim role del JWT (contrato vivo en prod: auth.jwt()->>role).
+      -- auth.role() queda como LECTURA de ese mismo claim, sin divergir (sec02 B).
       create function auth.jwt() returns jsonb language sql stable as $$
-        select case when coalesce(current_setting('test.email', true), '') = '' then null
-          else jsonb_build_object('email', current_setting('test.email', true),
+        select case when coalesce(current_setting('test.email', true), '') = ''
+          then jsonb_build_object('role', 'anon')
+          else jsonb_build_object('email', current_setting('test.email', true), 'role', 'authenticated',
                                   'user_metadata', coalesce(nullif(current_setting('test.meta', true), ''), '{}')::jsonb) end $$;
       create function auth.role() returns text language sql stable as $$
-        select case when coalesce(current_setting('test.email', true), '') = '' then 'anon' else 'authenticated' end $$;
+        select auth.jwt() ->> 'role' $$;
       create table public.permitidos (email text primary key, rol text);
       insert into public.permitidos values ('${DIRECCION}', 'direccion'), ('${VENDEDOR}', 'vendedor'), ('${DISENO}', 'diseno'), ('${QA}', 'direccion');
       -- Tabla de SEG-01b (cuentas cuya firma no es humana), con la semilla real.

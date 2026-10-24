@@ -138,3 +138,71 @@ describe('accesorios de apoyo no se confunden con la pieza que apoyan', () => {
     expect(r2.observaciones.some((o) => o.regla === 'material_funcion')).toBe(true);
   });
 });
+
+// Lab en vivo 2026-10-22 (cuenta QA, mesa de consejo redonda Ø1.80): el validador tomaba la
+// ALTURA (750) como el "ancho" del mueble y marcaba la cubierta en media luna (1800×900) como
+// "pieza más grande que el mueble". La huella de un mueble REDONDO es diámetro×diámetro, y una
+// dimensión rotulada como alto es vertical: no cuenta en la planta.
+describe('huella del mueble: redondos y altura rotulada no disparan un falso "pieza imposible"', () => {
+  it('huellaDelMueble: redondo → diámetro×diámetro; altura rotulada fuera; rectangular sin cambios', async () => {
+    const { huellaDelMueble } = await import('./revisionEstructural.js');
+    expect(huellaDelMueble('1800 Ø x 750 alto mm')).toEqual([1800, 1800]);          // el caso real que falló
+    expect(huellaDelMueble('mesa redonda Ø1.50 m, 740 alto mm')).toEqual([1500, 1500]); // generaliza (metros, otro Ø)
+    expect(huellaDelMueble('1500 x 600 x 740 alto mm')).toEqual([1500, 600]);        // rect: la altura no es la planta
+    expect(huellaDelMueble('2400 x 1100 x 740')).toEqual([2400, 1100]);             // altura SIN rotular: igual que antes
+  });
+
+  it('mesa de consejo redonda Ø1800: cubierta en 2 medias lunas 1800×900 NO es "medida imposible"', () => {
+    const r = revisarEstructura({
+      descripcion: 'Mesa de juntas redonda para 12, base central tipo araña, electrificación.',
+      medidasGenerales: '1800 Ø x 750 alto mm',
+      componentes: [
+        { nombre: 'Cubierta circular Ø1800 (2 tramos pegados)', insumoId: 'melamina', largoMM: 1800, anchoMM: 900 },
+        { nombre: 'Columna central PTR', insumoId: 'ptr', largoMM: 750, anchoMM: 100 },
+      ],
+    });
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(false);
+  });
+
+  it('control: una pieza REALMENTE mayor que el diámetro SÍ se marca (no sobre-corrige)', () => {
+    const r = revisarEstructura({
+      descripcion: 'Mesa redonda Ø1200.',
+      medidasGenerales: '1200 Ø x 740 alto mm',
+      componentes: [{ nombre: 'Cubierta', insumoId: 'melamina', largoMM: 1600, anchoMM: 800 }], // 1600 > Ø1200
+    });
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);
+  });
+});
+
+// P1-COST-01 · test #6 · PARIDAD cliente/servidor. costear-servidor/index.ts importa el MISMO
+// `revisarEstructura` de este módulo y deriva sus bloqueos con `o.nivel === 'blocker'`. Por tanto
+// el veredicto es idéntico por construcción (un solo módulo, no dos implementaciones). Este test
+// reproduce EXACTAMENTE esa derivación del servidor y comprueba que cliente y servidor coinciden:
+// la mesa redonda NO bloquea en ninguno; una pieza realmente mayor bloquea en ambos.
+describe('P1-COST-01 · paridad cliente/servidor del veredicto estructural (módulo compartido)', () => {
+  // Misma derivación que costear-servidor/index.ts: bloqueos = observaciones con nivel 'blocker'.
+  const bloqueosServidor = (r) => (r.observaciones || []).filter((o) => o.nivel === 'blocker').map((o) => o.regla || o.mensaje);
+  const mesaRedonda = {
+    descripcion: 'Mesa de juntas redonda para 12, base central tipo araña, electrificación.',
+    medidasGenerales: '1800 Ø x 750 alto mm',
+    componentes: [
+      { nombre: 'Cubierta circular Ø1800 (2 tramos pegados)', insumoId: 'melamina', largoMM: 1800, anchoMM: 900 },
+      { nombre: 'Columna central PTR', insumoId: 'ptr', largoMM: 750, anchoMM: 100 },
+    ],
+  };
+  const oversizeReal = {
+    descripcion: 'Mesa redonda Ø1200.',
+    medidasGenerales: '1200 Ø x 740 alto mm',
+    componentes: [{ nombre: 'Cubierta', insumoId: 'melamina', largoMM: 1600, anchoMM: 800 }],
+  };
+  it('mesa redonda: ni cliente ni servidor marcan medida_imposible (mismo veredicto: costeable)', () => {
+    const r = revisarEstructura(mesaRedonda);
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(false); // cliente
+    expect(bloqueosServidor(r)).not.toContain('medida_imposible');                    // servidor (misma función)
+  });
+  it('oversize real: cliente y servidor lo bloquean por igual (mismo veredicto: rechazo)', () => {
+    const r = revisarEstructura(oversizeReal);
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);    // cliente
+    expect(bloqueosServidor(r)).toContain('medida_imposible');                         // servidor
+  });
+});

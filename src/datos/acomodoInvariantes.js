@@ -18,6 +18,8 @@ const EPS = 1; // mm
 // 2026-10-17: misma geometría de puertas que el solver (una sola verdad): barrido real de una puerta
 // verificada y su cuadro conservador duplicado ignorado. Precedente de import: acomodoAudit.js.
 import { poligonoBarridoPuerta, bloqueaPuertaEspacial, areaSinCuadrosDuplicados } from '../../supabase/functions/acomodar-espacio-recovery/spatial-core.js';
+// Regla CANÓNICA del vínculo dependiente→ancla, compartida 1:1 con el servidor (recovery-core.js).
+import { indexarAnclas, evaluarVinculoDependiente } from './acomodoVinculo.js';
 
 const ORDEN = { PASS: 0, REVIEW_REQUIRED: 1, PARTIAL: 2, NEEDS_REVIEW: 3, FAIL: 4 };
 const peor = (a, b) => (ORDEN[a] >= ORDEN[b] ? a : b);
@@ -168,35 +170,35 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
   const normZona = (z) => String(z ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '');
   const claveGrupo = (p) => p?.anchor_instance_id || p?.functional_group_id || null;
   const esDep = (r) => ['WORK_SEAT', 'EXECUTIVE_SEAT', 'VISITOR_SEAT', 'MEETING_SEAT', 'UNDERDESK_STORAGE', 'SUPPORT_STORAGE'].includes(r);
-  const ATTACH_MM = 1200;
-  const distR = (a, b) => Math.hypot(Math.max(0, Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w))), Math.max(0, Math.max(a.y - (b.y + b.h), b.y - (a.y + a.h))));
-  const grupos = new Map(); // clave → {anchorArea, anchorZone, anchorRect, deps:[{id,area,zone,rect}]}
+  // Agrupación SÓLO para los chequeos de ZONA (ANCHOR_WRONG_ZONE / DEPENDENT_WRONG_ZONE por
+  // área/zona), que el servidor NO modela y que aquí se conservan SIN relajar. El DETACHED por
+  // distancia/ancla DECLARADA se evalúa aparte (abajo), en paridad con invariantesRelacionales().
+  const grupos = new Map(); // clave → {anchorArea, anchorZone, anclas:[{area,zone}], deps:[{id,area,zone}]}
   for (const c of colocadosValidos) {
     const pieza = porId.get(String(c.id));
     const ai = Number(c.area);
-    const r = rectDe(pieza, c);
-    // D (P0.2b): dependiente SIN dueño declarado (ni anchor_instance_id ni grupo).
-    if (esDep(pieza.relation_role) && !claveGrupo(pieza)) { add('DEPENDENT_UNASSIGNED', 'fail', { id: String(c.id) }); continue; }
+    // Dependiente SIN dueño declarado: su veredicto (DEPENDENT_UNASSIGNED, o exención de
+    // SUPPORT_STORAGE suelta) lo decide la REGLA CANÓNICA compartida (abajo). Aquí sólo se
+    // excluye de la agrupación por zona para no duplicar el issue.
+    if (esDep(pieza.relation_role) && !claveGrupo(pieza)) continue;
     const gid = claveGrupo(pieza);
     if (!gid) continue;
-    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anchorRect: null, anclas: [], deps: [] });
+    if (!grupos.has(gid)) grupos.set(gid, { anchorArea: null, anchorZone: null, anclas: [], deps: [] });
     const g = grupos.get(gid);
     if (esAncla(pieza.relation_role)) {
-      g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null; g.anchorRect = { ...r, h: r.d };
-      g.anclas.push({ area: ai, zone: pieza.zone_id ?? null, rect: { ...r, h: r.d } });
+      g.anchorArea = ai; g.anchorZone = pieza.zone_id ?? null;
+      g.anclas.push({ area: ai, zone: pieza.zone_id ?? null });
       if (pieza.zone_id != null && normZona(pieza.zone_id) !== normZona(zonaDeArea(ai))) {
         add('ANCHOR_WRONG_ZONE', 'fail', { id: String(c.id), area: ai, zoneEsperada: pieza.zone_id, zonaArea: zonaDeArea(ai) });
       }
     } else {
-      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null, rect: { ...r, h: r.d } });
+      g.deps.push({ id: String(c.id), area: ai, zone: pieza.zone_id ?? null });
     }
   }
   for (const [gid, g] of grupos) {
-    if (g.anchorArea == null) continue; // sin ancla colocada: lo cubre cobertura/missing
+    if (g.anchorArea == null) continue; // sin ancla colocada: lo cubre cobertura/missing + el DETACHED de abajo
     for (const d of g.deps) {
-      // Un grupo puede tener VARIAS anclas (cotización 4048: 54 WIN en un solo grupo libre para 5 bancas
-      // repartidas en dos open spaces). Antes se comparaba contra la ÚLTIMA ancla y las sillas bien puestas
-      // en la otra banca salían "en otro cuarto que su mueble". Ahora: contra las anclas de SU cuarto.
+      // Un grupo puede tener VARIAS anclas (cotización 4048): el dependiente pertenece a las de SU cuarto.
       const delCuarto = g.anclas.filter((a) => a.area === d.area);
       if (!delCuarto.length) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, anclaArea: g.anchorArea });
@@ -205,11 +207,32 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
       const cercana = delCuarto.find((a) => d.zone == null || a.zone == null || normZona(a.zone) === normZona(d.zone)) || delCuarto[0];
       if (d.zone != null && cercana.zone != null && normZona(d.zone) !== normZona(cercana.zone)) {
         add('DEPENDENT_WRONG_ZONE', 'fail', { id: d.id, area: d.area, grupo: gid, zoneDep: d.zone, zoneAncla: cercana.zone });
-      } else if (distR(d.rect, cercana.rect) > ATTACH_MM) {
-        // D: misma zona pero DESPRENDIDO de su ancla (lejos).
-        add('DEPENDENT_DETACHED', 'fail', { id: d.id, area: d.area, grupo: gid });
       }
+      // El DETACHED por DISTANCIA ya NO se mide aquí (medía NaN y contra "la más cercana"): ahora lo
+      // hace el pase de paridad de abajo, SIEMPRE contra la ancla DECLARADA.
     }
+  }
+
+  // --- D · VÍNCULO DEPENDIENTE → ANCLA (REGLA CANÓNICA compartida con el servidor) ----------
+  // Usa EXACTAMENTE la misma función pura que invariantesRelacionales() del edge
+  // (src/datos/acomodoVinculo.js: evaluarVinculoDependiente): navegador y servidor concluyen idéntico.
+  // Distancia máxima = la ESPECÍFICA del programa (max_anchor_distance_mm) con piso 1200 mm; el ancla se
+  // resuelve por id/instance/placement y, si el token es pre-solver, por functional_group_id compartido.
+  // No relaja overlap ni circulación (eso vive en los otros chequeos).
+  const vinc = (c) => {
+    const p = porId.get(String(c.id));
+    const r = rectDe(p, c);
+    return {
+      idColoc: String(c.id), rect: { x: r.x, y: r.y, w: r.w, h: r.h }, area: Number(c.area), rol: p.relation_role,
+      id: p.id, instance_id: p.instance_id, anchor_instance_id: p.anchor_instance_id, functional_group_id: p.functional_group_id,
+      declared: c.anchor_instance_id != null ? c.anchor_instance_id : (p.anchor_instance_id != null ? p.anchor_instance_id : null),
+      max_anchor_distance_mm: p.max_anchor_distance_mm,
+    };
+  };
+  const idxAnclas = indexarAnclas(colocadosValidos.map(vinc));
+  for (const c of colocadosValidos) {
+    const issue = evaluarVinculoDependiente(vinc(c), idxAnclas);
+    if (issue) { const { code, severity, ...meta } = issue; add(code, severity, meta); }
   }
 
   // --- Señales de REVIEW (no-fail) heredadas del edge ---
