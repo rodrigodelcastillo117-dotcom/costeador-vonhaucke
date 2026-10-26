@@ -93,10 +93,15 @@ export default function CargaERP({ onAviso }) {
       if (!extraido.registros.length) {
         throw new Error('El archivo no contiene una tabla reconocible de materiales con Artículo y Costo Última Compra.');
       }
-      const preparado = prepararCargaErp(extraido.registros, { documento: f.name });
+      const origen = extraido.hojaCatalogo ? 'workbook_proyecto' : 'reporte_ultima_compra';
+      const preparado = prepararCargaErp(extraido.registros, {
+        documento: f.name,
+        // Evidencia secundaria: puede aportar costo preliminar, pero nunca se autocertifica.
+        forzarValidacionCompras: origen === 'workbook_proyecto',
+      });
       setPrep({
         ...preparado,
-        origen: extraido.hojaCatalogo ? 'workbook_proyecto' : 'reporte_ultima_compra',
+        origen,
         extraccion: extraido,
       });
     } catch (err) {
@@ -155,13 +160,14 @@ export default function CargaERP({ onAviso }) {
                 <tr><td>Renglones en el archivo</td><td className="num">{r.filas}</td></tr>
                 <tr><td>Con costo (entran)</td><td className="num">{prep.catalogo.length}</td></tr>
                 <tr><td>Sin costo (no entran, nunca $0)</td><td className="num">{r.sinCosto}</td></tr>
-                <tr><td>Compra ≤ 24 meses (se certifican)</td><td className="num">{r.recientes}</td></tr>
+                <tr><td>Compra ≤ 24 meses</td><td className="num">{r.recientes}</td></tr>
+                {prep.origen === 'workbook_proyecto' && <tr><td>Precios de proyecto que requieren revalidación</td><td className="num">{r.requierenValidacionCompras}</td></tr>}
                 <tr><td>Compra más antigua (preliminares)</td><td className="num">{r.antiguos}</td></tr>
                 <tr><td>Bloqueados en el ERP (entran inactivos)</td><td className="num">{r.bloqueados}</td></tr>
                 {Object.keys(r.sinUnidad).length > 0 && <tr><td>Unidad no reconocida (no entran)</td><td className="num">{Object.entries(r.sinUnidad).map(([u, n]) => `${u}: ${n}`).join(', ')}</td></tr>}
               </tbody>
             </table>
-            <p className="ayuda">Los registros que ya estaban con el mismo precio y fecha no se duplican. Al terminar, los precios nuevos quedan en el catálogo que usa el motor.</p>
+            <p className="ayuda">Los registros que ya estaban con el mismo precio y fecha no se duplican. Un reporte directo de Compras conserva la política normal de certificación. Un workbook de proyecto entra como referencia preliminar y necesita revalidación explícita antes de certificarse.</p>
             <button className="boton" onClick={cargar} disabled={cargando} data-testid="carga-erp-cargar">{cargando ? `Cargando… ${avance.hecho}/${avance.total}` : 'Cargar al catálogo'}</button>
           </div>
         )}
