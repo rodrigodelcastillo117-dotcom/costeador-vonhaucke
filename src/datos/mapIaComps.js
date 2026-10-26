@@ -126,10 +126,23 @@ export function mapIaComps(p, insumos = {}) {
     }
     if (base.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
+      // TELCEL 26-oct: un cuerpo de lámina llegó como "pieza" 1200×600 con cantidad=45 y unidad=kg.
+      // Al convertirlo a área, esos 45 kg se interpretaban como 45 PIEZAS y la pintura saltaba a 64.8 m².
+      // Una unidad física explícita (kg/m²/hoja/rollo...) NUNCA es número de piezas. Conservamos el
+      // valor como evidencia, costeamos 1 pieza geométrica y lo marcamos REVIEW_REQUIRED para que el
+      // humano confirme/despiece; jamás multiplicamos geometría por kilos.
+      const unidadIa = String(z.unidad || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const unidadEsConteo = !unidadIa || /^(?:pza|pzas|pieza|piezas|unidad|unidades|ud)$/.test(unidadIa);
+      const cantidadIa = Number(z.cantidad);
+      if (!unidadEsConteo && cantidadIa > 0) {
+        base.piezas = 1;
+        base.iaCantidadFisica = { valor: cantidadIa, unidad: z.unidad };
+        base.iaIncoherencia = { campo: 'cantidadPiezas', dice: cantidadIa, puso: 1, unidad: z.unidad };
+      }
       // Una "pieza" convertida a área con cantidad NO entera (1.3, 2.8: kg o fracción, no piezas) no se adivina:
       // 1 pieza de largo × ancho y queda marcada para que la persona confirme cuántas lleva.
-      if (base.formaIa === 'pieza' && !Number.isInteger(Number(z.cantidad)) && Number(z.cantidad) > 0) {
-        base.piezas = 1; base.iaIncoherencia = { campo: 'cantidadPiezas', dice: Number(z.cantidad), puso: 1 };
+      else if (base.formaIa === 'pieza' && !Number.isInteger(cantidadIa) && cantidadIa > 0) {
+        base.piezas = 1; base.iaIncoherencia = { campo: 'cantidadPiezas', dice: cantidadIa, puso: 1 };
       }
       if (z.hojas > 0) {
         base.iaHojas = z.hojas;
