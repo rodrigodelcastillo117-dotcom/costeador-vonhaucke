@@ -1400,7 +1400,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                   </div>
                 )}
                 {area && m2 > 0 && <div className="pieza-calc">= {m2.toFixed(2)} m² <span className="gris">({ins.clase === 'indirecta' ? 'comprado' : 'fabricado'})</span></div>}
-                {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Consumo IA: {c.iaRazon}</span></div>}
+                {c.iaRazon && <div className="pieza-calc"><span className="gris">📐 Evidencia IA (no define el costo): {c.iaRazon}</span></div>}
                 {c.iaNota && <div className="pieza-calc"><span className="gris">IA{c.iaConf ? ` · ${c.iaConf}` : ''}: {c.iaNota}</span></div>}
               </div>
             );
