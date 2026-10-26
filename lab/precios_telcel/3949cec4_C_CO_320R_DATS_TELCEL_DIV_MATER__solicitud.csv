@@ -1,0 +1,41 @@
+,,,solicitud de tabla de comparación:,C-CO-320R DATS TELCEL DIV-MATERIALES 20261002.xlsx,,,,,,,
+,,,fecha:,solicita:,,,,,,,
+,,,2025-01-24 00:00:00,rafael_c.,,,,,,,
+,,,fecha_requerida:,n°_de_días_propuestos,,,,,,,
+,,2024-10-03 00:00:00,,-32630,,,,,,,
+,,,departamento:,dificultad_de_task,,,,,,,
+,,,co_creación_estratégica,intermedio_con_clave_desarrollo_información(s),,,,,,,
+,,,sector_de_venta,diseño,,,,,,,
+,,,corporativo,diseño_vonhaucke,,,,,,,
+,,,tipo_de_venta,moneda,,,,,,,
+,,,tradicional,mxn,,,,,,,
+,,,n°_de_artículos,contabilidad_por_tipo_de_venta,,,,,,,
+,,,1,venta_tradicional_costos_precios_y_descuentos,,,,,,,
+,,,tabla_requerida,detalle_empaque_embalaje,,,,,,,
+,,2024-10-31 00:00:00,cotización_proyecto_vonhaucke,"articulo_empacado_con_espuma_de_1⁄32""_+_cartón_+_película_elástica.",,,,,,,
+,,,mobiliario,detalle_entrega_trasporte_instalación,,,,,,,
+,,,mobiliario_de_línea,"al_cliente_en_vonhaucke_calle_4_no._80._sin_maniobras,_transporte,_instalación.",,,,,,,
+,,,línea,,,,,,,,
+,,,standard_line,,,,,,,,
+,,,modelo,,,,,,,,
+,,,modulor,,,,,,,,
+,,,tipo_empaque_embalaje,,,,,,,,
+,,,emp_jgo_1_unitario_básico,,,,,,,,
+,,,tipo_entrega_trasporte_instalación,,,,,,,,
+,,,ent_1_cliente_vonhaucke,,,,,,,,
+,,,costos_precios_y_descuentos,,,,,,,,
+,,,dirección_co_creación_costos_y_precio,,,,,,,,
+,,,dirección_co_creación_costo_de_producto,dirección_co_creación_costo_de_mano_de_obra,dirección_co_creación_costo_de_gasto_indirecto,dirección_co_creación_precio_volumen_alto,dirección_co_creación_precio_volumen_intermedio,dirección_co_creación_precio_volumen_bajo,,,
+,,,mueble_fabricado,0.1,2.5,1.4,1.5,1.6,%,%,%
+,,,componente_fabricado,0.1,2.5,1.4,1.5,1.6,%,%,%
+,,,mueble_compra_venta,0.01,0.05,1.25,1.3,1.35,%,%,%
+,,,componente_compra_venta,0.05,0.05,1.25,1.3,1.35,%,%,%
+,,,accesorio_compra_venta,0.01,0.05,1.25,1.3,1.35,%,%,%
+,,,servicio_directo,0.1,2.5,1.2,1.2,1.2,%,%,%
+,,,,,,,,,%,%,%
+,,,,,,,,,%,%,%
+,,,,,,,,,%,%,%
+,,,,,,,,,%,%,%
+,,,,,,,,,%,%,%
+,,,,,,,,,%,%,%
+,,,,,,,,,%,%,%

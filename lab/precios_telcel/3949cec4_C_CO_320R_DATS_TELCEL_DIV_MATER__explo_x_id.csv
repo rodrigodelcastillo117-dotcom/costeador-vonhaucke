@@ -1,0 +1,292 @@
+,,,,,,,,,,,,,,,id_01,,,,,,,,,,,
+,,,mueble_fabricado,dirección_co_creación_costo_de_producto,dirección_co_creación_costo_de_gasto_indirecto,0,0,0,0,#REF!,#REF!,#REF!,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,componente_fabricado,#REF!,2.5,0,0,0,0,#REF!,#REF!,#REF!,,,,,,,"
+""Indicadores de Fabricación estimados para Caja de Cobro para DAT'S R5
+Dimensiones y Estructura General:
+
+Se fabrica la estructura general de 1200 mm x 600 mm x 1200 mm con zona de guarda inferior y superficie de trabajo.
+
+Materiales y Acabados:
+
+Se fabrica usando lámina de acero al carbón cal. 18 y cubierta de MDF de 12 mm de espesor, una cara blanca y una cara posterior con acabado en superficie PVC termo formado cristal White.
+
+Componentes del Cuerpo (Zona de Guarda):
+
+Se fabrica el cuerpo en lámina de acero al carbón cal.18 con acabado en pintura en polvo electrostática color blanco marca Tiger Ral. 9016 549/11340 con 40-60 micras de espesor, frente embutido de 65 mm de profundidad en color azul.
+
+Entrepaños (Zona de Guarda):
+
+Se fabrican los entrepaños en lámina de acero al carbón cal. 18 con acabado en pintura en polvo electrostática color blanco marca Tiger Ral. 9016 549/11340 con 40-60 micras de espesor.
+
+Frente (Zona de Trabajo):
+
+Se fabrica el frente en lámina de acero al carbón cal.18 con acabado en pintura en polvo electrostática color azul marca Tiger Ral 5002 49/42220 con 40-60 micras de espesor.
+
+Zoclo Posterior y Cartabones:
+
+Se fabrica el zoclo posterior de 70 mm de alto en lámina de acero al carbón cal. 18, con 4 cartabones reforzados en lámina de acero al carbón cal. 14 con dobleces y tuerca soldada de 3/8"""" NC para recibir nivelador, acabado con pintura en polvo electrostática.
+
+Cubierta para Copete y Superficie de Trabajo:
+
+Se fabrica la cubierta para copete en MDF de 12 mm con una cara laminado blanco y cantos bocelados con una cara posterior acabado con PVC termo formado cristal White.
+
+Se fabrica la superficie de trabajo en MDF de 12 mm de espesor con una cara laminado blanco, con cantos bocelados y una cara posterior acabado con PVC termo formado cristal White, incluyendo pasa cables de PVC de 2"""" Ǿ en el centro de la cubierta.
+
+Otros Componentes:
+
+Se fabrica el copete tipo tambor de 75 mm de espesor.
+
+Se fabrica la guía para cables en el respaldo parte central en el perfil de lámina de acero al carbón cal. 18.
+
+Se instala el multicontacto de 6 salidas.
+
+Se fabrican los niveladores de acero cal. 14 troquelados y formados 2""""Ø con perno roscado de ⅜"""" Ø, acabado cromo, con tuerca para ajustar altura y nivelar a piso.
+
+Se incluye el cable de acometida eléctrica con cable uso rudo de 3 x 16 con clavija de uso rudo polarizada, longitud de 2.5 mts.
+
+Se colocan 1 sticker (logo Telcel) frontal en vinil blanco marca LG HI auto adherible de 410 mm x 90 mm.
+
+Se colocan 2 stickers (logo Telcel) laterales en vinil azul marca LG HI auto adherible de 410 mm x 90 mm.""",,,,,,,
+,,,mueble_compra_venta,#REF!,2.5,0,0,0,0,#REF!,#REF!,#REF!,,,10,,,, ,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,,,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,,,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,,,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,,,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,,,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,,,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,,,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,, ,,,id_01,id_01 costo_total:,0
+,,,,,,,,,,,,,,,,,,,,, ,,,,,
+,,,,,,,,,,,,,,,,,,,,, ,,,,,
+,,,,,,,,,,,,,,,id_01,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,"LISTA MATERIALES METAL ""VITRINA HORIZONTAL""",,,,,,,
+,,,,,,,,,,,,,,,,,,MVLSLA05260402,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - """"LN18310""""""",-, ,Hoja,2024-05-27 00:00:00,571.54,3.04,1737.48
+,,,,,,,,,,,,,,,,,,MVLSLA05270402,"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - """"LN18410""""""",-, ,Hoja,2024-06-27 00:00:00,751.14,0.88,661
+,,,,,,,,,,,,,,,,,,MVLSLA05270402,"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - """"LN18410""""""",-, ,Hoja,2024-06-27 00:00:00,751.14,0.53,398.1
+,,,,,,,,,,,,,,,,,,MVLSLA05270202,"LAMINA NEGRA HOJA 4 X 10 CALIBRE 14 ACERO 1008 - """"LN14410""""""",-, ,Hoja,2024-06-24 00:00:00,1190.49,0.04,47.62
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A529,COLOR METAL BLANCO 9016 549/11340 TELCEL MELEMA ,Kg,2020-07-08 00:00:00,171.01,2.11,360.83
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A10,COLOR METAL RAL 5002 49/42220 SM GL TRIBO (AZUL TELCEL) ,Kg,2018-08-28 00:00:00,249.58,0.21,52.41
+,,,,,,,,,,,,,,,,,,MLEMTM01040000,"TIRA DE MADERA DE PINO DE SEGUNDA DE  5 CMS. DE ANCHO  X  3/4""  (1.9 CMS) DE ESPESOR,  POR 250 CMS. DE LARGO   - ""TMP534250""",-, ,pieza,2024-05-31 00:00:00,47.43,6.4,303.55
+,,,,,,,,,,,,,,,,,,MLEMTM01050000,"TIRA DE MADERA DE PINO DE SEGUNDA DE  10 CMS DE ANCHO X 1 1/4""  (3.2 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - ""TMP10114250""",-, ,pieza,2024-07-03 00:00:00,189.75,0.76,144.21
+,,,,,,,,,,,,,,,,,,MLEMTM01060000,"TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X  3/4"" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - ""TMP1034250""",-, ,pieza,2024-07-03 00:00:00,94.87,8.2,777.93
+,,,,,,,,,,,,,,,,,,,,,,,,id_01,id_01 costo_total:,4483.13
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,id_01_01,,,,"LISTA MATERIALES HERRAJES ""VITRINA HORIZONTAL""",,,,,,,
+,,,,,,,,,,,,,,,,,,ADHESIVOUV,"ULTRACURE® 701, ADHESIVO UV DE BAJA VISCOSIDAD",-, ,pieza, ,2169.72,0.25,542.43
+,,,,,,,,,,,,,,,,,,MVLAJA24Q8G105,JALADERA PARA EMBUTIR TIPO SECRETARIAL MARCA RISH DE 100 X 44 X 15 mm ACABADO CROMO,-, ,pieza,2022-02-04 00:00:00,94.8,3,284.4
+,,,,,,,,,,,,,,,,,,MVLUTO15171109,"TORNILLO NIVELADOR Ø 3/8"" X 1"" PLATAFORMA DE Ø 2"" CROMADO - ""TO3812NIC""",-, ,pieza,2024-01-31 00:00:00,40.7,4,162.8
+,,,,,,,,,,,,,,,,,,MVLUTU22540002,"TUERCA HEXAGONAL Ø 3/8""""  GALVANIZADO - """"TU38HE""""""",-, ,pieza,2024-05-07 00:00:00,0.62,8,4.96
+,,,,,,,,,,,,,,,,,,MVLABI19000000,"BISAGRA BIDIMENSIONAL, MONTAJE SOBREPUESTO, ANGULO DE 110°    - """"BIBI""""""",-, ,pieza,2024-03-05 00:00:00,13.66,4,54.64
+,,,,,,,,,,,,,,,,,,CRISTTEMPLAT,CRISTAL  DE 550 X 249 mm ESPESOR 6 mm CANTOS PULIDOS TEMPLADO,-, ,pieza, ,110.93,2,221.86
+,,,,,,,,,,,,,,,,,,CRISTTEMPCUB,CRISTAL  DE 1150 X 550 mm ESPESOR 6 mm CANTOS PULIDOS TEMPLADO,-, ,pieza, ,465.24,1,465.24
+,,,,,,,,,,,,,,,,,,CRISTTEMPFRE,CRISTAL  DE 1137 X 249 mm ESPESOR 6 mm CANTOS PULIDOS TEMPLADO,-, ,pieza, ,215.42,1,215.42
+,,,,,,,,,,,,,,,,,,CANALUM,CANAL DE ALUMINIO 1.6 X 9.5 X 9.5 MM X 3.66 MTS,-, ,pieza, ,79.2,0.67,53.06
+,,,,,,,,,,,,,,,,,,MLEQSC00000000,SILICON TRANSPARENTE PRESENTACION DE 300 ml DOW CORNING MARCA SISTA BUILDING 781 -- AD-0008,-, ,pieza,2024-05-24 00:00:00,139.2,0.22,30.62
+,,,,,,,,,,,,,,,,,,TERMOFORMADO,ESCALINATA / MARIMBA TERMOFORMADO EN ACRILICO Z2 DE 4 MM,-, ,pieza, ,2840.5,1,2840.5
+,,,,,,,,,,,,,,,,,,MLEAJG130000V0,"JUEGO DE CORREDERAS DERECHA, IZQUIERDA DE EXTENSION PARA MUEBLE METALICO SIN TORNILLOS 20"" ACABADO NIQUELADO, MODELO 3584 - ""COEME20N""",-, ,jgo,2024-07-08 00:00:00,93.6,1,93.6
+,,,,,,,,,,,,,,,,,,MVLEKT03000086,"KIT DE ILUMIN: 2 LUMIN. LINEAL 2100MM C/CONEC PLUG/JACK Y ARNES DE 3.5M  ILUMIN LED 2835/120 4100K Y 2 LUMIN LINEAL 2290MM C/CONEC PLUG/JACK Y ARNES DE 3.5M C/PERFIL DE ALUM 16011 P/EMPOT, ILUM LED 2835/120 6000K C/TAPAS FUENTE DE 24V 12.5 AMP UL CLASS 2",-, ,pieza,2020-02-28 00:00:00,2535,1,2535
+,,,,,,,,,,,,,,,,,,MVLACE230000V6,"CERRADURA CON CILINDRO CAM LOCK (800650 T 219 W S6 P N A 2 2 11 5 4) No. PARTE 100271 - ""CICL100271""",-, ,pieza,2019-03-22 00:00:00,416,2,832
+,,,,,,,,,,,,,,,,,,MLEAPS00A20005,"PASADOR  MODELO 35 PHILLIPS  ACABADO CROMO - """"P35CR""""""",-, ,pieza,2024-02-16 00:00:00,57.11,1,57.11
+,,,,,,,,,,,,,,,,,,LOGO,"STICKER (LOGO TELCEL) FRONTAL EN VINIL BLANCO MARCA LG HI AUTO ADHERIBLE, DE 800 MM X 228 MM.",-, ,pieza, ,78,1,78
+,,,,,,,,,,,,,,,,,,LOGO,"STICKER (LOGO TELCEL) LATERAL EN VINIL AZUL MARCA LG HI AUTO ADHERIBLE, DE 400 MM X 128 MM.",-, ,pieza, ,19.2,2,38.4
+,,,,,,,,,,,,,,,,,,PLSERIGRAFIADA,PLACA DE IDENTIFICACIÓN EN ALUMINIO CAL. 24 SERIGRAFIADO CON LOS DATOS DEL PROVEEDOR Y NÚMERO DEL PEDIDO,-, ,pieza, ,54,1,54
+,,,,,,,,,,,,,,,,,,MVLUPI03452101,"PIJA CABEZA PLANA PHILLIPS 8 X 1 1/4"" PARA TABLAROCA PAVONADO - ""PITR114""",-, ,pieza,2022-07-14 00:00:00,0.29,100,29
+,,,,,,,,,,,,,,,,,,MIEEPP03110001,"PELICULA PALETIZADO CALIBRE 80 ANCHO 5""  EN ROLLO -- PELPA5 --",-, ,pieza,2024-07-08 00:00:00,38,0.41,15.58
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-, ,rollo,2024-05-13 00:00:00,7.5,0.2,1.5
+,,,,,,,,,,,,,,,,,,MIEECI00140600,ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 m LINEALES EN POLIPROPILENO COLOR TRANSPARENTE  -- CT48 --,-, ,pieza,2024-06-17 00:00:00,22,0.14,3.08
+,,,,,,,,,,,,,,,,,,MIMCSQCR010000,"ESQUINERO DE CARTON EN PAPEL KRAFT DE 2"" X 2"" X 4mm DE ESPESOR, (160 puntos) CON LONGITUD DE 180.0 cm   -- EQCAK224180",-, ,pieza,2023-01-03 00:00:00,16,4,64
+,,,,,,,,,,,,,,,,,,,,,,,,0, costo_total:,8677.2
+,,,,,,,,,,,,,,,id_02,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,"LISTA MATERIALES METAL ""VITRINA TORRE""",,,,,,,
+,,,,,,,,,,,,,,,,,,MVLSLA05260502,LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310,-, ,Hoja,2024-05-27 00:00:00,428.65,1.08,462.94
+,,,,,,,,,,,,,,,,,,MVLSLA05260402,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - """"LN18310""""""",-, ,Hoja,2024-05-27 00:00:00,571.54,2.564,1465.43
+,,,,,,,,,,,,,,,,,,MVLSLA05260202,LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310,-, ,Hoja,2023-12-20 00:00:00,816.48,0.057,46.54
+,,,,,,,,,,,,,,,,,,MVLSTU01080501,"TUBULAR INDUSTRIAL CUADRADO 1"""" CALIBRE 20 PIEZA DE 6000 mm - """"TC201""""""",-, ,pieza,2024-05-21 00:00:00,96.71,0.166,16.05
+,,,,,,,,,,,,,,,,,,MVLSLA05270502,LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACERO 1008 -- LN20410,-, ,Hoja,2024-06-24 00:00:00,571.52,0.166,94.87
+,,,,,,,,,,,,,,,,,,MVLMMR050000E7,"MADERA PARA EMBALAJE DE 1/2"" (13 mm.) DE ESPESOR, 80 mm. (8 cms.) DE ANCHO Y 2500 mm. (2.50 mts.) DE LARGO - ""ME258EX""",-, ,pieza,2018-10-01 00:00:00,26.5,8,212
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A10,COLOR METAL RAL 5002 49/42220 SM GL TRIBO (AZUL TELCEL) ,Kg,2018-08-28 00:00:00,249.58,0.65,162.23
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",-, ,Kg, ,449.06,1.127,506.09
+,,,,,,,,,,,,,,,,,,,,,,,,id_02,id_02 costo_total:,2966.15
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,"LISTA MATERIALES HERRAJES ""VITRINA TORRE""",,,,,,,
+,,,,,,,,,,,,,,,id_02_01,,,MVLPAW64823400,ACRILICO BLANCO 2447 HOJA DE 6 X 8 ESPESOR 4.5 mm -- ACBL45462447,-, ,Hoja,2018-07-18 00:00:00,3155,0.25,788.75
+,,,,,,,,,,,,,,,,,,MVLUTU22550002,"TUERCA HEXAGONAL Ø 3/16""""  GALVANIZADO - """"TU316HE""""""",-, ,pieza,2022-08-10 00:00:00,0.16,4,0.64
+,,,,,,,,,,,,,,,,,,MVLUTU22520002,"TUERCA HEXAGONAL Ø1/4"" GALVANIZADO -- TU14HE",-, ,pieza,2024-07-03 00:00:00,0.3,8,2.4
+,,,,,,,,,,,,,,,,,,MTLUPE40A87322,"PERILLA MACHO DE CONEXION Ø 1/2"" X 5/16"" CON ESPARRAGO Ø 1/4"" X 5/16"" ALUMINIO PULIDO - ""TAP1214""",-, ,pieza,2018-07-30 00:00:00,11,24,264
+,,,,,,,,,,,,,,,,,,MLEPRV000700E5,"RECORTE DE VINIL  DE 425 X 100 mm  COLOR AZUL CON LOGOTIPO TELCEL - ""TEVTSU-LOBL""",-, ,pieza,2018-10-12 00:00:00,27.3,6,163.8
+,,,,,,,,,,,,,,,,,,MVLUTO17110002,"TORNILLO CABEZA REDONDA PLANA PHILLIPS Ø 1/4"""" X 1/2""""  GALVANIZADO - """"TO1412CAPH""""""",-, ,pieza,2023-10-20 00:00:00,0.85,8,6.8
+,,,,,,,,,,,,,,,,,,MVLUTO42580002,"TORNILLO CON CABEZA CONICA Ø 3/16"" X 3/8""  GALVANIZADO - ""TO31638CC""",-, ,pieza,2018-07-24 00:00:00,0.28,4,1.12
+,,,,,,,,,,,,,,,,,,MVLACE230000V6,"CERRADURA CON CILINDRO CAM LOCK (800650 T 219 W S6 P N A 2 2 11 5 4) No. PARTE 100271 - ""CICL100271""",-, ,pieza,2019-03-22 00:00:00,416,3,1248
+,,,,,,,,,,,,,,,,,,MVLURE28003504,"REMACHE POP  AM-46 ALUMINIO NATURAL - """"REP46""""""",-, ,pieza,2024-06-17 00:00:00,0.31,14,4.34
+,,,,,,,,,,,,,,,,,,MVLACI060600V1,"CINTA DOBLE CAPA 403 PAPEL DE 18 mm X 33 m  MARCA TUK - ""CIDBM4403""",-, ,m,2018-08-10 00:00:00,61.2,5.88,359.86
+,,,,,,,,,,,,,,,,,,MLECCR06NP07Z3,"CRISTAL TRANSPARENTE DE 588 X 997 mm ESPESOR 6 mm CANTOS PULIDOS, TEMPLADO - ""TEVTSU-CR1""",-, ,pieza,2018-10-19 00:00:00,525,2,1050
+,,,,,,,,,,,,,,,,,,MLEAPV63005524,"PIVOTE PARA VITRINA RECTANGULAR  (YBJ - F50 BN) (EN JUEGO) - """"PIVRF50""""""",-, ,jgo,2018-10-08 00:00:00,585,1,585
+,,,,,,,,,,,,,,,,,,MTLATO55M27928,"TOPE PARA PUERTA DE 30 X 13 mm CON CUERDA PARA Ø 1/4"" (MEDIA LUNA) EN ALUMINIO PULIDO - ""VVCNITPC""",-, ,pieza,2018-07-30 00:00:00,18.5,2,37
+,,,,,,,,,,,,,,,,,,MVLUPI10350001,"PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm  PAVONADO - """"PI1015""""""",-, ,pieza,2023-01-17 00:00:00,0.5,8,4
+,,,,,,,,,,,,,,,,,,MVLUTO07110002,"TORNILLO CABEZA DE GOTA Ø1/4"" x 1/2"" GALVANIZADO -- TO14CG",-, ,pieza,2024-03-05 00:00:00,0.4,2,0.8
+,,,,,,,,,,,,,,,,,,MLEPRV000700E4,"RECORTE DE VINIL  DE 425 X 100 mm  COLOR BLANCO CON LOGOTIPO TELCEL - ""TEVTSU-LOBF""",-, ,pieza,2018-10-12 00:00:00,27.3,1,27.3
+,,,,,,,,,,,,,,,,,,MLECCR00NÑ07Z3,"CRISTAL TRANSPARENTE DE 962 X 576 mm ESPESOR 6 mm, 2 BARRENOS DE Ø 20 mm, 2 BARRENOS DE Ø 16 mm, 2 SAQUES DE 28 X 34 mm, ESQUINAS REDONDEADAS, SEGUN PLANO, CANTOS PULIDOS, TEMPLADO ""TEVTSU-CR3""",-, ,pieza,2018-10-15 00:00:00,772.47,1,772.47
+,,,,,,,,,,,,,,,,,,MLECCR00NO060L,"CRISTAL  DE 573 X 573 mm ESPESOR 5 mm CON SAQUE CENTRAL DE 156 X 156 mm Y UN REDONDEO EN LAS ESQUINAS INTERIORES DE RADIO 1/4"", CANTOS PULIDOS, TEMPLADO - ""TEVHSU-EN""",-, ,pieza,2018-11-30 00:00:00,505.21,4,2020.84
+,,,,,,,,,,,,,,,,,,MVLUTO15175209,"TORNILLO NIVELADOR Ø 3/8"" X 1"" PLATAFORMA CONICA DE Ø 1 1/2"" X 5/8"" CROMADO - ""TO381CNIC""",-, ,pieza,2023-12-01 00:00:00,12.1,4,48.4
+,,,,,,,,,,,,,,,,,,MVLABI19008557,"BISAGRA BIDIMENSIONAL  INSERTA G01H91079CGGWS CON BASE G01B2182ZG60L1 (EN JUEGO 1 BASE Y 1 BISAGRA)-- """" BIBIPI""""",-, ,pieza,2022-10-04 00:00:00,21.35,2,42.7
+,,,,,,,,,,,,,,,,,,MVLEKT030000A4,"KIT DE ILUMIN P/TORRE TELCEL: 2M DE TIRA LED 2835/120 6500K P/CUBO, 4 MODULOS DE 3W 6500K P/BASE CUBO Y 4M DE TIRA LED 2835/120 6500K P/TORRE C/FUENTE DE 12V 12.5A Y CABLE TOMACOR. DE 3M, CLAVIJA ANGULAR POLARIZADA. INC/ARNES DE CONEC. - ""KITTEVTSU""",-, ,pieza,2019-08-15 00:00:00,2500,1,2500
+,,,,,,,,,,,,,,,,,,MLECCR06NQ07Z3,"CRISTAL TRANSPARENTE DE 594 X 997 mm ESPESOR 6 mm CANTOS PULIDOS, TEMPLADO - ""TEVTSU-CR2""",-, ,pieza,2018-10-19 00:00:00,527.8,1,527.8
+,,,,,,,,,,,,,,,,,,MVLATO42480000,"TOPE BUMPON TRANSPARENTE DE POLIURETANO CON ADHESIVO ACRILICO 12 mm DE ANCHO X 3 mm DE ALTO SJ-5312 DE 3M  - """"BTSJ""""""",-, ,pieza,2022-11-29 00:00:00,0.97,2,1.94
+,,,,,,,,,,,,,,,,,,MVLEAN008500A8,"ARNES DE 2.5 MTS  DE LARGO CON UN CONTACTO DOBLE, UN APAGADOR Y UN TERMOMAGNETICO  -  TELARNTMVHV",-, ,pieza,2018-10-11 00:00:00,477.6,1,477.6
+,,,,,,,,,,,,,,,,,,MLEECL000200A9,"CAMBIO DE CLAVIJA  DE 50 CM  PARA KIT´S DE ILUMINACION LED DE VITRINA TORRE Y HORIZONTAL - ""CC50KIL""",-, ,pieza,2018-09-18 00:00:00,48,1,48
+,,,,,,,,,,,,,,,,,,MIEEPP03110001,"PELICULA PALETIZADO CALIBRE 80 ANCHO 5""  EN ROLLO -- PELPA5 --",-, ,pieza,2024-07-08 00:00:00,38,0.3,11.4
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-, ,rollo,2024-05-13 00:00:00,7.5,0.14,1.05
+,,,,,,,,,,,,,,,,,,MIEECI00140600,ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 m LINEALES EN POLIPROPILENO COLOR TRANSPARENTE  -- CT48 --,-, ,pieza,2024-06-17 00:00:00,22,0.12,2.64
+,,,,,,,,,,,,,,,,,,MIMCSQCR010000,"ESQUINERO DE CARTON EN PAPEL KRAFT DE 2"" X 2"" X 4mm DE ESPESOR, (160 puntos) CON LONGITUD DE 180.0 cm   -- EQCAK224180",-, ,pieza,2023-01-03 00:00:00,16,4,64
+,,,,,,,,,,,,,,,,,,MVLUPI03452101,"PIJA CABEZA PLANA PHILLIPS 8 X 1 1/4"" PARA TABLAROCA PAVONADO - ""PITR114""",-, ,pieza,2022-07-14 00:00:00,0.29,50,14.5
+,,,,,,,,,,,,,,,,,,,,,,,,0, costo_total:,11077.15
+,,,,,,,,,,,,,,,id_03,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,"LISTA MATERIALES METAL ""VITRINA ISLA""",,,,,,,
+,,,,,,,,,,,,,,,,,,MVLSLA05280402,"LAMINA NEGRA HOJA 4' X 8' CALIBRE 18 ACERO 1008 - ""LN1848""",-, ,Hoja,2017-05-12 00:00:00,585.51,0.6,351.31
+,,,,,,,,,,,,,,,,,,MVLSLA05260402,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - """"LN18310""""""",-, ,Hoja,2024-05-27 00:00:00,571.54,0.13,74.3
+,,,,,,,,,,,,,,,,,,MVLSTU01080401,"TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 18 PIEZA DE 6000 mm - TC181",-, ,pieza,2024-06-17 00:00:00,132.5,2.75,364.38
+,,,,,,,,,,,,,,,,,,MPMTLA01030601,LAMINA NEGRA HOJA 4' X 8' CALIBRE 14 ACERO 1008  --  LN4814ACE,-, , , ,900.38,0.02,18.01
+,,,,,,,,,,,,,,,,,,LN1838,"LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO 1008 - """"LN1838""""""",-, , , ,722.46,0.5,361.23
+,,,,,,,,,,,,,,,,,,MVLSLA05270402,"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - """"LN18410""""""",-, ,Hoja,2024-06-27 00:00:00,751.14,0.09,67.6
+,,,,,,,,,,,,,,,,,,LN2038,"LAMINA NEGRA HOJA 3 X 8 CALIBRE 20 ACERO 1008 - """"LN2038""""""",-, , , ,541.86,0.25,135.47
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A529,COLOR METAL BLANCO 9016 549/11340 TELCEL MELEMA ,Kg,2020-07-08 00:00:00,171.01,1.18,201.79
+,,,,,,,,,,,,,,,,,,MLEMTM01040000,"TIRA DE MADERA DE PINO DE SEGUNDA DE  5 CMS. DE ANCHO  X  3/4""  (1.9 CMS) DE ESPESOR,  POR 250 CMS. DE LARGO   - ""TMP534250""",-, ,pieza,2024-05-31 00:00:00,47.43,9,426.87
+,,,,,,,,,,,,,,,,,,MLEMTM01050000,"TIRA DE MADERA DE PINO DE SEGUNDA DE  10 CMS DE ANCHO X 1 1/4""  (3.2 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - ""TMP10114250""",-, ,pieza,2024-07-03 00:00:00,189.75,1.07,203.03
+,,,,,,,,,,,,,,,,,,MLEMTM01060000,"TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X  3/4"" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - ""TMP1034250""",-, ,pieza,2024-07-03 00:00:00,94.87,11.53,1093.85
+,,,,,,,,,,,,,,,,,,,,,,,,id_03,id_03 costo_total:,3297.84
+,,,,,,,,,,,,,,,id_03_01,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,"LISTA MATERIALES HERRAJES ""VITRINA ISLA""",,,,,,,
+,,,,,,,,,,,,,,,,,,MVLUTO15171109,"TORNILLO NIVELADOR Ø 3/8"" X 1"" PLATAFORMA DE Ø 2"" CROMADO - ""TO3812NIC""",-, ,pieza,2024-01-31 00:00:00,40.7,4,162.8
+,,,,,,,,,,,,,,,,,,MVLUTU22540002,"TUERCA HEXAGONAL Ø 3/8""""  GALVANIZADO - """"TU38HE""""""",-, ,pieza,2024-05-07 00:00:00,0.62,8,4.96
+,,,,,,,,,,,,,,,,,,CRISTREPISA,"CRISTAL  DE 1142 X 280 mm ESPESOR 6 mm CON CANTOS PULIDOS, 2 BARRENOS DE Ø 1 1/8"" TEMPLADO - ""TVI47EC""",-, ,pieza, ,332.55,5,1662.75
+,,,,,,,,,,,,,,,,,,CRISTLATERAL,"CRISTAL  DE 1900 X 397 mm ESPESOR 6 mm CON CANTOS PULIDOS Y 4 BARRENOS DE Ø 1/2"" TEMPLADO - ""TVI47CCE6""",-, ,pieza, ,784.47,7,5491.29
+,,,,,,,,,,,,,,,,,,CRISTPUERTA,"CRISTAL  DE 1900 X 397 mm ESPESOR 6 mm CON CANTOS PULIDOS, 2 BARRENOS DE Ø 19 mm, 2 BARRENOS DE 16 mm Y 2 SAQUES DE 28 X 36 mm - ""TVI47PCE6""",-, ,pieza, ,784.47,1,784.47
+,,,,,,,,,,,,,,,,,,"TUB1""CED30","TUBO REDONDO CRS 1"" CED.30 X 6 MTS",-, ,pieza, ,346.8,0.67,232.36
+,,,,,,,,,,,,,,,,,,MLEABD00711611,"BRIDA  Ø 2 1/2"""" CON 1 BARRENO DE Ø 1"""" Y 3 BARRENOS LATERALES (CADA 120°) CON CUERDA DE Ø 3/16"""" ESPESOR 1/2"""" EN ALUMINIO - """"BRA212""""""",-, ,pieza,2011-08-15 00:00:00,48,24,1152
+,,,,,,,,,,,,,,,,,,RONPET,RONDANA DE PET G ESP. 2 MM,-, ,pieza, ,2.78,56,155.68
+,,,,,,,,,,,,,,,,,,CHAPINOX,"CHAPETONES DE ACERO INOXIDABLE MAQUINADO ESPECIAL CON CUERDA DE ¼"" Ø X 7/8""",-, ,pieza, ,30,28,840
+,,,,,,,,,,,,,,,,,,MLEAPV63005524,"PIVOTE PARA VITRINA RECTANGULAR  (YBJ - F50 BN) (EN JUEGO) - """"PIVRF50""""""",-, ,jgo,2018-10-08 00:00:00,450.43,1,450.43
+,,,,,,,,,,,,,,,,,,CERRCRISTAL,CERRADURA PARA PUERTA SENCILLA DE CRISTAL V7-24,-, ,pieza, ,326.72,2,653.44
+,,,,,,,,,,,,,,,,,,LOGO,"STICKER (LOGO TELCEL) FRONTAL EN VINIL COLOR BLANCO LG HI AUTO ADHERIBLE, DE 523 MM X 150 MM.",-, ,pieza, ,51,2,102
+,,,,,,,,,,,,,,,,,,LAMPLED,LÁMPARA LED MR16 TIPO SPOT DE 7 WATTS BLANCO FRIO,-, ,pieza, ,20.88,4,83.52
+,,,,,,,,,,,,,,,,,,SEPALUM3/4,SEPARADORES DE ALUMINIO 19 MM DIAMETRO V9-46,-, ,pieza, ,41.42,2,82.84
+,,,,,,,,,,,,,,,,,,APAGADOR,"SWITCH MINIATURA, DE BALANCÍN, DE 1 POLO, 1 TIRO, 2 POSICIONES",-, ,pieza, ,9,1,9
+,,,,,,,,,,,,,,,,,,CABUSORUDO3X16,CABLE USO RUDO 3X16 AWG 600V. INDIANA,-, ,pieza, ,18,2.5,45
+,,,,,,,,,,,,,,,,,,CABCAL14,CABLE THWLS VINANEL-XXI CAL. 14 AWG. 600V. 90°C COLOR NEGRO. MCA. CONDUMEX,-, ,pieza, ,6.86,3,20.58
+,,,,,,,,,,,,,,,,,,CABCAL14,CABLE THWLS VINANEL-XXI CAL. 14 AWG. 600V. 90°C COLOR BLANCO. MCA. CONDUMEX,-, ,pieza, ,6.86,3,20.58
+,,,,,,,,,,,,,,,,,,CLAVBLIND,CLAVIJA BLINDADA 125 VOLTS GRIS LEVITON,-, ,pieza, ,76,1,76
+,,,,,,,,,,,,,,,,,,BUJE34MM,"BUJES DE SUJECIÓN FABRICADO EN COLD ROLLED DE 34 MM Ø CON CUERDA DE ⅜"" Ø NC",-, ,pieza, ,150,2,300
+,,,,,,,,,,,,,,,,,,ROLDPRES3/8,"ROLDANAS DE PRESIÓN GALVANIZADAS PARA SUJECIÓN DE TORNILLO ⅜"" Ø",-, ,pieza, ,1.24,4,4.96
+,,,,,,,,,,,,,,,,,,TORCABHEX3/8,"TORNILLOS DE CABEZA HEXAGONAL ⅜"" Ø NC GALVANIZADO",-, ,pieza, ,7.18,4,28.72
+,,,,,,,,,,,,,,,,,,LOCTITE,LOCTITE 495,-, ,pieza, ,337.16,0.25,84.29
+,,,,,,,,,,,,,,,,,,MVLEPL0408C8A6,"PLACA DE ALUMINIO DE 35 X 20 mm CALIBRE 24 PARA IDENTIFICACION EN ALUMINIO CON 2 BARRENOS DE Ø1/8. SERIGRAFIA COLOR GRIS OXFORD CON LEYENDA PEDIDO  207200554619 Y LOGOTIPO VONHAUCKE - ""PLASEVH""",-, ,pieza,00:00:00,45,1,45
+,,,,,,,,,,,,,,,,,,MIEEPP03110001,"PELICULA PALETIZADO CALIBRE 80 ANCHO 5""  EN ROLLO -- PELPA5 --",-, ,pieza,2024-07-08 00:00:00,38,0.65,24.7
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-, ,rollo,2024-05-13 00:00:00,7.5,0.28,2.1
+,,,,,,,,,,,,,,,,,,MIEECI00140600,ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 m LINEALES EN POLIPROPILENO COLOR TRANSPARENTE  -- CT48 --,-, ,pieza,2024-06-17 00:00:00,22,0.12,2.64
+,,,,,,,,,,,,,,,,,,MIMCSQCR010000,"ESQUINERO DE CARTON EN PAPEL KRAFT DE 2"" X 2"" X 4mm DE ESPESOR, (160 puntos) CON LONGITUD DE 180.0 cm   -- EQCAK224180",-, ,pieza,2023-01-03 00:00:00,16,4,64
+,,,,,,,,,,,,,,,,,,MVLUPI03452101,"PIJA CABEZA PLANA PHILLIPS 8 X 1 1/4"" PARA TABLAROCA PAVONADO - ""PITR114""",-, ,pieza,2022-07-14 00:00:00,0.29,100,29
+,,,,,,,,,,,,,,,,,,,,,,,,id_03_01,id_03_01 costo_total:,12615.11
+,,,,,,,,,,,,,,,id_04,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,"MODULO DE ALMACENAMIENTO
+
+""METAL""",,,,,,,
+,,,,,,,,,,,,,,,,,,,"LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO 1008 - """"LN1838""""""",-, , , ,722.46,1,722.46
+,,,,,,,,,,,,,,,,,,MVLSLA05260402,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - """"LN18310""""""",-, ,Hoja,2024-05-27 00:00:00,571.54,1.62,925.89
+,,,,,,,,,,,,,,,,,,MVLSLA05280402,"LAMINA NEGRA HOJA 4' X 8' CALIBRE 18 ACERO 1008 - ""LN1848""",-, ,Hoja,2017-05-12 00:00:00,585.51,0.49,286.9
+,,,,,,,,,,,,,,,,,,MVLSLA05270402,"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - """"LN18410""""""",-, ,Hoja,2024-06-27 00:00:00,751.14,1,751.14
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A529,COLOR METAL BLANCO 9016 549/11340 TELCEL MELEMA ,Kg,2020-07-08 00:00:00,171.01,2.15,367.67
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A10,COLOR METAL RAL 5002 49/42220 SM GL TRIBO (AZUL TELCEL) ,Kg,2018-08-28 00:00:00,249.58,0.15,37.44
+,,,,,,,,,,,,,,,,,,MVLABI19000000,"BISAGRA BIDIMENSIONAL, MONTAJE SOBREPUESTO, ANGULO DE 110°    - """"BIBI""""""",-, ,pieza,2024-03-05 00:00:00,13.66,4,54.64
+,,,,,,,,,,,,,,,,,,,"Superficie de trabajo, cubierta MDF 12mm una cara laminado blanco con una cara posterior acabado superficie PVC termo formado cristal White.",-, , , ,1800,0.25,450
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_04,id_04 costo_total:,3596.14
+,,,,,,,,,,,,,,,id_04_01,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,"MODULO DE ALMACENAMIENTO
+
+""HERRAJES""",,,,,,,
+,,,,,,,,,,,,,,,30,,,BUJES,"BUJE DE ALUMINIO 3/4""",-, , , ,136,6,816
+,,,,,,,,,,,,,,,,,,MLEAJG130000V0,"JUEGO DE CORREDERAS DERECHA, IZQUIERDA DE EXTENSION PARA MUEBLE METALICO SIN TORNILLOS 20"" ACABADO NIQUELADO, MODELO 3584 - ""COEME20N""",-, ,jgo,2024-07-08 00:00:00,92.7,2,185.4
+,,,,,,,,,,,,,,,,,,MVLUTO15171109,"TORNILLO NIVELADOR Ø 3/8"" X 1"" PLATAFORMA DE Ø 2"" CROMADO - ""TO3812NIC""",-, ,pieza,2024-01-31 00:00:00,40.7,4,162.8
+,,,,,,,,,,,,,,,,,,MVLUTU22540002,"TUERCA HEXAGONAL Ø 3/8""""  GALVANIZADO - """"TU38HE""""""",-, ,pieza,2024-05-07 00:00:00,0.62,8,4.96
+,,,,,,,,,,,,,,,,,,CILINCHAPITAS,CILINDRO DE CHAPITAS NUCLEO INTERCAMBIABLE PLW SYMO 210.40.600.,-, , , ,53.27,3,159.81
+,,,,,,,,,,,,,,,,,,CERRPALETA,CERRADURA DE PALETA FIJACIÓN TUERCA 90° / 235.88.600.,-, , , ,43.87,3,131.61
+,,,,,,,,,,,,,,,,,,JALEMBUTIR,JALADERA DE EMBUTIR CROMO SATIN 96 MM 342 ASHICO,-, , , ,78,4,312
+,,,,,,,,,,,,,,,,,,LOGO,"STICKER (LOGO TELCEL) FRONTAL EN VINIL BLANCO MARCA LG HI AUTO ADHERIBLE, DE 410MM X 90MM.",-, , , ,25,1,25
+,,,,,,,,,,,,,,,,,,LOGO,"STICKER (LOGO TELCEL) LATERAL EN VINIL AZUL MARCA LG HI AUTO ADHERIBLE, DE 410MM X 90MM.",-, , , ,25,2,50
+,,,,,,,,,,,,,,,,,,PLSERIGRAFIADA,PLACA DE IDENTIFICACIÓN EN ALUMINIO CAL. 24 SERIGRAFIADO CON LOS DATOS DEL PROVEEDOR Y NÚMERO DEL PEDIDO,-, , , ,45,1,45
+,,,,,,,,,,,,,,,,,,,emp_jgo_5_unitario_en_jaula_de_madera_empaque_basico,-, , , ,2119.66,0.7,1483.76
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_04_01,id_04_01 costo_total:,3376.34
+,,,,,,,,,,,,,,,id_05,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,0,,,,,,,
+,,,,,,,,,,,,,,,90,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_05,id_05 costo_total:,0
+,,,,,,,,,,,,,,,id_05_01,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,0,,,,,,,
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-, , , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_05_01,id_05_01 costo_total:,0
