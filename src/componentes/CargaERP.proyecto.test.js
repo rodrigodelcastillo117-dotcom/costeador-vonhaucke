@@ -21,4 +21,10 @@ describe('CargaERP · workbooks reales de proyecto', () => {
     expect(src).toContain('lo antiguo queda preliminar');
     expect(src).toContain('nunca se convierte en certificado');
   });
+  it('muestra las brechas de la fuente antes de cargar', () => {
+    for (const texto of ['Sin clave comercial (no se inventa)', 'Sin unidad en la fuente', 'Sin fecha de última compra', 'Sin costo real en la fuente']) {
+      expect(src).toContain(texto);
+    }
+  });
+
 });
