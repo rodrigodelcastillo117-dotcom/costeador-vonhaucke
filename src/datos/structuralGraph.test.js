@@ -155,3 +155,31 @@ describe('StructuralGraph legacy · evidencia', () => {
     expect(bom.filas[0].requiere_confirmacion).toBe(true);
   });
 });
+
+
+describe('TELCEL · StructuralGraph no confunde consumo físico con cantidad estructural', () => {
+  it('45 kg de lámina = 1 estructura, no estructura ×45', () => {
+    const g = graphFromPropuesta({
+      design_intent: { product_type: 'vitrina', module_count: 1 },
+      piezas: [{
+        nombre: 'Cuerpo/gabinete lámina cal.18',
+        insumoId: 'lamina-18',
+        cantidad: 45,
+        unidad: 'kg',
+        largoMM: 1200,
+        anchoMM: 600,
+        semantic_role: 'estructura',
+      }],
+    });
+    expect(g.nodes[0].quantity).toBe(1);
+    expect(validateStructuralGraph(g).ok).toBe(true);
+  });
+
+  it('4 piezas explícitas siguen siendo 4', () => {
+    const g = graphFromPropuesta({
+      design_intent: { product_type: 'vitrina', module_count: 1 },
+      piezas: [{ nombre: 'Niveladores', insumoId: 'nivelador', cantidad: 4, unidad: 'pza', semantic_role: 'pata' }],
+    });
+    expect(g.nodes[0].quantity).toBe(4);
+  });
+});

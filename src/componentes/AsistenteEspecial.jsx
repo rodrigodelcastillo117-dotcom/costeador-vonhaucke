@@ -1275,7 +1275,11 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                   {analisis.confianzaGeneral && <span className={'ia-badge ia-conf-' + analisis.confianzaGeneral}>Confianza {analisis.confianzaGeneral}</span>}
                 </div>
                 {analisis.confianzaGeneral === 'baja' && (
-                  <div className="ia-nota-conf">La imagen no trae escala, así que las medidas son <strong>estimadas</strong>. Dame <strong>una medida real</strong> (p. ej. el largo total) y la precisión sube a alta.</div>
+                  <div className="ia-nota-conf">
+                    {(b.imagen || (Array.isArray(b.planos) && b.planos.length > 0))
+                      ? <>El plano o imagen no trae escala/cotas suficientes, así que las medidas son <strong>estimadas</strong>. Dame <strong>una medida real</strong> (p. ej. el largo total) y la precisión sube.</>
+                      : <>Estas medidas provienen de tu descripción y son <strong>estimadas</strong>. Confírmalas si necesitas precisión de fabricación.</>}
+                  </div>
                 )}
                 {lecturaIA && (
                   <div className="ia-nota-conf" data-testid="lectura-incompleta" role="alert" style={{ borderLeft: '4px solid var(--rojo,#E5484D)', paddingLeft: 8, marginTop: 8 }}>

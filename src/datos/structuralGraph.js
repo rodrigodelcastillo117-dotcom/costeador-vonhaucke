@@ -89,7 +89,14 @@ export function graphFromPropuesta(propuesta = {}) {
   const di = propuesta.design_intent && typeof propuesta.design_intent === 'object' ? propuesta.design_intent : {};
   const nodes = piezas.map((p, i) => {
     const role = p.semantic_role && String(p.semantic_role).trim() ? String(p.semantic_role).trim() : rolDe(p.nombre || p.insumoId || '');
-    const qty = Math.max(1, Math.round(Number(p.cantidad ?? p.piezas) || 1));
+    // TELCEL 26-oct: cantidad=45, unidad=kg describe CONSUMO, no 45 estructuras.
+    // El grafo representa objetos estructurales; sólo usa cantidad como multiplicidad cuando
+    // la unidad es de conteo (o viene ausente, contrato legado). kg/m/m²/hoja/rollo son evidencia
+    // de consumo y nunca se convierten en "×45" nodos/piezas.
+    const unidad = norm(p.unidad);
+    const unidadConteo = !unidad || /^(?:pza|pzas|pieza|piezas|unidad|unidades|ud)$/.test(unidad);
+    const qtyRaw = p.piezas ?? (unidadConteo ? p.cantidad : 1);
+    const qty = Math.max(1, Math.round(Number(qtyRaw) || 1));
     const geometry = (p.largoMM || p.anchoMM)
       ? { type: 'panel', length_mm: p.largoMM ?? null, width_mm: p.anchoMM ?? null, height_mm: null, thickness_mm: null }
       : { type: 'unknown', length_mm: null, width_mm: null, height_mm: null, thickness_mm: null };
