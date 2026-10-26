@@ -174,14 +174,21 @@ describe('huella del mueble: redondos y altura rotulada no disparan un falso "pi
   });
 });
 
-// P1-COST-01 · test #6 · PARIDAD cliente/servidor. costear-servidor/index.ts importa el MISMO
-// `revisarEstructura` de este módulo y deriva sus bloqueos con `o.nivel === 'blocker'`. Por tanto
-// el veredicto es idéntico por construcción (un solo módulo, no dos implementaciones). Este test
-// reproduce EXACTAMENTE esa derivación del servidor y comprueba que cliente y servidor coinciden:
-// la mesa redonda NO bloquea en ninguno; una pieza realmente mayor bloquea en ambos.
-describe('P1-COST-01 · paridad cliente/servidor del veredicto estructural (módulo compartido)', () => {
-  // Misma derivación que costear-servidor/index.ts: bloqueos = observaciones con nivel 'blocker'.
-  const bloqueosServidor = (r) => (r.observaciones || []).filter((o) => o.nivel === 'blocker').map((o) => o.regla || o.mensaje);
+// COST-01 · SEMÁNTICA COMPARTIDA del validador estructural.
+// `revisarEstructura` es un único módulo: dada la MISMA entrada su veredicto es el mismo lo llame
+// quien lo llame, y los bloqueos se derivan de las observaciones con nivel 'blocker'. Esto comprueba
+// esa semántica cuando medidasGenerales ESTÁ presente: la mesa redonda no marca medida_imposible y
+// un panel realmente mayor sí.
+// ⚠ Esto NO prueba paridad del flujo de costeo autoritativo normal. Hoy src/datos/costeoServidor.js
+// llama revisarEstructura SIN medidasGenerales, así que la regla medida_imposible (huellaDelMueble)
+// no se ejecuta en el costeo normal; sólo el camino COCREAR de la Edge pasa medidasGenerales.
+//
+// TODO COST-01-SRV (ABIERTO): costearConMotor debe recibir/preservar medidasGenerales y ejecutar la
+// misma validación de huella en el camino autoritativo normal. Mientras no lo haga, este bloque
+// prueba la semántica del módulo, no la paridad del servidor normal.
+describe('COST-01 · semántica compartida del validador estructural (misma entrada → mismo veredicto)', () => {
+  // Bloqueos derivados como lo hace cualquier consumidor del módulo: observaciones con nivel 'blocker'.
+  const bloqueos = (r) => (r.observaciones || []).filter((o) => o.nivel === 'blocker').map((o) => o.regla || o.mensaje);
   const mesaRedonda = {
     descripcion: 'Mesa de juntas redonda para 12, base central tipo araña, electrificación.',
     medidasGenerales: '1800 Ø x 750 alto mm',
@@ -195,15 +202,15 @@ describe('P1-COST-01 · paridad cliente/servidor del veredicto estructural (mód
     medidasGenerales: '1200 Ø x 740 alto mm',
     componentes: [{ nombre: 'Cubierta', insumoId: 'melamina', largoMM: 1600, anchoMM: 800 }],
   };
-  it('mesa redonda: ni cliente ni servidor marcan medida_imposible (mismo veredicto: costeable)', () => {
+  it('con medidasGenerales presentes, la mesa redonda NO marca medida_imposible (costeable)', () => {
     const r = revisarEstructura(mesaRedonda);
-    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(false); // cliente
-    expect(bloqueosServidor(r)).not.toContain('medida_imposible');                    // servidor (misma función)
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(false); // vía observaciones.some
+    expect(bloqueos(r)).not.toContain('medida_imposible');                            // vía nivel 'blocker' (misma función)
   });
-  it('oversize real: cliente y servidor lo bloquean por igual (mismo veredicto: rechazo)', () => {
+  it('con medidasGenerales presentes, un panel realmente mayor SÍ bloquea (rechazo)', () => {
     const r = revisarEstructura(oversizeReal);
-    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);    // cliente
-    expect(bloqueosServidor(r)).toContain('medida_imposible');                         // servidor
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);    // vía observaciones.some
+    expect(bloqueos(r)).toContain('medida_imposible');                                 // vía nivel 'blocker' (misma función)
   });
 });
 
