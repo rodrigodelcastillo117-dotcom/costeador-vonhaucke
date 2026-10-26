@@ -1,41 +1,35 @@
 # TELCEL_PARITY_GAP — C-CO-320R
 
-**Base auditada:** `f822958a24d6ce601c9024608a656953e02a2200`  
+**Base inicial:** `f822958a24d6ce601c9024608a656953e02a2200`  
 **Fuente:** workbook real Von Haucke 2026-10-02, exportado a `lab/precios_telcel/3949cec4_C_CO_320R_DATS_TELCEL_DIV_MATER__explo_x_id.csv`.  
-**Alcance de este cierre:** cuatro renglones **METAL**. No se modificó Supabase, catálogo, precios productivos, Edge, Vercel ni motor.
+**Alcance:** cuatro renglones **METAL**. No se modificó Supabase, catálogo, precios productivos, Edge, Vercel ni motor.
 
-## Hallazgo principal
+## Fronteras exactas del BOM
 
-Los cuatro subtotales METAL se pueden reconstruir de forma determinista directamente desde `consumo_unitario × costo_última_compra` del BOM explotado:
-
-| módulo | id | filas fuente | líneas con costo | suma reconstruida | target workbook | frontera |
+| módulo | id | filas CSV | líneas con costo | suma reconstruida | target workbook | frontera |
 |---|---|---:|---:|---:|---:|---|
-| Vitrina Horizontal · METAL | id_01 | 4–15 | 0 | $0.00 | $0.00 | EXACT |
+| Vitrina Horizontal · METAL | id_01 | 22–30 | 9 | $4483.13 | $4483.13 | EXACT |
 | Vitrina Torre · METAL | id_02 | 61–68 | 8 | $2966.15 | $2966.15 | EXACT |
 | Vitrina Isla · METAL | id_03 | 106–116 | 11 | $3297.84 | $3297.84 | EXACT |
 | Módulo de almacenamiento · METAL | id_04 | 154–170 | 8 | $3596.14 | $3596.14 | EXACT |
 
-Esto permite probar el motor sin copiar el subtotal final: el golden recibe sólo precio + consumo por renglón y exige que `calcular()` produzca el subtotal.
+El golden no recibe esos subtotales como material de entrada: recibe sólo los renglones de consumo y precio, y `calcular()` debe producirlos.
 
-## Corrección importante al resumen previo de 126 líneas
+## Hallazgo de calidad de datos
 
-`COSTEO_TELCEL_C-CO-320R.md` es útil como reconstrucción de **126 renglones con artículo válido**, pero **NO debe tratarse como checksum completo de todo el workbook**.
+`COSTEO_TELCEL_C-CO-320R.md` resume 126 líneas con artículo válido, pero no es checksum completo del workbook. El CSV crudo tiene líneas económicas sin SKU que aquella reconstrucción omite:
 
-El CSV crudo contiene al menos estas líneas económicas sin SKU, omitidas por aquella reconstrucción:
-
-| fila CSV | descripción | precio | consumo | costo | gap |
+| fila | descripción | precio | consumo | costo | gap |
 |---:|---|---:|---:|---:|---|
 | 154 | Lámina negra 3×8 cal.18 (LN1838) | $722.46 | 1 | $722.46 | SKU/UNIDAD ausentes |
 | 161 | Cubierta MDF 12 mm + PVC termoformado Cristal White | $1,800.00 | 0.25 | $450.00 | SKU/UNIDAD/FECHA ausentes |
 | 185 | Empaque jaula de madera básico | $2,119.66 | 0.7 | $1,483.76 | SKU/UNIDAD/FECHA ausentes |
 
-Por eso `$47,432.84` es checksum de esa extracción parcial, no autoridad global para todos los renglones del proyecto.
+Por eso $47,432.84 es el total de esa extracción parcial, no la autoridad global del proyecto.
 
-## Catálogo vivo — brechas relevantes para METAL
+## Catálogo vivo: brechas relevantes para los 4 METAL
 
-Lectura de `catalogo_vigente` al 2026-10-26. El golden histórico usa el precio congelado del workbook; esta tabla responde otra pregunta: **¿puede el Costeador vivo reconstruir hoy el mismo mueble con catálogo actual?**
-
-| clave workbook / material | precio workbook | match vivo | precio vivo | certificable | estado |
+| clave/material workbook | precio workbook | match vivo | precio vivo | certificable | estado |
 |---|---:|---|---:|---|---|
 | LN18310 | $571.54/hoja | `erp-ln18310` | $571.54 | sí | EXACT |
 | LN18410 | $751.14/hoja | `erp-ln18410` | $776.52 | sí | PRICE_MISMATCH |
@@ -59,33 +53,23 @@ Lectura de `catalogo_vigente` al 2026-10-26. El golden histórico usa el precio 
 | BIBI | $13.66/pza | `erp-bibi` | $13.66 | sí | EXACT |
 | Cubierta MDF/PVC Cristal White | $1,800 × 0.25 | — | — | — | MISSING_SKU + UNIT_MISSING |
 
-### Nota de seguridad de matching
+**No confundir** LN20310/LN14310 de acero negro con LI20310/LI14310 inoxidable: sería un falso match de familia.
 
-No confundir `LN20310` / `LN14310` de **acero negro** con claves `LI20310` / `LI14310` de **inoxidable** que sí existen en catálogo. Eso sería un falso match de familia.
+## Qué certifica este golden
 
-## Qué prueba el golden
+- Entry point: `calcular()`, igual que `goldenIntelisis.test.js`.
+- Hoja: fracción explícita mediante `hojas`.
+- Kg/pieza/etc.: cantidad explícita del workbook.
+- Filas sin SKU: identidad interna por fila de fixture; no se inventa SKU comercial.
+- `modeloCosteo='intelisis'` y horas 0: se certifica **material**, no MO/GIF.
 
-`src/motor/telcelCCO320R.golden.test.js` usa el mismo entrypoint de `goldenIntelisis.test.js`: `calcular()`.
+## Brechas abiertas
 
-- Hoja: consume la fracción exacta mediante `hojas`, como el golden Intelisis.
-- Kg/pieza/jgo/etc.: consume la cantidad explícita del workbook.
-- Filas sin SKU: usan una **identidad interna de fixture por fila**, no se inventa una clave comercial.
-- `modeloCosteo='intelisis'`, horas cero: este cierre certifica **material**, no MO/GIF.
+- **MO_INPUT_GAP:** no se ha demostrado todavía el origen estructurado de MO para TELCEL.
+- **GIF_INPUT_GAP:** no derivar porcentajes por coincidencia casual; Vitrina Torre demuestra que el patrón no es uniforme.
+- **HERRAJES:** fase separada; el workbook los separa de METAL.
+- **CATÁLOGO PRODUCTIVO:** faltan SKUs exactos y varios precios TELCEL están obsoletos/no certificables.
 
-## MO / GIF
+## Siguiente paso
 
-No se declararán equivalentes por porcentaje sólo porque algunos renglones aparenten 10%/25%. Vitrina Torre rompe ese patrón (GIF $14.83). Para certificar MO/GIF necesitamos extraer horas/centros/tarifas del workbook o de otra fuente estructurada.
-
-Estado actual:
-
-- Material METAL: **CERRABLE por golden**
-- MO: **OPEN · MO_INPUT_GAP**
-- GIF: **OPEN · GIF_INPUT_GAP**
-- HERRAJES: **OPEN · siguiente fase, con fronteras separadas**
-- Catálogo productivo TELCEL: **OPEN · faltan SKUs y hay precios TELCEL obsoletos/no certificables**
-
-## Próximo paso
-
-1. Ejecutar el golden dirigido y capturar PASS/FAIL real.
-2. Si material pasa, crear importación **propuesta** (no productiva todavía) de los SKUs faltantes desde `*_cata_mp.csv`, preservando precio, unidad, fecha, opción y fuente.
-3. No publicar esos precios como certificables cuando estén viejos: Compras debe revalidarlos o aportar compra vigente.
+Si el golden dirigido queda verde, preparar una importación **propuesta** desde `*_cata_mp.csv` de SKUs faltantes, preservando precio, unidad, fecha, opción y fuente. Un precio histórico viejo no se vuelve certificable por importarlo: requiere revalidación de Compras.
