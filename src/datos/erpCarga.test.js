@@ -170,3 +170,20 @@ describe('erpCarga · workbook de proyecto = evidencia preliminar, nunca autocer
     expect(resumen.requierenValidacionCompras).toBe(1);
   });
 });
+
+
+describe('ERP · contrato SQL propuesto para workbooks de proyecto', () => {
+  const sqlPath = path.join(path.dirname(new URL(import.meta.url).pathname), '..', '..', 'supabase', 'migrations', 'PROPUESTA_20261026_workbook_proyecto_preliminar.sql');
+  const sql = fs.readFileSync(sqlPath, 'utf8');
+
+  it('la carga persiste requiere_validacion_compras y no autoaprueba esos precios', () => {
+    expect(sql).toContain('v_requiere_validacion');
+    expect(sql).toContain('requiere_validacion_compras');
+    expect(sql).toContain("if v_estado = 'propuesto' and not v_requiere_validacion then");
+  });
+
+  it('ambas firmas masivas excluyen precios que requieren revalidación', () => {
+    const filtro = 'and not coalesce(ip.requiere_validacion_compras, false)';
+    expect(sql.split(filtro).length - 1).toBeGreaterThanOrEqual(2);
+  });
+});
