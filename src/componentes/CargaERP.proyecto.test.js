@@ -27,4 +27,10 @@ describe('CargaERP · workbooks reales de proyecto', () => {
     }
   });
 
+  it('un workbook de proyecto fuerza revalidación de Compras antes de certificar', () => {
+    expect(src).toContain('forzarValidacionCompras');
+    expect(src).toContain("origen === 'workbook_proyecto'");
+    expect(src).toContain('Precios de proyecto que requieren revalidación');
+  });
+
 });
