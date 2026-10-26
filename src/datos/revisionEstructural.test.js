@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { revisarEstructura } from './revisionEstructural.js';
+import { revisarEstructura, huellaDelMueble } from './revisionEstructural.js';
 
 const niveles = (r) => r.observaciones.map((o) => o.nivel);
 const textos = (r) => r.observaciones.map((o) => o.mensaje).join(' || ');
@@ -136,5 +136,129 @@ describe('accesorios de apoyo no se confunden con la pieza que apoyan', () => {
     expect(r1.observaciones.some((o) => o.regla === 'material_funcion')).toBe(false);
     const r2 = revisarEstructura({ insumos, componentes: [{ nombre: 'Cristal templado 9 mm', insumoId: 'silicon', cantidad: 1 }] });
     expect(r2.observaciones.some((o) => o.regla === 'material_funcion')).toBe(true);
+  });
+});
+
+// Lab en vivo 2026-10-22 (cuenta QA, mesa de consejo redonda Ø1.80): el validador tomaba la
+// ALTURA (750) como el "ancho" del mueble y marcaba la cubierta en media luna (1800×900) como
+// "pieza más grande que el mueble". La huella de un mueble REDONDO es diámetro×diámetro, y una
+// dimensión rotulada como alto es vertical: no cuenta en la planta.
+describe('huella del mueble: redondos y altura rotulada no disparan un falso "pieza imposible"', () => {
+  it('huellaDelMueble: redondo → diámetro×diámetro; altura rotulada fuera; rectangular sin cambios', async () => {
+    const { huellaDelMueble } = await import('./revisionEstructural.js');
+    expect(huellaDelMueble('1800 Ø x 750 alto mm')).toEqual([1800, 1800]);          // el caso real que falló
+    expect(huellaDelMueble('mesa redonda Ø1.50 m, 740 alto mm')).toEqual([1500, 1500]); // generaliza (metros, otro Ø)
+    expect(huellaDelMueble('1500 x 600 x 740 alto mm')).toEqual([1500, 600]);        // rect: la altura no es la planta
+    expect(huellaDelMueble('2400 x 1100 x 740')).toEqual([2400, 1100]);             // altura SIN rotular: igual que antes
+  });
+
+  it('mesa de consejo redonda Ø1800: cubierta en 2 medias lunas 1800×900 NO es "medida imposible"', () => {
+    const r = revisarEstructura({
+      descripcion: 'Mesa de juntas redonda para 12, base central tipo araña, electrificación.',
+      medidasGenerales: '1800 Ø x 750 alto mm',
+      componentes: [
+        { nombre: 'Cubierta circular Ø1800 (2 tramos pegados)', insumoId: 'melamina', largoMM: 1800, anchoMM: 900 },
+        { nombre: 'Columna central PTR', insumoId: 'ptr', largoMM: 750, anchoMM: 100 },
+      ],
+    });
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(false);
+  });
+
+  it('control: una pieza REALMENTE mayor que el diámetro SÍ se marca (no sobre-corrige)', () => {
+    const r = revisarEstructura({
+      descripcion: 'Mesa redonda Ø1200.',
+      medidasGenerales: '1200 Ø x 740 alto mm',
+      componentes: [{ nombre: 'Cubierta', insumoId: 'melamina', largoMM: 1600, anchoMM: 800 }], // 1600 > Ø1200
+    });
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);
+  });
+});
+
+// P1-COST-01 · test #6 · PARIDAD cliente/servidor. costear-servidor/index.ts importa el MISMO
+// `revisarEstructura` de este módulo y deriva sus bloqueos con `o.nivel === 'blocker'`. Por tanto
+// el veredicto es idéntico por construcción (un solo módulo, no dos implementaciones). Este test
+// reproduce EXACTAMENTE esa derivación del servidor y comprueba que cliente y servidor coinciden:
+// la mesa redonda NO bloquea en ninguno; una pieza realmente mayor bloquea en ambos.
+describe('P1-COST-01 · paridad cliente/servidor del veredicto estructural (módulo compartido)', () => {
+  // Misma derivación que costear-servidor/index.ts: bloqueos = observaciones con nivel 'blocker'.
+  const bloqueosServidor = (r) => (r.observaciones || []).filter((o) => o.nivel === 'blocker').map((o) => o.regla || o.mensaje);
+  const mesaRedonda = {
+    descripcion: 'Mesa de juntas redonda para 12, base central tipo araña, electrificación.',
+    medidasGenerales: '1800 Ø x 750 alto mm',
+    componentes: [
+      { nombre: 'Cubierta circular Ø1800 (2 tramos pegados)', insumoId: 'melamina', largoMM: 1800, anchoMM: 900 },
+      { nombre: 'Columna central PTR', insumoId: 'ptr', largoMM: 750, anchoMM: 100 },
+    ],
+  };
+  const oversizeReal = {
+    descripcion: 'Mesa redonda Ø1200.',
+    medidasGenerales: '1200 Ø x 740 alto mm',
+    componentes: [{ nombre: 'Cubierta', insumoId: 'melamina', largoMM: 1600, anchoMM: 800 }],
+  };
+  it('mesa redonda: ni cliente ni servidor marcan medida_imposible (mismo veredicto: costeable)', () => {
+    const r = revisarEstructura(mesaRedonda);
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(false); // cliente
+    expect(bloqueosServidor(r)).not.toContain('medida_imposible');                    // servidor (misma función)
+  });
+  it('oversize real: cliente y servidor lo bloquean por igual (mismo veredicto: rechazo)', () => {
+    const r = revisarEstructura(oversizeReal);
+    expect(r.observaciones.some((o) => o.regla === 'medida_imposible')).toBe(true);    // cliente
+    expect(bloqueosServidor(r)).toContain('medida_imposible');                         // servidor
+  });
+});
+
+// ── COST-01 · matriz obligatoria de huella en planta (Dirección 2026-10-24) ──────────
+// Garantiza que el fix de la mesa redonda (Ø×alto daba falso "pieza > mueble") no debilitó
+// el validador: los casos buenos pasan y el oversize verdadero SIGUE bloqueando.
+const tieneImposible = (r) => r.observaciones.some((o) => o.regla === 'medida_imposible');
+
+describe('COST-01 · huellaDelMueble (planta: redondo=Ø×Ø, ignora alto rotulado)', () => {
+  it('redonda Ø1200/1500/1800/2400 × 750 alto → diámetro×diámetro (el alto no es planta)', () => {
+    expect(huellaDelMueble('Mesa redonda Ø1200 × 750 alto')).toEqual([1200, 1200]);
+    expect(huellaDelMueble('Mesa redonda Ø1500 × 750 alto')).toEqual([1500, 1500]);
+    expect(huellaDelMueble('Mesa de consejo Ø1800 × 750 alto')).toEqual([1800, 1800]);
+    expect(huellaDelMueble('Mesa redonda Ø2400 × 750 alto')).toEqual([2400, 2400]);
+  });
+  it('el alto se descarta vaya la unidad antes o después del rótulo', () => {
+    expect(huellaDelMueble('Ø1800 x 750 mm alto')).toEqual([1800, 1800]);
+    expect(huellaDelMueble('Ø1800 x 750 alto mm')).toEqual([1800, 1800]);
+  });
+  it('rectangular 1500×600×740 (alto SIN rotular) NO cambia: las dos mayores', () => {
+    expect(huellaDelMueble('Credenza 1500 × 600 × 740')).toEqual([1500, 740]);
+  });
+});
+
+describe('COST-01 · validador (1) con huella — redonda no da falso bloqueo, oversize sí bloquea', () => {
+  const redonda = 'Mesa de consejo redonda Ø1800 × 750 alto';
+  it('cubierta en dos medias lunas 1800×900 cabe en Ø1800 → sin medida_imposible', () => {
+    const r = revisarEstructura({ medidasGenerales: redonda, componentes: [
+      { nombre: 'Cubierta media luna A', insumoId: 'mdf-18', largoMM: 1800, anchoMM: 900 },
+      { nombre: 'Cubierta media luna B', insumoId: 'mdf-18', largoMM: 1800, anchoMM: 900 },
+    ] });
+    expect(tieneImposible(r)).toBe(false);
+  });
+  it('cubierta completa 1800×1800 en Ø1800 → sin medida_imposible', () => {
+    const r = revisarEstructura({ medidasGenerales: redonda, componentes: [
+      { nombre: 'Cubierta', insumoId: 'mdf-18', largoMM: 1800, anchoMM: 1800 },
+    ] });
+    expect(tieneImposible(r)).toBe(false);
+  });
+  it('rectangular 1500×600×740 con cubierta 1500×600 → sin medida_imposible (no cambia)', () => {
+    const r = revisarEstructura({ medidasGenerales: 'Credenza 1500 × 600 × 740', componentes: [
+      { nombre: 'Cubierta', insumoId: 'mdf-18', largoMM: 1500, anchoMM: 600 },
+    ] });
+    expect(tieneImposible(r)).toBe(false);
+  });
+  it('oversize VERDADERO sigue bloqueando — panel 2000×900 en mueble 1500×600×740', () => {
+    const r = revisarEstructura({ medidasGenerales: 'Credenza 1500 × 600 × 740', componentes: [
+      { nombre: 'Cubierta', insumoId: 'mdf-18', largoMM: 2000, anchoMM: 900 },
+    ] });
+    expect(tieneImposible(r)).toBe(true);
+  });
+  it('oversize VERDADERO en redonda — panel 2600×2600 en Ø1800 sigue bloqueando', () => {
+    const r = revisarEstructura({ medidasGenerales: redonda, componentes: [
+      { nombre: 'Cubierta', insumoId: 'mdf-18', largoMM: 2600, anchoMM: 2600 },
+    ] });
+    expect(tieneImposible(r)).toBe(true);
   });
 });
