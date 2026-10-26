@@ -8,8 +8,9 @@
 //  Nada de esto inventa precios: lo que no tiene costo en el ERP no entra.
 // ============================================================================
 import { useState } from 'react';
-import { leerPrimeraHoja, filasAObjetos } from '../datos/xlsxMinimo.js';
-import { registroDesdeFila, prepararCargaErp } from '../datos/erpCarga.js';
+import { leerHojas } from '../datos/xlsxMinimo.js';
+import { prepararCargaErp } from '../datos/erpCarga.js';
+import { registrosErpDesdeWorkbookProyecto } from '../datos/erpProyecto.js';
 import { cargarErpLote, firmarPreciosErp } from '../nube.js';
 
 const LOTE = 400;
@@ -82,13 +83,22 @@ export default function CargaERP({ onAviso }) {
     setArchivo(f); setLeyendo(true);
     try {
       const buf = await f.arrayBuffer();
-      const filas = await leerPrimeraHoja(buf);
-      const { encabezados, registros } = filasAObjetos(filas);
-      if (!encabezados.some((h) => /^art[ií]culo$/i.test(h)) || !encabezados.some((h) => /costo .*ltima compra/i.test(h))) {
-        throw new Error(`El archivo no parece el reporte de Última Compra del ERP (encabezados: ${encabezados.filter(Boolean).slice(0, 6).join(', ')}…).`);
+      const hojas = await leerHojas(buf);
+      // Un solo parser para dos fuentes reales:
+      //  (a) reporte estándar "Última Compra" (una hoja con Artículo + Costo Última Compra), y
+      //  (b) workbook de proyecto/costeo real (explo_x_id + cata_mp), como TELCEL C-CO-320R.
+      // erpProyecto recupera Clave Comercial/unidad/fecha desde cata_mp cuando la explosión no las trae,
+      // deduplica evidencia repetida y NUNCA inventa valores.
+      const extraido = registrosErpDesdeWorkbookProyecto(hojas);
+      if (!extraido.registros.length) {
+        throw new Error('El archivo no contiene una tabla reconocible de materiales con Artículo y Costo Última Compra.');
       }
-      const regs = registros.map(registroDesdeFila).filter(Boolean);
-      setPrep(prepararCargaErp(regs, { documento: f.name }));
+      const preparado = prepararCargaErp(extraido.registros, { documento: f.name });
+      setPrep({
+        ...preparado,
+        origen: extraido.hojaCatalogo ? 'workbook_proyecto' : 'reporte_ultima_compra',
+        extraccion: extraido,
+      });
     } catch (err) {
       setError(err?.message || 'No se pudo leer el archivo.');
     } finally { setLeyendo(false); }
@@ -126,7 +136,7 @@ export default function CargaERP({ onAviso }) {
       <FirmaPreciosErp onAviso={onAviso} />
       <div className="tarjeta">
         <h2>Cargar compras del ERP</h2>
-        <p className="ayuda">Sube el reporte <strong>Costos de Materia Prima · Última Compra</strong> de Intelisis (.xlsx) tal como lo exporta Compras. Cada precio entra con su documento, registro y fecha; lo comprado en los últimos 24 meses queda certificado, lo más viejo queda preliminar (cuesta, pero no certifica) y lo que no tiene costo no entra.</p>
+        <p className="ayuda">Sube el reporte <strong>Costos de Materia Prima · Última Compra</strong> de Intelisis o un <strong>workbook real de costeo/proyecto</strong> que incluya su explosión de materiales (por ejemplo <code>explo_x_id</code> y <code>cata_mp</code>). Primero se previsualiza: nada se carga sin que Dirección pulse <strong>Cargar al catálogo</strong>. Cada precio conserva documento, fecha y unidad; lo antiguo queda preliminar y nunca se convierte en certificado sólo por venir de un proyecto histórico.</p>
         <input type="file" accept=".xlsx" onChange={alElegir} disabled={leyendo || cargando} data-testid="carga-erp-archivo" />
         {leyendo && <p className="ayuda">Leyendo el archivo…</p>}
         {error && <div className="alerta roja" data-testid="carga-erp-error"><span className="texto">{error}</span></div>}
@@ -134,7 +144,12 @@ export default function CargaERP({ onAviso }) {
           <div data-testid="carga-erp-resumen">
             <table className="datos" style={{ marginTop: 8 }}>
               <tbody>
-                <tr><td>Renglones en el archivo</td><td className="num">{r.filas}</td></tr>
+                <tr><td>Tipo de fuente detectada</td><td>{prep.origen === 'workbook_proyecto' ? 'Workbook de proyecto real' : 'Reporte Última Compra'}</td></tr>
+                {prep.extraccion?.hojaExplosion && <tr><td>Hoja de materiales</td><td><code>{prep.extraccion.hojaExplosion}</code></td></tr>}
+                {prep.extraccion?.hojaCatalogo && <tr><td>Catálogo MP auxiliar</td><td><code>{prep.extraccion.hojaCatalogo}</code></td></tr>}
+                {prep.extraccion?.resumen?.registrosUnicos != null && <tr><td>Materiales/evidencias únicos extraídos</td><td className="num">{prep.extraccion.resumen.registrosUnicos}</td></tr>}
+                {prep.extraccion?.resumen?.sinClave > 0 && <tr><td>Sin clave comercial (no se inventa)</td><td className="num">{prep.extraccion.resumen.sinClave}</td></tr>}
+                                <tr><td>Renglones en el archivo</td><td className="num">{r.filas}</td></tr>
                 <tr><td>Con costo (entran)</td><td className="num">{prep.catalogo.length}</td></tr>
                 <tr><td>Sin costo (no entran, nunca $0)</td><td className="num">{r.sinCosto}</td></tr>
                 <tr><td>Compra ≤ 24 meses (se certifican)</td><td className="num">{r.recientes}</td></tr>
