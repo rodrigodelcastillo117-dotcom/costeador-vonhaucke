@@ -149,7 +149,10 @@ export default function CargaERP({ onAviso }) {
                 {prep.extraccion?.hojaCatalogo && <tr><td>Catálogo MP auxiliar</td><td><code>{prep.extraccion.hojaCatalogo}</code></td></tr>}
                 {prep.extraccion?.resumen?.registrosUnicos != null && <tr><td>Materiales/evidencias únicos extraídos</td><td className="num">{prep.extraccion.resumen.registrosUnicos}</td></tr>}
                 {prep.extraccion?.resumen?.sinClave > 0 && <tr><td>Sin clave comercial (no se inventa)</td><td className="num">{prep.extraccion.resumen.sinClave}</td></tr>}
-                                <tr><td>Renglones en el archivo</td><td className="num">{r.filas}</td></tr>
+                {prep.extraccion?.resumen?.sinUnidad > 0 && <tr><td>Sin unidad en la fuente</td><td className="num">{prep.extraccion.resumen.sinUnidad}</td></tr>}
+                {prep.extraccion?.resumen?.sinFecha > 0 && <tr><td>Sin fecha de última compra</td><td className="num">{prep.extraccion.resumen.sinFecha}</td></tr>}
+                {prep.extraccion?.resumen?.sinCosto > 0 && <tr><td>Sin costo real en la fuente</td><td className="num">{prep.extraccion.resumen.sinCosto}</td></tr>}
+                <tr><td>Renglones en el archivo</td><td className="num">{r.filas}</td></tr>
                 <tr><td>Con costo (entran)</td><td className="num">{prep.catalogo.length}</td></tr>
                 <tr><td>Sin costo (no entran, nunca $0)</td><td className="num">{r.sinCosto}</td></tr>
                 <tr><td>Compra ≤ 24 meses (se certifican)</td><td className="num">{r.recientes}</td></tr>
