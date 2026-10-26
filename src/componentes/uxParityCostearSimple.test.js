@@ -50,4 +50,9 @@ describe('uxParity COSTEAR simple', () => {
       expect(src, `falta ${marca} — ¿se perdió una función?`).toContain(marca);
     }
   });
+  it('no presenta narrativa libre de IA como consumo económico oficial', () => {
+    expect(src).toContain('Evidencia IA (no define el costo)');
+    expect(src).not.toContain('📐 Consumo IA:');
+  });
+
 });
