@@ -83,13 +83,15 @@ export function idErp(r) {
 /**
  * Prepara la carga: catálogo (una fila por registro con costo) y precios DATA_TRUTH_V1.
  * @param {Array} registros  salida de registroDesdeFila (ya filtrada de nulls)
- * @param {{documento:string, hoy?:Date}} opts
+ * @param {{documento:string, hoy?:Date, forzarValidacionCompras?:boolean}} opts
+ * forzarValidacionCompras=true: evidencia secundaria (p.ej. workbook de proyecto).
+ * Puede costear como referencia, pero NUNCA se autocertifica por fecha.
  */
-export function prepararCargaErp(registros, { documento, hoy = new Date() } = {}) {
+export function prepararCargaErp(registros, { documento, hoy = new Date(), forzarValidacionCompras = false } = {}) {
   const corte = new Date(hoy.getTime()); corte.setMonth(corte.getMonth() - MESES_CERTIFICABLE);
   const corteISO = corte.toISOString().slice(0, 10);
   const catalogo = [], precios = [], ids = new Set();
-  const resumen = { filas: registros.length, sinCosto: 0, sinUnidad: {}, sinFecha: 0, recientes: 0, antiguos: 0, bloqueados: 0, duplicados: 0 };
+  const resumen = { filas: registros.length, sinCosto: 0, sinUnidad: {}, sinFecha: 0, recientes: 0, antiguos: 0, bloqueados: 0, duplicados: 0, requierenValidacionCompras: 0 };
   for (const r of registros) {
     if (!(r.costo_uc > 0)) { resumen.sinCosto++; continue; }
     const uRaw = r.unidad.toLowerCase();
@@ -119,9 +121,17 @@ export function prepararCargaErp(registros, { documento, hoy = new Date() } = {}
     if (!r.fecha_uc) { resumen.sinFecha++; continue; }
     const reciente = r.fecha_uc >= corteISO;
     if (reciente) resumen.recientes++; else resumen.antiguos++;
+    const requiereValidacionCompras = !!forzarValidacionCompras;
+    if (requiereValidacionCompras) resumen.requierenValidacionCompras++;
     precios.push({ insumo_id: id, source_record_id: key, source_price: r.costo_uc, source_unit: uRaw, cost_unit: unidad, vigente_desde: r.fecha_uc,
-      estado: reciente ? 'propuesto' : 'propuesto_validado',
-      evidencia: `ERP última compra ${r.fecha_uc} · ${r.clave || r.articulo}${r.opc_desc ? ' ' + r.opc_desc : ''}` + (reciente ? '' : ` · ANTIGUA >${MESES_CERTIFICABLE} meses: re-cotizar con Compras antes de certificar`) + (activo ? '' : ' · BLOQUEADO en ERP'),
+      // Un workbook de proyecto es evidencia real, pero secundaria: aunque la fecha sea reciente,
+      // no se autocertifica. Compras/Dirección debe revalidarlo explícitamente.
+      estado: (reciente && !requiereValidacionCompras) ? 'propuesto' : 'propuesto_validado',
+      requiere_validacion_compras: requiereValidacionCompras,
+      evidencia: `ERP última compra ${r.fecha_uc} · ${r.clave || r.articulo}${r.opc_desc ? ' ' + r.opc_desc : ''}`
+        + (requiereValidacionCompras ? ' · WORKBOOK DE PROYECTO: referencia histórica; revalidar con Compras antes de certificar' : '')
+        + (reciente ? '' : ` · ANTIGUA >${MESES_CERTIFICABLE} meses: re-cotizar con Compras antes de certificar`)
+        + (activo ? '' : ' · BLOQUEADO en ERP'),
       documento: DOC_ERP_PREFIJO + (documento || 'Costos de Materia Prima Última Compra') });
   }
   return { catalogo, precios, resumen };
