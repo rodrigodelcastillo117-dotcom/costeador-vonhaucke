@@ -73,3 +73,15 @@ Por eso $47,432.84 es el total de esa extracción parcial, no la autoridad globa
 ## Siguiente paso
 
 Si el golden dirigido queda verde, preparar una importación **propuesta** desde `*_cata_mp.csv` de SKUs faltantes, preservando precio, unidad, fecha, opción y fuente. Un precio histórico viejo no se vuelve certificable por importarlo: requiere revalidación de Compras.
+
+## Evidencia CI
+
+- SHA: `3281f72657032e8de8c9106447a02d3db7cc6027`
+- PR draft: #85 (NO MERGE)
+- CI run: `40379796089`
+- job `verify`: **SUCCESS**
+- `src/motor/telcelCCO320R.golden.test.js`: **5/5 PASS**
+- Suite completa: **399 archivos / 3924 tests PASS**
+- Build: **PASS**
+
+Conclusión de esta fase: **el motor sí reproduce a centavos los cuatro subtotales de materiales METAL cuando recibe el BOM/consumos/precios reales del workbook**. El cuello de botella ya no es la aritmética: es obtener/normalizar BOM, unidades, SKUs y vigencia de precios de forma automática.

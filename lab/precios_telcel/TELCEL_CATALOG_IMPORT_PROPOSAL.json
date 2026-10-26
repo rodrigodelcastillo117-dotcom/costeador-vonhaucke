@@ -1,0 +1,696 @@
+{
+  "source": {
+    "project": "C-CO-320R",
+    "document": "C-CO-320R DATS TELCEL DIV-MATERIALES 20261002.xlsx",
+    "csv": "lab/precios_telcel/3949cec4_C_CO_320R_DATS_TELCEL_DIV_MATER__explo_x_id.csv",
+    "scope": "METAL id_01..id_04"
+  },
+  "policy": [
+    "Historical workbook prices are evidence, not automatically current official prices.",
+    "Never overwrite a newer live price with an older project price.",
+    "Missing catalog items with complete SKU/unit/date may be created only as proposed/reference until Compras revalidates.",
+    "Rows lacking SKU, unit or date remain data gaps and are not certifiable.",
+    "Commercial codes are parsed only when explicit in the workbook description; internal fixture ids are not commercial SKUs."
+  ],
+  "generated_at": "2026-10-26",
+  "entries": [
+    {
+      "module": "id_01",
+      "source_row": 22,
+      "source_sku": "MVLSLA05260402",
+      "description": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "Hoja",
+      "date": "2024-05-27",
+      "price": 571.54,
+      "consumption": 3.04,
+      "line_cost": 1737.48,
+      "commercial_code": "LN18310",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 22,
+          "consumption": 3.04,
+          "line_cost": 1737.48
+        },
+        {
+          "module": "id_02",
+          "source_row": 62,
+          "consumption": 2.564,
+          "line_cost": 1465.43
+        },
+        {
+          "module": "id_03",
+          "source_row": 107,
+          "consumption": 0.13,
+          "line_cost": 74.3
+        },
+        {
+          "module": "id_04",
+          "source_row": 155,
+          "consumption": 1.62,
+          "line_cost": 925.89
+        }
+      ],
+      "live_catalog_id": "erp-ln18310",
+      "live_price": 571.54,
+      "live_certificable": true,
+      "action": "NO_CHANGE",
+      "status": "Live catalog already has an equivalent certified price."
+    },
+    {
+      "module": "id_01",
+      "source_row": 23,
+      "source_sku": "MVLSLA05270402",
+      "description": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "Hoja",
+      "date": "2024-06-27",
+      "price": 751.14,
+      "consumption": 0.88,
+      "line_cost": 661,
+      "commercial_code": "LN18410",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 23,
+          "consumption": 0.88,
+          "line_cost": 661
+        },
+        {
+          "module": "id_01",
+          "source_row": 24,
+          "consumption": 0.53,
+          "line_cost": 398.1
+        },
+        {
+          "module": "id_03",
+          "source_row": 111,
+          "consumption": 0.09,
+          "line_cost": 67.6
+        },
+        {
+          "module": "id_04",
+          "source_row": 157,
+          "consumption": 1,
+          "line_cost": 751.14
+        }
+      ],
+      "live_catalog_id": "erp-ln18410",
+      "live_price": 776.52,
+      "live_certificable": true,
+      "action": "KEEP_LIVE_CURRENT_STORE_HISTORICAL",
+      "status": "Do not overwrite live price; preserve workbook price as historical evidence."
+    },
+    {
+      "module": "id_01",
+      "source_row": 25,
+      "source_sku": "MVLSLA05270202",
+      "description": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 14 ACERO 1008 - \"\"LN14410\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "Hoja",
+      "date": "2024-06-24",
+      "price": 1190.49,
+      "consumption": 0.04,
+      "line_cost": 47.62,
+      "commercial_code": "LN14410",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 25,
+          "consumption": 0.04,
+          "line_cost": 47.62
+        }
+      ],
+      "live_catalog_id": "erp-ln14410",
+      "live_price": 1211.953,
+      "live_certificable": true,
+      "action": "KEEP_LIVE_CURRENT_STORE_HISTORICAL",
+      "status": "Do not overwrite live price; preserve workbook price as historical evidence."
+    },
+    {
+      "module": "id_01",
+      "source_row": 26,
+      "source_sku": "MVLQPP00000000",
+      "description": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+      "option": "A529",
+      "option_description": "COLOR METAL BLANCO 9016 549/11340 TELCEL MELEMA",
+      "unit": "Kg",
+      "date": "2020-07-08",
+      "price": 171.01,
+      "consumption": 2.11,
+      "line_cost": 360.83,
+      "commercial_code": "PPH-A529",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 26,
+          "consumption": 2.11,
+          "line_cost": 360.83
+        },
+        {
+          "module": "id_03",
+          "source_row": 113,
+          "consumption": 1.18,
+          "line_cost": 201.79
+        },
+        {
+          "module": "id_04",
+          "source_row": 158,
+          "consumption": 2.15,
+          "line_cost": 367.67
+        }
+      ],
+      "live_catalog_id": "erp-pph-a529",
+      "live_price": 142.51419,
+      "live_certificable": false,
+      "action": "KEEP_LIVE_CURRENT_STORE_HISTORICAL",
+      "status": "Do not overwrite live price; preserve workbook price as historical evidence."
+    },
+    {
+      "module": "id_01",
+      "source_row": 27,
+      "source_sku": "MVLQPP00000000",
+      "description": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+      "option": "A10",
+      "option_description": "COLOR METAL RAL 5002 49/42220 SM GL TRIBO (AZUL TELCEL)",
+      "unit": "Kg",
+      "date": "2018-08-28",
+      "price": 249.58,
+      "consumption": 0.21,
+      "line_cost": 52.41,
+      "commercial_code": "PPH-A10",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 27,
+          "consumption": 0.21,
+          "line_cost": 52.41
+        },
+        {
+          "module": "id_02",
+          "source_row": 67,
+          "consumption": 0.65,
+          "line_cost": 162.23
+        },
+        {
+          "module": "id_04",
+          "source_row": 159,
+          "consumption": 0.15,
+          "line_cost": 37.44
+        }
+      ],
+      "live_catalog_id": "erp-pph-a10",
+      "live_price": 207.978876,
+      "live_certificable": false,
+      "action": "KEEP_LIVE_CURRENT_STORE_HISTORICAL",
+      "status": "Do not overwrite live price; preserve workbook price as historical evidence."
+    },
+    {
+      "module": "id_01",
+      "source_row": 28,
+      "source_sku": "MLEMTM01040000",
+      "description": "TIRA DE MADERA DE PINO DE SEGUNDA DE 5 CMS. DE ANCHO X 3/4\" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO - \"TMP534250\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "pieza",
+      "date": "2024-05-31",
+      "price": 47.43,
+      "consumption": 6.4,
+      "line_cost": 303.55,
+      "commercial_code": "TMP534250",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 28,
+          "consumption": 6.4,
+          "line_cost": 303.55
+        },
+        {
+          "module": "id_03",
+          "source_row": 114,
+          "consumption": 9,
+          "line_cost": 426.87
+        }
+      ],
+      "live_catalog_id": "erp-tmp534250",
+      "live_price": 47.43,
+      "live_certificable": true,
+      "action": "NO_CHANGE",
+      "status": "Live catalog already has an equivalent certified price."
+    },
+    {
+      "module": "id_01",
+      "source_row": 29,
+      "source_sku": "MLEMTM01050000",
+      "description": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS DE ANCHO X 1 1/4\" (3.2 CMS) DE ESPESOR, POR 250 CMS. DE LARGO - \"TMP10114250\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "pieza",
+      "date": "2024-07-03",
+      "price": 189.75,
+      "consumption": 0.76,
+      "line_cost": 144.21,
+      "commercial_code": "TMP10114250",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 29,
+          "consumption": 0.76,
+          "line_cost": 144.21
+        },
+        {
+          "module": "id_03",
+          "source_row": 115,
+          "consumption": 1.07,
+          "line_cost": 203.03
+        }
+      ],
+      "live_catalog_id": "erp-tmp1011425",
+      "live_price": 189.75,
+      "live_certificable": true,
+      "action": "NO_CHANGE",
+      "status": "Live catalog already has an equivalent certified price."
+    },
+    {
+      "module": "id_01",
+      "source_row": 30,
+      "source_sku": "MLEMTM01060000",
+      "description": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X 3/4\" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO - \"TMP1034250\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "pieza",
+      "date": "2024-07-03",
+      "price": 94.87,
+      "consumption": 8.2,
+      "line_cost": 777.93,
+      "commercial_code": "TMP1034250",
+      "occurrences": [
+        {
+          "module": "id_01",
+          "source_row": 30,
+          "consumption": 8.2,
+          "line_cost": 777.93
+        },
+        {
+          "module": "id_03",
+          "source_row": 116,
+          "consumption": 11.53,
+          "line_cost": 1093.85
+        }
+      ],
+      "live_catalog_id": "erp-tmp1034250",
+      "live_price": 94.87,
+      "live_certificable": true,
+      "action": "NO_CHANGE",
+      "status": "Live catalog already has an equivalent certified price."
+    },
+    {
+      "module": "id_02",
+      "source_row": 61,
+      "source_sku": "MVLSLA05260502",
+      "description": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "option": "-",
+      "option_description": null,
+      "unit": "Hoja",
+      "date": "2024-05-27",
+      "price": 428.65,
+      "consumption": 1.08,
+      "line_cost": 462.94,
+      "commercial_code": "LN20310",
+      "occurrences": [
+        {
+          "module": "id_02",
+          "source_row": 61,
+          "consumption": 1.08,
+          "line_cost": 462.94
+        }
+      ],
+      "live_catalog_id": null,
+      "live_price": null,
+      "live_certificable": null,
+      "action": "CREATE_REFERENCE_PROPOSAL",
+      "status": "Catalog item may be added as non-certified historical reference; requires Compras revalidation before approval."
+    },
+    {
+      "module": "id_02",
+      "source_row": 63,
+      "source_sku": "MVLSLA05260202",
+      "description": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "option": "-",
+      "option_description": null,
+      "unit": "Hoja",
+      "date": "2023-12-20",
+      "price": 816.48,
+      "consumption": 0.057,
+      "line_cost": 46.54,
+      "commercial_code": "LN14310",
+      "occurrences": [
+        {
+          "module": "id_02",
+          "source_row": 63,
+          "consumption": 0.057,
+          "line_cost": 46.54
+        }
+      ],
+      "live_catalog_id": null,
+      "live_price": null,
+      "live_certificable": null,
+      "action": "CREATE_REFERENCE_PROPOSAL",
+      "status": "Catalog item may be added as non-certified historical reference; requires Compras revalidation before approval."
+    },
+    {
+      "module": "id_02",
+      "source_row": 64,
+      "source_sku": "MVLSTU01080501",
+      "description": "TUBULAR INDUSTRIAL CUADRADO 1\"\" CALIBRE 20 PIEZA DE 6000 mm - \"\"TC201\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "pieza",
+      "date": "2024-05-21",
+      "price": 96.71,
+      "consumption": 0.166,
+      "line_cost": 16.05,
+      "commercial_code": "TC201",
+      "occurrences": [
+        {
+          "module": "id_02",
+          "source_row": 64,
+          "consumption": 0.166,
+          "line_cost": 16.05
+        }
+      ],
+      "live_catalog_id": "erp-tc201",
+      "live_price": 96.6,
+      "live_certificable": true,
+      "action": "KEEP_LIVE_CURRENT_STORE_HISTORICAL",
+      "status": "Do not overwrite live price; preserve workbook price as historical evidence."
+    },
+    {
+      "module": "id_02",
+      "source_row": 65,
+      "source_sku": "MVLSLA05270502",
+      "description": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACERO 1008 -- LN20410",
+      "option": "-",
+      "option_description": null,
+      "unit": "Hoja",
+      "date": "2024-06-24",
+      "price": 571.52,
+      "consumption": 0.166,
+      "line_cost": 94.87,
+      "commercial_code": "LN20410",
+      "occurrences": [
+        {
+          "module": "id_02",
+          "source_row": 65,
+          "consumption": 0.166,
+          "line_cost": 94.87
+        }
+      ],
+      "live_catalog_id": "erp-ln20410",
+      "live_price": 583.117,
+      "live_certificable": true,
+      "action": "KEEP_LIVE_CURRENT_STORE_HISTORICAL",
+      "status": "Do not overwrite live price; preserve workbook price as historical evidence."
+    },
+    {
+      "module": "id_02",
+      "source_row": 66,
+      "source_sku": "MVLMMR050000E7",
+      "description": "MADERA PARA EMBALAJE DE 1/2\" (13 mm.) DE ESPESOR, 80 mm. (8 cms.) DE ANCHO Y 2500 mm. (2.50 mts.) DE LARGO - \"ME258EX\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "pieza",
+      "date": "2018-10-01",
+      "price": 26.5,
+      "consumption": 8,
+      "line_cost": 212,
+      "commercial_code": "ME258EX",
+      "occurrences": [
+        {
+          "module": "id_02",
+          "source_row": 66,
+          "consumption": 8,
+          "line_cost": 212
+        }
+      ],
+      "live_catalog_id": "erp-me258ex",
+      "live_price": 26.5,
+      "live_certificable": false,
+      "action": "NEEDS_REVALIDATION",
+      "status": "Live price matches but is not certifiable/current."
+    },
+    {
+      "module": "id_02",
+      "source_row": 68,
+      "source_sku": "MVLQPP00000000",
+      "description": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "Kg",
+      "date": null,
+      "price": 449.06,
+      "consumption": 1.127,
+      "line_cost": 506.09,
+      "commercial_code": "PPH-AMBIG",
+      "occurrences": [
+        {
+          "module": "id_02",
+          "source_row": 68,
+          "consumption": 1.127,
+          "line_cost": 506.09
+        }
+      ],
+      "live_catalog_id": null,
+      "live_price": null,
+      "live_certificable": null,
+      "action": "MANUAL_MATCH_REQUIRED",
+      "status": "Paint row lacks option; do not guess A529/A10."
+    },
+    {
+      "module": "id_03",
+      "source_row": 106,
+      "source_sku": "MVLSLA05280402",
+      "description": "LAMINA NEGRA HOJA 4' X 8' CALIBRE 18 ACERO 1008 - \"LN1848\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "Hoja",
+      "date": "2017-05-12",
+      "price": 585.51,
+      "consumption": 0.6,
+      "line_cost": 351.31,
+      "commercial_code": "LN1848",
+      "occurrences": [
+        {
+          "module": "id_03",
+          "source_row": 106,
+          "consumption": 0.6,
+          "line_cost": 351.31
+        },
+        {
+          "module": "id_04",
+          "source_row": 156,
+          "consumption": 0.49,
+          "line_cost": 286.9
+        }
+      ],
+      "live_catalog_id": "erp-ln1848",
+      "live_price": 585.511,
+      "live_certificable": false,
+      "action": "NEEDS_REVALIDATION",
+      "status": "Live price matches but is not certifiable/current."
+    },
+    {
+      "module": "id_03",
+      "source_row": 108,
+      "source_sku": "MVLSTU01080401",
+      "description": "TUBULAR INDUSTRIAL CUADRADO 1\" CALIBRE 18 PIEZA DE 6000 mm - TC181",
+      "option": "-",
+      "option_description": null,
+      "unit": "pieza",
+      "date": "2024-06-17",
+      "price": 132.5,
+      "consumption": 2.75,
+      "line_cost": 364.38,
+      "commercial_code": "TC181",
+      "occurrences": [
+        {
+          "module": "id_03",
+          "source_row": 108,
+          "consumption": 2.75,
+          "line_cost": 364.38
+        }
+      ],
+      "live_catalog_id": "erp-tc181",
+      "live_price": 132.5,
+      "live_certificable": true,
+      "action": "NO_CHANGE",
+      "status": "Live catalog already has an equivalent certified price."
+    },
+    {
+      "module": "id_03",
+      "source_row": 109,
+      "source_sku": "MPMTLA01030601",
+      "description": "LAMINA NEGRA HOJA 4' X 8' CALIBRE 14 ACERO 1008 -- LN4814ACE",
+      "option": "-",
+      "option_description": null,
+      "unit": null,
+      "date": null,
+      "price": 900.38,
+      "consumption": 0.02,
+      "line_cost": 18.01,
+      "commercial_code": "LN4814ACE",
+      "occurrences": [
+        {
+          "module": "id_03",
+          "source_row": 109,
+          "consumption": 0.02,
+          "line_cost": 18.01
+        }
+      ],
+      "live_catalog_id": "erp-ln4814ace",
+      "live_price": 900.376,
+      "live_certificable": true,
+      "action": "NO_CHANGE",
+      "status": "Live catalog already has an equivalent certified price."
+    },
+    {
+      "module": "id_03",
+      "source_row": 110,
+      "source_sku": "LN1838",
+      "description": "LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO 1008 - \"\"LN1838\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": null,
+      "date": null,
+      "price": 722.46,
+      "consumption": 0.5,
+      "line_cost": 361.23,
+      "commercial_code": "LN1838",
+      "occurrences": [
+        {
+          "module": "id_03",
+          "source_row": 110,
+          "consumption": 0.5,
+          "line_cost": 361.23
+        }
+      ],
+      "live_catalog_id": null,
+      "live_price": null,
+      "live_certificable": null,
+      "action": "MANUAL_DATA_GAP",
+      "status": "Insufficient structured evidence for safe catalog import."
+    },
+    {
+      "module": "id_03",
+      "source_row": 112,
+      "source_sku": "LN2038",
+      "description": "LAMINA NEGRA HOJA 3 X 8 CALIBRE 20 ACERO 1008 - \"\"LN2038\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": null,
+      "date": null,
+      "price": 541.86,
+      "consumption": 0.25,
+      "line_cost": 135.47,
+      "commercial_code": "LN2038",
+      "occurrences": [
+        {
+          "module": "id_03",
+          "source_row": 112,
+          "consumption": 0.25,
+          "line_cost": 135.47
+        }
+      ],
+      "live_catalog_id": null,
+      "live_price": null,
+      "live_certificable": null,
+      "action": "MANUAL_DATA_GAP",
+      "status": "Insufficient structured evidence for safe catalog import."
+    },
+    {
+      "module": "id_04",
+      "source_row": 154,
+      "source_sku": null,
+      "description": "LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO 1008 - \"\"LN1838\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": null,
+      "date": null,
+      "price": 722.46,
+      "consumption": 1,
+      "line_cost": 722.46,
+      "commercial_code": "LN1838",
+      "occurrences": [
+        {
+          "module": "id_04",
+          "source_row": 154,
+          "consumption": 1,
+          "line_cost": 722.46
+        }
+      ],
+      "live_catalog_id": null,
+      "live_price": null,
+      "live_certificable": null,
+      "action": "MANUAL_DATA_GAP",
+      "status": "Missing SKU/unit/date; keep as historical module evidence only."
+    },
+    {
+      "module": "id_04",
+      "source_row": 160,
+      "source_sku": "MVLABI19000000",
+      "description": "BISAGRA BIDIMENSIONAL, MONTAJE SOBREPUESTO, ANGULO DE 110° - \"\"BIBI\"\"\"",
+      "option": "-",
+      "option_description": null,
+      "unit": "pieza",
+      "date": "2024-03-05",
+      "price": 13.66,
+      "consumption": 4,
+      "line_cost": 54.64,
+      "commercial_code": "BIBI",
+      "occurrences": [
+        {
+          "module": "id_04",
+          "source_row": 160,
+          "consumption": 4,
+          "line_cost": 54.64
+        }
+      ],
+      "live_catalog_id": "erp-bibi",
+      "live_price": 13.66,
+      "live_certificable": true,
+      "action": "NO_CHANGE",
+      "status": "Live catalog already has an equivalent certified price."
+    },
+    {
+      "module": "id_04",
+      "source_row": 161,
+      "source_sku": null,
+      "description": "Superficie de trabajo, cubierta MDF 12mm una cara laminado blanco con una cara posterior acabado superficie PVC termo formado cristal White.",
+      "option": "-",
+      "option_description": null,
+      "unit": null,
+      "date": null,
+      "price": 1800,
+      "consumption": 0.25,
+      "line_cost": 450,
+      "commercial_code": null,
+      "occurrences": [
+        {
+          "module": "id_04",
+          "source_row": 161,
+          "consumption": 0.25,
+          "line_cost": 450
+        }
+      ],
+      "live_catalog_id": null,
+      "live_price": null,
+      "live_certificable": null,
+      "action": "MANUAL_DATA_GAP",
+      "status": "Missing SKU/unit/date; keep as historical module evidence only."
+    }
+  ]
+}
