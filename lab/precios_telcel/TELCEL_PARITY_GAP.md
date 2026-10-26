@@ -76,12 +76,17 @@ Si el golden dirigido queda verde, preparar una importación **propuesta** desde
 
 ## Evidencia CI
 
-- SHA: `3281f72657032e8de8c9106447a02d3db7cc6027`
+- SHA probado por el run citado: `3281f72657032e8de8c9106447a02d3db7cc6027`
 - PR draft: #85 (NO MERGE)
 - CI run: `40379796089`
+- conclusión global del run: **CANCELLED** (el job E2E fue cancelado)
 - job `verify`: **SUCCESS**
-- `src/motor/telcelCCO320R.golden.test.js`: **5/5 PASS**
-- Suite completa: **399 archivos / 3924 tests PASS**
-- Build: **PASS**
+- dentro de `verify`, `src/motor/telcelCCO320R.golden.test.js`: **5/5 PASS**
+- evidencia reportada por `verify`: suite **399 archivos / 3924 tests PASS** y build **PASS**
+- el HEAD actual de la rama puede ser posterior a ese SHA; no presentar este run como certificación del HEAD actual sin otro run.
+
+### Nota de auditoría sobre unidad ausente
+
+En las filas donde la columna de unidad viene vacía pero la descripción dice explícitamente `HOJA`, el golden usa esa palabra para modelar la fracción como `hojas`. Esto no convierte la fila en dato productivo certificado: la brecha de unidad sigue abierta en este documento. El golden certifica la aritmética histórica del material, no la calidad del catálogo vivo.
 
 Conclusión de esta fase: **el motor sí reproduce a centavos los cuatro subtotales de materiales METAL cuando recibe el BOM/consumos/precios reales del workbook**. El cuello de botella ya no es la aritmética: es obtener/normalizar BOM, unidades, SKUs y vigencia de precios de forma automática.
