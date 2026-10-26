@@ -46,3 +46,23 @@ describe('VH-180 · el canto que la IA nombra "Canto …" es el mismo renglón q
     expect(cantos[0]._regla).toBe('tapacanto');
   });
 });
+
+
+describe('TELCEL · niveladores: regla de casa idempotente', () => {
+  const insumos = mapaInsumos(INSUMOS_SEMILLA);
+  const base = [
+    { nombre: 'Base / patas metálicas', insumoId: 'ptr', material_solicitado: 'PTR', forma: 'lineal', cantidad: 2 },
+    { nombre: 'Niveladores cónicos 3/8', insumoId: '', material_solicitado: 'Nivelador cónico cromado 3/8', material_match: 'NOT_AVAILABLE', cantidad: 4, forma: 'pieza' },
+  ];
+  it('si VONI ya trae niveladores, la regla NO agrega una segunda línea', () => {
+    const r = conAcompanantes(base, insumos);
+    const niv = r.filter((c) => /nivelador/i.test(`${c?.nombre || ''} ${c?.material_solicitado || ''}`));
+    expect(niv).toHaveLength(1);
+  });
+  it('aplicar acompañantes dos veces no duplica niveladores', () => {
+    const r1 = conAcompanantes(base, insumos);
+    const r2 = conAcompanantes(r1, insumos);
+    const niv = r2.filter((c) => /nivelador/i.test(`${c?.nombre || ''} ${c?.material_solicitado || ''}`));
+    expect(niv).toHaveLength(1);
+  });
+});

@@ -411,3 +411,33 @@ describe('VH-158 · diferencia frente a lo pedido no se confirma en bloque', () 
     expect(s).toContain('data-testid="piloto-con-diferencia"');
   });
 });
+
+
+describe('TELCEL · un PTR nunca queda recomendado como Escuadra si existe PTR real', () => {
+  it('descarta el candidato cross-family del LLM y busca la familia correcta', () => {
+    const catalogo = [
+      { id: 'escuadra', nombre: 'Escuadra', seccion: 'herrajes', unidad: 'pza', precio: 28 },
+      { id: 'ptr', nombre: 'Tubo / PTR 1"x2" cal. 16', seccion: 'metal', unidad: 'm', precio: 38.19 },
+    ];
+    const r = aplicarPoliticaMaterial({
+      nombre: 'Refuerzo interno PTR 1"x2"',
+      material_solicitado: 'PTR 1"x2"',
+      insumoId: 'escuadra',
+    }, (id) => catalogo.find((x) => x.id === id), catalogo);
+    expect(r.insumoId).not.toBe('escuadra');
+    expect(r.candidate_insumo_id).not.toBe('escuadra');
+    expect(r.candidate_insumo_id || r.insumoId).toBe('ptr');
+  });
+
+  it('si sólo existe Escuadra, nunca se autocostea como PTR', () => {
+    const catalogo = [{ id: 'escuadra', nombre: 'Escuadra', seccion: 'herrajes', unidad: 'pza', precio: 28 }];
+    const r = aplicarPoliticaMaterial({
+      nombre: 'Refuerzo interno PTR 1"x2"',
+      material_solicitado: 'PTR 1"x2"',
+      insumoId: 'escuadra',
+    }, (id) => catalogo.find((x) => x.id === id), catalogo);
+    expect(r.insumoId).toBe('');
+    expect(r.material_match).toBe(MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION);
+    expect(MATCH_AUTOCOSTEABLE.has(r.material_match)).toBe(false);
+  });
+});

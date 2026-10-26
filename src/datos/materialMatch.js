@@ -867,9 +867,15 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   //  · Candidato único compatible (p.ej. melamina color) → autocostea PROVISIONAL.
   //  · Candidato único con atributo crítico (calibre/perfil) → preselecciona, NO autocostea.
   //  · Sin candidato de familia → queda como clasif (NOT_AVAILABLE / pendiente de precio).
-  if (!insumoIdFinal && !candidatoId && !servidorId && Array.isArray(catalogo) && familiaDeMaterial(solicitado) !== 'equipo_externo') {
+  // TELCEL 26-oct: el LLM había puesto "Escuadra" a un "Refuerzo interno PTR 1x2".
+  // clasificarMaterial lo bloqueó como cross-family, pero conservaba esa escuadra como CANDIDATO y
+  // la UI seguía mostrándola. Si el candidato inicial cruza familia, se busca primero uno REAL
+  // de la familia pedida. El override cross-family queda como último recurso si no existe alternativa.
+  const candidatoCruzaFamilia = clase === MATCH.SUBSTITUTE_REQUIRES_CONFIRMATION;
+  if (!insumoIdFinal && (!candidatoId || candidatoCruzaFamilia) && !servidorId && Array.isArray(catalogo) && familiaDeMaterial(solicitado) !== 'equipo_externo') {
     const { ambiguo, mejor } = candidatosDeFamilia(solicitado, catalogo);
     if (ambiguo) {
+      candidatoId = null; resuelto = ''; cambio = '';
       clase = MATCH.AMBIGUOUS;
       motivo = `Varios candidatos de la misma familia igualmente plausibles para "${solicitado}". Elige cuál aplica.`;
     } else if (mejor) {
