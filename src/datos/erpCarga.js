@@ -48,20 +48,30 @@ export function seccionDe(desc, fam) {
 }
 
 /** Un registro del reporte (objeto por encabezado) → registro normalizado o null si no es fila de artículo. */
+export const normalizarEncabezadoErp = (s) => String(s ?? '').trim().toLowerCase().normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '').replace(/[_\s]+/g, ' ').replace(/[^a-z0-9 ]+/g, '').trim();
+
+function valorErp(o, ...aliases) {
+  if (!o || typeof o !== 'object') return null;
+  const wanted = new Set(aliases.map(normalizarEncabezadoErp));
+  for (const [k, v] of Object.entries(o)) if (wanted.has(normalizarEncabezadoErp(k))) return v;
+  return null;
+}
+
 export function registroDesdeFila(o) {
-  const art = String(o['Articulo'] ?? o['Artículo'] ?? '').trim();
-  if (!art) return null;
-  const costoRaw = o['Costo Última Compra'] ?? o['Costo Ultima Compra'] ?? o['costo_uc'];
+  const art = String(valorErp(o, 'Articulo', 'Artículo', 'articulo') ?? '').trim();
+  if (!art || normalizarEncabezadoErp(art) === 'articulo') return null;
+  const costoRaw = valorErp(o, 'Costo Última Compra', 'Costo Ultima Compra', 'costo_última_compra', 'costo_uc');
   const costo = costoRaw == null || costoRaw === '' ? null : Number(costoRaw);
   return {
     articulo: art,
-    opcion: String(o['Opción'] ?? o['Opcion'] ?? '').trim(),
-    desc: String(o['Descripcion'] ?? o['Descripción'] ?? '').replace(/\s+/g, ' ').trim(),
-    opc_desc: String(o['Opción Descripción'] ?? o['Opcion Descripcion'] ?? '').replace(/\s+/g, ' ').trim(),
-    unidad: String(o['Unidad'] ?? '').trim(),
-    clave: String(o['Clave Comercial'] ?? o['Clave'] ?? '').trim(),
-    estatus: String(o['Estatus'] ?? '').trim().toUpperCase(),
-    fecha_uc: o['Fecha Última Compra'] ?? o['Fecha Ultima Compra'] ?? null,
+    opcion: String(valorErp(o, 'Opción', 'Opcion', 'opcion') ?? '').trim().replace(/^-$/, ''),
+    desc: String(valorErp(o, 'Descripcion', 'Descripción', 'descripcion') ?? '').replace(/\s+/g, ' ').trim(),
+    opc_desc: String(valorErp(o, 'Opción Descripción', 'Opcion Descripcion', 'opcion_descripcion', 'opción_descripción') ?? '').replace(/\s+/g, ' ').trim(),
+    unidad: String(valorErp(o, 'Unidad', 'unidad') ?? '').trim(),
+    clave: String(valorErp(o, 'Clave Comercial', 'clave_comercial', 'Clave') ?? '').trim(),
+    estatus: String(valorErp(o, 'Estatus', 'estatus') ?? '').trim().toUpperCase(),
+    fecha_uc: valorErp(o, 'Fecha Última Compra', 'Fecha Ultima Compra', 'fecha_última_compra', 'fecha_uc') ?? null,
     costo_uc: Number.isFinite(costo) ? costo : null,
   };
 }

@@ -78,29 +78,11 @@ export function serialAFechaISO(serial) {
 }
 
 /**
- * Lee la primera hoja del .xlsx → arreglo de filas (arreglo de celdas crudas).
- * Las celdas numéricas quedan como number; las de texto como string; vacías como null.
+ * Parsea el XML de una hoja ya descomprimida.
  */
-export async function leerPrimeraHoja(buf) {
-  const zip = await leerZip(buf);
-  const dec = new TextDecoder();
-  const ss = [];
-  const ssXml = zip.get('xl/sharedStrings.xml');
-  if (ssXml) for (const m of dec.decode(ssXml).matchAll(/<si>([\s\S]*?)<\/si>/g)) ss.push(textoDe(m[1]));
-  // primera hoja según workbook.xml + rels (si falla, sheet1.xml)
-  let ruta = 'xl/worksheets/sheet1.xml';
-  try {
-    const wb = dec.decode(zip.get('xl/workbook.xml'));
-    const rels = dec.decode(zip.get('xl/_rels/workbook.xml.rels'));
-    const rid = (wb.match(/<sheet\b[^>]*\br:id="([^"]+)"/) || [])[1];
-    const target = rid ? (rels.match(new RegExp(`<Relationship\\b[^>]*Id="${rid}"[^>]*Target="([^"]+)"`)) || rels.match(new RegExp(`<Relationship\\b[^>]*Target="([^"]+)"[^>]*Id="${rid}"`)) || [])[1] : null;
-    if (target) ruta = target.startsWith('/') ? target.slice(1) : 'xl/' + target.replace(/^\.?\//, '');
-  } catch (_e) { /* sheet1 */ }
-  const hoja = zip.get(ruta);
-  if (!hoja) throw new Error('El archivo no tiene hojas legibles.');
-  const xml = dec.decode(hoja);
+function filasDeXmlHoja(xml, ss = []) {
   const filas = [];
-  for (const rm of xml.matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
+  for (const rm of String(xml || '').matchAll(/<row\b[^>]*>([\s\S]*?)<\/row>/g)) {
     const fila = [];
     for (const cm of rm[1].matchAll(/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g)) {
       const attrs = cm[1], inner = cm[2] || '';
@@ -122,16 +104,73 @@ export async function leerPrimeraHoja(buf) {
   return filas;
 }
 
+function rutaXlsx(target = '') {
+  const t = String(target || '').replace(/^\//, '');
+  if (!t) return '';
+  if (t.startsWith('xl/')) return t;
+  if (t.startsWith('../')) return 'xl/' + t.replace(/^\.\.\//, '');
+  return 'xl/' + t.replace(/^\.\//, '');
+}
+
+/**
+ * Lee TODAS las hojas del .xlsx en el orden del workbook.
+ * Devuelve [{ nombre, filas }]. Esto permite abrir workbooks reales de proyecto
+ * (TELCEL: solicitud, tabla_de_comparación, explo_x_id, cata_mp...) sin asumir que
+ * la primera hoja es el reporte tabular.
+ */
+export async function leerHojas(buf) {
+  const zip = await leerZip(buf);
+  const dec = new TextDecoder();
+  const ss = [];
+  const ssXml = zip.get('xl/sharedStrings.xml');
+  if (ssXml) for (const m of dec.decode(ssXml).matchAll(/<si>([\s\S]*?)<\/si>/g)) ss.push(textoDe(m[1]));
+
+  const wbRaw = zip.get('xl/workbook.xml');
+  const relRaw = zip.get('xl/_rels/workbook.xml.rels');
+  if (wbRaw && relRaw) {
+    const wb = dec.decode(wbRaw), rels = dec.decode(relRaw);
+    const relMap = new Map();
+    for (const m of rels.matchAll(/<Relationship\b([^>]*?)\/?\s*>/g)) {
+      const attrs = m[1] || '';
+      const id = (attrs.match(/\bId="([^"]+)"/) || [])[1];
+      const target = (attrs.match(/\bTarget="([^"]+)"/) || [])[1];
+      if (id && target) relMap.set(id, target);
+    }
+    const hojas = [];
+    for (const m of wb.matchAll(/<sheet\b([^>]*?)\/?\s*>/g)) {
+      const attrs = m[1] || '';
+      const nombre = desescaparXml((attrs.match(/\bname="([^"]*)"/) || [, 'Hoja'])[1]);
+      const rid = (attrs.match(/\br:id="([^"]+)"/) || [])[1];
+      const ruta = rutaXlsx(relMap.get(rid));
+      const hoja = ruta ? zip.get(ruta) : null;
+      if (!hoja) continue;
+      hojas.push({ nombre, filas: filasDeXmlHoja(dec.decode(hoja), ss) });
+    }
+    if (hojas.length) return hojas;
+  }
+
+  // Fallback para archivos muy simples o workbook.xml raro.
+  const hoja = zip.get('xl/worksheets/sheet1.xml');
+  if (!hoja) throw new Error('El archivo no tiene hojas legibles.');
+  return [{ nombre: 'Hoja1', filas: filasDeXmlHoja(dec.decode(hoja), ss) }];
+}
+
+/** Lee la primera hoja del .xlsx (compatibilidad con VH-089). */
+export async function leerPrimeraHoja(buf) {
+  const hojas = await leerHojas(buf);
+  return hojas[0]?.filas || [];
+}
+
 /**
  * Filas → objetos por encabezado (primera fila). Las columnas cuyo encabezado
  * contiene "fecha" se convierten de serial Excel a 'YYYY-MM-DD'.
  */
-export function filasAObjetos(filas) {
-  if (!filas.length) return { encabezados: [], registros: [] };
-  const enc = filas[0].map((h) => String(h ?? '').trim());
+export function filasAObjetos(filas, indiceEncabezado = 0) {
+  if (!filas.length || indiceEncabezado < 0 || indiceEncabezado >= filas.length) return { encabezados: [], registros: [] };
+  const enc = (filas[indiceEncabezado] || []).map((h) => String(h ?? '').trim());
   const esFecha = enc.map((h) => /fecha/i.test(h));
   const registros = [];
-  for (const f of filas.slice(1)) {
+  for (const f of filas.slice(indiceEncabezado + 1)) {
     if (!f || f.every((c) => c == null || c === '')) continue;
     const o = {};
     enc.forEach((h, i) => {

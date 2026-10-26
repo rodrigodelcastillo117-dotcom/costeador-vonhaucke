@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { leerPrimeraHoja, filasAObjetos, serialAFechaISO, colAIndice, desescaparXml } from './xlsxMinimo.js';
+import { leerPrimeraHoja, leerHojas, filasAObjetos, serialAFechaISO, colAIndice, desescaparXml } from './xlsxMinimo.js';
 import { registroDesdeFila, prepararCargaErp, idErp, UNIDAD_ERP, tramoPorPiezaDe } from './erpCarga.js';
 
 const FIX = path.join(path.dirname(new URL(import.meta.url).pathname), 'fixtures', 'erp_ultima_compra_mini.xlsx');
@@ -24,6 +24,15 @@ describe('xlsxMinimo · lector sin dependencias', () => {
     expect(registros[0]['Costo Última Compra']).toBe(483);
     expect(registros[2]['Costo Última Compra']).toBeNull();
     expect(registros[3]['Opción']).toBe('A101');
+  });
+  it('leerHojas conserva nombre + filas y leerPrimeraHoja sigue siendo compatible', async () => {
+    const buf = fs.readFileSync(FIX);
+    const ab = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
+    const hojas = await leerHojas(ab);
+    expect(hojas.length).toBeGreaterThanOrEqual(1);
+    expect(typeof hojas[0].nombre).toBe('string');
+    expect(Array.isArray(hojas[0].filas)).toBe(true);
+    expect((await leerPrimeraHoja(ab))).toEqual(hojas[0].filas);
   });
 });
 
@@ -108,5 +117,22 @@ describe('tramo vendido por pieza (14-oct): barras comerciales de perfil/tubular
     } else {
       throw new Error(`unidad/sección inesperadas: ${catalogo[0].unidad_costeo}/${catalogo[0].seccion}`);
     }
+  });
+});
+
+
+describe('registroDesdeFila · encabezados de workbook real (snake_case)', () => {
+  it('acepta cata_mp/explo_x_id sin renombrar columnas', () => {
+    const r = registroDesdeFila({
+      articulo: 'MVLSLA05260502',
+      descripción: 'LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 - LN20310',
+      opción: '-',
+      opción_descripción: '',
+      unidad: 'Hoja',
+      fecha_última_compra: '2024-05-27',
+      costo_última_compra: 428.65,
+      clave_comercial: 'LN20310',
+    });
+    expect(r).toMatchObject({ articulo: 'MVLSLA05260502', opcion: '', unidad: 'Hoja', fecha_uc: '2024-05-27', costo_uc: 428.65, clave: 'LN20310' });
   });
 });
