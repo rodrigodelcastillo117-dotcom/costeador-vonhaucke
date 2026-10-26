@@ -136,3 +136,37 @@ describe('registroDesdeFila · encabezados de workbook real (snake_case)', () =>
     expect(r).toMatchObject({ articulo: 'MVLSLA05260502', opcion: '', unidad: 'Hoja', fecha_uc: '2024-05-27', costo_uc: 428.65, clave: 'LN20310' });
   });
 });
+
+
+describe('erpCarga · workbook de proyecto = evidencia preliminar, nunca autocertifica', () => {
+  const reg = {
+    articulo: 'MVLSLA05260502',
+    opcion: '',
+    desc: 'LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310',
+    opc_desc: '',
+    unidad: 'Hoja',
+    clave: 'LN20310',
+    estatus: 'ALTA',
+    fecha_uc: '2026-08-05',
+    costo_uc: 428.65,
+  };
+
+  it('reporte directo reciente conserva estado propuesto', () => {
+    const { precios, resumen } = prepararCargaErp([reg], { documento: 'ultima-compra.xlsx', hoy: new Date('2026-10-26') });
+    expect(precios).toHaveLength(1);
+    expect(precios[0]).toMatchObject({ estado: 'propuesto', requiere_validacion_compras: false });
+    expect(resumen.requierenValidacionCompras).toBe(0);
+  });
+
+  it('mismo dato dentro de workbook de proyecto queda propuesto_validado y requiere Compras', () => {
+    const { precios, resumen } = prepararCargaErp([reg], {
+      documento: 'C-CO-320R.xlsx',
+      hoy: new Date('2026-10-26'),
+      forzarValidacionCompras: true,
+    });
+    expect(precios).toHaveLength(1);
+    expect(precios[0]).toMatchObject({ estado: 'propuesto_validado', requiere_validacion_compras: true });
+    expect(precios[0].evidencia).toContain('WORKBOOK DE PROYECTO');
+    expect(resumen.requierenValidacionCompras).toBe(1);
+  });
+});
