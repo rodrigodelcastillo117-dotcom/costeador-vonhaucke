@@ -70,14 +70,16 @@ export function registrosErpDesdeWorkbookProyecto(hojas = []) {
       fecha_uc: r0.fecha_uc || catR?.fecha_uc || null,
       costo_uc: r0.costo_uc ?? catR?.costo_uc ?? null,
     };
+    // Dedup ANTES de contar: una materia repetida en varios módulos es una sola evidencia,
+    // así que no debe inflar clavesRecuperadas/sinClave/etc. (antes contaba por fila cruda).
+    const firma = [r.articulo, r.opcion, r.fecha_uc || '', r.costo_uc ?? '', r.unidad || ''].join('|');
+    if (vistos.has(firma)) continue;
+    vistos.add(firma);
     if (!r0.clave && r.clave) recuperadas++;
     if (!r.clave) sinClave++;
     if (!r.unidad) sinUnidad++;
     if (!r.fecha_uc) sinFecha++;
     if (!(r.costo_uc > 0)) sinCosto++;
-    const firma = [r.articulo, r.opcion, r.fecha_uc || '', r.costo_uc ?? '', r.unidad || ''].join('|');
-    if (vistos.has(firma)) continue;
-    vistos.add(firma);
     registros.push(r);
   }
   return {
