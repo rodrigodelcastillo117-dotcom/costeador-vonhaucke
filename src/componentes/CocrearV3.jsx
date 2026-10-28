@@ -27,6 +27,7 @@ import {diagnosticoDesarrolloProducto,compararVariantesProducto} from '../datos/
 import {contextoCatalogoParaIA,recomendar as recomendarCatalogoVonHaucke} from '../voni/conocimiento.js';
 import {explicarCosteo} from '../datos/explicacionCosteo.js';
 import {estadoValidacionIngenieria,puedeAprobarIngenieria,piezasPendientesIngenieria,ingenieriaListaParaRevision as listaParaRevisionIngenieria,bloqueoValidacionIngenieria,sinValidacionIngenieria} from '../datos/validacionIngenieriaCocrear.js';
+import {alternativasParaPiezas} from '../datos/alternativasCatalogo.js';
 
 const MAT_LABEL={nogal:'Nogal',roble:'Roble',encino:'Encino',maple:'Maple',laminado:'Laminado',solid_surface:'Solid surface',cristal:'Cristal',metal:'Metal',piedra:'Piedra'};
 const FAMILY_OPTIONS=[[FAMILIA.DESCONOCIDA,'Producto libre'],[FAMILIA.ESCRITORIO,'Operativo / escritorio'],[FAMILIA.MESA,'Mesa'],[FAMILIA.RECEPCION,'Recepción'],[FAMILIA.LOCKER,'Locker'],[FAMILIA.DISPLAY,'Exhibidor'],[FAMILIA.GUARDADO,'Guardado']];
@@ -187,6 +188,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  // SERVIDOR: rol, costo emitible, validador estructural y misma revisión.
  const despiece3DCompleto=!!(desarrollo?.estado==='ANALIZADO'&&modelo3d?.status==='EXPLODED_READY');
  const piezasPendientes=piezasPendientesIngenieria(spec?.componentes);
+ // Reclamo Dirección 2026-10-28: por cada pieza pendiente, las alternativas reales más cercanas del
+ // catálogo (lo elige/confirma en Costear; aquí es informativo para que no sea "no aporta nada").
+ const altPendientes=useMemo(()=>alternativasParaPiezas(piezasPendientes,insumos,{veCostos,max:3}),[piezasPendientes,insumos,veCostos]);
  const ingenieriaListaParaRevision=listaParaRevisionIngenieria(spec?.componentes);
  const alcance=useMemo(()=>detectarAlcanceCocrear(texto||intent?._brief||''),[texto,intent]);
 
@@ -589,7 +593,7 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
        {intent?._puente?.metodo&&<div className="c3-small" style={{marginTop:3}}>{intent._puente.metodo}</div>}
        {(intent?._puente?.trazas||[]).slice(0,5).map((t,i)=><div key={i} className="c3-small" style={{marginTop:3}}>↔ {t.pieza}: {t.de} → {t.a} <span style={{color:'#7f8993'}}>({t.regla})</span></div>)}
        {(intent?._puente?.avisos||[]).map((a,i)=><div key={'a'+i} style={{marginTop:4,fontSize:10,color:'#e0b478'}}>⚠ {a}</div>)}
-       {piezasPendientes.map((c,i)=><div key={'p'+i} style={{marginTop:4,fontSize:10,color:'#ff9b91'}}>✕ {c.nombre}: sin material, el costo queda incompleto (no se inventa).</div>)}
+       {piezasPendientes.map((c,i)=>{const alt=altPendientes[i];return <div key={'p'+i} style={{marginTop:4,fontSize:10,color:'#ff9b91'}} data-testid="cocrear-pieza-pendiente">✕ {c.nombre}: sin material, el costo queda incompleto (no se inventa).{alt&&<span style={{color:'#e0b478'}} data-testid="cocrear-alternativas"> Lo más cercano en catálogo: {alt.alternativas.map(a=>`${a.espesorMM!=null?a.espesorMM+' mm':a.nombre}${a.precio!=null?' '+money(a.precio):''}`).join(' · ')} — elígelo en Costear.</span>}</div>})}
        {referenciaPadre&&<div style={{marginTop:6,fontSize:10,color:debajoDelPadre?'#ffb4aa':'#bdd7c5'}}>{debajoDelPadre?'⚠ ':''}Precio de lista de {referenciaPadre.nombre}{referenciaPadre.real?' (catálogo)':' (modelo de la línea)'}: <b>{money(referenciaPadre.precio)}</b>.{debajoDelPadre?' El precio sugerido del especial queda por DEBAJO: revisa la dificultad o que Dirección decida el precio (no se ajusta solo).':' Referencia: no se toca.'}</div>}
        {!despiece3DCompleto&&<div className="c3-small" style={{marginTop:4}}>Despiece 3D parcial: hay piezas sin largo × ancho × espesor (PTR por metro, herrajes). Es informativo; la validación la hace el servidor.</div>}
        <div style={{display:'flex',gap:6,marginTop:8,flexWrap:'wrap'}}><Btn ghost onClick={quitarBom}>Quitar BOM</Btn>{veCostos&&onPasarACostear&&<Btn ghost onClick={pasarACostear}>Afinar en Costear</Btn>}</div>
