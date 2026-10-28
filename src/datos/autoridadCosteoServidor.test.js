@@ -1,7 +1,7 @@
 // Operación 9.5 · OP9.5-04 (estado del servidor con motivos) y P1-03 (aprobación humana del PRECIO EXACTO).
 // Datos de las filas: valores reales de producción leídos el 14-oct-2026 (aprobadores, el empate de lamina-3x10-14).
 import { describe, it, expect } from 'vitest';
-import { estadoBaseServidor, conMotivos, precioVigenteElegido, aprobacionPrecioExacto, preciosAprobables, preciosNoAprobables } from './autoridadCosteoServidor.js';
+import { estadoBaseServidor, conMotivos, precioVigenteElegido, aprobacionPrecioExacto, preciosAprobables, preciosNoAprobables, resumenFrescura } from './autoridadCosteoServidor.js';
 import { costeoEmitible } from '../motor/calculo.js';
 import { clasificarCosto } from './estadoCosto.js';
 
@@ -202,5 +202,39 @@ describe('cierre ChatGPT · el aviso nombra el insumo sin precio certificado', (
     const { estadoBaseServidor } = await import('./autoridadCosteoServidor.js');
     const s = estadoBaseServidor({ emision: { emitible: true, componentesIgnorados: [], detalleInsumos: [] }, usados: ['m16', 'tornilleria'], noCertificados: ['tornilleria'], costoUnitario: 100, nombreDe: (id) => ({ tornilleria: 'Tornillería (incluida)' })[id] });
     expect(s.warnings.join(' ')).toMatch(/1 de 2 insumo\(s\) sin precio certificado: Tornillería \(incluida\)\./);
+  });
+});
+
+describe('resumenFrescura · antigüedad del documento de compra (honestidad §5/§6)', () => {
+  const HOY = new Date('2026-10-28T00:00:00Z');
+  it('todo fresco (≤24m) → fresco:true, nMayorUmbral:0', () => {
+    const r = resumenFrescura([{ vigente_desde: '2026-06-01' }, { vigente_desde: '2025-06-01' }], { hoy: HOY });
+    expect(r.fresco).toBe(true);
+    expect(r.nMayorUmbral).toBe(0);
+    expect(r.nTotal).toBe(2);
+    expect(r.conFecha).toBe(2);
+  });
+  it('mezcla fresco/viejo → cuenta sólo los >24m y reporta el más antiguo', () => {
+    const r = resumenFrescura([
+      { vigente_desde: '2026-06-01' },   // fresco
+      { vigente_desde: '2018-10-12' },   // viejo
+      { vigente_desde: '2011-08-15' },   // el más antiguo
+    ], { hoy: HOY });
+    expect(r.fresco).toBe(false);
+    expect(r.nMayorUmbral).toBe(2);
+    expect(r.masAntiguoFecha).toBe('2011-08-15');
+    expect(r.masAntiguoMeses).toBeGreaterThan(120);
+  });
+  it('precio sin fecha no cuenta como viejo ni como fresco (no inventa antigüedad)', () => {
+    const r = resumenFrescura([{ vigente_desde: null }, { vigente_desde: '2015-01-01' }], { hoy: HOY });
+    expect(r.nTotal).toBe(2);
+    expect(r.conFecha).toBe(1);
+    expect(r.nMayorUmbral).toBe(1);
+  });
+  it('lista vacía → fresco:true, sin más antiguo', () => {
+    const r = resumenFrescura([], { hoy: HOY });
+    expect(r.fresco).toBe(true);
+    expect(r.nTotal).toBe(0);
+    expect(r.masAntiguoFecha).toBe(null);
   });
 });

@@ -63,6 +63,37 @@ export function conMotivos(estado, warnings = []) {
   return w;
 }
 
+/**
+ * Frescura del costo: antigüedad del DOCUMENTO de última compra que respalda cada precio usado.
+ * Honestidad §5/§6: un precio aprobado puede descansar en una compra de hace años (Dirección lo acepta
+ * bajo sus tiers D1); esto NO cambia el estado (eso es decisión de Dirección, §3), sólo lo dice para que
+ * nadie lea un costo viejo como cotización de hoy. Seller-safe: sólo fechas/conteos, nunca el precio.
+ * @param {Array<{vigente_desde?: string|null}>} precios  preciosUsados (traza del precio exacto)
+ * @returns {{nTotal:number, conFecha:number, umbralMeses:number, nMayorUmbral:number,
+ *            masAntiguoFecha:string|null, masAntiguoMeses:number|null, fresco:boolean}}
+ */
+export function resumenFrescura(precios = [], { umbralMeses = 24, hoy = new Date() } = {}) {
+  const items = lista(precios);
+  const MES_MS = 1000 * 60 * 60 * 24 * 30.4375;
+  const conMeses = [];
+  for (const p of items) {
+    const d = p && p.vigente_desde ? Date.parse(p.vigente_desde) : NaN;
+    if (Number.isFinite(d)) conMeses.push({ fecha: p.vigente_desde, meses: (hoy.getTime() - d) / MES_MS });
+  }
+  const viejos = conMeses.filter((x) => x.meses > umbralMeses);
+  let masAntiguo = null;
+  for (const x of conMeses) if (masAntiguo == null || x.meses > masAntiguo.meses) masAntiguo = x;
+  return {
+    nTotal: items.length,
+    conFecha: conMeses.length,
+    umbralMeses,
+    nMayorUmbral: viejos.length,
+    masAntiguoFecha: masAntiguo ? masAntiguo.fecha : null,
+    masAntiguoMeses: masAntiguo ? Math.round(masAntiguo.meses) : null,
+    fresco: viejos.length === 0,
+  };
+}
+
 const ORDEN_ESTADO = { aprobado: 0, propuesto_validado: 1, propuesto: 2 };
 const ORDEN_CONF = { alta: 0, media: 1 };
 const fechaNum = (f) => (f ? Date.parse(f) : -Infinity);
@@ -104,7 +135,7 @@ export function aprobacionPrecioExacto({ usados = [], insumos = {}, filasPrecio 
       ? { fila: filas.find((f) => Number(f.id) === Number(pid) && f.vigente_hasta == null) || null, empate: false }
       : precioVigenteElegido(filas);
     const usado = insumos?.[id]?.precio;
-    const t = { insumo_id: id, eleccion: pid != null ? 'catalogo' : 'recalculada', precio_usado: usado ?? null, unidad: insumos?.[id]?.unidad ?? null, precio_id: fila?.id ?? null, precio: fila?.precio ?? null, estado: fila?.estado ?? null, approved_by: fila?.approved_by ?? null, approved_at: fila?.approved_at ?? null, source_document: fila?.source_document ?? null, rol_aprobador: null, humana: false, motivo: null };
+    const t = { insumo_id: id, eleccion: pid != null ? 'catalogo' : 'recalculada', precio_usado: usado ?? null, unidad: insumos?.[id]?.unidad ?? null, precio_id: fila?.id ?? null, precio: fila?.precio ?? null, estado: fila?.estado ?? null, approved_by: fila?.approved_by ?? null, approved_at: fila?.approved_at ?? null, vigente_desde: fila?.vigente_desde ?? null, source_document: fila?.source_document ?? null, rol_aprobador: null, humana: false, motivo: null };
     const email = String(fila?.approved_by || '').toLowerCase();
     t.rol_aprobador = rolDe.get(email) || null;
     if (!fila) t.motivo = 'sin precio vigente';

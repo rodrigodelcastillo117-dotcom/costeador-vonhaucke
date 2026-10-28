@@ -21,7 +21,7 @@ import { specTecnicaDeCosteo } from './specTecnica.js';
 import { reconciliarMaterialServidor, puedeConfirmarMaterial, estadoConTopeLegacy } from './materialMatch.js';
 import { revisarEstructura } from './revisionEstructural.js';
 import { topeEstadoPorPoliticas } from './topeEstadoCosteo.js';
-import { estadoBaseServidor, conMotivos, aprobacionPrecioExacto } from './autoridadCosteoServidor.js';
+import { estadoBaseServidor, conMotivos, aprobacionPrecioExacto, resumenFrescura } from './autoridadCosteoServidor.js';
 
 // Hash corto y estable del contenido de config con el que se costeó, para que una
 // cotización vieja siga siendo explicable aunque mañana cambie un precio (djb2).
@@ -195,6 +195,13 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
     estado = 'preliminar';
     warnings.push(...(aprob.motivos.length ? aprob.motivos : ['Precios sin aprobación humana verificada.']));
   }
+  // Frescura (§5/§6): avisa cuando el costo se apoya en documentos de compra viejos, para que nadie
+  // lea un precio de hace años como cotización de hoy. NO cambia el estado (exigir vigencia es decisión
+  // de Dirección, §3); sólo lo dice. Seller-safe: fechas/conteos, nunca el precio.
+  const frescura = resumenFrescura(aprob.precios);
+  if (frescura.nMayorUmbral > 0) {
+    warnings.push(`Frescura: ${frescura.nMayorUmbral} de ${frescura.nTotal} material(es) con última compra de hace más de ${frescura.umbralMeses} meses (más antigua: ${frescura.masAntiguoFecha}). El costo puede estar desactualizado; confírmalo con Compras antes de comprometer el precio.`);
+  }
   const motivos = conMotivos(estado, warnings);
   warnings.length = 0; warnings.push(...motivos);
 
@@ -209,7 +216,7 @@ export async function costearConMotor(svc, pieza, n, puedeConfirmar) {
     fuenteCosto: catalogoFuente,
     calculadoEn: new Date().toISOString(),
   };
-  return { r, emision, estado, revisionesPendientes, aprobacionHumana, preciosUsados: aprob.precios, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos, piezaEfectiva, componentes: piezaEfectiva.componentes };
+  return { r, emision, estado, revisionesPendientes, aprobacionHumana, preciosUsados: aprob.precios, frescura, warnings, usados, evMap, noCertificados, faltan, meta, catalogoFuente, parametros, insumos, datos, piezaEfectiva, componentes: piezaEfectiva.componentes };
 }
 
 /**
