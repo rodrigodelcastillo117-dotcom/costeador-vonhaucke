@@ -48,10 +48,12 @@
 - **Follow-up verificable (no en este commit):** auto-limpieza reactiva del `plan` stale en `AcomodoBase.jsx` (vaciar el lienzo al vuelo cuando cambia la identidad del programa con el componente montado). Requiere infra de test de componente (no hay `@testing-library/react`) o corrida E2E con secretos; se deja fuera para no empujar un cambio de estado React no verificable que pueda tornar CI rojo (§72). El saneo al montar (`sanearAcomodoContraPartidas`, ya testeado) cubre el caso de reabrir; el relabel cubre el caso montado.
 - **Estado:** 🟢 **núcleo cerrado** (reconoce STALE, bloquea publicación, texto honesto; unit-testeado) · follow-up de UX reactiva pendiente/documentado.
 
-### P0-01 · Cotizar ECONOMICS_INCOMPLETE
-- **Severidad:** P0 si reproduce.
-- **Reproducción:** histórico (partidas sin costo oficial). **Re-verificar en HEAD** con catálogo actual (12,971 precios).
-- **Estado:** 🟡 **A RE-VERIFICAR**.
+### P0-01 · Cotizar ECONOMICS_INCOMPLETE — **re-verificado: no es bug de código**
+- **Severidad:** P0 si fuera defecto de código; **no lo es**.
+- **Medición (HOY, read-only):** `costeos_servidor` (1,010): certificado **112**, preliminar 563, incompleto 276, bloqueado 59. Vigentes (`partida_costeo_vigente`, 36): certificado 23, preliminar 13.
+- **Causa:** `ECONOMICS_INCOMPLETE` se dispara cuando una línea no tiene costo **certificado** (`emision.js`: `linea_N_costo_(preliminar_)no_certificado`). Es la compuerta **fail-closed correcta** (§22): no emite un precio comercial sin costo certificado. El aviso de frescura nuevo NO cambia el estado, así que **no aumenta** el bloqueo.
+- **Qué lo reduciría (no es código):** más costeos certificados = más cobertura de precios certificados + confirmación de materiales (USER_CONFIRMED) + la decisión de frescura/tiers (P0-03b). Todo **dato/política = Dirección**. Bajar la compuerta para "desbloquear" sería fingir emitibilidad (§97): no se hace.
+- **Estado:** 🟢 **código correcto (fail-closed)** · 🟡 cobertura de certificación = dato/Dirección (ligado a P0-03b).
 
 ### P1-EDGE-01 · Trazabilidad edges prod↔SHA
 - **Severidad:** P1.
@@ -59,11 +61,17 @@
 - **Fix (gobernado):** redeploy desde repo al SHA final + metadata `build_sha`/`edge_version`/`request_id` en respuesta (§31). Requiere autorización prod (§100).
 - **Estado:** 🔴 **ABIERTO**.
 
-### P1-SEC-01 · `_bk_familia_app_20261021` RLS off
-- **Severidad:** P1.
-- **Reproducción:** advisor Supabase *critical*: RLS disabled, 306 filas, expuesta a anon/authenticated.
-- **Fix (propuesto, gobernado):** `DROP TABLE` (es backup) o `ENABLE RLS` + revoke grants. Requiere autorización prod (§100).
-- **Estado:** 🔴 **ABIERTO**.
+### P1-SEC-01 · `_bk_familia_app_20261021` RLS off — **corregido: no es fuga, es higiene**
+- **Severidad real:** baja (higiene), NO P1 de exposición. El baseline lo sobrevaloró.
+- **Medición (HOY, read-only):** la tabla tiene RLS off (306 filas), **pero anon/authenticated/public NO tienen grant** (`role_table_grants` vacío) → **no es legible por la API**; sólo service_role/owner. Por eso el advisor de seguridad de hoy ya **no** la marca.
+- **Fix (gobernado, LISTO, no aplicado):** `lab/seguridad/P1-SEC-01_backup_cleanup.sql` — `DROP TABLE` del respaldo (o habilitar RLS + revoke como alternativa). §100 = Dirección lo aplica.
+- **Estado:** 🟢 **sin fuga real** · 🟡 limpieza opcional lista para Dirección.
+
+### §56 · SECURITY DEFINER ejecutables por `authenticated` — **verificado seguro**
+- **Reproducción:** advisor Supabase (WARN): 16 funciones `SECURITY DEFINER` callables por `authenticated` vía `/rest/v1/rpc`.
+- **Verificación (HOY, `pg_get_functiondef`):** las 12 privilegiadas (aprobar/certificar/cargar/firmar/cerrar/revalidar) **todas** tienen candado de rol interno (`puede_certificar_costo()` o chequeo `direccion`/`cuentas_no_humanas`) y **lanzan excepción**. Las read-only restantes (`catalogo_motor`, `buscar_insumos_motor`, `politica_comercial_publica`, `puede_certificar_costo`) son de lectura curada. → **Un vendedor NO puede certificar/aprobar/cargar.** WARN = falso positivo para integridad.
+- **RLS-enabled-sin-policy (8 tablas, INFO):** quedan **cerradas** (RLS on + sin policy ⇒ nadie lee salvo service_role); son tablas escritas por servidor y leídas vía RPC/edge. Fail-safe, sin acción.
+- **Estado:** 🟢 **sin hallazgo de autoridad**.
 
 ### P1-PREV-01 · Sin preview en SHA actual
 - **Severidad:** P1 (§76).
