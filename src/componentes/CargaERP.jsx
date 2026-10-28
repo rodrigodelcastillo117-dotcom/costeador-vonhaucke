@@ -93,7 +93,10 @@ export default function CargaERP({ onAviso }) {
       if (!extraido.registros.length) {
         throw new Error('El archivo no contiene una tabla reconocible de materiales con Artículo y Costo Última Compra.');
       }
-      const origen = extraido.hojaCatalogo ? 'workbook_proyecto' : 'reporte_ultima_compra';
+      // Workbook de proyecto sólo si lo es de verdad (explosión nombrada o catálogo MP auxiliar en
+      // hoja aparte). El reporte directo "Última Compra" de Intelisis —una sola tabla con Clave
+      // Comercial inline— NO debe forzar revalidación ni perder la certificación normal de ≤24 meses.
+      const origen = extraido.esWorkbookProyecto ? 'workbook_proyecto' : 'reporte_ultima_compra';
       const preparado = prepararCargaErp(extraido.registros, {
         documento: f.name,
         // Evidencia secundaria: puede aportar costo preliminar, pero nunca se autocertifica.

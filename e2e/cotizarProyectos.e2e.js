@@ -209,7 +209,9 @@ test.describe('COTIZAR · tres proyectos', () => {
 
       // 4) PDF preliminar (sin emitir).
       const descargar = page.getByRole('button', { name: /Descargar PDF/i }).first();
-      await expect(descargar).toBeVisible({ timeout: 15000 });
+      // El botón aparece tras reabrir de la nube (varios round-trips al backend real); 15s era la espera
+      // más corta de todo el flujo y causaba flake en CI. Se alinea con los demás waits async (30s).
+      await expect(descargar).toBeVisible({ timeout: 30000 });
       const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 30000 }), descargar.click()]);
       console.log(`[${P.clave}] descarga: ${await dl.suggestedFilename()} · ${String(dl.url()).slice(0, 60)}`);
       expect((await dl.suggestedFilename()).toLowerCase()).toMatch(/\.pdf$/);

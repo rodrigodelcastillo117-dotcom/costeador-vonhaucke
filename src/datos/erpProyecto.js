@@ -32,18 +32,24 @@ function key(r) { return `${r.articulo}|${r.opcion || ''}`; }
  * - dedupe: mismo artículo/opción/fecha/costo = una evidencia, aunque aparezca en varios módulos.
  */
 export function registrosErpDesdeWorkbookProyecto(hojas = []) {
-  const exp = hojaPorNombre(hojas, /explo|explosi/i)
+  const expPorNombre = hojaPorNombre(hojas, /explo|explosi/i);
+  const exp = expPorNombre
     || (hojas || []).find((h) => indiceEncabezado(h.filas) >= 0)
     || null;
-  if (!exp) return { registros: [], hojaExplosion: null, hojaCatalogo: null, resumen: { error: 'NO_EXPLOSION_TABLE' } };
+  if (!exp) return { registros: [], hojaExplosion: null, hojaCatalogo: null, esWorkbookProyecto: false, resumen: { error: 'NO_EXPLOSION_TABLE' } };
 
   const ixExp = indiceEncabezado(exp.filas);
   const expObjs = filasAObjetos(exp.filas, ixExp).registros;
   const crudos = expObjs.map(registroDesdeFila).filter(Boolean);
 
-  const cat = hojaPorNombre(hojas, /cata[_ ]?mp|catalog/i)
+  let cat = hojaPorNombre(hojas, /cata[_ ]?mp|catalog/i)
     || (hojas || []).find((h) => indiceEncabezado(h.filas, { requiereClave: true }) >= 0)
     || null;
+  // Un reporte directo del ERP ("Última Compra") es UNA sola tabla con Clave Comercial inline:
+  // esa hoja es su propia referencia, no un catálogo MP auxiliar. Sólo hay catálogo auxiliar
+  // cuando es OTRA hoja distinta de la explosión (p. ej. el cata_mp de TELCEL). Si la explosión
+  // se eligió a sí misma como "catálogo" por traer la clave inline, NO es un workbook de proyecto.
+  if (cat === exp) cat = null;
   const catalogo = new Map();
   if (cat) {
     const ixCat = indiceEncabezado(cat.filas, { requiereClave: true });
@@ -86,6 +92,9 @@ export function registrosErpDesdeWorkbookProyecto(hojas = []) {
     registros,
     hojaExplosion: exp.nombre,
     hojaCatalogo: cat?.nombre || null,
+    // Workbook de proyecto = explosión nombrada (explo_x_id…) o catálogo MP auxiliar en hoja aparte.
+    // Un reporte directo de Compras (una tabla con clave inline) NO lo es: certifica con la política normal.
+    esWorkbookProyecto: Boolean(expPorNombre) || Boolean(cat),
     resumen: {
       filasExplosion: crudos.length,
       registrosUnicos: registros.length,

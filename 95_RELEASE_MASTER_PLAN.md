@@ -11,13 +11,19 @@
 
 ## HALLAZGOS
 
-### P0-CI-01 · CI / E2E Playwright
-- **Severidad:** P0 (bloquea merge y 9.5, §72).
-- **Reproducción:** CI run #979 sobre `728ac8a`, job *"E2E público + autenticado"*, paso *"E2E público + auth condicional"* → failure (13 min). Job `verify` (unit/build/audit) verde.
-- **Causa raíz:** PENDIENTE (no reproduce en corrida local, que no corre Playwright). Diagnóstico en bloque §104.
-- **Evidencia:** actions/runs/40431490402.
-- **Fix / prueba / commit:** PENDIENTE.
-- **Estado:** 🔴 **ABIERTO**.
+### P0-CI-01 · CI / E2E Playwright — **REGRESIÓN real en carga del ERP**
+- **Severidad:** P0 (bloquea merge y 9.5, §72). Además era un **bug de producción**, no sólo del test.
+- **Reproducción:** CI run #979 sobre `728ac8a`, job *"E2E público + autenticado"* → failure. Hard-fail en `e2e/cargaErp.e2e.js:35` (`verify` verde). Reproducido en local con navegador real + con el parser real contra el fixture `erp_ultima_compra_mini.xlsx`.
+- **Causa raíz:** el candado de workbooks de proyecto (TELCEL, serie `ERP:`) **se tragó el reporte directo de Intelisis**. `registrosErpDesdeWorkbookProyecto` elegía la MISMA hoja como explosión y como "catálogo MP" (porque el reporte trae Clave Comercial inline) → `hojaCatalogo` truthy → se clasificaba como `workbook_proyecto` → `forzarValidacionCompras: true` → **0 precios ≤24 m se certificaban**. En producción, Dirección sube el reporte mensual de Compras y la app se niega a certificar. No era un test viejo: bajarlo al label nuevo habría ocultado la regresión (§97).
+- **Fix:**
+  - `src/datos/erpProyecto.js`: si la "hoja catálogo" detectada es la MISMA que la explosión (`cat === exp`) → `cat = null` (un reporte directo no tiene catálogo auxiliar); nuevo flag explícito `esWorkbookProyecto` = explosión nombrada (`explo_x_id…`) **o** catálogo MP en hoja aparte.
+  - `src/componentes/CargaERP.jsx`: `origen` se decide por `esWorkbookProyecto`, no por `hojaCatalogo`.
+  - `src/datos/erpProyecto.test.js`: candado de regresión (reporte directo de una hoja con clave inline → `hojaCatalogo:null`, `esWorkbookProyecto:false`) + asserts `esWorkbookProyecto:true` en el workbook real TELCEL.
+  - `e2e/cargaErp.e2e.js`: label correcto del reporte directo (`Compra ≤ 24 meses 2`, sin "(se certifican)") + asserts que fijan la clasificación (`Reporte Última Compra`, y NO "Precios de proyecto que requieren revalidación").
+  - `e2e/cotizarProyectos.e2e.js`: espera flaky del botón "Descargar PDF" 15s→30s (alineada con el resto del flujo async; no debilita la aserción).
+- **Prueba (antes→después):** vitest afectados 43/43 (incl. candado nuevo); `cargaErp.e2e.js` **4/4 con Chromium real** (antes 1 hard-fail); `npm run build` PASS. Workbook real TELCEL sigue forzando revalidación (unit).
+- **Commit:** rama `claude/costing-app-architecture-psf02g` (este push).
+- **Estado:** 🟢 **CERRADO en local**; pendiente confirmar **CI verde** tras push.
 
 ### P0-03 · Precios aprobados por cuenta no-humana
 - **Severidad:** P0 (integridad de dato / autoridad).

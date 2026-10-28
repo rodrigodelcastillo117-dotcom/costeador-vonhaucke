@@ -29,10 +29,14 @@ test('Dirección sube el reporte del ERP: resumen correcto y carga por lotes a l
   await page.getByTestId('carga-erp-archivo').setInputFiles(FIX);
   const resumen = page.getByTestId('carga-erp-resumen');
   await expect(resumen).toBeVisible({ timeout: 15000 });
+  // El reporte estándar de Intelisis es UNA tabla con Clave Comercial inline: debe clasificarse como
+  // reporte directo (certifica normal), NO como workbook de proyecto (que forzaría revalidación).
+  await expect(resumen).toContainText(/Reporte Última Compra/);
+  await expect(resumen).not.toContainText(/Precios de proyecto que requieren revalidación/);
   await expect(resumen).toContainText(/Renglones en el archivo\s*4/);
   await expect(resumen).toContainText(/Con costo \(entran\)\s*3/);
   await expect(resumen).toContainText(/Sin costo \(no entran, nunca \$0\)\s*1/);
-  await expect(resumen).toContainText(/Compra ≤ 24 meses \(se certifican\)\s*2/);
+  await expect(resumen).toContainText(/Compra ≤ 24 meses\s*2/);
   await expect(resumen).toContainText(/Bloqueados en el ERP \(entran inactivos\)\s*1/);
   await page.getByTestId('carga-erp-cargar').click();
   const res = page.getByTestId('carga-erp-resultado');
