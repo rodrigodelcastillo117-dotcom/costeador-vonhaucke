@@ -1,0 +1,15 @@
+[
+  { "id": "erp-bicnm", "nombre": "BISAGRA PARA PUERTA DE CRISTAL A MURO ACABADO ACERO INOXIDABLE PINTURA NEGRO MATE -- BICNM", "espesor_mm": null, "familia": "cristal" },
+  { "id": "erp-biv515", "nombre": "BISAGRA PARA PUERTA ABATIBLE DE CRISTAL DE 6 mm REQUIERE BARRENO FIJACION CON TORNILLO A LATERAL MODELO V5-15 SATIN - \"BIV515\"", "espesor_mm": null, "familia": "cristal" },
+  { "id": "erp-bisbirec610sa", "nombre": "BISAGRA PARA VITRINA TIPO BIVEL RECTANGULAR CON PIVOTE A PRESION, PARA VIDRIO DE 6 A 10 mm, ACABADO SATINADO (JUEGO DE 2 PIEZAS) - \"BISBIREC610SA\"", "espesor_mm": null, "familia": "cristal" },
+  { "id": "erp-alop13010", "nombre": "ALOJAMIENTO DE PATIN CON RANURA PARA CRISTAL PARA INSERTAR Y TENSAR N° DE REFERENCIA 415.13.010 - HAFELE - \"ALOP13010\"", "espesor_mm": null, "familia": "cristal" },
+  { "id": "melamina-19", "nombre": "Melamina BLANCA / EcoLegno 19 mm", "espesor_mm": null, "familia": null },
+  { "id": "melamina-19-antracita-light", "nombre": "Melamina 19 mm, Antracita Light", "espesor_mm": null, "familia": null },
+  { "id": "melamina-19-cerezo-au", "nombre": "Melamina 19 mm, Cerezo AU", "espesor_mm": null, "familia": null },
+  { "id": "acrilico-6", "nombre": "Acrilico 6 mm", "espesor_mm": null, "familia": null },
+  { "id": "acrilico-12", "nombre": "Acrilico 12 mm", "espesor_mm": null, "familia": null },
+  { "id": "acrilico-cristal-3", "nombre": "Acrilico cristal 3 mm (hoja 4x6)", "espesor_mm": null, "familia": null },
+  { "id": "cristal-templado", "nombre": "Cristal templado 9 mm", "espesor_mm": null, "familia": null },
+  { "id": "cristal-templado-6", "nombre": "Cristal templado claro 6 mm", "espesor_mm": null, "familia": null },
+  { "id": "cristal-templado-12", "nombre": "Cristal templado 12 mm", "espesor_mm": null, "familia": null }
+]
