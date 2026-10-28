@@ -7,7 +7,7 @@
 //  "para cristal" marcada familia:'cristal'), y el 3 mm NO existe.
 // ============================================================================
 import { describe, it, expect } from 'vitest';
-import { proponerAlternativas, fraseAlternativas } from './alternativasCatalogo.js';
+import { proponerAlternativas, fraseAlternativas, alternativasParaPiezas } from './alternativasCatalogo.js';
 import { MATCH } from './materialMatch.js';
 
 // Catálogo-fixture realista (espesor en el nombre; sin espesor_mm estructurado).
@@ -94,6 +94,39 @@ describe('proponerAlternativas · casos límite (honestidad)', () => {
     const r = proponerAlternativas('cosa rara xyz', CATALOGO);
     expect(r.familiaSolicitada).toBe('');
     expect(r.alternativas).toHaveLength(0);
+  });
+});
+
+describe('alternativasParaPiezas · cableado a la UI de Costear', () => {
+  const INSUMOS = {
+    'cris-2': { id: 'cris-2', nombre: 'Cristal templado 2 mm', precio: 98, unidad: 'm2', seccion: 'cristal' },
+    'cris-4': { id: 'cris-4', nombre: 'Cristal templado 4 mm', precio: 123, unidad: 'm2', seccion: 'cristal' },
+    'mel-19': { id: 'mel-19', nombre: 'Melamina blanca 19 mm', precio: 410, unidad: 'hoja', seccion: 'tableros' },
+  };
+
+  it('sólo propone para piezas PENDIENTES; la pieza con material resuelto no', () => {
+    const comps = [
+      { nombre: 'Capelo', material_solicitado: 'cristal templado 3 mm' },             // sin insumoId → pendiente
+      { nombre: 'Costado', insumoId: 'mel-19', material_solicitado: 'melamina 19 mm' }, // resuelto → NO pendiente
+    ];
+    const mapa = alternativasParaPiezas(comps, INSUMOS, { veCostos: true });
+    expect(Object.keys(mapa)).toEqual(['0']);                 // sólo la pieza 0
+    expect(mapa[0].alternativas.map((a) => a.id).sort()).toEqual(['cris-2', 'cris-4']);
+    expect(mapa[0].alternativas.find((a) => a.id === 'cris-4').unidad).toBe('m2'); // la unidad viaja para la UI
+  });
+
+  it('no propone para piezas excluidas ni "sin precio certificado" (tienen su propio aviso)', () => {
+    const comps = [
+      { nombre: 'Equipo cliente', material_solicitado: 'cristal 3 mm', excluida: true },
+      { nombre: 'Vidrio real', material_solicitado: 'cristal 3 mm', _match: { sinPrecioCertificado: true } },
+    ];
+    expect(alternativasParaPiezas(comps, INSUMOS, { veCostos: true })).toEqual({});
+  });
+
+  it('seller-safe: sin costos, las alternativas de pantalla ocultan el precio', () => {
+    const comps = [{ nombre: 'Capelo', material_solicitado: 'cristal templado 3 mm' }];
+    const mapa = alternativasParaPiezas(comps, INSUMOS, { veCostos: false });
+    expect(mapa[0].alternativas.every((a) => a.precio === null && a.precioOculto === true)).toBe(true);
   });
 });
 

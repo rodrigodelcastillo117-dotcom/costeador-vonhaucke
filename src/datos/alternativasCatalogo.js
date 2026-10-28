@@ -23,7 +23,7 @@
 //
 //  Es PURO y determinista (sin LLM): entra texto + catálogo, sale una propuesta.
 // ============================================================================
-import { familiaDeMaterial, clasificarMaterial, espesoresDe, MATCH } from './materialMatch.js';
+import { familiaDeMaterial, clasificarMaterial, espesoresDe, estadoMaterialUI, MATCH } from './materialMatch.js';
 
 // Orden de preferencia de la clase de correspondencia: primero lo que ya calza,
 // al final lo que es sólo "misma familia pero cambia algo crítico".
@@ -87,6 +87,7 @@ export function proponerAlternativas(solicitado, catalogo = [], { veCostos = fal
       motivo: cls.motivo || '',
       espesorMM: espI,
       deltaEspesorMM: delta,
+      unidad: ins.unidad || null,
       _precio: precioNum(ins.precio),
     });
   }
@@ -149,4 +150,32 @@ export function fraseAlternativas(propuesta, { pesos } = {}) {
   });
   const pedido = esp != null ? `${fam} de ${esp} mm` : fam;
   return `No hay ${pedido}. Lo más cercano: ${partes.join(', ')} — elige (por confirmar).`;
+}
+
+/**
+ * CABLEADO A LA UI: para una lista de componentes del despiece, devuelve un mapa
+ * { índice → propuesta } SÓLO de las piezas que están PENDIENTES (sin material
+ * costeable) y para las que SÍ hay alternativas reales que ofrecer y NINGUNA es
+ * exacta. Reusa `estadoMaterialUI` para decidir "pendiente" con la misma regla que
+ * pinta cada selector (no inventa un criterio nuevo). Las piezas con material
+ * resuelto, confirmado o sin precio certificado (que tiene su propio aviso) no
+ * entran. Puro y determinista: lo prueba una unidad, no hace falta renderizar la UI.
+ *
+ * @param {Array<object>} componentes  el despiece (b.componentes).
+ * @param {object} insumos  catálogo como mapa { id → insumo }.
+ * @param {object} [opts] { veCostos, max }
+ * @returns {Record<number, object>}  índice de pieza → propuesta de proponerAlternativas.
+ */
+export function alternativasParaPiezas(componentes = [], insumos = {}, { veCostos = false, max = 3 } = {}) {
+  const catalogoArr = Object.values(insumos || {});
+  const out = {};
+  const lista = Array.isArray(componentes) ? componentes : [];
+  lista.forEach((c, i) => {
+    if (!c || c.excluida) return;
+    const est = estadoMaterialUI(c, insumos);
+    if (!est.pendiente || c?._match?.sinPrecioCertificado) return;   // ya costeable, o tiene su propio aviso
+    const prop = proponerAlternativas(c.material_solicitado || c.nombre, catalogoArr, { veCostos, max });
+    if (prop.alternativas.length && !prop.hayExacto) out[i] = prop;
+  });
+  return out;
 }

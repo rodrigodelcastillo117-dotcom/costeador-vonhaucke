@@ -39,6 +39,7 @@ import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, patchPr
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import { conservarMaterialesConfirmados } from '../datos/conservarConfirmados.js';
 import { proponerGemelosErp, fusionarGemelosEnBom, piezasConTamanoDeHoja } from '../datos/gemeloErp.js';
+import { alternativasParaPiezas } from '../datos/alternativasCatalogo.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { paginaAImagen } from '../datos/pdfImagen.js';
 import { prepararPdfRapido, rasterizarPaginas, paginasAlrededor } from '../datos/pdfPipeline.js';
@@ -598,6 +599,11 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   const propuestosPorRegla = propuestosTodos.filter((c) => !difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio) && !noObservada(c));
   const propuestosNoObservados = propuestosTodos.filter((c) => !difiereDeLoPedido(estadoMaterialUI(c, insumos).cambio) && noObservada(c));
   const sinMaterial = b.componentes.filter((c) => !c.insumoId && !c.excluida);
+  // Reclamo Dirección 2026-10-28 ("si dice cristal 3 mm, la app no dice no tenemos de 3 mm,
+  // proponemos de 4 o 2"): para cada pieza PENDIENTE, las alternativas reales más cercanas del
+  // catálogo (con su precio real), para OFRECERLAS en vez de sólo bloquear. No sustituye solo:
+  // al elegir una, pasa por el MISMO camino de confirmación humana (onMaterial confirmado).
+  const alternativasPorPieza = useMemo(() => alternativasParaPiezas(b.componentes, insumos, { veCostos: true }), [b.componentes, insumos]);
   // UNA decisión humana en vez de una por renglón: confirma todo lo que la política amarró (queda
   // como confirmación de la persona, igual que si hubiera pulsado cada "Confirmar").
   function confirmarPropuestos() {
@@ -1380,6 +1386,25 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                     ⚠ {est.pendienteMsg}
                     {est.mostrarConfirmar && est.candId && (
                       <>{' '}<button type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => onMaterial(i, est.candId, { confirmado: true })}>Usar {insumos[est.candId]?.nombre || 'candidato'} (confirmar)</button></>
+                    )}
+                    {/* PROPUESTA DE ALTERNATIVAS REALES (reclamo 2026-10-28): "no hay 3 mm; 4 mm $X / 2 mm $Y, elige". */}
+                    {alternativasPorPieza[i] && (
+                      <div data-testid="alternativas-catalogo" style={{ marginTop: 6, color: 'var(--texto,#222)' }}>
+                        <div className="ayuda" style={{ marginBottom: 3 }}>
+                          No hay {alternativasPorPieza[i].espesorSolicitadoMM != null
+                            ? `${(alternativasPorPieza[i].familiaSolicitada || 'material').replace(/_/g, ' ')} de ${alternativasPorPieza[i].espesorSolicitadoMM} mm`
+                            : `${(alternativasPorPieza[i].familiaSolicitada || 'material').replace(/_/g, ' ')} exacto`} en catálogo. Lo más cercano (por confirmar):
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {alternativasPorPieza[i].alternativas.map((a) => (
+                            <button type="button" key={a.id} className="chip" data-testid="alternativa-material"
+                              style={{ cursor: 'pointer' }} title={a.motivo}
+                              onClick={() => onMaterial(i, a.id, { confirmado: true })}>
+                              Usar {a.espesorMM != null ? `${a.espesorMM} mm` : a.nombre}{a.precio != null ? ` · ${pesos2(a.precio)}${a.unidad ? '/' + a.unidad : ''}` : ''}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
