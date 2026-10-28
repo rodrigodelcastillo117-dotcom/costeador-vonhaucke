@@ -22,15 +22,17 @@
   - `e2e/cargaErp.e2e.js`: label correcto del reporte directo (`Compra ≤ 24 meses 2`, sin "(se certifican)") + asserts que fijan la clasificación (`Reporte Última Compra`, y NO "Precios de proyecto que requieren revalidación").
   - `e2e/cotizarProyectos.e2e.js`: espera flaky del botón "Descargar PDF" 15s→30s (alineada con el resto del flujo async; no debilita la aserción).
 - **Prueba (antes→después):** vitest afectados 43/43 (incl. candado nuevo); `cargaErp.e2e.js` **4/4 con Chromium real** (antes 1 hard-fail); `npm run build` PASS. Workbook real TELCEL sigue forzando revalidación (unit).
-- **Commit:** rama `claude/costing-app-architecture-psf02g` (este push).
-- **Estado:** 🟢 **CERRADO en local**; pendiente confirmar **CI verde** tras push.
+- **Commit:** `9a98997` en `claude/costing-app-architecture-psf02g`.
+- **Estado:** 🟢 **CERRADO** — **CI run #981 = success** (job `verify` + job "E2E público + autenticado" verdes) sobre `9a98997`. Regresión verificada de punta a punta.
 
-### P0-03 · Precios aprobados por cuenta no-humana
+### P0-03 · Precios aprobados por cuenta no-humana → **medido; sub-hallazgo de frescura**
 - **Severidad:** P0 (integridad de dato / autoridad).
-- **Reproducción:** 12,971/12,973 precios `aprobado`+vigente, **0 propuestos**; `qa-direccion@vonhaucke.mx` es dirección en `permitidos` y está en `cuentas_no_humanas`.
-- **Causa raíz:** PENDIENTE — medir cuántos aprobados provienen de cuentas no-humanas vs humanas reales (`aprobaciones_precio_historial`, 11,847).
-- **Fix:** no convertir; reclasificar los que carezcan de aprobación humana real a estado preliminar/no-emitible (propuesta, requiere Dirección).
-- **Estado:** 🔴 **ABIERTO**.
+- **Medición (read-only, HOY):** de 12,971 precios `aprobado`+vigente, **TODOS** (`min==max`) tienen `approved_by = rodrigo.delcastillo@vonhaucke.mx` (humano, Dirección). **0** atribuidos a `qa-direccion` o `reconciliacion`.
+- **Historial (`aprobaciones_precio_historial`, 11,847, todo el 2026-10-18):** las re-firmas humanas existen y cuadran — `qa-direccion→rodrigo`: **1,750 (≤24m) + 13 (≤120m) = 1,763** (exactamente los que el baseline temía) · `reconciliacion→rodrigo`: **30**. El resto son primeras firmas de Rodrigo.
+  → **La preocupación "aprobado por cuenta no-humana" (P1-03) está CERRADA**: la autoridad viva de cada precio es un humano real.
+- **Sub-hallazgo NUEVO (frescura/transparencia) — P0-03b:** la antigüedad REAL del documento que respalda cada precio vigente: **≤24m: 3,670 (28%)** · 25–60m: 1,443 · 61–120m: 3,027 · **>120m (>10 años): 4,831 (37%)**, el más viejo de **2009-12-03**. → **9,301/12,971 (72%) descansan en documentos >24 meses.** Fueron aprobados bajo tiers explícitos de Dirección (`D1 ≤360/≤120/≤24 meses`, firmados por Rodrigo), así que **no es un bug ni una aprobación indebida**: es una decisión de negocio sobre qué tan viejo se acepta un documento de compra como base de costo.
+- **Acción:** NO reclasificar ni cambiar política (§3 `frescura=exigir_vigente`, §100 modificar precios/política = Dirección). Pendiente verificable por mí: confirmar que el costeo/PDF **muestra la fecha de última compra** junto al costo (para que nadie lea un precio de 2009 como cotización de hoy, §5/§6). Decisión de re-tier o exigir 24m = **Dirección**.
+- **Estado:** 🟢 **P1-03 (no-humana) cerrado** · 🟡 **P0-03b (frescura) documentado para Dirección** (no es acción autónoma).
 
 ### P0-05 · Acomodo — GHOST_PLACEMENT por identidad/stale
 - **Severidad:** P0 (Acomodo fantasma bloquea 9.5, §95).
