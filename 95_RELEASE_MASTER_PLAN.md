@@ -2,7 +2,9 @@
 
 > Plan maestro de release a **piloto 9.5**. Un renglón por hallazgo; **no se borran, se cierran** (§91).
 > BASE_SHA al abrir: `728ac8a2d910ee3a68e9527b6b0d858aad2b173b` · prod `862d327` (sin tocar).
-> Estado del bloque: **§103 (rebaseline) en curso** → ver `CURRENT_BASELINE.md`.
+> **HEAD actual `fb5acd1` — CI #989 = success** (verify + E2E público/autenticado) con todos los fixes de código del día
+> (P0-CI-01, P0-05 acomodo STALE, frescura, auditoría Cotizar/Cocrear AUD-COC-01/02 + AUD-COT-01/03). Rama verde.
+> Bloques §103 (rebaseline) y §104 (P0/P1) cubiertos; resto (benchmark IA vivo, promoción edges, merge prod) = decisión/créditos de Dirección.
 
 ## Formato
 `ID · Área · Severidad · Reproducción · Causa raíz · Evidencia · Fix · Prueba(antes→después) · Commit · Estado`
