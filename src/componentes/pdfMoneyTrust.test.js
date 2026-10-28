@@ -52,6 +52,25 @@ describe('PDF money trust contract', () => {
     expect(t).not.toContain('$0.00');                       // ni en renglones ni en la escalera de totales
   });
 
+  it('con un precio faltante el PDF etiqueta el TOTAL como INCOMPLETO (no lo presenta como definitivo)', () => {
+    const t = pdf([
+      { nombre: 'Mesa con precio', cantidad: 1, precioUnitario: 1000 },
+      { nombre: 'Silla sin precio', cantidad: 1, precioUnitario: null },
+    ], { precioLista: 1000, iva: 160, totalRedondeado: 1160, faltanPrecio: 1 });
+    const j = t.join(' | ');
+    expect(j).toContain('TOTAL INCOMPLETO');
+    expect(j).toContain('faltan 1 precio');
+    expect(j).toContain('Suma de renglones con precio');     // la suma dice que es sólo de renglones con precio
+    expect(celdas(t, 'Silla sin precio')).toEqual(['Sin precio', 'Pendiente']);
+  });
+
+  it('una cotización completa conserva el TOTAL definitivo (sin "INCOMPLETO")', () => {
+    const t = pdf([{ nombre: 'Mesa', cantidad: 1, precioUnitario: 1000 }], { precioLista: 1000, iva: 160, totalRedondeado: 1160, faltanPrecio: 0 });
+    const j = t.join(' | ');
+    expect(j).not.toContain('INCOMPLETO');
+    expect(j).toContain('Suma de los renglones');
+  });
+
   // STATIC GUARD: es la AUSENCIA de un cálculo muerto (costo total UNKNOWN→ZERO) que ya no existe en Cotizacion.jsx;
   // no hay comportamiento que ejecutar. Se conserva para que no reaparezca (la utilidad no se calcula en la pantalla de
   // cotización; la economía la decide el gate del servidor, probado en emissionExactCentsSql.test.js).

@@ -1115,8 +1115,8 @@ export default function App() {
   const agregadoRepetido = (partidas) => seguroAgregar.current(firmaAgregado(partidas));
 
   // Asistente y costeador de línea sencillo: una partida.
-  function agregarDesdeAsistente(costeo, cantidad, precio, margen) {
-    const p = partidaDeCosteo(costeo, cantidad, precio, margen);
+  function agregarDesdeAsistente(costeo, cantidad, precio, margen, costoUnitario) {
+    const p = partidaDeCosteo(costeo, cantidad, precio, margen, costoUnitario);
     if (agregadoRepetido([p])) return;
     sumarPartidas([p]);
     mostrarAviso(`Agregado: ${p.nombre}`);

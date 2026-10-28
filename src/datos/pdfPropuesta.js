@@ -742,8 +742,12 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // completa —suma, descuento, subtotal, maniobras, flete, IVA— y no un TOTAL
   // suelto que venía de otra cuenta.
   y += 2;
+  // #6 honestidad del TOTAL: si faltan precios (o hay línea inválida), el papel NO presenta un total
+  // limpio como si fuera definitivo —un renglón "Pendiente" no vale $0—. Se etiqueta igual que la
+  // pantalla (Cotizacion.jsx): suma SÓLO de renglones con precio y "TOTAL INCOMPLETO · faltan N".
+  const incompletoPDF = totales.faltanPrecio > 0 || totales.hayLineaInvalida;
   const escalera = [
-    ['Suma de los renglones', totales.precioLista, false],
+    [incompletoPDF ? 'Suma de renglones con precio' : 'Suma de los renglones', totales.precioLista, false],
     // ⚠️ Math.round(-x) NO ES -Math.round(x) (auditoría 2026-08-19). JS
     // redondea los .5 hacia +Infinito: Math.round(-27388.5) da -27388, pero
     // -Math.round(27388.5) da -27389 — un peso de diferencia contra la
@@ -760,7 +764,10 @@ export function propuestaPDF({ cot, partidas, resumen, especificacion, totales, 
   // El total del papel ES el total canónico calculado una sola vez en
   // totalesCotizacion(). No se reconstruye ni se redondea otra vez al imprimir.
   const totalImpreso = totales.totalRedondeado;
-  escalera.push(['TOTAL', totalImpreso, true]);
+  const etiquetaTotal = !incompletoPDF ? 'TOTAL'
+    : totales.faltanPrecio > 0 ? `TOTAL INCOMPLETO · faltan ${totales.faltanPrecio} precio(s)`
+    : 'TOTAL INCOMPLETO · revisar renglones';
+  escalera.push([etiquetaTotal, totalImpreso, true]);
   if (y + 8 * escalera.length + 12 > A4.h - M.abajo) { pie(); doc.addPage(); y = M.arriba; }
   regla(0.5, TINTA); y += 7;
   for (const [etiqueta, monto, fuerte] of escalera) {
