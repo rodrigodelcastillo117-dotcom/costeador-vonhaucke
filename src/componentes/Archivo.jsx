@@ -123,7 +123,7 @@ export default function Archivo({ estado, onAbrir, veCostos = false, usuario = n
                 <div style={{ display: 'flex', gap: 10, alignItems: 'baseline', flexWrap: 'wrap' }}>
                   <strong style={{ fontSize: 16 }}>{c.cliente || 'Sin cliente'}</strong>
                   {c.folio && <span className="ayuda" style={{ display: 'inline' }}>Folio {c.folio}</span>}
-                  <span className="mono" style={{ marginLeft: 'auto', fontWeight: 700 }}>{pesos(c.total)}</span>
+                  <span className="mono" style={{ marginLeft: 'auto', fontWeight: 700 }}>{pesos(c.total)}{c.total_completo === false && <span className="ayuda" style={{ color: '#d6a36d', marginLeft: 6, fontWeight: 600 }}>(incompleto{c.faltan_precio ? ` · faltan ${c.faltan_precio}` : ''})</span>}</span>
                 </div>
                 <div className="ayuda">
                   {fechaCorta(c.actualizado || c.creado)} · {(c.partidas || []).length} renglón(es) · {c.piezas} pieza(s)

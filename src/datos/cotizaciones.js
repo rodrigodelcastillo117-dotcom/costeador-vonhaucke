@@ -163,6 +163,11 @@ export function paraGuardar(estado, usuario) {
     // Fecha de la propuesta (la que se imprime). El servidor la ignora al guardar.
     fecha: cot.fecha || null,
     total: t.totalRedondeado,
+    // #6 honestidad del Archivo: si faltan precios, el total guardado está INCOMPLETO (los renglones
+    // "Pendiente" cuentan 0). Se persiste la bandera para que la tarjeta no muestre ese total como
+    // definitivo. Registros viejos no la traen (undefined) → la tarjeta no marca nada (no falso aviso).
+    total_completo: t.totalCompleto,
+    faltan_precio: t.faltanPrecio,
     piezas: partidas.reduce((a, p) => a + (p.cantidad || 0), 0),
     huella_mp: huellaMP(estado?.insumos, estado?.parametros),
   };

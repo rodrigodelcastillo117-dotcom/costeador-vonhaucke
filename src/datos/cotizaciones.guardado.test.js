@@ -157,3 +157,20 @@ describe('VH-173 · rechazo del servidor ≠ sin conexión', () => {
     expect(r).toMatchObject({ guardado: false, motivo: 'rechazado', detalle: 'acomodo invalido' });
   });
 });
+
+describe('paraGuardar · bandera de total incompleto (AUD-COT-03, honestidad §6)', () => {
+  it('cotización completa → total_completo:true, faltan_precio:0', () => {
+    const g = paraGuardar(estado, 'x@vh.mx');
+    expect(g.total_completo).toBe(true);
+    expect(g.faltan_precio).toBe(0);
+  });
+  it('con un renglón SIN precio → total_completo:false, faltan_precio:1 (no se guarda como definitivo)', () => {
+    const e = { ...estado, cotizacion: { ...estado.cotizacion, partidas: [
+      { id: 'p1', nombre: 'Banca', cantidad: 2, precioUnitario: 1000 },
+      { id: 'p2', nombre: 'Especial sin precio', cantidad: 1, precioUnitario: null, price_status: 'SIN_PRECIO' },
+    ] } };
+    const g = paraGuardar(e, 'x@vh.mx');
+    expect(g.total_completo).toBe(false);
+    expect(g.faltan_precio).toBe(1);
+  });
+});
