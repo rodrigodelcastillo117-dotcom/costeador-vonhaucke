@@ -85,7 +85,7 @@
 | 9 | §111 Certificación (unit/integration/E2E/live/preview/smoke) | ⬜ |
 
 ## Acciones que requieren autorización de Rodrigo (§100) — represadas, documentadas
-1. Aplicar migración TELCEL + cargar 49 precios (prod DB). *(autorizado: "ya puedes cargar telcel" — ejecutar con cuidado: staging/branch primero, precios preliminares.)*
+1. Aplicar migración TELCEL + cargar 49 precios (prod DB). **PAQUETE LISTO (no toca prod)** en `lab/precios_telcel/`: `TELCEL_LOAD_READY.sql` (49 materiales, preliminares, 0 inventados, 0 dudosos) + `TELCEL_LOAD_RUNBOOK.md` (pasos, verificación, rollback) + `gen_telcel_load.mjs` (reproducible). Dirección lo corre cuando quiera; los precios entran preliminares (requieren revalidación de Compras, nunca certificados). *(autorizado: "ya puedes cargar telcel"; el usuario eligió "preparar paquete, no tocar prod".)*
 2. Redeploy edges prod desde repo (P1-EDGE-01).
 3. Borrar/RLS tabla backup (P1-SEC-01).
 4. Merge a prod / promote / preview de SHA final.
