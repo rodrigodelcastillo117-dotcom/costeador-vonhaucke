@@ -35,9 +35,14 @@
 ### P0-05 · Acomodo — GHOST_PLACEMENT por identidad/stale
 - **Severidad:** P0 (Acomodo fantasma bloquea 9.5, §95).
 - **Reproducción:** plan React V1 vs lista esperada V2 → 92/92 colocadas y simultáneamente "92 no están en la lista". Documentado con file:line en `lab/ACOMODO_LIST_MISMATCH.md` (verificado: `acomodoInvariantes.js` GHOST, `Acomodo.jsx` sanearAcomodoContraPartidas, `acomodoVeredicto.js`).
-- **Causa raíz:** `acomodoLocal`/`plan` en `useState` conservan plan viejo cuando cambian las partidas; comparación por string exacto marca todo GHOST.
-- **Fix (propuesto):** invalidar/re-derivar el plan (STALE_PROGRAM) antes de comparar; test V1(92/92 PASS) → cambio de identidad con 92 piezas → STALE, no GHOST.
-- **Estado:** 🔴 **ABIERTO** (diagnóstico listo).
+- **Causa raíz:** el cross-check de identidad emitía un `GHOST_PLACEMENT` por cada colocación cuando el plan guardado pertenece a OTRA versión del programa (todos los IDs ajenos). La geometría seguía válida; cambió la identidad. El resultado era una "tormenta" de N fantasmas contradictoria con "92 colocadas".
+- **Fix (hecho, capa de datos, unit-testeado):**
+  - `acomodoInvariantes.js`: cuando el plan es **íntegramente ajeno** (`colocadosValidos===0` con colocaciones y piezas>0) emite **una** falla `STALE_PROGRAM` en vez de N× `GHOST_PLACEMENT`. Sigue siendo `fail` (status FAIL, no publica → gating idéntico). Contaminación PARCIAL sigue marcando fantasma por pieza (sin cambio).
+  - `acomodoVeredicto.js`: `STALE_PROGRAM` → texto único "el acomodo guardado es de otra lista: vuelve a acomodar con la cotización actual" (clase geometría). `estadoHumano.js` ya lo trataba como estado ámbar "recalcula".
+  - `acomodoInvariantes.test.js`: +2 tests (íntegro→1 STALE_PROGRAM, FAIL, no publicable; parcial→GHOST por pieza).
+- **Prueba:** vitest acomodo 256/256 (incl. 2 nuevos) + veredicto/estadoHumano/sinCódigos 66/66; build PASS.
+- **Follow-up verificable (no en este commit):** auto-limpieza reactiva del `plan` stale en `AcomodoBase.jsx` (vaciar el lienzo al vuelo cuando cambia la identidad del programa con el componente montado). Requiere infra de test de componente (no hay `@testing-library/react`) o corrida E2E con secretos; se deja fuera para no empujar un cambio de estado React no verificable que pueda tornar CI rojo (§72). El saneo al montar (`sanearAcomodoContraPartidas`, ya testeado) cubre el caso de reabrir; el relabel cubre el caso montado.
+- **Estado:** 🟢 **núcleo cerrado** (reconoce STALE, bloquea publicación, texto honesto; unit-testeado) · follow-up de UX reactiva pendiente/documentado.
 
 ### P0-01 · Cotizar ECONOMICS_INCOMPLETE
 - **Severidad:** P0 si reproduce.

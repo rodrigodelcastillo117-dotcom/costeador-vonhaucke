@@ -96,11 +96,22 @@ export function evaluarInvariantesAcomodo({ payload, plan, opts = {} } = {}) {
     vistos.set(id, (vistos.get(id) || 0) + 1);
     if (!porId.has(id)) { ghosts.push(id); }
   }
-  for (const g of ghosts) add('GHOST_PLACEMENT', 'fail', { id: g });
+  const colocadosValidos = coloc.filter((c) => porId.has(String(c?.id ?? '')));
+  // STALE_PROGRAM (P0-05): el plan guardado pertenece a OTRA versión del programa — TODAS sus
+  // colocaciones son ajenas a las piezas actuales (cambió la identidad: zona/rol/ancla/slot/
+  // cantidad). La geometría puede seguir siendo válida; lo que cambió es la identidad. No son N
+  // fantasmas que corregir uno por uno: es un plan viejo que hay que RECALCULAR. Se reporta UNA
+  // falla clara (sigue siendo `fail`: no publica, gating idéntico) en vez de inundar con un
+  // GHOST_PLACEMENT por mueble. Contaminación PARCIAL (algunas válidas y algunas ajenas) NO es
+  // stale: cada ajena sigue marcándose como fantasma. `estadoHumano` ya conoce STALE_PROGRAM.
+  const planTotalmenteAjeno = coloc.length > 0 && colocadosValidos.length === 0 && piezas.length > 0;
+  if (planTotalmenteAjeno) {
+    add('STALE_PROGRAM', 'fail', { ghosts: ghosts.length, requested });
+  } else {
+    for (const g of ghosts) add('GHOST_PLACEMENT', 'fail', { id: g });
+  }
   const duplicates = [...vistos.entries()].filter(([, n]) => n > 1).map(([id]) => id);
   for (const d of duplicates) add('DUPLICATE_PLACEMENT', 'fail', { id: d });
-
-  const colocadosValidos = coloc.filter((c) => porId.has(String(c?.id ?? '')));
   const idsColocados = new Set(colocadosValidos.map((c) => String(c.id)));
   const placed = idsColocados.size;
   const unplaced = piezas.map((p) => String(p.id)).filter((id) => !idsColocados.has(id));

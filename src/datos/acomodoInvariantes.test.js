@@ -76,6 +76,39 @@ describe('acomodoInvariantes · cross-check plan↔partidas (obj 14)', () => {
   });
 });
 
+// P0-05 · "92/92 colocadas pero cada mueble no está en la lista": un plan guardado de OTRA
+// versión del programa (IDs ajenos por cambio de zona/rol/ancla/slot/cantidad). Antes inundaba
+// con un GHOST_PLACEMENT por mueble; ahora se reconoce como STALE_PROGRAM (una falla clara,
+// sigue bloqueando publicación) para que el usuario recalcule, no corrija 92 fantasmas.
+describe('acomodoInvariantes · STALE_PROGRAM (P0-05): plan de otra versión del programa', () => {
+  const planViejo = () => ({
+    colocacion: [
+      { id: 'privado|ANCHOR_WORKSTATION|inst:v1::a-1', area: 0, x: 0, y: 0, rot: 0 },
+      { id: 'privado|WORK_SEAT|inst:v1::s-1', area: 0, x: 0, y: 1500, rot: 0 },
+      { id: 'juntas|ANCHOR_MEETING|inst:v1::m-1', area: 1, x: 0, y: 0, rot: 0 },
+    ],
+    layoutSpec: { status: 'PASS', validation: { render_ready: true } },
+    render_ready: true,
+  });
+  it('TODAS las colocaciones ajenas → UNA sola falla STALE_PROGRAM, sin GHOST_PLACEMENT', () => {
+    const r = evaluarInvariantesAcomodo({ payload: payloadBase(), plan: planViejo() });
+    expect(codes(r)).toContain('STALE_PROGRAM');
+    expect(codes(r)).not.toContain('GHOST_PLACEMENT');
+    expect(r.issues.filter((i) => i.code === 'STALE_PROGRAM')).toHaveLength(1);
+    expect(r.status).toBe('FAIL');                 // sigue bloqueando publicación
+    expect(r.placed).toBe(0);
+    expect(r.unplaced).toEqual(['a-1', 's-1', 'm-1']);
+    expect(derivarValidez({ evaluacion: r, programaListo: true }).publicable).toBe(false);
+  });
+  it('contaminación PARCIAL (una ajena entre válidas) sigue siendo GHOST por pieza, no STALE', () => {
+    const plan = planPASS();
+    plan.colocacion.push({ id: 'ajena-1', area: 0, x: 100, y: 100, rot: 0 });
+    const r = evaluarInvariantesAcomodo({ payload: payloadBase(), plan });
+    expect(codes(r)).toContain('GHOST_PLACEMENT');
+    expect(codes(r)).not.toContain('STALE_PROGRAM');
+  });
+});
+
 describe('acomodoInvariantes · geometría dura', () => {
   it('fuera de bounds → OUT_OF_BOUNDS FAIL', () => {
     const plan = planPASS();

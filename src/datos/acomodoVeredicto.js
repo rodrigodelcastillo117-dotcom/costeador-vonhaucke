@@ -72,7 +72,7 @@ export function observacionesSemanticas(layoutSpec) {
 
 const CLASE_DE_CODIGO = [
   [/OVERLAP|DOOR|CLEARANCE|CIRCUL|PASILLO|BLOCK|OBSTACLE|HITS_/, 'colisiones'],
-  [/OUT_OF_BOUNDS|OUTSIDE|BOUND|AREA_INEXISTENTE|INVALID_AREA|INVALID_COORD|GHOST|DUPLICATE_PLACEMENT|PLACEMENT_INVARIANT|MISSING_PLACEMENT|WRONG_ZONE|RESTROOM|TECHNICAL/, 'geometria'],
+  [/OUT_OF_BOUNDS|OUTSIDE|BOUND|AREA_INEXISTENTE|INVALID_AREA|INVALID_COORD|GHOST|STALE_PROGRAM|DUPLICATE_PLACEMENT|PLACEMENT_INVARIANT|MISSING_PLACEMENT|WRONG_ZONE|RESTROOM|TECHNICAL/, 'geometria'],
   [/ANCHOR|DEPENDENT|SLOT|KIT|UNASSIGNED/, 'anclas'],
 ];
 const claseDe = (code) => (CLASE_DE_CODIGO.find(([re]) => re.test(String(code || '')))?.[1]) || 'otros';
@@ -84,6 +84,7 @@ const TEXTO_INVARIANTE = {
   OUT_OF_BOUNDS: 'un mueble se sale de su cuarto',
   AREA_INEXISTENTE: 'un mueble apunta a un cuarto que no existe',
   GHOST_PLACEMENT: 'colocación de un mueble que no está en la lista',
+  STALE_PROGRAM: 'el acomodo guardado es de otra lista de muebles: vuelve a acomodar con la cotización actual',
   DUPLICATE_PLACEMENT: 'un mueble colocado dos veces',
   PLACEMENT_INVARIANT_BROKEN: 'inconsistencia interna en la colocación',
   ANCHOR_WRONG_ZONE: 'un ancla en una zona que no le corresponde',
