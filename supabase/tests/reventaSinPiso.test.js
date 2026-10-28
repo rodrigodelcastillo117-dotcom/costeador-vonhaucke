@@ -48,8 +48,8 @@ async function base({ reventaPolicy }) {
       vigencia_desde date not null default current_date, vigencia_hasta date, reventa_emite_sin_costo boolean not null default true);
 
     -- A: banco SIN costo, CON piso.  B: línea CON costo 19500.  C: banco SIN costo, SIN piso (caso nuevo).  D: banco con DOS ítems de lista (ambiguo).
-    insert into public.productos values (1,'banco',true),(2,'linea',true),(3,'banco',true),(4,'banco',true);
-    insert into public.producto_versiones values (1933,1,'certificado'),(2044,2,'certificado'),(3001,3,'certificado'),(4001,4,'certificado');
+    insert into public.productos values (1,'banco',true),(2,'linea',true),(3,'banco',true),(4,'banco',true),(5,'expediente',true);
+    insert into public.producto_versiones values (1933,1,'certificado'),(2044,2,'certificado'),(3001,3,'certificado'),(4001,4,'certificado'),(5001,5,'certificado');
     insert into public.producto_version_economia values (2044, 19500);
     insert into public.lista_precio_items values
       (10, 1, 1933, 48000, 40000, null, null),   -- A: lista 48000, piso 40000
@@ -68,7 +68,9 @@ async function base({ reventaPolicy }) {
     create function public.requiere_aprobacion_snapshot(p jsonb) returns boolean language sql immutable as $$ select false $$;
     create function public.verificar_aprobacion(p_cot bigint, p_hash text) returns jsonb language sql stable as $$ select jsonb_build_object('aprobada', false) $$;
     create function public.resolver_precio_especial_proyecto(p_producto_id bigint, p_version_id bigint, p_fecha date default current_date, p_moneda text default 'MXN')
-      returns jsonb language sql stable as $$ select jsonb_build_object('ok', false, 'motivo', 'no_especial') $$;
+      returns jsonb language sql stable as $$ select case when p_producto_id=5
+        then jsonb_build_object('ok',true,'economia_estado','CERTIFIED','commercial_state','FINAL','costo_interno',10000,'precio_lista',20000)
+        else jsonb_build_object('ok', false, 'motivo', 'no_especial') end $$;
   `);
   await x(defGate());
   return db;
@@ -81,6 +83,15 @@ async function emitir(db, { producto_id, producto_version_id, precio, nombre }) 
   await db.query(`insert into public.cotizaciones(id, usuario, partidas) values (777, '${DIRECCION}', $1::jsonb)
                   on conflict (id) do update set partidas=excluded.partidas`, [JSON.stringify([partida])]);
   const r = await db.query(`select private_api.evaluar_emision_cotizacion(777, $1::jsonb) as g`, [JSON.stringify(snap)]);
+  return r.rows[0].g;
+}
+
+// Emite una partida arbitraria (expediente/legacy). dbPartida = la fila guardada (default = la del snapshot).
+async function emitirObj(db, snapPartida, dbPartida) {
+  await db.exec(`set test.email='${DIRECCION}'`);
+  await db.query(`insert into public.cotizaciones(id, usuario, partidas) values (779, '${DIRECCION}', $1::jsonb)
+                  on conflict (id) do update set partidas=excluded.partidas`, [JSON.stringify([dbPartida || snapPartida])]);
+  const r = await db.query(`select private_api.evaluar_emision_cotizacion(779, $1::jsonb) as g`, [JSON.stringify({ partidas: [snapPartida] })]);
   return r.rows[0].g;
 }
 
@@ -129,6 +140,24 @@ describe('reventa SIN piso exige aprobación (fix) y no rompe lo demás', () => 
     const g = await emitir(db, { producto_id: 4, producto_version_id: 4001, precio: 45000, nombre: 'Ambiguo' });
     expect(g.state).toBe('BLOCKED');
     expect(JSON.stringify(g.reasons)).toContain('precio_reventa_ambiguo');
+    await db.close();
+  });
+
+  it('expediente certificado · precio = lista · margen ok ⇒ ALLOWED (rama especial intacta)', async () => {
+    const db = await base({ reventaPolicy: true });
+    const p = { id: 'E1', nombre: 'Especial proyecto', producto_id: 5, producto_version_id: 5001, cantidad: 1, precioUnitario: 20000, descuento: 0 };
+    expect((await emitirObj(db, p)).state).toBe('ALLOWED');
+    await db.close();
+  });
+
+  it('legacy sin ProductVersion · costo persistido buen margen ⇒ ALLOWED; costoEstado preliminar ⇒ ECONOMICS_INCOMPLETE (rama legacy intacta)', async () => {
+    const db = await base({ reventaPolicy: true });
+    const ok = { id: 'LG', nombre: 'Mueble legacy', cantidad: 1, precioUnitario: 20000, costoUnitario: 10000 };
+    expect((await emitirObj(db, ok)).state).toBe('ALLOWED');
+    const prelim = { id: 'LG2', nombre: 'Mueble legacy prelim', cantidad: 1, precioUnitario: 20000, costoUnitario: 10000, costoEstado: 'preliminar' };
+    const g = await emitirObj(db, prelim);
+    expect(g.state).toBe('ECONOMICS_INCOMPLETE');
+    expect(JSON.stringify(g.reasons)).toContain('costo_preliminar_no_certificado');
     await db.close();
   });
 });

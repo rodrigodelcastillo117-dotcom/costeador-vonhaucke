@@ -1,6 +1,9 @@
 -- ============================================================================
 --  REVENTA SIN PISO → APROBACIÓN (no ALLOWED en silencio).
---  NO APLICADA a producción. Requiere OK de Dirección (§100: cambia el gate de emisión).
+--  APLICADA en producción (mtuvnbgljwbsaizjjgzs) el 2026-10-28 por instrucción de Dirección
+--  ("lo mejor, tú decide" → Path A: cobertura completa de ramas antes de aplicar), con prueba
+--  PGlite 8/8 (supabase/tests/reventaSinPiso.test.js). md5 previo 8d12115f → md5 nuevo 8c23d98a.
+--  Verificado en prod: guard presente, VH-AUD-205 + SEG-01 conservados.
 --
 --  Problema (medido en prod 2026-10-28): de 1,938 ítems de lista vigentes, 298 (15%) NO
 --  tienen `piso_minimo`. En reventa (catálogo sin costo interno) el gate usa el piso como
