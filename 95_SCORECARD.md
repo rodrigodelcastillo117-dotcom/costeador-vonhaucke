@@ -16,9 +16,9 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 | 6 | RENDERS | ~80 (prov.) | — | — | — | — | ✅ | ✅ | ✅ | ✅ | E2E renderEscenas verde contra `-rc` vivo (identidad/estados). |
 | 7 | VONI | SIN MEDIR | — | — | — | — | ⚠️ | ❌ | ❌ | ❌ | voni-council v14 vivo; council real SIN MEDIR. |
 | 8 | INSUMOS/ERP/PRECIOS | ~70 (prov.) | — | sí | — | ✅ | ✅ | ❌ | ❌ | ⚠️ | 10,185 activos; 30% CERT / 70% PRELIM; autoridad server-side ✅. UX SIN MEDIR. |
-| 9 | CATÁLOGO/PRODUCTOS | SIN MEDIR | — | sí | — | ⚠️ | — | ❌ | ❌ | ❌ | Legacy grande; migración canónica incremental pendiente. |
-| 10 | ARCHIVO/REABRIR | SIN MEDIR | — | sí | — | — | ⚠️ | ❌ | ❌ | ❌ | Control optimista VH-148 ON en prod (código). Reabrir/concurrencia SIN MEDIR. |
-| 11 | PDF/EMISIÓN | ~88 (prov.) | — | sí | — | ✅ | ✅ | ❌ | ❌ | ✅ | Gate server-side verificado: economía incompleta→ECONOMICS_INCOMPLETE, identidad ligada, precio autoritativo, wrapper no bypass ✅. Falta UX/E2E "TOTAL INCOMPLETO". |
+| 9 | CATÁLOGO/PRODUCTOS | ~72 (prov.) | — | sí | — | ⚠️ | ✅ | ✅ | ✅ | ⚠️ | E2E costeadorCatalogo (selección/buscador) verde (local). Legacy grande + migración canónica pendiente bajan el score. |
+| 10 | ARCHIVO/REABRIR | ~82 (prov.) | — | sí | — | ✅ | ✅ | ✅ | ✅ | ✅ | E2E persistencia (misma fila/identidad, rechazo nube, reabrir) + concurrenciaOptimista verdes (local). Falta reabrir con render real. |
+| 11 | PDF/EMISIÓN | ~89 (prov.) | — | sí | — | ✅ | ✅ | ✅ | ✅ | ✅ | Gate server-side verificado + E2E emision (cliente, estados) verde (local). Nunca TOTAL falso, identidad ligada, sin bypass. |
 | 12 | SEGURIDAD | ~90 (prov.) | — | sí | — | ✅ | ✅ | ⚠️ | ⚠️ | ✅ | Autoridad server-side ✅; seller-safe ✅; RLS money/propiedad auditada: sin IDOR a nivel tabla ✅. Falta prueba viva 2-JWT + RPC cotizaciones_mias. |
 | 13 | MOBILE | SIN MEDIR | — | — | sí | — | — | ❌ | ❌ | ❌ | No probado en viewport real. |
 | 14 | RELEASE/INFRA | ~60 (prov.) | sí | — | — | ✅ | ⚠️ | — | ❌ | ⚠️ | Prod corre edges viejos; `-rc` no promovido. Falta RELEASE_MANIFEST + mapa fn→edge→hash. |
@@ -75,6 +75,34 @@ Barrido por rol: clic a cada botón del Inicio, verifica que ninguna pantalla "s
   que no aplica al backend real. Los 2 fallos (lecturaPlano nivel-2: PNG 1×1 al `leer-plano-rc` real → 0 áreas;
   persistencia-rechazo: el intercept no dispara contra el host real) son **artefactos de esa mezcla, NO bugs**
   (ambos pasan en CI local). Se re-corren LOCALMENTE (gratis, el mock sí aplica) para certificar la lógica cliente.
+
+## Resultado E2E local (nube falsa, 2026-10-29) — GRATIS, sin IA ni escrituras
+7 specs, **38 pruebas, 0 fallos, exit 0.** Donde el mock SÍ aplica, los flujos pasan:
+- cotizarTexto (COTIZAR texto→propuesta), cocrear10 (COCREAR), lecturaPlano (lectura de plano + compuerta
+  de niveles), emision (estados de emisión en cliente), costeadorCatalogo (selección/buscador ERP),
+  persistencia (misma fila/identidad, rechazo de nube, reabrir), concurrenciaOptimista.
+- **Confirma** que los 2 fallos del preview-RC fueron el desajuste mock-vs-backend-real (no bugs): aquí pasan.
+
+## Tabla de scores tras E2E (honesta, provisional — E2E certifica que el flujo CORRE, no que llega a 95 pleno)
+| Área | Score | Evidencia dura |
+|---|---|---|
+| SEGURIDAD | ~90 | RLS/IDOR sin hueco, autoridad server-side, seller-safe (verificado en código/DB). |
+| PDF/EMISIÓN | ~89 | Gate server-side + E2E cliente verde. |
+| ACOMODO | ~82 | E2E verify-first contra `-rc` vivo (edge + hashes) verde. |
+| ARCHIVO | ~82 | E2E persistencia/identidad/concurrencia verde. |
+| INICIO | ~80 | Barrido diseño/vendedor limpio + auth real verde; dirección sweep inconcluso. |
+| COTIZAR | ~80 | cotizarProyectos (real `-rc`) + cotizarTexto (local) verdes. |
+| COCREAR | ~80 | cocrearExpediente (real `-rc`) + cocrear10 (local) verdes. |
+| RENDERS | ~80 | renderEscenas (real `-rc`) verde. |
+| CATÁLOGO | ~72 | costeadorCatalogo verde; deuda legacy. |
+| INSUMOS/ERP | ~70 | Datos+autoridad OK; 70% preliminar, 0 puentes aprobados. |
+| COSTEAR | ~65 | Motor reproduce al centavo (golden TELCEL) pero cobertura de datos por mueble nuevo es el cuello (TELSVH120 25/29, 0 aprobado). Pipeline profundo texto→costo real contra `-rc` aún sin E2E. |
+| VONI | SIN MEDIR | Sólo health; council real sin E2E. |
+| RELEASE | ~60 | Prod corre edges viejos; `-rc` no promovido (B1). |
+| MOBILE | SIN MEDIR | Sin E2E de viewport móvil. |
+
+Promedio NO es la meta (la orden pide ≥95 por pestaña). Hoy **ninguna llega a 95**; las más altas (~90) son
+seguridad y emisión. Los topes reales: datos (COSTEAR/INSUMOS), release (prod≠RC), y lo no medido (VONI, MOBILE).
 
 ## Orden de ataque (FASE 2→6 de la orden)
 1. **FASE 0/1 (hecho):** baseline + scorecard reales.
