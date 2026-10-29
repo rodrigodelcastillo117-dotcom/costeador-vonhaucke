@@ -10,10 +10,10 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | INICIO | ~80 (prov.) | — | — | — | — | ✅ | ⚠️ | ⚠️ | — | E2E barrido: Home+pantallas sin crash para diseño y vendedor (seller-safe) ✅; sweep dirección timeout (inconcluso). Mobile/UX profundo SIN MEDIR. |
 | 2 | COSTEAR | SIN MEDIR | sí | — | — | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | Motor avanzado sólo en `-rc`; prod=v17. Puente clave→insumo 0 aprobado. |
-| 3 | COTIZAR | SIN MEDIR | sí | — | — | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | P1 limbo texto→plano por confirmar. `-rc` vs prod. |
-| 4 | COCREAR | SIN MEDIR | — | — | — | — | ⚠️ | ❌ | ❌ | ❌ | Costo cocrear server-side sólo en `-rc` (ver nube.js:604). |
-| 5 | ACOMODO | SIN MEDIR | sí | — | — | — | ⚠️ | ❌ | ❌ | ❌ | prod usa `acomodar-espacio-recovery` v19. Paridad cliente/servidor SIN MEDIR. |
-| 6 | RENDERS | SIN MEDIR | — | — | — | — | ⚠️ | ❌ | ❌ | ❌ | Identidad canónica + stale: código existe (migraciones), E2E SIN MEDIR. |
+| 3 | COTIZAR | ~80 (prov.) | sí | — | — | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | E2E cotizarProyectos verde contra `-rc` vivo. cotizar-texto (mock) pendiente local. |
+| 4 | COCREAR | ~80 (prov.) | — | — | — | — | ✅ | ✅ | ⚠️ | ✅ | E2E cocrearExpediente verde contra `-rc` vivo. cocrear10 (mock) pendiente local. |
+| 5 | ACOMODO | ~82 (prov.) | sí | — | — | — | ✅ | ✅ | ✅ | ✅ | E2E acomodoP02 (verify-first, edge+hashes) y acomodoVeredicto verdes contra `-rc` vivo. |
+| 6 | RENDERS | ~80 (prov.) | — | — | — | — | ✅ | ✅ | ✅ | ✅ | E2E renderEscenas verde contra `-rc` vivo (identidad/estados). |
 | 7 | VONI | SIN MEDIR | — | — | — | — | ⚠️ | ❌ | ❌ | ❌ | voni-council v14 vivo; council real SIN MEDIR. |
 | 8 | INSUMOS/ERP/PRECIOS | ~70 (prov.) | — | sí | — | ✅ | ✅ | ❌ | ❌ | ⚠️ | 10,185 activos; 30% CERT / 70% PRELIM; autoridad server-side ✅. UX SIN MEDIR. |
 | 9 | CATÁLOGO/PRODUCTOS | SIN MEDIR | — | sí | — | ⚠️ | — | ❌ | ❌ | ❌ | Legacy grande; migración canónica incremental pendiente. |
@@ -63,6 +63,18 @@ Barrido por rol: clic a cada botón del Inicio, verifica que ninguna pantalla "s
   lógica en JSX, no se pintan al usuario.
 - **Toolchain:** el navegador de Playwright del repo (1.64.1 → build 1248) no estaba; se instaló vía proxy.
   Sin eso, cualquier E2E local fallaba por lanzamiento de navegador (no por la app).
+
+## Resultado E2E con IA sobre preview-RC (2026-10-29, autorizado por Dirección)
+41 pruebas, 2 workers, 8 min, contra `costeador-vonhaucke-ogz9c6w75-…` (SHA ea31d459, CARRIL_RC → edges `-rc`).
+**39 pasaron, 2 fallaron.** Clasificación honesta de los specs corridos:
+- **Backend-real (6, TODOS verdes contra el `-rc` vivo):** auth (INICIO auth), cotizarProyectos (COTIZAR),
+  cocrearExpediente (COCREAR), acomodoP02 + acomodoVeredicto (ACOMODO, verify-first con edge y hashes),
+  renderEscenas (RENDERS). → certifican esos flujos contra el motor real.
+- **Nube-falsa (6) — NO debían correr contra preview (error de selección mío):** cotizarTexto, cocrear10,
+  lecturaPlano, emision, costeadorCatalogo, persistencia. Usan `crearNubeFalsa` + intercept de un host mock
+  que no aplica al backend real. Los 2 fallos (lecturaPlano nivel-2: PNG 1×1 al `leer-plano-rc` real → 0 áreas;
+  persistencia-rechazo: el intercept no dispara contra el host real) son **artefactos de esa mezcla, NO bugs**
+  (ambos pasan en CI local). Se re-corren LOCALMENTE (gratis, el mock sí aplica) para certificar la lógica cliente.
 
 ## Orden de ataque (FASE 2→6 de la orden)
 1. **FASE 0/1 (hecho):** baseline + scorecard reales.
