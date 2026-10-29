@@ -1,0 +1,811 @@
+{
+  "mueble": "TELSVH120",
+  "despiece": [
+    {
+      "clave": "TELSVH120-CUEPI",
+      "descripcion": "CUERPO PARA VITRINA HORIZONTAL DE 1200 X 865 X 600 mm ; EN LAMINA PINTADA COLOR BASIC WHITE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-CUE",
+      "descripcion": "CUERPO PARA VITRINA HORIZONTAL DE 1200 X 865 X 600 mm ; EN LAMINA - TELSVH120-CUE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-PDG",
+      "descripcion": "PLACA DE 97 X 150 X 1 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.00537634408602151",
+      "peso_kg": "0.10372443529351"
+    },
+    {
+      "clave": "TELSVH120-RTA",
+      "descripcion": "REFUERZO TAPA DE 1175 X 90 X 17 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.1428571428571428",
+      "peso_kg": "2.31747785906744"
+    },
+    {
+      "clave": "TELSVH120-TAP",
+      "descripcion": "TAPA DE 1197 X 596 X 35 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.5",
+      "peso_kg": "8.63714400962041"
+    },
+    {
+      "clave": "TELSVH120-LA",
+      "descripcion": "LATERAL IZQUIERDO DE 600 X 827 X 70 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.333333333333333",
+      "peso_kg": "6.29362062316867"
+    },
+    {
+      "clave": "TELSVH120-OMV",
+      "descripcion": "OMEGA DE 539 X 42 X 11 mm",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.0266666666666666",
+      "peso_kg": "0.448520084598288"
+    },
+    {
+      "clave": "TELSVH120-BA",
+      "descripcion": "BASE DE 1197 X 498 X 25 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+      "clave_material": "MVLSLA05270402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.25",
+      "peso_kg": "6.32849790227922"
+    },
+    {
+      "clave": "TELSVH120-OM",
+      "descripcion": "OMEGA NIVELADORA DE 464 X 86 X 25 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "clave_material": "MVLSLA05260202",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.0476190476190476",
+      "peso_kg": "1.641413386332178"
+    },
+    {
+      "clave": "TELSVH120-RCI",
+      "descripcion": "OMEGA RCI DE 1175 X 90 X 17 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.0714285714285714",
+      "peso_kg": "0.991460886214442"
+    },
+    {
+      "clave": "TELSVH120-RLA",
+      "descripcion": "REFIERZO LATERAL DE 786 X 90 X 24 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.0869565217391304",
+      "peso_kg": "1.882887911645618"
+    },
+    {
+      "clave": "TELSVH120-TA",
+      "descripcion": "TRAVESAÑO DE 112 X 1197 X 70 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.1",
+      "peso_kg": "1.79600938055262"
+    },
+    {
+      "clave": "TELSVH120-RP",
+      "descripcion": "REFUERZO PUERTA DE 801 X 101 X 21 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.0454545454545455",
+      "peso_kg": "0.995994237099192"
+    },
+    {
+      "clave": "TELSVH120-ENT",
+      "descripcion": "ENTREPAÑO DE 1197 X 464 X 19 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACERO 1008 -- LN20410",
+      "clave_material": "MVLSLA05270502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.25",
+      "peso_kg": "4.62109759414184"
+    },
+    {
+      "clave": "TELSVH120-LAD",
+      "descripcion": "LATERAL DERECHO DE 70 X 827 X 600 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.333333333333333",
+      "peso_kg": "6.29514655128786"
+    },
+    {
+      "clave": "TELSVH120-OMH",
+      "descripcion": "OMEGA HORIZONTAL 120",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.0333333333333333",
+      "peso_kg": "0.478892966022847"
+    },
+    {
+      "clave": "TU38HE.SLDPRT",
+      "descripcion": "TUERCA HEXAGONAL Ø 3/8\"\"  GALVANIZADO",
+      "material_desc": "TUERCA HEXAGONAL Ø 3/8\"\"  GALVANIZADO - \"\"TU38HE\"\"\"",
+      "clave_material": "MVLUTU22540002",
+      "piezas_x_mueble": "4",
+      "cantidad_material": "4",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "TELSVH120-BX2PI",
+      "descripcion": "EXHIBIDOR PARA VITRINA DE 1117 X 242 X 527 mm ; EN LAMINA PINTADA COLOR BASIC WHITE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-BX2",
+      "descripcion": "EXHIBIDOR PARA VITRINA DE 1117 X 242 X 527 mm ; EN LAMINA - TELSVH120-BX2",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-CBX",
+      "descripcion": "BASE DE 1107 X 504 X 43 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACERO 1008 -- LN20410",
+      "clave_material": "MVLSLA05270502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.2",
+      "peso_kg": "5.07975960508291"
+    },
+    {
+      "clave": "TELSVH120-O2",
+      "descripcion": "SOPORTE CORREDERA 2 DE 474 X 48 X 87 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.0333333333333333",
+      "peso_kg": "0.623232659392822"
+    },
+    {
+      "clave": "TELSVH120-OC",
+      "descripcion": "SOPORTE PARA CORREDERA 1  DE 474 X 48 X 87 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.0333333333333333",
+      "peso_kg": "0.623286139854236"
+    },
+    {
+      "clave": "TELSVH120-ESC",
+      "descripcion": "ESCUADRA DE 52 X 42 X 904 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "clave_material": "MVLSLA05260202",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.0333333333333333",
+      "peso_kg": "1.2856830055882"
+    },
+    {
+      "clave": "TELSVH120-RO",
+      "descripcion": "REFUERZO PARA OVAL DE PUERTA DE 127 X 13 X 47 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.00241545893719806",
+      "peso_kg": "0.0476822441230036"
+    },
+    {
+      "clave": "TELSVH120-CP1",
+      "descripcion": "TAPA DE FRENTE DE 1174 X 284 X 19 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.166666666666667",
+      "peso_kg": "2.15190446832406"
+    },
+    {
+      "clave": "TELSVH120-PM2",
+      "descripcion": "FRENTE DE EXHIBIDOR DE 1176 X 286 X 20 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.166666666666667",
+      "peso_kg": "2.19710960899774"
+    },
+    {
+      "clave": "TELSVH120-SOMPI",
+      "descripcion": "SOMBRA PARA VITRINA DE 1127 X 78 X 42 mm ; EN LAMINA PINTADA COLOR BASIC WHITE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-SOMPM",
+      "descripcion": "SOMBRA PARA VITRINA DE 1127 X 78 X 42 mm ; EN LAMINA - TELSVH120-SOM",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-SOM",
+      "descripcion": "SOMBRA PARA VITRINA DE 1127 X 78 X 42 mm ; EN LAMINA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.0833333333333333",
+      "peso_kg": "1.05695289601173"
+    },
+    {
+      "clave": "TELSVH120-SOCPI",
+      "descripcion": "BASE CORREDERA DE 500 X 48 X 40 mm ; EN LAMINA PINTADA COLOR BASIC WHITE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-SOCPM",
+      "descripcion": "BASE CORREDERA DE 500 X 48 X 40 mm ; EN LAMINA - TELSVH120-SOC",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-SOC",
+      "descripcion": "BASE CORREDERA DE 500 X 48 X 40 mm ; EN LAMINA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.0555555555555556",
+      "peso_kg": "0.967249963386688"
+    },
+    {
+      "clave": "TELSVH120-PPI",
+      "descripcion": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm IZQUIERDA; EN LAMINA PINTADA COLOR BASIC WHITE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-P",
+      "descripcion": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm IZQUIERDA; EN LAMINA - TELSVH120-P",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-RO",
+      "descripcion": "REFUERZO PARA OVAL DE PUERTA DE 127 X 13 X 47 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.00241545893719806",
+      "peso_kg": "0.0476822441230036"
+    },
+    {
+      "clave": "TELSVH120-CP",
+      "descripcion": "FRENTE DE PUERTA  IZQUIERDA DE 543 X 664 X 19 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+      "clave_material": "MVLSLA05270402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.166666666666667",
+      "peso_kg": "4.31340485490814"
+    },
+    {
+      "clave": "TELSVH120-FP",
+      "descripcion": "TAPA DE PUERTA IZQUIERDA DE 662 X 541 X 19 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+      "clave_material": "MVLSLA05270402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.166666666666667",
+      "peso_kg": "4.26662352479014"
+    },
+    {
+      "clave": "TELSVH120-CAL",
+      "descripcion": "AUMENTO DE 65 X 40 X 1 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave_material": "MVLSLA05260402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.000892857142857143",
+      "peso_kg": "0.0225555230103896"
+    },
+    {
+      "clave": "TELSVH120-BI",
+      "descripcion": "BISAGRA PARA PUERTA DE 19 X 566 mm PASO CORTO 157-A",
+      "material_desc": "BISAGRA DE PIANO  1 1/2\" CALIBRE 22 PIEZA DE 2440 mm PASO CORTO 157 A -- BP22X112",
+      "clave_material": "MVLSBP00110610",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.32459016393442625",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "TELSVH120-CFPI",
+      "descripcion": "FRENTE PARA VITRINA DE 1106 X 828 X 13 mm ; EN LAMINA PINTADA COLOR BASIC WHITE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-CFPM",
+      "descripcion": "FRENTE PARA VITRINA DE 1106 X 828 X 13 mm ; EN LAMINA - TELSVH120-CF",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-CF",
+      "descripcion": "FRENTE PARA VITRINA DE 1106 X 828 X 13 mm ; EN LAMINA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.5",
+      "peso_kg": "7.25227275523024"
+    },
+    {
+      "clave": "TELSVH120-PCPI",
+      "descripcion": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm DERECHA; EN LAMINA PINTADA COLOR BASIC WHITE",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-PC",
+      "descripcion": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm DERECHA; EN LAMINA - TELSVH120-PC",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-RO",
+      "descripcion": "REFUERZO PARA OVAL DE PUERTA DE 127 X 13 X 47 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave_material": "MVLSLA05260502",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "0.00241545893719806",
+      "peso_kg": "0.0476822441230036"
+    },
+    {
+      "clave": "TELSVH120-FPC",
+      "descripcion": "TAPA DE PUERTA DERECHA 662 X 541 X 19 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+      "clave_material": "MVLSLA05270402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.166666666666667",
+      "peso_kg": "4.26662352479014"
+    },
+    {
+      "clave": "TELSVH120-CPC",
+      "descripcion": "FRENTE DE PUERTA DERECHA DE 543 X 664 X 19 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+      "clave_material": "MVLSLA05270402",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.166666666666667",
+      "peso_kg": "4.31340485490814"
+    },
+    {
+      "clave": "TELSVH120-BI",
+      "descripcion": "BISAGRA PARA PUERTA DE 19 X 566 mm PASO CORTO 157-A",
+      "material_desc": "BISAGRA DE PIANO  1 1/2\" CALIBRE 22 PIEZA DE 2440 mm PASO CORTO 157 A -- BP22X112",
+      "clave_material": "MVLSBP00110610",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.32459016393442625",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEEPL0409C8G1",
+      "descripcion": "MAQUILA PLACA GALVANIZADA DE 40 X 23 mm CALIBRE 24 PARA IDENTIFICACION GALVANIZADA CON 2 BARRENOS DE Ø1/8. SERIGRAFIA COLOR GRIS OXFORD CON LEYENDA PEDIDO  7200716306 Y LOGOTIPO VONHAUCKE - \"TELSVH120-PLA\"",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-PLAPM",
+      "descripcion": "CORTE DE PLACA DE 40 X 23 mm PARA SERIGRAFIA; EN LAMINA GALVANIZADA --  TELSVH120-PLAPM",
+      "material_desc": "",
+      "clave_material": "",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "",
+      "peso_kg": ""
+    },
+    {
+      "clave": "TELSVH120-PLA",
+      "descripcion": "CORTE DE PLACA PARA SERIGRAFIA",
+      "material_desc": "LAMINA GALVANIZADA HOJA 4' X 10' CALIBRE 24  - \"LG24410\"",
+      "clave_material": "MVLSLA07270700",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "0.00202224469160768",
+      "peso_kg": "0.017"
+    },
+    {
+      "clave": "MIEEPP03050001",
+      "descripcion": "PELICULA PALETIZADO CALIBRE 80 ANCHO 20\"  EN ROLLO -- PELPA20 --",
+      "material_desc": "PELICULA PALETIZADO CALIBRE 80 ANCHO 20\"  EN ROLLO -- PELPA20 --",
+      "clave_material": "MIEEPP03050001",
+      "piezas_x_mueble": "0.06",
+      "cantidad_material": "0.06",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MVLUPI03452101",
+      "descripcion": "PIJA CABEZA PLANA PHILLIPS 1 1/4\" PARA TABLAROCA PAVONADO - \"PITR114\"",
+      "material_desc": "PIJA CABEZA PLANA PHILLIPS 1 1/4\" PARA TABLAROCA PAVONADO - \"PITR114\"",
+      "clave_material": "MVLUPI03452101",
+      "piezas_x_mueble": "88",
+      "cantidad_material": "88",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEPCL47K81620",
+      "descripcion": "CAJA DE LUZ TERMOFORMADA DE 1110 X 500 X 130 mm ESPESOR 3.0 mm EN ACRILICO TRASLUCIDO Z2 -- TELSVH120-BAA",
+      "material_desc": "CAJA DE LUZ TERMOFORMADA DE 1110 X 500 X 130 mm ESPESOR 3 mm EN ACRILICO TRASLUCIDO Z2 - \"TELSVH120-BAA\"",
+      "clave_material": "MLEPCL47K81620",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEAPS00770005",
+      "descripcion": "PASADOR  MODELO 36 PHILLIPS CON BOTON DE SEGURIDAD  ACABADO CROMO SATINADO - \"P36CR\"",
+      "material_desc": "PASADOR  MODELO 36 PHILLIPS CON BOTON DE SEGURIDAD  ACABADO CROMO SATINADO - \"P36CR\"",
+      "clave_material": "MLEAPS00770005",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MVLURE28003504",
+      "descripcion": "REMACHE POP  AM-46 ALUMINIO NATURAL",
+      "material_desc": "REMACHE POP  AM-46 ALUMINIO NATURAL - \"\"REP46\"\"\"",
+      "clave_material": "MVLURE28003504",
+      "piezas_x_mueble": "45",
+      "cantidad_material": "45",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEPCT01001600",
+      "descripcion": "CORTE LASER DE LOGOTIPO  TELCEL DE 797 X 173 X 3 mm EN ACRILICO AZUL TELCEL  ESPESOR 3 mm  - \"TELVIH-LOAC\"",
+      "material_desc": "CORTE LASER DE LOGOTIPO  TELCEL DE 797 X 173 X 3 mm EN ACRILICO AZUL TELCEL  ESPESOR 3 mm  - \"TELVIH-LOAC\"",
+      "clave_material": "MLEPCT01001600",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEACE27330000",
+      "descripcion": "CERRADURA CILINDRICA (CAM LOCK), 2 LLAVES PLANAS, IMPERMEABLE Y APRUEBA DE POLVO, MODELO 20-015 DE 27 X 20 mm   - \"CECAM20015\"",
+      "material_desc": "CERRADURA CILINDRICA (CAM LOCK), 2 LLAVES PLANAS, IMPERMEABLE Y APRUEBA DE POLVO, MODELO 20-015 DE 27 X 20 mm   - \"CECAM20015\"",
+      "clave_material": "MLEACE27330000",
+      "piezas_x_mueble": "2",
+      "cantidad_material": "2",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEEKT030000F9",
+      "descripcion": "KIT DE ILUMINACION   PARA VITRINA HORIZONTAL COMPUESTO DE 5 TIRAS DE 1 METRO DE LED 5050/60 4000K, FUENTE DE VOLTAJE DE 100 WATTS MARCA MEAN WELL Y 1 CABLE TOMACORRIENTE DE  2.5 METROS - \"TELSVH120-KIT\"",
+      "material_desc": "KIT DE ILUMINACION   PARA VITRINA HORIZONTAL COMPUESTO DE 5 TIRAS DE 1 METRO DE LED 5050/60 4000K, FUENTE DE VOLTAJE DE 100 WATTS MARCA MEAN WELL Y 1 CABLE TOMACORRIENTE DE  2.5 METROS - \"TELSVH120-KIT\"",
+      "clave_material": "MLEEKT030000F9",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MIMCSK1A010100",
+      "descripcion": "SIKAFLEX 1a SELLADOR ELASTICO DE POLIURETANO DE ALTO DESEMPEÑO COLOR BLANCO MARCA SILKA  -- SK1ASEP --",
+      "material_desc": "SIKAFLEX 1a SELLADOR ELASTICO DE POLIURETANO DE ALTO DESEMPEÑO COLOR BLANCO MARCA SILKA  -- SK1ASEP --",
+      "clave_material": "MIMCSK1A010100",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MVLUTO15171109",
+      "descripcion": "TORNILLO NIVELADOR Ø 3/8\" X 1\" PLATAFORMA DE Ø 2\" CROMADO - \"TO3812NIC\"",
+      "material_desc": "TORNILLO NIVELADOR Ø 3/8\" X 1\" PLATAFORMA DE Ø 2\" CROMADO - \"TO3812NIC\"",
+      "clave_material": "MVLUTO15171109",
+      "piezas_x_mueble": "4",
+      "cantidad_material": "4",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEAJG130000V0",
+      "descripcion": "JUEGO DE CORREDERAS DERECHA, IZQUIERDA DE EXTENSION PARA MUEBLE METALICO SIN TORNILLOS 20\" ACABADO NIQUELADO, MODELO 3584 - \"COEME20N\"",
+      "material_desc": "JUEGO DE CORREDERAS DERECHA, IZQUIERDA DE EXTENSION PARA MUEBLE METALICO SIN TORNILLOS 20\" ACABADO NIQUELADO, MODELO 3584 - \"COEME20N\"",
+      "clave_material": "MLEAJG130000V0",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEQSC00000000",
+      "descripcion": "SILICON TRANSPARENTE PRESENTACION DE 300 ml DOW CORNING MARCA SISTA BUILDING 781 -- AD-0008",
+      "material_desc": "SILICON TRANSPARENTE PRESENTACION DE 300 ml DOW CORNING MARCA SISTA BUILDING 781 -- AD-0008",
+      "clave_material": "MLEQSC00000000",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MVLREF00634532",
+      "descripcion": "EMPAQUE DE 30 X 30 X 5 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8\"  POLIFOAM DE POLIURETANO - \"ESPR210518\"",
+      "clave_material": "MVLREF00634532",
+      "piezas_x_mueble": "0.16",
+      "cantidad_material": "0.16",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MVLABA100000T1",
+      "descripcion": "CORTE ESQUINERO POLIFOAM CORTO DE 499 X 50 X 50 mm MODELO PUNTOS DE VENTA",
+      "material_desc": "ESQUINERO DE POLIFOAM VERDE DENSO ½ DE 2” X 2” X 2 m - \"ESPVD\"",
+      "clave_material": "MVLABA100000T1",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLECCP0302072C",
+      "descripcion": "CAPELO DE CRISTAL DE 1148 X 548 X 254 mm ESPESOR 6 mm CLARO TEMPLADO CON CANTOS PULIDOS, CON SELLO DE TEMPLADO DEL FABRICANTE  SEGUN EL PLANO - \"TELSVH120-CAP\"",
+      "material_desc": "CAPELO DE CRISTAL DE 1148 X 548 X 254 mm ESPESOR 6 mm CLARO TEMPLADO CON CANTOS PULIDOS, CON SELLO DE TEMPLADO DEL FABRICANTE  SEGUN EL PLANO - \"TELSVH120-CAP\"",
+      "clave_material": "MLECCP0302072C",
+      "piezas_x_mueble": "1",
+      "cantidad_material": "1",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEMTM01050000",
+      "descripcion": "TIRA DE MADERA DE PINO DE SEGUNDA DE  10 CMS DE ANCHO X 1 1/4\"  (3.2 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - \"TMP10114250\"",
+      "material_desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE  10 CMS DE ANCHO X 1 1/4\"  (3.2 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - \"TMP10114250\"",
+      "clave_material": "MLEMTM01050000",
+      "piezas_x_mueble": "0.76",
+      "cantidad_material": "0.76",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEMTM01060000",
+      "descripcion": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X  3/4\" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - \"TMP1034250\"",
+      "material_desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X  3/4\" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - \"TMP1034250\"",
+      "clave_material": "MLEMTM01060000",
+      "piezas_x_mueble": "8.2",
+      "cantidad_material": "8.2",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEMTM01040000",
+      "descripcion": "TIRA DE MADERA DE PINO DE SEGUNDA DE  5 CMS. DE ANCHO  X  3/4\"  (1.9 CMS) DE ESPESOR,  POR 250 CMS. DE LARGO   - \"TMP534250\"",
+      "material_desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE  5 CMS. DE ANCHO  X  3/4\"  (1.9 CMS) DE ESPESOR,  POR 250 CMS. DE LARGO   - \"TMP534250\"",
+      "clave_material": "MLEMTM01040000",
+      "piezas_x_mueble": "3.2",
+      "cantidad_material": "3.2",
+      "peso_kg": "0"
+    },
+    {
+      "clave": "MLEUCL42500078",
+      "descripcion": "CLAVO EN ROLLO 2\"  PARA CLAVADORA  NEUMATICA  - \"CLENR2CA\"",
+      "material_desc": "CLAVO EN ROLLO 2\"  PARA CLAVADORA  NEUMATICA  - \"CLENR2CA\"",
+      "clave_material": "MLEUCL42500078",
+      "piezas_x_mueble": "0.004",
+      "cantidad_material": "0.004",
+      "peso_kg": "0"
+    }
+  ],
+  "lista_compra": [
+    {
+      "material": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+      "clave": "MVLSLA05260502",
+      "cantidad": "1.1829401812150764",
+      "unidad": "hoja"
+    },
+    {
+      "material": "PINTURA",
+      "clave": "MVLQPP00000000",
+      "cantidad": "2.076909001560212",
+      "unidad": "Kg"
+    },
+    {
+      "material": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+      "clave": "MVLSLA05260402",
+      "cantidad": "1.542827733860342",
+      "unidad": "hoja"
+    },
+    {
+      "material": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+      "clave": "MVLSLA05270402",
+      "cantidad": "0.9166666666666679",
+      "unidad": "hoja"
+    },
+    {
+      "material": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+      "clave": "MVLSLA05260202",
+      "cantidad": "0.0809523809523809",
+      "unidad": "hoja"
+    },
+    {
+      "material": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACERO 1008 -- LN20410",
+      "clave": "MVLSLA05270502",
+      "cantidad": "0.45",
+      "unidad": "hoja"
+    },
+    {
+      "material": "TUERCA HEXAGONAL Ø 3/8\"\"  GALVANIZADO - \"\"TU38HE\"\"\"",
+      "clave": "MVLUTU22540002",
+      "cantidad": "4",
+      "unidad": "pza"
+    },
+    {
+      "material": "PELICULA PALETIZADO CALIBRE 80 ANCHO 20\"  EN ROLLO -- PELPA20 --",
+      "clave": "MIEEPP03050001",
+      "cantidad": "0.06",
+      "unidad": "pza"
+    },
+    {
+      "material": "PIJA CABEZA PLANA PHILLIPS 1 1/4\" PARA TABLAROCA PAVONADO - \"PITR114\"",
+      "clave": "MVLUPI03452101",
+      "cantidad": "88",
+      "unidad": "pza"
+    },
+    {
+      "material": "CAJA DE LUZ TERMOFORMADA DE 1110 X 500 X 130 mm ESPESOR 3 mm EN ACRILICO TRASLUCIDO Z2 - \"TELSVH120-BAA\"",
+      "clave": "MLEPCL47K81620",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "BISAGRA DE PIANO  1 1/2\" CALIBRE 22 PIEZA DE 2440 mm PASO CORTO 157 A -- BP22X112",
+      "clave": "MVLSBP00110610",
+      "cantidad": "0.6491803278688525",
+      "unidad": "pza"
+    },
+    {
+      "material": "PASADOR  MODELO 36 PHILLIPS CON BOTON DE SEGURIDAD  ACABADO CROMO SATINADO - \"P36CR\"",
+      "clave": "MLEAPS00770005",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "REMACHE POP  AM-46 ALUMINIO NATURAL - \"\"REP46\"\"\"",
+      "clave": "MVLURE28003504",
+      "cantidad": "45",
+      "unidad": "pza"
+    },
+    {
+      "material": "CORTE LASER DE LOGOTIPO  TELCEL DE 797 X 173 X 3 mm EN ACRILICO AZUL TELCEL  ESPESOR 3 mm  - \"TELVIH-LOAC\"",
+      "clave": "MLEPCT01001600",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "CERRADURA CILINDRICA (CAM LOCK), 2 LLAVES PLANAS, IMPERMEABLE Y APRUEBA DE POLVO, MODELO 20-015 DE 27 X 20 mm   - \"CECAM20015\"",
+      "clave": "MLEACE27330000",
+      "cantidad": "2",
+      "unidad": "pza"
+    },
+    {
+      "material": "KIT DE ILUMINACION   PARA VITRINA HORIZONTAL COMPUESTO DE 5 TIRAS DE 1 METRO DE LED 5050/60 4000K, FUENTE DE VOLTAJE DE 100 WATTS MARCA MEAN WELL Y 1 CABLE TOMACORRIENTE DE  2.5 METROS - \"TELSVH120-KIT\"",
+      "clave": "MLEEKT030000F9",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "SIKAFLEX 1a SELLADOR ELASTICO DE POLIURETANO DE ALTO DESEMPEÑO COLOR BLANCO MARCA SILKA  -- SK1ASEP --",
+      "clave": "MIMCSK1A010100",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "TORNILLO NIVELADOR Ø 3/8\" X 1\" PLATAFORMA DE Ø 2\" CROMADO - \"TO3812NIC\"",
+      "clave": "MVLUTO15171109",
+      "cantidad": "4",
+      "unidad": "pza"
+    },
+    {
+      "material": "MAQUILA PLACA GALVANIZADA DE 40 X 23 mm CALIBRE 24 PARA IDENTIFICACION GALVANIZADA CON 2 BARRENOS DE Ø1/8. SERIGRAFIA COLOR GRIS OXFORD CON LEYENDA PEDIDO  7200716306 Y LOGOTIPO VONHAUCKE - \"TELSVH120-PLA\"",
+      "clave": "MLEEPL0409C8G1",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "JUEGO DE CORREDERAS DERECHA, IZQUIERDA DE EXTENSION PARA MUEBLE METALICO SIN TORNILLOS 20\" ACABADO NIQUELADO, MODELO 3584 - \"COEME20N\"",
+      "clave": "MLEAJG130000V0",
+      "cantidad": "1",
+      "unidad": "jgo"
+    },
+    {
+      "material": "LAMINA GALVANIZADA HOJA 4' X 10' CALIBRE 24  - \"LG24410\"",
+      "clave": "MVLSLA07270700",
+      "cantidad": "0.00202224469160768",
+      "unidad": "hoja"
+    },
+    {
+      "material": "SILICON TRANSPARENTE PRESENTACION DE 300 ml DOW CORNING MARCA SISTA BUILDING 781 -- AD-0008",
+      "clave": "MLEQSC00000000",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8\"  POLIFOAM DE POLIURETANO - \"ESPR210518\"",
+      "clave": "MVLREF00634532",
+      "cantidad": "0.16",
+      "unidad": "rollo"
+    },
+    {
+      "material": "ESQUINERO DE POLIFOAM VERDE DENSO ½ DE 2” X 2” X 2 m - \"ESPVD\"",
+      "clave": "MVLABA100000T1",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "CAPELO DE CRISTAL DE 1148 X 548 X 254 mm ESPESOR 6 mm CLARO TEMPLADO CON CANTOS PULIDOS, CON SELLO DE TEMPLADO DEL FABRICANTE  SEGUN EL PLANO - \"TELSVH120-CAP\"",
+      "clave": "MLECCP0302072C",
+      "cantidad": "1",
+      "unidad": "pza"
+    },
+    {
+      "material": "TIRA DE MADERA DE PINO DE SEGUNDA DE  10 CMS DE ANCHO X 1 1/4\"  (3.2 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - \"TMP10114250\"",
+      "clave": "MLEMTM01050000",
+      "cantidad": "0.76",
+      "unidad": "pza"
+    },
+    {
+      "material": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X  3/4\" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - \"TMP1034250\"",
+      "clave": "MLEMTM01060000",
+      "cantidad": "8.2",
+      "unidad": "pza"
+    },
+    {
+      "material": "CLAVO EN ROLLO 2\"  PARA CLAVADORA  NEUMATICA  - \"CLENR2CA\"",
+      "clave": "MLEUCL42500078",
+      "cantidad": "0.004",
+      "unidad": "caja"
+    },
+    {
+      "material": "TIRA DE MADERA DE PINO DE SEGUNDA DE  5 CMS. DE ANCHO  X  3/4\"  (1.9 CMS) DE ESPESOR,  POR 250 CMS. DE LARGO   - \"TMP534250\"",
+      "clave": "MLEMTM01040000",
+      "cantidad": "3.2",
+      "unidad": "pza"
+    }
+  ]
+}
