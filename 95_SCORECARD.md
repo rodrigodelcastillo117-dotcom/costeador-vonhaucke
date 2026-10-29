@@ -12,12 +12,12 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 | 2 | COSTEAR | SIN MEDIR | sí | — | — | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | Motor avanzado sólo en `-rc`; prod=v17. Puente clave→insumo 0 aprobado. |
 | 3 | COTIZAR | ~80 (prov.) | sí | — | — | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | E2E cotizarProyectos verde contra `-rc` vivo. cotizar-texto (mock) pendiente local. |
 | 4 | COCREAR | ~72 (prov.) | — | — | — | — | ✅ | ⚠️ | ⚠️ | ⚠️ | cocrear10 (mock local) verde. cocrearExpediente (real `-rc`) re-corriendo (antes NO corrió). |
-| 5 | ACOMODO | ~82 (prov.) | sí | — | — | — | ✅ | ✅ | ✅ | ✅ | E2E acomodoP02 (verify-first, edge+hashes) y acomodoVeredicto verdes contra `-rc` vivo. |
+| 5 | ACOMODO | ~88 (prov.) | — | — | — | — | ✅ | ✅ | ✅ | ✅ | E2E acomodoP02/Veredicto + golden757 (solver real, 21 piezas colocadas, id 4849) verdes contra `-rc`. |
 | 6 | RENDERS | SIN MEDIR* | — | — | — | — | ✅ | ❌ | ⚠️ | ⚠️ | renderEscenas (único E2E) NO corrió antes; re-corriendo contra `-rc`. Sólo código/migraciones verificados. |
 | 7 | VONI | SIN MEDIR | — | — | — | — | ⚠️ | ❌ | ❌ | ❌ | voni-council v14 vivo; council real SIN MEDIR. |
 | 8 | INSUMOS/ERP/PRECIOS | ~70 (prov.) | — | sí | — | ✅ | ✅ | ❌ | ❌ | ⚠️ | 10,185 activos; 30% CERT / 70% PRELIM; autoridad server-side ✅. UX SIN MEDIR. |
 | 9 | CATÁLOGO/PRODUCTOS | ~72 (prov.) | — | sí | — | ⚠️ | ✅ | ✅ | ✅ | ⚠️ | E2E costeadorCatalogo (selección/buscador) verde (local). Legacy grande + migración canónica pendiente bajan el score. |
-| 10 | ARCHIVO/REABRIR | ~82 (prov.) | — | sí | — | ✅ | ✅ | ✅ | ✅ | ✅ | E2E persistencia (misma fila/identidad, rechazo nube, reabrir) + concurrenciaOptimista verdes (local). Falta reabrir con render real. |
+| 10 | ARCHIVO/REABRIR | ~88 (prov.) | — | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | E2E local (persistencia/concurrencia) + golden757-edición REAL: editar pieza → nube → reabrir desde OTRA sesión persiste (id 4849). |
 | 11 | PDF/EMISIÓN | ~89 (prov.) | — | sí | — | ✅ | ✅ | ✅ | ✅ | ✅ | Gate server-side verificado + E2E emision (cliente, estados) verde (local). Nunca TOTAL falso, identidad ligada, sin bypass. |
 | 12 | SEGURIDAD | ~94 (prov.) | — | — | — | ✅ | ✅ | ✅ | ✅ | ✅ | Prueba VIVA (JWT real por rol): vendedor ve 0 cotizaciones/0 economía/0 precios; dirección ve 79/12. piso_minimo denegado a authenticated. Sin IDOR, sin fuga de costo. |
 | 13 | MOBILE | ~75 (prov.) | — | — | sí | — | ✅ | ✅ | ✅ | ✅ | Barrido móvil (390×844, touch) 3 roles sin crash ni excepción (dirección incluida). Falta tap-targets/scroll fino. |
@@ -111,6 +111,21 @@ E2E. Se re-corren con `RENDER_PROD=1 COCREAR_QA=1 LAB_COSTEAR_IMG=texto`; númer
 
 Promedio NO es la meta (la orden pide ≥95 por pestaña). Hoy **ninguna llega a 95**; las más altas (~90) son
 seguridad y emisión. Los topes reales: datos (COSTEAR/INSUMOS), release (prod≠RC), y lo no medido (VONI, MOBILE).
+
+## labCostear (COSTEAR texto→costo) — NO certificable por esta vía (arnés holdout, no bug)
+Con `LAB_HOJA` real falló en su **preámbulo holdout** (líneas 99-102): exige config Playwright congelado +
+servidor Vite del mismo checkout + argumentos permitidos. Contra un preview remoto ese guard anti-tamper
+rechaza ANTES de ejercitar el costeo. → **COSTEAR texto→costo queda SIN certificar por UI contra `-rc`**
+(el arnés lo impide; no es defecto). El motor de costeo está probado aparte (golden TELCEL al centavo).
+Para certificarlo de verdad hay que correr labCostear en su arnés local congelado, no contra preview.
+
+## Certificación orquestada golden757 (2026-10-29) — VERDE contra `-rc` vivo (2/2, 38.5s)
+Flujo profundo REAL (cotización 757 de 18 partidas, login QA real, sólo se intercepta la edge de acomodo
+para usar el solver real en Node):
+- **golden757:** solver real (2 llamadas), 21 piezas colocadas, guardado a nube id 4849 HTTP 200. ✅
+- **golden757-edición:** girar una pieza a mano → nube → **reabrir desde OTRA sesión** persiste (id 4849). ✅
+→ Certifica ACOMODO (solver+colocación), ARCHIVO (persistencia/reabrir/concurrencia entre sesiones) y la
+integridad de la cotización contra el motor real. COSTEAR texto→costo (labCostear con LAB_HOJA real) corriendo aparte.
 
 ## Re-run a_pedido con flags (2026-10-29) — 3 fallos, TODOS de precondición/fixture (no bugs)
 Con `RENDER_PROD=1 COCREAR_QA=1 LAB_COSTEAR_IMG=texto` los 3 corrieron contra `-rc` y fallaron, pero por
