@@ -935,7 +935,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   );
   const escenasRef = useRef({});                 // areaIndex -> nodo con su isométrico
   const [imgEscena, setImgEscena] = useState({});// areaIndex -> dataUrl
-  const [genEscena, setGenEscena] = useState(null);
+  const [genEscena, setGenEscena] = useState(() => new Set()); // áreas cuyo render está EN CURSO (concurrencia acotada)
   const [errEscena, setErrEscena] = useState('');
   // ---- ACOMODO A MANO ------------------------------------------------------
   // Voni entiende el pedido y lo cotiza; DÓNDE va cada mueble lo sabe el
@@ -1055,10 +1055,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
     });
   }
 
+  // Concurrencia ACOTADA a 2: ~2× más rápido que de uno en uno, pero sin disparar las 5 a la vez
+  // (eso en celular tumbaba el navegador — por eso NO se usa Promise.all de todas). Cada cuarto
+  // sigue siendo independiente; el estado `genEscena` (Set) marca las que están en curso.
   async function generarTodasLasEscenas() {
     setErrEscena('');
-    for (const esc of escenas) {
-      setGenEscena(esc.areaIndex);
+    const LIMITE = 2;
+    const marcar = (idx, on) => setGenEscena((s) => { const n = new Set(s); if (on) n.add(idx); else n.delete(idx); return n; });
+    const generarUna = async (esc) => {
+      marcar(esc.areaIndex, true);
       try {
         const r = await generarEscena(esc);
         if (r?.ok) setImgEscena((m) => ({ ...m, [esc.areaIndex]: r.dataUrl }));
@@ -1073,9 +1078,15 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
         }
       } catch (e) {
         setErrEscena(`No se pudo generar ${esc.nombre}: ${String(e?.message || e)}`);
+      } finally {
+        marcar(esc.areaIndex, false);
       }
+    };
+    const lista = [...escenas];
+    for (let i = 0; i < lista.length; i += LIMITE) {
+      await Promise.all(lista.slice(i, i + LIMITE).map(generarUna));
     }
-    setGenEscena(null);
+    setGenEscena(new Set());
   }
 
   // Render fotorrealista de la oficina desde las áreas/dibujo (sin foto real).
@@ -1964,9 +1975,9 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
               </p>
               <div className="fila-botones" style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                 <button className="boton primario" style={{ minHeight: 44 }}
-                  disabled={genEscena != null} onClick={generarTodasLasEscenas}>
-                  {genEscena != null
-                    ? `Generando ${escenas.find((e) => e.areaIndex === genEscena)?.nombre || ''}…`
+                  disabled={genEscena.size > 0} onClick={generarTodasLasEscenas}>
+                  {genEscena.size > 0
+                    ? `Generando ${Object.keys(imgEscena).length} de ${escenas.length}…`
                     : Object.keys(imgEscena).length ? 'Volver a generar' : (escenas.length === 1 ? 'Generar la imagen del área' : `Generar las ${escenas.length} áreas`)}
                 </button>
                 {Object.keys(imgEscena).length > 0 && onGuardarAcomodo && (
@@ -1984,7 +1995,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                       ? <img src={imgEscena[esc.areaIndex]} alt={`Vista de ${esc.nombre}`}
                           style={{ width: '100%', borderRadius: 12, border: '1px solid var(--linea)', display: 'block' }} />
                       : <div style={{ width: '100%', aspectRatio: '3 / 2', borderRadius: 12, border: '1px dashed var(--linea)', display: 'grid', placeItems: 'center', background: 'var(--papel)' }}>
-                          <span className="ayuda">{genEscena === esc.areaIndex ? 'Generando…' : 'Sin generar'}</span>
+                          <span className="ayuda">{genEscena.has(esc.areaIndex) ? 'Generando…' : 'Sin generar'}</span>
                         </div>}
                     <figcaption className="ayuda" style={{ marginTop: 4 }}>
                       <strong>{esc.nombre}</strong> · {esc.m2} m² · {esc.piezas.reduce((n, p) => n + p.cantidad, 0)} muebles
