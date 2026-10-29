@@ -22,6 +22,15 @@ Confirma el riesgo que señaló Dirección: un proxy mete sub-costeo silencioso.
 - + los 4 especiales con precio real: cristal ~$900 + placa ~$50 + cerradura $832 + LED ~$2,500 = **$4,282**
 - **Total material TELSVH120 ≈ $10,800 MXN** (vs ~$7,800 con proxys; vs "no costeable" al inicio).
 
+## NOTA 2026-10-29 — intento de carga cruda REVERTIDO (lección)
+Intenté dar de alta los 4 con insert directo a `insumos_catalogo`/`insumo_precios`. La tabla de
+precios es **append-only** (trigger prohíbe DELETE) y hay lógica/triggers que **deformaron** los
+valores (precio y estado cambiados, p.ej. $2500→$1864, marcados `aprobado`). Se detectó al verificar
+y se **neutralizó**: conexiones borradas + insumos puestos `activo=false` ⇒ 0 en `catalogo_vigente`,
+sin efecto en costeo/emisión. Confirma que estos 4 **NO** se cargan a mano: van por el flujo
+ERP/Compras (RPC `cargar_erp_ultima_compra`, con candado de Dirección). Las conexiones buenas (25)
+no se tocaron.
+
 ## Acción para Compras/Dirección
 Dar de alta estos 4 como insumo con su precio real (flujo ERP/Compras), y aprobar las 25 conexiones
 `propuesto` (tag `HDM_TELSVH120_20261029`). Con eso TELSVH120 queda 29/29 costeable de verdad.
