@@ -18,7 +18,7 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 | 8 | INSUMOS/ERP/PRECIOS | ~70 (prov.) | — | sí | — | ✅ | ✅ | ❌ | ❌ | ⚠️ | 10,185 activos; 30% CERT / 70% PRELIM; autoridad server-side ✅. UX SIN MEDIR. |
 | 9 | CATÁLOGO/PRODUCTOS | SIN MEDIR | — | sí | — | ⚠️ | — | ❌ | ❌ | ❌ | Legacy grande; migración canónica incremental pendiente. |
 | 10 | ARCHIVO/REABRIR | SIN MEDIR | — | sí | — | — | ⚠️ | ❌ | ❌ | ❌ | Control optimista VH-148 ON en prod (código). Reabrir/concurrencia SIN MEDIR. |
-| 11 | PDF/EMISIÓN | SIN MEDIR | sí | — | — | — | ✅ | ❌ | ❌ | ⚠️ | Hard-gate + server-side en migraciones ✅. E2E "TOTAL INCOMPLETO" SIN MEDIR. |
+| 11 | PDF/EMISIÓN | ~88 (prov.) | — | sí | — | ✅ | ✅ | ❌ | ❌ | ✅ | Gate server-side verificado: economía incompleta→ECONOMICS_INCOMPLETE, identidad ligada, precio autoritativo, wrapper no bypass ✅. Falta UX/E2E "TOTAL INCOMPLETO". |
 | 12 | SEGURIDAD | ~90 (prov.) | — | sí | — | ✅ | ✅ | ⚠️ | ⚠️ | ✅ | Autoridad server-side ✅; seller-safe ✅; RLS money/propiedad auditada: sin IDOR a nivel tabla ✅. Falta prueba viva 2-JWT + RPC cotizaciones_mias. |
 | 13 | MOBILE | SIN MEDIR | — | — | sí | — | — | ❌ | ❌ | ❌ | No probado en viewport real. |
 | 14 | RELEASE/INFRA | ~60 (prov.) | sí | — | — | ✅ | ⚠️ | — | ❌ | ⚠️ | Prod corre edges viejos; `-rc` no promovido. Falta RELEASE_MANIFEST + mapa fn→edge→hash. |
@@ -40,6 +40,16 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
   - `cocrear_costeo_servidor` / `costeos_servidor` / `partida_costeo_vigente` = RLS deny-all (solo servidor). Correcto.
   - **No se encontró hueco abierto.** Pendiente para 95 pleno: prueba viva 2-JWT por REST + acotamiento
     por dueño dentro de `cotizaciones_mias`.
+
+## Resultado P0 emisión (2026-10-29, verificado leyendo `private_api.evaluar_emision_cotizacion`)
+Recalcula todo server-side desde la cotización guardada; NO confía en la economía del cliente.
+- Costo desconocido/preliminar/no certificado ⇒ `ECONOMICS_INCOMPLETE` (nunca TOTAL falso ni $0).
+- Renglón del snapshot debe SER lo costeado (identidad + `campos_partida_no_corresponden`) ⇒ si no, `BLOCKED`.
+- Precio especial recalculado y autoritativo (rechaza `precio_especial_no_autoritativo` si el cliente lo cambió).
+- Bajo costo / margen < mínimo / reventa sin piso ⇒ `APPROVAL_REQUIRED`.
+- Wrapper `public.emitir_revision_v2` sólo valida sesión y delega al núcleo SECURITY DEFINER ⇒ sin bypass del cliente.
+- Respaldado por `seguridadGateEmisionSnapshot.test.js` (55 pruebas, incluye prueba de rollback que reintroduce el defecto).
+- **Pendiente 95 pleno:** E2E de que la UI muestre "TOTAL INCOMPLETO" (no un total) ante `ECONOMICS_INCOMPLETE`.
 
 ## Orden de ataque (FASE 2→6 de la orden)
 1. **FASE 0/1 (hecho):** baseline + scorecard reales.
