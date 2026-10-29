@@ -8,7 +8,7 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 
 | # | Área | Score | P0 | P1 | P2 | Dato | Código | UX | E2E | ProdVerif | Notas |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | INICIO | SIN MEDIR | — | — | — | — | — | ❌ | ❌ | ❌ | No ejercitado. |
+| 1 | INICIO | ~80 (prov.) | — | — | — | — | ✅ | ⚠️ | ⚠️ | — | E2E barrido: Home+pantallas sin crash para diseño y vendedor (seller-safe) ✅; sweep dirección timeout (inconcluso). Mobile/UX profundo SIN MEDIR. |
 | 2 | COSTEAR | SIN MEDIR | sí | — | — | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | Motor avanzado sólo en `-rc`; prod=v17. Puente clave→insumo 0 aprobado. |
 | 3 | COTIZAR | SIN MEDIR | sí | — | — | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | P1 limbo texto→plano por confirmar. `-rc` vs prod. |
 | 4 | COCREAR | SIN MEDIR | — | — | — | — | ⚠️ | ❌ | ❌ | ❌ | Costo cocrear server-side sólo en `-rc` (ver nube.js:604). |
@@ -50,6 +50,19 @@ Recalcula todo server-side desde la cotización guardada; NO confía en la econo
 - Wrapper `public.emitir_revision_v2` sólo valida sesión y delega al núcleo SECURITY DEFINER ⇒ sin bypass del cliente.
 - Respaldado por `seguridadGateEmisionSnapshot.test.js` (55 pruebas, incluye prueba de rollback que reintroduce el defecto).
 - **Pendiente 95 pleno:** E2E de que la UI muestre "TOTAL INCOMPLETO" (no un total) ante `ECONOMICS_INCOMPLETE`.
+
+## Resultado E2E barato (2026-10-29, barridoPantallas contra nube falsa — sin IA/escritura)
+Barrido por rol: clic a cada botón del Inicio, verifica que ninguna pantalla "se atoró" ni lanza excepción JS.
+- **diseño: 13 pantallas, 0 problemas** ✅
+- **vendedor (seller-safe): 11 pantallas, 0 problemas** ✅
+- **dirección: timeout a los 12 min tras 1 pantalla** ⚠️ — NO fue una pantalla atorada (render ok, "Mis cotizaciones");
+  el barrido se trabó en el 2º botón. Inconcluso: fragilidad del harness (`nth(i)` + re-navegación) vs un
+  cuelgue de pantalla sólo-dirección. **No se confirma bug ni se declara verde.** Pendiente: re-run con trace.
+- UX: existe capa de humanización (`src/datos/emisionUX.js`, `estadoHumano.js`); mensajes de error en español
+  humano (no códigos crudos en pantalla). Los códigos de gate (BLOCKED/APPROVAL_REQUIRED) sólo se usan como
+  lógica en JSX, no se pintan al usuario.
+- **Toolchain:** el navegador de Playwright del repo (1.64.1 → build 1248) no estaba; se instaló vía proxy.
+  Sin eso, cualquier E2E local fallaba por lanzamiento de navegador (no por la app).
 
 ## Orden de ataque (FASE 2→6 de la orden)
 1. **FASE 0/1 (hecho):** baseline + scorecard reales.
