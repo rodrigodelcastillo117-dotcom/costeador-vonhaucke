@@ -36,6 +36,22 @@ vendedor (ficha / foto / texto), comparado contra el despiece que la fábrica
   no-determinista) y su salida se graba como `baseline_extraccion_*.json`; el scoreo
   de esa salida grabada SÍ es determinista. No es gate de CI.
 
+## Primer baseline (2026-10-29) — extractor de sala-limpia (proxy, NO el edge de prod)
+Entrada `ficha_telsvh120.txt` (texto, sin clave) → 30 renglones. Contra el HDM real:
+- **recall de roles ≈ 0.57** (16 de 28 componentes distintos), **0 roles inventados**.
+- **Recupera lo "visible":** tapa, base, laterales, puertas, omegas, escuadras, entrepaños,
+  travesaños, caja de luz, cristal, niveladores, pija/tornillería, tuercas, corredera, pasador.
+- **Omite justo lo de ingeniería** (lo que un product-model sabría, no la ficha):
+  refuerzo_tapa, refuerzo_puerta, refuerzo_oval (×6), omega_niveladora, soporte_corredera,
+  tapa_frente, sombra, base_corredera, placa_serigrafia, cuerpo (lo descompuso en paneles).
+- **Conteos:** 4/28 exactos (no puede saber cantidades desde una ficha).
+- **Material:** 9 ok / 17 mal (adivina calibres; el HDM usa específicos).
+- Añade eléctrico/acrílico (LED, balastra, difusor, remaches): algunos de otro BOM, otros ruido.
+
+Lectura: el gap de 8.6→9.5 NO es "mejor extracción de texto" — es el **motor de producto**
+(plantilla de arquetipo) que aporte los refuerzos/omegas/soportes que la ficha no dice.
+Corre: `node lab/costear_golden/puntuar_cli.mjs baseline_extraccion_salalimpia.json [--proceso]`
+
 ## Pendiente (no hecho aún)
 - Grabar una extracción baseline real (edge `analizar-mueble` con auth, o un
   extractor de sala-limpia que no haya visto el HDM) y publicar el primer número.
