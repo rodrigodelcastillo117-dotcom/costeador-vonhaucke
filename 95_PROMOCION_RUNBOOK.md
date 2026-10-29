@@ -33,7 +33,8 @@ Por cada par, desplegar el source de la `-rc` en el slot PROD (Supabase `deploy_
 1. `costear-servidor` ← código de `costear-servidor-rc` v30 (`a56ab299e734`)
 2. `analizar-mueble` ← `analizar-mueble-rc`
 3. `cotizar-texto` ← `cotizar-texto-rc`
-4. `generar-render` ← `generar-render-rc`
+4. `generar-render` ← SOURCE de esta rama (trae **FLASH por defecto + `pro` opcional** + fallback pro↔flash).
+   El cliente llama `generar-render` incluso en preview, así que el cambio de velocidad SÓLO vive al desplegar este slot.
 5. `acomodar-espacio-recovery` ← `acomodar-espacio-recovery-rc`
 6. `leer-plano-core` ← `leer-plano-core-rc`
 (El frontend ya apunta a estos slots; no se toca Vercel salvo que haya cambios de cliente pendientes.)
