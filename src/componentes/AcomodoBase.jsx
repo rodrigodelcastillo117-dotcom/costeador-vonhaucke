@@ -936,6 +936,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
   const escenasRef = useRef({});                 // areaIndex -> nodo con su isométrico
   const [imgEscena, setImgEscena] = useState({});// areaIndex -> dataUrl
   const [genEscena, setGenEscena] = useState(() => new Set()); // áreas cuyo render está EN CURSO (concurrencia acotada)
+  const [proCalidad, setProCalidad] = useState(false); // false = flash (rápido, por defecto); true = pro (catálogo, lento)
   const [errEscena, setErrEscena] = useState('');
   // ---- ACOMODO A MANO ------------------------------------------------------
   // Voni entiende el pedido y lo cotiza; DÓNDE va cada mueble lo sabe el
@@ -1052,6 +1053,7 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
       // nube se lo cuenta a la imagen que generó y, si no da, la vuelve a hacer
       // —Gemini no siempre respeta "no inventes muebles" a la primera—.
       conteoPiso: esc.pisoTotal,
+      pro: proCalidad, // calidad "pro" (catálogo) sólo si el usuario la pide; por defecto flash (rápido)
     });
   }
 
@@ -1980,6 +1982,11 @@ export default function Acomodo({ estado, onIr, onGuardarAcomodo, planoInicial =
                     ? `Generando ${Object.keys(imgEscena).length} de ${escenas.length}…`
                     : Object.keys(imgEscena).length ? 'Volver a generar' : (escenas.length === 1 ? 'Generar la imagen del área' : `Generar las ${escenas.length} áreas`)}
                 </button>
+                <label className="ayuda" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <input type="checkbox" checked={proCalidad} disabled={genEscena.size > 0}
+                    onChange={(e) => setProCalidad(e.target.checked)} />
+                  Alta calidad (más lento)
+                </label>
                 {Object.keys(imgEscena).length > 0 && onGuardarAcomodo && (
                   <button className="boton" style={{ minHeight: 44 }}
                     onClick={() => { onGuardarAcomodo({ areas: areasMM, plan, escenas: escenas.map((e) => ({ nombre: e.nombre, m2: e.m2, img: imgEscena[e.areaIndex] || null })).filter((e) => e.img) }); setGuardado(true); }}>
