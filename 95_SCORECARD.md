@@ -19,7 +19,7 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 | 9 | CATÁLOGO/PRODUCTOS | SIN MEDIR | — | sí | — | ⚠️ | — | ❌ | ❌ | ❌ | Legacy grande; migración canónica incremental pendiente. |
 | 10 | ARCHIVO/REABRIR | SIN MEDIR | — | sí | — | — | ⚠️ | ❌ | ❌ | ❌ | Control optimista VH-148 ON en prod (código). Reabrir/concurrencia SIN MEDIR. |
 | 11 | PDF/EMISIÓN | SIN MEDIR | sí | — | — | — | ✅ | ❌ | ❌ | ⚠️ | Hard-gate + server-side en migraciones ✅. E2E "TOTAL INCOMPLETO" SIN MEDIR. |
-| 12 | SEGURIDAD | ~85 (prov.) | — | sí | — | ✅ | ✅ | — | ⚠️ | ⚠️ | Autoridad precios/cert server-side ✅; seller-safe piso ✅. BOLA/IDOR SIN MEDIR. |
+| 12 | SEGURIDAD | ~90 (prov.) | — | sí | — | ✅ | ✅ | ⚠️ | ⚠️ | ✅ | Autoridad server-side ✅; seller-safe ✅; RLS money/propiedad auditada: sin IDOR a nivel tabla ✅. Falta prueba viva 2-JWT + RPC cotizaciones_mias. |
 | 13 | MOBILE | SIN MEDIR | — | — | sí | — | — | ❌ | ❌ | ❌ | No probado en viewport real. |
 | 14 | RELEASE/INFRA | ~60 (prov.) | sí | — | — | ✅ | ⚠️ | — | ❌ | ⚠️ | Prod corre edges viejos; `-rc` no promovido. Falta RELEASE_MANIFEST + mapa fn→edge→hash. |
 
@@ -28,6 +28,18 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 - **SEGURIDAD ~85:** lo verificado está bien hecho (autoridad server-side, seller-safe, RLS default-deny). No llega a 95 hasta probar BOLA/IDOR por objeto y emisión server-side en E2E real.
 - **RELEASE ~60:** el tema de fondo (prod ≠ RC) y la falta de manifiesto fn→edge→versión→hash lo mantienen lejos de 95.
 - Las 12 restantes: **SIN MEDIR**. No pongo número sin E2E. Darles 90 "porque el código se ve bien" sería exactamente lo que la orden prohíbe.
+
+## Resultado P0 seguridad + pruebas (2026-10-29, verificado)
+- **Suite completa: 406 archivos, 3,994 pruebas, TODAS verdes** (exit 0, 197s), tras quitar 3 worktrees
+  duplicados de `.claude/worktrees` que inflaban el conteo y la corrida. CI de prod/rama también verde.
+- **Auditoría RLS BOLA/IDOR (tablas dinero/propiedad):**
+  - `cotizaciones` SELECT = `puede_editar_config()` (rol direccion/diseno) **AND** aislamiento qa
+    (RESTRICTIVE). El vendedor **no** lee la tabla cruda; usa la RPC segura sin economía. **Sin IDOR.**
+  - `producto_version_economia` = `puede_ver_economia()` = **solo direccion**. Diseño NO ve costos.
+  - `insumo_precios` / `expediente_revisiones` = gateadas por rol. `renders` = acotada al dueño.
+  - `cocrear_costeo_servidor` / `costeos_servidor` / `partida_costeo_vigente` = RLS deny-all (solo servidor). Correcto.
+  - **No se encontró hueco abierto.** Pendiente para 95 pleno: prueba viva 2-JWT por REST + acotamiento
+    por dueño dentro de `cotizaciones_mias`.
 
 ## Orden de ataque (FASE 2→6 de la orden)
 1. **FASE 0/1 (hecho):** baseline + scorecard reales.
