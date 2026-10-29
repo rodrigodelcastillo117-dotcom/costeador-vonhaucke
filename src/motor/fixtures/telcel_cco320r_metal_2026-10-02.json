@@ -1,0 +1,70 @@
+{
+  "fuente": "C-CO-320R DATS TELCEL DIV-MATERIALES 20261002",
+  "scope": "METAL only; historical workbook fixture; no production prices changed",
+  "modulos": [
+    {
+      "id": "id_01",
+      "nombre": "VITRINA HORIZONTAL · METAL",
+      "materialEsperado": 4483.13,
+      "materiales": [
+        {"sku":"MVLSLA05260402","descripcion":"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - LN18310","unidad":"Hoja","precio":571.54,"consumo":3.04,"costoLinea":1737.48},
+        {"sku":"MVLSLA05270402","descripcion":"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - LN18410","unidad":"Hoja","precio":751.14,"consumo":0.88,"costoLinea":661.00},
+        {"sku":"MVLSLA05270402","descripcion":"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - LN18410","unidad":"Hoja","precio":751.14,"consumo":0.53,"costoLinea":398.10},
+        {"sku":"MVLSLA05270202","descripcion":"LAMINA NEGRA HOJA 4 X 10 CALIBRE 14 ACERO 1008 - LN14410","unidad":"Hoja","precio":1190.49,"consumo":0.04,"costoLinea":47.62},
+        {"sku":"MVLQPP00000000","descripcion":"PINTURA EN POLVO PPH · BLANCO TELCEL A529","unidad":"Kg","precio":171.01,"consumo":2.11,"costoLinea":360.83},
+        {"sku":"MVLQPP00000000","descripcion":"PINTURA EN POLVO PPH · AZUL TELCEL A10","unidad":"Kg","precio":249.58,"consumo":0.21,"costoLinea":52.41},
+        {"sku":"MLEMTM01040000","descripcion":"TIRA MADERA PINO 5 CM x 3/4 x 250 CM","unidad":"pieza","precio":47.43,"consumo":6.4,"costoLinea":303.55},
+        {"sku":"MLEMTM01050000","descripcion":"TIRA MADERA PINO 10 CM x 1 1/4 x 250 CM","unidad":"pieza","precio":189.75,"consumo":0.76,"costoLinea":144.21},
+        {"sku":"MLEMTM01060000","descripcion":"TIRA MADERA PINO 10 CM x 3/4 x 250 CM","unidad":"pieza","precio":94.87,"consumo":8.2,"costoLinea":777.93}
+      ]
+    },
+    {
+      "id": "id_02",
+      "nombre": "VITRINA TORRE · METAL",
+      "materialEsperado": 2966.15,
+      "materiales": [
+        {"sku":"MVLSLA05260502","descripcion":"LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310","unidad":"Hoja","precio":428.65,"consumo":1.08,"costoLinea":462.94},
+        {"sku":"MVLSLA05260402","descripcion":"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - LN18310","unidad":"Hoja","precio":571.54,"consumo":2.564,"costoLinea":1465.43},
+        {"sku":"MVLSLA05260202","descripcion":"LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310","unidad":"Hoja","precio":816.48,"consumo":0.057,"costoLinea":46.54},
+        {"sku":"MVLSTU01080501","descripcion":"TUBULAR INDUSTRIAL CUADRADO 1 CALIBRE 20 PIEZA 6000 MM - TC201","unidad":"pieza","precio":96.71,"consumo":0.166,"costoLinea":16.05},
+        {"sku":"MVLSLA05270502","descripcion":"LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACERO 1008 - LN20410","unidad":"Hoja","precio":571.52,"consumo":0.166,"costoLinea":94.87},
+        {"sku":"MVLMMR050000E7","descripcion":"MADERA PARA EMBALAJE 13 MM x 80 MM x 2500 MM - ME258EX","unidad":"pieza","precio":26.5,"consumo":8,"costoLinea":212.00},
+        {"sku":"MVLQPP00000000","descripcion":"PINTURA EN POLVO PPH · AZUL TELCEL A10","unidad":"Kg","precio":249.58,"consumo":0.65,"costoLinea":162.23},
+        {"sku":"MVLQPP00000000","descripcion":"PINTURA EN POLVO PPH · OPCION SIN CLAVE EN WORKBOOK","unidad":"Kg","precio":449.06,"consumo":1.127,"costoLinea":506.09}
+      ]
+    },
+    {
+      "id": "id_03",
+      "nombre": "VITRINA ISLA · METAL",
+      "materialEsperado": 3297.84,
+      "materiales": [
+        {"sku":"MVLSLA05280402","descripcion":"LAMINA NEGRA HOJA 4 X 8 CALIBRE 18 ACERO 1008 - LN1848","unidad":"Hoja","precio":585.51,"consumo":0.6,"costoLinea":351.31},
+        {"sku":"MVLSLA05260402","descripcion":"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - LN18310","unidad":"Hoja","precio":571.54,"consumo":0.13,"costoLinea":74.30},
+        {"sku":"MVLSTU01080401","descripcion":"TUBULAR INDUSTRIAL CUADRADO 1 CALIBRE 18 PIEZA 6000 MM - TC181","unidad":"pieza","precio":132.5,"consumo":2.75,"costoLinea":364.38},
+        {"sku":"MPMTLA01030601","descripcion":"LAMINA NEGRA HOJA 4 X 8 CALIBRE 14 ACERO 1008 - LN4814ACE","unidad":"","precio":900.38,"consumo":0.02,"costoLinea":18.01},
+        {"sku":"LN1838","descripcion":"LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO 1008 - LN1838","unidad":"","precio":722.46,"consumo":0.5,"costoLinea":361.23},
+        {"sku":"MVLSLA05270402","descripcion":"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - LN18410","unidad":"Hoja","precio":751.14,"consumo":0.09,"costoLinea":67.60},
+        {"sku":"LN2038","descripcion":"LAMINA NEGRA HOJA 3 X 8 CALIBRE 20 ACERO 1008 - LN2038","unidad":"","precio":541.86,"consumo":0.25,"costoLinea":135.47},
+        {"sku":"MVLQPP00000000","descripcion":"PINTURA EN POLVO PPH · BLANCO TELCEL A529","unidad":"Kg","precio":171.01,"consumo":1.18,"costoLinea":201.79},
+        {"sku":"MLEMTM01040000","descripcion":"TIRA MADERA PINO 5 CM x 3/4 x 250 CM","unidad":"pieza","precio":47.43,"consumo":9,"costoLinea":426.87},
+        {"sku":"MLEMTM01050000","descripcion":"TIRA MADERA PINO 10 CM x 1 1/4 x 250 CM","unidad":"pieza","precio":189.75,"consumo":1.07,"costoLinea":203.03},
+        {"sku":"MLEMTM01060000","descripcion":"TIRA MADERA PINO 10 CM x 3/4 x 250 CM","unidad":"pieza","precio":94.87,"consumo":11.53,"costoLinea":1093.85}
+      ]
+    },
+    {
+      "id": "id_04",
+      "nombre": "MODULO DE ALMACENAMIENTO · METAL",
+      "materialEsperado": 3596.14,
+      "materiales": [
+        {"sku":null,"descripcion":"LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO 1008 - LN1838","unidad":"","precio":722.46,"consumo":1,"costoLinea":722.46},
+        {"sku":"MVLSLA05260402","descripcion":"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - LN18310","unidad":"Hoja","precio":571.54,"consumo":1.62,"costoLinea":925.89},
+        {"sku":"MVLSLA05280402","descripcion":"LAMINA NEGRA HOJA 4 X 8 CALIBRE 18 ACERO 1008 - LN1848","unidad":"Hoja","precio":585.51,"consumo":0.49,"costoLinea":286.90},
+        {"sku":"MVLSLA05270402","descripcion":"LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - LN18410","unidad":"Hoja","precio":751.14,"consumo":1,"costoLinea":751.14},
+        {"sku":"MVLQPP00000000","descripcion":"PINTURA EN POLVO PPH · BLANCO TELCEL A529","unidad":"Kg","precio":171.01,"consumo":2.15,"costoLinea":367.67},
+        {"sku":"MVLQPP00000000","descripcion":"PINTURA EN POLVO PPH · AZUL TELCEL A10","unidad":"Kg","precio":249.58,"consumo":0.15,"costoLinea":37.44},
+        {"sku":"MVLABI19000000","descripcion":"BISAGRA BIDIMENSIONAL SOBREPUESTA 110° - BIBI","unidad":"pieza","precio":13.66,"consumo":4,"costoLinea":54.64},
+        {"sku":null,"descripcion":"SUPERFICIE DE TRABAJO MDF 12MM LAMINADO BLANCO + PVC TERMOFORMADO CRISTAL WHITE","unidad":"","precio":1800,"consumo":0.25,"costoLinea":450.00}
+      ]
+    }
+  ]
+}
