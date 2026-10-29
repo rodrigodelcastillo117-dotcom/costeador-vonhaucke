@@ -1,0 +1,15 @@
+{
+  "mueble": "TELSVH120",
+  "fecha_extraccion": "2026-10-29",
+  "fuente": "catalogo_vigente (ya cargado de ultima compra) + PDFs Drive (ficha TELSVH120 = plano sin precios; Compras Acumuladas = reporte ASUR, no TELCEL)",
+  "faltantes_6": [
+    {"material":"Pintura blanco basic white","codigo":"A101 basic white (PPH)","estado":"RESUELTO_EXACTO","insumo_id":"pintura-polvo","precio":113.8283,"cert":"CERTIFICADO","nota":"HDM dice '101 BASIC WHITE' pintura en polvo; match exacto. Reemplaza el mis-map a antracita."},
+    {"material":"Madera pino 10cm 1-1/4 (embalaje)","codigo":"TMP10114250","estado":"RESUELTO_EXACTO","insumo_id":"erp-tmp1011425","precio":189.75,"cert":"CERTIFICADO","nota":"id del catalogo truncado (erp-tmp1011425) pero el nombre trae TMP10114250 exacto."},
+    {"material":"Cerradura cam lock CECAM20015 (20-015)","codigo":"CECAM20015","estado":"PROXY","insumo_id":"erp-cecxe","precio":47.76,"cert":"PRELIMINAR","nota":"CECAM20015 exacta NO esta; cam lock generico erp-cecxe $47.76 (o erp-mleace12k20000 $350). Decidir si proxy sirve o cargar el exacto."},
+    {"material":"Kit iluminacion LED TELSVH120-KIT (5 tiras 1m, 100W MeanWell)","codigo":"TELSVH120-KIT","estado":"PROXY","insumo_id":"erp-telsvh60-kit","precio":1164.32,"cert":"PRELIMINAR","nota":"Exacto (100W, tiras 1m) NO esta; el del VH60 (5 tiras 50cm, 60W) $1164.32 es el pariente mas cercano, pero es mas chico. Idealmente cargar el exacto de una OC."},
+    {"material":"Capelo de cristal TELSVH120-CAP (1148x548x254, 6mm templado)","codigo":"TELSVH120-CAP","estado":"NO_ENCONTRADO","insumo_id":null,"precio":null,"nota":"No esta el exacto. Parientes: erp-telsvh60-cap (548x548) $1222.1; erp-telvih-cap (900x256x480) $2585.05. Es especial por mueble: necesita precio de una OC real."},
+    {"material":"Placa galvanizada serigrafia TELSVH120-PLA","codigo":"TELSVH120-PLA","estado":"NO_ENCONTRADO","insumo_id":null,"precio":null,"nota":"Maquila custom por mueble (serigrafia con leyenda). Necesita precio de una OC real."}
+  ],
+  "resumen": "2/6 resueltos exactos y CERTIFICADOS (pintura blanco, madera 1-1/4). 2/6 con proxy razonable (cerradura, kit LED). 2/6 verdaderamente ausentes (capelo cristal, placa serigrafia) = especiales por mueble, requieren OC real.",
+  "nota_oc": "La ficha TELSVH120.pdf es el PLANO (sin precios). 'Compras Acumuladas_Mobiliarioespecial.pdf' es reporte de proyecto ASUR (no TELCEL). Los especiales TELSVH120-CAP/KIT/PLA NO estan en catalogo; su precio real vive en una OC especifica de este mueble que aun no se carga."
+}

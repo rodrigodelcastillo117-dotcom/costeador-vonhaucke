@@ -36,6 +36,19 @@ esquinero polifoam, logo TELCEL acrílico, placa galvanizada serigrafía, madera
 3. Corregir mis-mapeos (pintura: blanco, no antracita).
 Con eso, Costear puede dar el **precio real** de un mueble nuevo. Sin eso, nombrar las piezas no sirve.
 
+## ACTUALIZACIÓN 2026-10-29 (tras conectar por código humano)
+Puenteando por el código humano del HDM (no la clave Intelisis), los precios YA estaban cargados;
+sólo faltaba la conexión. Creadas como `propuesto` (Dirección aprueba; reversibles, tag
+`HDM_TELSVH120_20261029`):
+- **25 de 29 materiales conectados** a precio real (mayoría CERTIFICADO).
+- Pintura corregida: antracita → **blanco basic white** (`pintura-polvo` $113.83).
+- Madera 10cm 1-1/4 conectada (`erp-tmp1011425` $189.75).
+- **4 pendientes, NO adivinados** (precio podría salir 10x mal): capelo de cristal (TELSVH120-CAP),
+  kit LED 100W (TELSVH120-KIT), cerradura cam-lock (CECAM20015), placa serigrafía (TELSVH120-PLA).
+  Los 4 requieren su **orden de compra real de TELCEL** (no estaba en los archivos muestreados) o
+  decisión de Dirección sobre un proxy. Los 2 más caros (cristal, LED) están entre estos 4.
+- El maestro "Última Compra" ya estaba cargado en el catálogo (no aportó precios nuevos).
+
 ## Honestidad del alcance
 - El motor (matemática) ya reproduce costos al centavo cuando los precios están (golden TELCEL 4/4).
 - El cuello de botella de Costear para muebles NUEVOS es **cobertura de datos de precio**, medible por mueble.
