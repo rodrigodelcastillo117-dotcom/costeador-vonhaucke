@@ -16,11 +16,12 @@ Nada de esto se ejecutará sin tu autorización explícita (§100).
   3. Dejar prod como está y medir el 95 sobre prod-viejo (no recomendado: congela el avance).
 - **Mi recomendación honesta:** opción 1 ahora; opción 2 cuando tú autorices la ventana.
 
-## B2 · Aprobar el puente clave-externa → insumo (0 aprobados hoy) — **AUTORIZADO por Dirección; bloqueado por falta de UI**
+## B2 · Aprobar el puente clave-externa → insumo (0 aprobados hoy) — **UI CONSTRUIDA; falta deploy de frontend + el click humano**
 - **Qué:** `insumo_mapeos_externos` = 42, todos `propuesto`, **0 aprobado**. Incluye los 25 de TELSVH120.
 - **Dirección autorizó la aprobación (Rodrigo, 2026-10-30: "apruébalos, está bien").**
 - **Por qué NO se ejecutó con el bot:** `aprobar_mapeo_externo` exige `puede_certificar_costo()`, que **excluye cuentas no-humanas**; `qa-direccion` ESTÁ en esa lista → el sistema la **rechaza** (verificado leyendo la función). `approved_by` graba el email del aprobador → debe ser humano. No se usa la contraseña humana de Rodrigo para que el bot lo haga (suplantación en aprobación económica).
-- **Hueco real:** NO existe pantalla en la app para que Dirección apruebe puentes (no hay caller cliente de `aprobar_mapeo_externo`). → **Acción propuesta:** construir una pantalla mínima "Aprobar puentes" para Dirección (dev en rama; requiere luego deploy de frontend), o que un humano autenticado llame la RPC. Solo afecta muebles con claves especiales; no bloquea costear muebles normales.
+- **Hueco cerrado (código):** pantalla "Aprobar puentes" para Dirección añadida (commit `54faf71`, rama `claude/costing-app-architecture-psf02g`): `src/componentes/AprobarPuentes.jsx` + `puentesPropuestos()`/`aprobarPuente()` en `src/nube.js` + entrada de menú/pestaña `'puentes'` (sólo `esDireccion`). Build verde; firma y columnas verificadas contra prod. Lista los 42, un click aprueba por fila, firmado con el correo humano autenticado.
+- **Lo que falta (tu decisión):** (1) **deploy de frontend** (Vercel con esta rama) para que la pantalla exista en producción; (2) que **tú (humano Dirección)** entres y des click. El bot no puede firmar. Solo afecta muebles con claves especiales; no bloquea costear muebles normales.
 
 ## B3 · Cargar los 4 especiales de TELSVH120 por el flujo formal
 - **Qué:** capelo cristal, placa serigrafía, cerradura cam-lock, kit LED — precios reales ya
