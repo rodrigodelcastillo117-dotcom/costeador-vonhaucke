@@ -1,0 +1,90 @@
+{
+  "_meta": {
+    "extractor": "EDGE REAL de produccion analizar-mueble (via cuenta QA qa-direccion)",
+    "producto": "Vitrina horizontal metálica de exhibición para punto de venta (tipo SAMS) 1200×1150×600 mm",
+    "entrada": "ficha texto sin clave",
+    "fecha": "2026-10-29"
+  },
+  "items": [
+    {
+      "nombre": "Laterales del cuerpo",
+      "cantidad": 2,
+      "material": "lámina de acero pintada blanco (basic white)"
+    },
+    {
+      "nombre": "Respaldo",
+      "cantidad": 1,
+      "material": "lámina de acero pintada blanco"
+    },
+    {
+      "nombre": "Piso y techo/base de caja de luz",
+      "cantidad": 2,
+      "material": "lámina de acero pintada blanco"
+    },
+    {
+      "nombre": "Puertas frontales abatibles",
+      "cantidad": 2,
+      "material": "lámina de acero pintada blanco"
+    },
+    {
+      "nombre": "Bastidor estructural PTR",
+      "cantidad": 10,
+      "material": "PTR 1x2 cal.16"
+    },
+    {
+      "nombre": "Entrepaños interiores",
+      "cantidad": 2,
+      "material": "lámina de acero pintada blanco"
+    },
+    {
+      "nombre": "Exhibidor interior (charola/escalonado)",
+      "cantidad": 1,
+      "material": "lámina de acero cal.22 pintada"
+    },
+    {
+      "nombre": "Capelo de cristal templado 6 mm (frente, laterales, tapa)",
+      "cantidad": 4,
+      "material": "cristal templado del capelo superior"
+    },
+    {
+      "nombre": "Kit de iluminación LED (caja de luz)",
+      "cantidad": 1,
+      "material": "iluminación integrada caja de luz"
+    },
+    {
+      "nombre": "Difusor acrílico de caja de luz",
+      "cantidad": 1,
+      "material": "acrílico traslúcido difusor"
+    },
+    {
+      "nombre": "Bisagras puertas",
+      "cantidad": 4,
+      "material": "bisagras para puertas abatibles"
+    },
+    {
+      "nombre": "Cerradura/pasador de seguridad",
+      "cantidad": 1,
+      "material": "chapa/pasador de seguridad"
+    },
+    {
+      "nombre": "Niveladores",
+      "cantidad": 4,
+      "material": "niveladores"
+    },
+    {
+      "nombre": "Pintura electrostática blanco basic white",
+      "cantidad": 3,
+      "material": "pintura electrostática blanco basic white"
+    },
+    {
+      "nombre": "Soldadura y consumibles",
+      "cantidad": 1,
+      "material": "soldadura MIG"
+    },
+    {
+      "nombre": "Tornillería y ensamble",
+      "cantidad": 1,
+      "material": "tornillería"
+    }
+  ]
+}

@@ -399,13 +399,17 @@ Deno.serve(async (req) => {
   const bytesN = [imagen, ...(Array.isArray(imagenes) ? imagenes : [])].filter(Boolean).reduce((s: number, i: any) => s + (typeof i === "string" ? i.length : 0), 0);
   try { await svc.from("render_eventos").insert({ request_id: requestId, email, rol, modo, imagenes: imgsN, bytes: bytesN, ms: Date.now() - t0 }); } catch (_e) { /* best-effort */ }
 
-  let usedModel = MODEL;
+  // CALIDAD DE IMAGEN: FLASH por defecto (rápido, ~pocos segundos). PRO (calidad catálogo, más lento)
+  // SÓLO si la petición lo pide con `pro:true` / `modelo:"pro"`. Antes era PRO siempre -> renders lentísimos.
+  const quierePro = body?.pro === true || body?.modelo === "pro";
+  let usedModel = quierePro ? MODEL : FALLBACK_MODEL;
   let r1 = await llamarGemini([{ role: "user", parts }], imageGenConfig, usedModel);
-  // Resiliencia de proveedor: sólo degradamos si el MODELO premium no está
-  // disponible/soportado. No usamos fallback para errores de auth, quota o safety,
-  // porque esconderlos produciría costos/diagnósticos engañosos.
-  if (r1.error && FALLBACK_MODEL !== MODEL && /model.*(?:not found|unavailable|unsupported|not supported|does not exist)|404/i.test(r1.error)) {
-    usedModel = FALLBACK_MODEL;
+  // Resiliencia de proveedor: si el modelo elegido no está disponible/soportado, se intenta el OTRO
+  // (pro<->flash). NO usamos fallback para errores de auth, quota o safety, porque esconderlos
+  // produciría costos/diagnósticos engañosos.
+  const otroModelo = usedModel === MODEL ? FALLBACK_MODEL : MODEL;
+  if (r1.error && otroModelo !== usedModel && /model.*(?:not found|unavailable|unsupported|not supported|does not exist)|404/i.test(r1.error)) {
+    usedModel = otroModelo;
     r1 = await llamarGemini([{ role: "user", parts }], imageGenConfig, usedModel);
   }
   if (r1.error) return json({ ok: false, code: "GEMINI_ERROR", error: r1.error, request_id: requestId, model: usedModel }, 502);

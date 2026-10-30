@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "extractor": "agente Claude de sala-limpia (sólo vio la ficha, nunca el HDM)",
+    "no_es": "el edge de producción analizar-mueble; es un proxy del techo de un LLM genérico desde la ficha",
+    "entrada": "ficha_telsvh120.txt",
+    "fecha": "2026-10-29"
+  },
+  "items": [
+    {"nombre":"Cubierta superior (tapa)","cantidad":1,"material":"lámina calibre 22"},
+    {"nombre":"Base inferior (piso)","cantidad":1,"material":"lámina calibre 20"},
+    {"nombre":"Panel lateral","cantidad":2,"material":"lámina calibre 22"},
+    {"nombre":"Respaldo (panel trasero)","cantidad":1,"material":"lámina calibre 24"},
+    {"nombre":"Travesaño frontal superior","cantidad":1,"material":"lámina calibre 18"},
+    {"nombre":"Travesaño frontal inferior","cantidad":1,"material":"lámina calibre 18"},
+    {"nombre":"Travesaño de refuerzo trasero","cantidad":1,"material":"lámina calibre 18"},
+    {"nombre":"Omega de refuerzo","cantidad":4,"material":"lámina calibre 18"},
+    {"nombre":"Escuadra de refuerzo (esquinero)","cantidad":8,"material":"lámina calibre 14"},
+    {"nombre":"Bastidor/marco de base (zócalo)","cantidad":1,"material":"lámina calibre 16"},
+    {"nombre":"Hoja de puerta frontal abatible","cantidad":2,"material":"lámina calibre 22"},
+    {"nombre":"Refuerzo perimetral de puerta","cantidad":2,"material":"lámina calibre 20"},
+    {"nombre":"Bisagra para puerta","cantidad":4,"material":"herraje: bisagra de acero"},
+    {"nombre":"Chapa/cerradura","cantidad":1,"material":"herraje: cerradura con llave"},
+    {"nombre":"Pasador de seguridad","cantidad":1,"material":"herraje: pasador metálico"},
+    {"nombre":"Entrepaño interior","cantidad":3,"material":"lámina calibre 22"},
+    {"nombre":"Soporte/clip de entrepaño","cantidad":12,"material":"herraje: soporte de entrepaño"},
+    {"nombre":"Exhibidor interior (charola escalonada)","cantidad":1,"material":"lámina calibre 22"},
+    {"nombre":"Soporte de corredera","cantidad":2,"material":"lámina calibre 18"},
+    {"nombre":"Corredera (par de deslizadores)","cantidad":1,"material":"herraje: corredera telescópica"},
+    {"nombre":"Caja de luz (gabinete de iluminación)","cantidad":1,"material":"lámina calibre 22"},
+    {"nombre":"Difusor de caja de luz","cantidad":1,"material":"acrílico opal"},
+    {"nombre":"Tira/luminaria LED","cantidad":1,"material":"componente eléctrico: módulo LED"},
+    {"nombre":"Fuente de alimentación/balastra","cantidad":1,"material":"componente eléctrico"},
+    {"nombre":"Cristal templado del capelo","cantidad":4,"material":"cristal templado 6 mm"},
+    {"nombre":"Perfil/canal de aluminio para capelo","cantidad":4,"material":"perfil de aluminio"},
+    {"nombre":"Nivelador","cantidad":4,"material":"herraje: nivelador roscado"},
+    {"nombre":"Pija/tornillería","cantidad":60,"material":"herraje: tornillería"},
+    {"nombre":"Tuerca","cantidad":30,"material":"herraje: tuerca"},
+    {"nombre":"Remache","cantidad":40,"material":"herraje: remache pop"}
+  ]
+}

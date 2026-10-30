@@ -228,6 +228,21 @@ describe('Intelisis · completitud de tarifas por centro activo', () => {
     expect(costeoEmitible(r).emitible).toBe(true);
   });
 
+  // COSTEO BLINDADO (2026-10-30, Fase 3): `estadoCosto`/`costoOficial` del motor DEBEN
+  // honrar los MISMOS bloqueos que `costeoEmitible`. Antes sólo miraban `componentesIgnorados`,
+  // así que una tarifa Intelisis faltante dejaba estadoCosto='completo' y costoOficial=<número>
+  // aunque NO fuera emitible: un consumidor del cliente (p.ej. Tablero) lo trataría como oficial.
+  it('tarifa faltante ⇒ estadoCosto incompleto y costoOficial null (unificado con costeoEmitible)', () => {
+    const r=calcular(pieza,1,ins,{
+      ...baseIntelisis,
+      costoHoraGIF:{...baseIntelisis.costoHoraGIF,carpinteria:0},
+    });
+    expect(r.tarifasFaltantes).toContain('GIF:carpinteria');
+    expect(costeoEmitible(r).emitible).toBe(false);
+    expect(r.estadoCosto).toBe('incompleto');   // antes: 'completo' (BUG)
+    expect(r.costoOficial).toBeNull();           // antes: número (BUG)
+  });
+
   it('modelo clásico/Alba no usa este gate', () => {
     const clasica={...pieza,modeloCosteo:'clasico',modoManoObra:'porcentaje',horas:null};
     const r=calcular(clasica,1,ins,{...par,modeloCosteo:'clasico'});
