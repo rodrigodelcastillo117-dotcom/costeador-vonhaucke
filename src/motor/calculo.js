@@ -869,6 +869,14 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     ? tarifasFaltantesIntelisis(pieza.horas, par)
     : [];
 
+  // COSTEO BLINDADO (Fase 3, 2026-10-30): verdad única de "¿esto es un costo OFICIAL?".
+  // `estadoCosto` y `costoOficial` honran los MISMOS bloqueos que `costeoEmitible`
+  // (tarifas Intelisis faltantes, material por confirmar, formato que no cabe, costo
+  // no finito), no sólo `componentesIgnorados`. Antes un bloqueo de tarifa/porConfirmar
+  // dejaba estadoCosto='completo' y costoOficial con número aunque NO fuera emitible, y
+  // un consumidor del cliente (p.ej. la gráfica de Tablero) lo tomaba como costo oficial.
+  const _emitible = costeoEmitible({ componentesIgnorados, tarifasFaltantes, materialesPorConfirmar, detalleInsumos, costoUnitario }).emitible;
+
   return {
     piezas: n,
     materialDirecto,
@@ -899,9 +907,9 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // COMPLETITUD EN LA PROPIA SALIDA (COSTEAR §3). `costoUnitario` es el SUBTOTAL
     // CONOCIDO; `costoOficial` es null mientras falte algo. Quien muestre dinero debe
     // usar `costoOficial` (o `costeoEmitible`), nunca `costoUnitario` a secas.
-    estadoCosto: componentesIgnorados.length ? 'incompleto' : 'completo',
+    estadoCosto: _emitible ? 'completo' : 'incompleto',
     pendientes: componentesIgnorados,
-    costoOficial: componentesIgnorados.length ? null : costoUnitario,
+    costoOficial: _emitible ? costoUnitario : null,
   };
 }
 
