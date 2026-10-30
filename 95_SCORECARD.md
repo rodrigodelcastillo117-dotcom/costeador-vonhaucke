@@ -9,7 +9,7 @@ Leyenda columnas: **Dato/Código/UX/E2E/ProdVerif** = ✅ verificado · ⚠️ p
 | # | Área | Score | P0 | P1 | P2 | Dato | Código | UX | E2E | ProdVerif | Notas |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | INICIO | ~80 (prov.) | — | — | — | — | ✅ | ⚠️ | ⚠️ | — | E2E barrido: Home+pantallas sin crash para diseño y vendedor (seller-safe) ✅; sweep dirección timeout (inconcluso). Mobile/UX profundo SIN MEDIR. |
-| 2 | COSTEAR | SIN MEDIR | sí | — | — | ⚠️ | ⚠️ | ❌ | ❌ | ❌ | Motor avanzado sólo en `-rc`; prod=v17. Puente clave→insumo 0 aprobado. |
+| 2 | COSTEAR | SIN MEDIR | sí | — | P2 | ⚠️ | ✅ | ❌ | ❌ | ❌ | Motor avanzado sólo en `-rc`; prod=v17. Puente clave→insumo 0 aprobado. MO/GIF **auditado y sólido** (95_AUDIT_MO_GIF.md), sin GIF=$0 silencioso. P2 abierto: App LT cobra metal a tarifa `otros` (~$995/banca menos que `pm` real) — decisión Dirección/Alba. |
 | 3 | COTIZAR | ~80 (prov.) | sí | — | — | ⚠️ | ✅ | ✅ | ⚠️ | ✅ | E2E cotizarProyectos verde contra `-rc` vivo. cotizar-texto (mock) pendiente local. |
 | 4 | COCREAR | ~72 (prov.) | — | — | — | — | ✅ | ⚠️ | ⚠️ | ⚠️ | cocrear10 (mock local) verde. cocrearExpediente (real `-rc`) re-corriendo (antes NO corrió). |
 | 5 | ACOMODO | ~88 (prov.) | — | — | — | — | ✅ | ✅ | ✅ | ✅ | E2E acomodoP02/Veredicto + golden757 (solver real, 21 piezas colocadas, id 4849) verdes contra `-rc`. |
@@ -104,7 +104,7 @@ E2E. Se re-corren con `RENDER_PROD=1 COCREAR_QA=1 LAB_COSTEAR_IMG=texto`; númer
 | RENDERS | SIN MEDIR* | renderEscenas no había corrido; re-corriendo contra `-rc`. |
 | CATÁLOGO | ~72 | costeadorCatalogo verde; deuda legacy. |
 | INSUMOS/ERP | ~70 | Datos+autoridad OK; 70% preliminar, 0 puentes aprobados. |
-| COSTEAR | ~65 | Motor reproduce al centavo (golden TELCEL) pero cobertura de datos por mueble nuevo es el cuello (TELSVH120 25/29, 0 aprobado). Pipeline profundo texto→costo real contra `-rc` aún sin E2E. |
+| COSTEAR | ~68 | Motor reproduce al centavo (golden TELCEL); **MO/GIF auditado real** (fail-closed, sin GIF=$0). Topes: cobertura de datos por mueble nuevo (TELSVH120 25/29, 0 aprobado), pipeline profundo texto→costo sin E2E, y P2 MG-1 (tarifa metal App LT). |
 | VONI | SIN MEDIR | Sólo health; council real sin E2E. |
 | RELEASE | ~60 | Prod corre edges viejos; `-rc` no promovido (B1). |
 | MOBILE | ~75 | Barrido móvil 3 roles sin crash (390×844, touch). Falta tap-targets/scroll fino. |
@@ -147,6 +147,19 @@ secuencia orquestada golden757→… + semillas QA, o un LAB_HOJA real). No se c
 ## Mobile (2026-10-29, barrido chromium 390×844 + touch, nube falsa)
 3 roles, 0 pantallas atoradas, 0 excepciones. Dirección pasó (el timeout de dirección en DESKTOP fue flake
 del harness, no bug — mismo sweep pasa en móvil). Falta medir tap-targets, scroll fino y overflow de formularios.
+
+## Auditoría MO/GIF (2026-10-30, código + motor corrido, 57/57 verde) — ver 95_AUDIT_MO_GIF.md
+- **Modelo MO/GIF sólido, sin sub-costeo silencioso.** Default vivo = `clasico`: GIF = 34% MP-directa
+  o 3×MO de Alba (verificado al centavo). App LT = `intelisis` con tarifas reales por `parModelo`
+  (el motor las fusiona; probado). El `costoHoraGIF` en ceros del config es **inerte** (clásico no lo
+  lee; intelisis trae tarifas; si faltaran, `tarifasFaltantes` → `ECONOMICS_INCOMPLETE`, fail-closed).
+- **"Anomalía GIF Torre" = FALSO POSITIVO:** "Torre Norte/Sur" son nombres de proyecto, no un producto
+  con bug. Cerrado.
+- **MG-1 (P2, CONFIRMADO y reproducido):** App LT vivo (`generarAppLT`→motor) manda las 12.776 h de
+  metal de una banca 6U al centro `otros` ($296.37/h MO+GIF) en vez de `pm` ($374.25/h real del pedido
+  38247) → **~$995 menos por banca** en ese bloque. No es $0; es tarifa más barata. Decisión de
+  Dirección/Alba qué tarifa debe llevar el metal; fix = datos + 1 test. NO probé el total vivo vs
+  presupuesto real (la nota del código dice MAE ~4%; no lo re-verifiqué end-to-end).
 
 ## Orden de ataque (FASE 2→6 de la orden)
 1. **FASE 0/1 (hecho):** baseline + scorecard reales.

@@ -47,6 +47,15 @@ Nada de esto se ejecutará sin tu autorización explícita (§100).
 - Cualquier `git merge` a `c3.4-seller-safe`, cambio de alias de producción o promoción de deployment.
 - **Por qué te toca:** es deploy productivo. No lo haré sin tu autorización.
 
+## B8 · [MG-1] Tarifa de la hora de metal en App LT (decisión Dirección/Alba) — ver 95_AUDIT_MO_GIF.md
+- **Qué:** la ruta viva de App LT cobra las horas de metal al centro `otros` ($296.37/h MO+GIF) en
+  vez de `pm` ($374.25/h, tarifa real del pedido 38247). En una banca 6U eso es **~$995 menos** en
+  MO+GIF del metal (~6-7% del módulo). No es $0 ni precio inventado; es tarifa más barata que la real.
+- **Por qué te toca:** cuál tarifa lleva el metal es una decisión de costeo de Dirección/Alba, no mía.
+- **Fix cuando decidas (lo seguro-hacia-arriba es `pm`):** poblar `APPLT_RATES.pm` con la tarifa real
+  y enrutar las horas de metal a `pm`, o documentar por qué van a `otros`. Cambio de datos + 1 test;
+  lo dejo listo en la rama cuando autorices.
+
 ---
 
 ### Lo que NO está aquí (sí lo puedo hacer yo, sin tu decisión)
