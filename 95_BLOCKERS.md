@@ -16,11 +16,11 @@ Nada de esto se ejecutará sin tu autorización explícita (§100).
   3. Dejar prod como está y medir el 95 sobre prod-viejo (no recomendado: congela el avance).
 - **Mi recomendación honesta:** opción 1 ahora; opción 2 cuando tú autorices la ventana.
 
-## B2 · Aprobar el puente clave-externa → insumo (0 aprobados hoy)
+## B2 · Aprobar el puente clave-externa → insumo (0 aprobados hoy) — **AUTORIZADO por Dirección; bloqueado por falta de UI**
 - **Qué:** `insumo_mapeos_externos` = 42, todos `propuesto`, **0 aprobado**. Incluye los 25 de TELSVH120.
-- **Por qué te toca:** aprobar precios/mapeos exige rol `direccion` humano (la función excluye
-  cuentas no-humanas; `qa-direccion` NO sirve, por diseño correcto).
-- **Acción:** una persona de Dirección aprueba los mapeos con evidencia (RPC `aprobar_mapeo_externo`).
+- **Dirección autorizó la aprobación (Rodrigo, 2026-10-30: "apruébalos, está bien").**
+- **Por qué NO se ejecutó con el bot:** `aprobar_mapeo_externo` exige `puede_certificar_costo()`, que **excluye cuentas no-humanas**; `qa-direccion` ESTÁ en esa lista → el sistema la **rechaza** (verificado leyendo la función). `approved_by` graba el email del aprobador → debe ser humano. No se usa la contraseña humana de Rodrigo para que el bot lo haga (suplantación en aprobación económica).
+- **Hueco real:** NO existe pantalla en la app para que Dirección apruebe puentes (no hay caller cliente de `aprobar_mapeo_externo`). → **Acción propuesta:** construir una pantalla mínima "Aprobar puentes" para Dirección (dev en rama; requiere luego deploy de frontend), o que un humano autenticado llame la RPC. Solo afecta muebles con claves especiales; no bloquea costear muebles normales.
 
 ## B3 · Cargar los 4 especiales de TELSVH120 por el flujo formal
 - **Qué:** capelo cristal, placa serigrafía, cerradura cam-lock, kit LED — precios reales ya
@@ -39,9 +39,10 @@ Nada de esto se ejecutará sin tu autorización explícita (§100).
 - Cualquier cambio de gate de emisión (reventa-sin-piso ya aplicado; futuros, con tu OK).
 - **Por qué te toca:** cambian datos/lógica de producción.
 
-## B6 · Política de frescura de precios (contrato Dirección)
-- Definir tramos OFICIAL/CERTIFICADO/VIGENTE/ANTIGUO-APROBADO/PRELIMINAR/NECESITA-COMPRAS/SIN-COSTO
-  (≤24 / 25–60 / 61–120 / >120 meses). La app ya distingue; la **política final la fija Dirección**.
+## B6 · Política de frescura de precios (contrato Dirección) — **RESUELTO 2026-10-30**
+- **Decisión de Dirección (Rodrigo, 2026-10-30): "precio aprobado SÍ está bien", aunque sea viejo → NO se recotizan los 7,102.**
+  Un precio `aprobado` es válido para costeo independientemente de su antigüedad. Los 7,102 >24m YA sirven; no hay trabajo de refresco pendiente por frescura.
+- (Antes: definir tramos ≤24/25–60/… — ya no aplica: la política final quedó fijada arriba.)
 
 ## B7 · Go-live / promoción de cliente a prod
 - Cualquier `git merge` a `c3.4-seller-safe`, cambio de alias de producción o promoción de deployment.

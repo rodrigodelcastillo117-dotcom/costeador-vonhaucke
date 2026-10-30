@@ -72,6 +72,12 @@ BUG CONFIRMADO · RIESGO REPRODUCIDO · RIESGO NO CONFIRMADO · DECISIÓN HUMANA
 - **3 PENDIENTES:** las piezas de base PTR (metal) — la IA las emite `forma:lineal` con `largoMM`, y el motor pide "el largo de cada corte" para perfil/tubular. **No inventó el metal: lo marcó pendiente (fail-closed correcto).**
 - **Finding de consistencia entre módulos:** el shape lineal de `analizar-mueble` para perfiles no lo consume directo el motor de tramos → foto→costo de muebles con base metálica sale PARCIAL (melamina/herrajes sí, metal pendiente). Pendiente confirmar si es el shape que yo mapeé o lo que manda la UI real. No es pérdida (fail-closed); es cobertura.
 
+#### BLN-09 · diagnóstico a fondo (2026-10-30)
+- **Causa raíz:** el motor consume perfiles/tubulares por LONGITUD (`cantidad` en metros; así los emite `metalLineal` en `applt.js`, SIN `largoMM`/`anchoMM`). `analizar-mueble` emite los perfiles con `largoMM×anchoMM` (p.ej. 1700×25), que `netoComponente` (`calculo.js:322`) interpreta como ÁREA (m²), y `incompatibilidadUnidad` (`calculo.js:394`) lo RECHAZA para un insumo `tramo` → PENDIENTE.
+- **Clasificación: COBERTURA, no pérdida.** El motor NO mis-costea: fail-closed a PENDIENTE (correcto). No hay $0 ni costo inventado.
+- **Fix correcto (propuesto, NO aplicado):** que `analizar-mueble` (o un normalizador compartido) emita los perfiles como `cantidad`=metros (= conteo × largoMM/1000), igual que `metalLineal`. NO parchar `netoComponente` a ciegas: `cantidad`(conteo) + `largoMM`(largo/pieza) es ambiguo y un patch mal hecho mis-costearía metal. Requiere cambio en el edge `analizar-mueble` + deploy + prueba Gemini → se prepara, no se improvisa (regla: no tocar motor sólido sin fix demostrablemente seguro).
+- **Impacto de negocio:** foto→costo de muebles con base/estructura metálica sale PARCIAL hasta el fix. Melamina/herrajes/cubiertas sí costean. Severidad **P2** (cobertura, no pérdida).
+
 ### BLN-10 — Precio explícito 0 → **NO es bypass (verificado)**
 - `precioUsable` trata `precio=0` como conocido (cuesta $0, emitible) a propósito (el "$0 por decisión" va por `comp.excluida`). Rutas de ataque: (a) cliente/IA inyecta 0 → **imposible**, `validarIntentCosteo` elimina precio/costo/precioBase del componente; el precio sale del catálogo server-side. (b) catálogo con 0 → medido: **10,185 insumos vigentes, TODOS precio>0** (0 nulls/ceros/negativos). Riesgo no activo. Guard forward-looking a revisar: que `cargar_costos_oficiales` rechace/flaguee un 0 de ingreso (no urgente; data limpia hoy).
 
