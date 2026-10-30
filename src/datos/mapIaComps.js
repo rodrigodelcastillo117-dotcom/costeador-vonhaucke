@@ -124,6 +124,15 @@ export function mapIaComps(p, insumos = {}) {
       const lt = `${z.nota || ''} ${z.razonamiento || ''}`.match(/largo\s+total\s*(?:de\s*)?(\d{3,6})\s*mm/i);
       if (!base.iaIncoherencia && lt) { const dice = Number(lt[1]), puso = Math.round(base.cantidad * 1000); if (Math.abs(dice - puso) / dice > 0.05) base.iaIncoherencia = { campo: 'largoTotal', dice, puso }; }
     }
+    // Ronda 3 · BLN-09: una cantidad EXPLÍCITA inválida (negativa o cero) en un lineal no se coacciona en
+    // silencio a 1 pieza — sería inventar material. Se marca para que una persona la corrija (el validador
+    // estructural la bloquea). Una cantidad AUSENTE (undefined/NaN) sí mantiene el default de 1 pieza.
+    if (base.forma === 'lineal') {
+      const rawCant = Number(z.cantidad);
+      if (Number.isFinite(rawCant) && rawCant <= 0 && !base.iaIncoherencia) {
+        base.iaIncoherencia = { campo: 'cantidadLineal', dice: rawCant, puso: base.cantidad };
+      }
+    }
     if (base.forma === 'area') {
       base.largoMM = z.largoMM || 0; base.anchoMM = z.anchoMM || 0; base.piezas = z.cantidad || 1; base.cantidad = 1;
       // TELCEL 26-oct: un cuerpo de lámina llegó como "pieza" 1200×600 con cantidad=45 y unidad=kg.
