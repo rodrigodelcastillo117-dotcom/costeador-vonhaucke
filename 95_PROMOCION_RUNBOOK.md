@@ -53,3 +53,25 @@ rollback de edges es suficiente. Tiempo estimado: minutos por slot.
 ## Quién ejecuta
 Lo ejecuto yo cuando Rodrigo diga "ejecuta la ventana" **y** el candado de certificación esté en verde.
 Ventana estimada: ~2–3 h con smoke. Riesgo: bajo-medio (redeploy reversible), condicionado a la certificación.
+
+---
+
+## EJECUTADO — 2026-10-30 (autorizado por Rodrigo: "promuevelo")
+Promoción del motor avanzado a los slots PROD vía `deploy-edge.yml` (ref = rama `claude/costing-app-architecture-psf02g`, SHA `0722205`). El frontend de Vercel NO se tocó.
+
+| Slot PROD | Antes (rollback) | Después | Run |
+|---|---|---|---|
+| costear-servidor | v17 `28a09647c47e` | **v18** `107bd1fa1ec5` | #59 success |
+| analizar-mueble | v38 `a682b1c0fcd2` | **v39** `6fc1ffcca9a4` | #59 success |
+| cotizar-texto | v18 `344a93487590` | **v19** (promovida) | #60 success |
+| acomodar-espacio-recovery | v19 `65740137f0fb` | **v20** (promovida) | #60 success |
+| leer-plano-core | v8 `64715a20c7e2` | **v9** (promovida) | #60 success |
+| generar-render | (ya en v32, flash+pro) | v32 `73fd1119` | #58 previo |
+
+**Compatibilidad verificada:** `fece6c3` (frontend PROD actual) es ancestro de la rama, y el diff del contrato de costeo cliente↔edge (`src/nube.js`, `validarIntentCosteo.js`, `costeoServidor.js`, DTO test) entre PROD y la rama es **vacío** → el frontend viejo habla el mismo contrato que los edges nuevos. Los cambios del motor son internos (cálculo), no de wire. DB sin cambios (catálogo/config ya al día).
+
+**Rollback** (si algo falla): re-desplegar cada slot desde el commit viejo. P.ej. `deploy-edge.yml` con ref=`fece6c3` y `funciones="costear-servidor analizar-mueble cotizar-texto acomodar-espacio-recovery leer-plano-core"` restaura el código previo. Reversible en minutos; el frontend no cambió.
+
+**Pendiente de smoke humano:** un costeo real en la app de producción con cuenta humana (no lo puedo hacer desde la sesión; sin login). Hasta ese smoke, la promoción está *desplegada y verificada por contrato/código*, no *certificada en vivo por UI*.
+
+**Deuda a cerrar (no bloqueante para costear):** los slots PROD corren código de la RAMA, no del default `c3.4-seller-safe`. Para quitar el drift, mergear la rama a default cuando se autorice el go-live (B7) y redeplegar desde ahí.
