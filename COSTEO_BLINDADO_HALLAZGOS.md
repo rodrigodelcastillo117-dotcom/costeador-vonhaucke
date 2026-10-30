@@ -58,5 +58,14 @@ BUG CONFIRMADO · RIESGO REPRODUCIDO · RIESGO NO CONFIRMADO · DECISIÓN HUMANA
 - La cuenta `qa-direccion` es NO-humana (excluida de certificar precios por diseño: `puede_certificar_costo_excluye_no_humanas`). Aprobar precios con ella = recrear el problema P0-03 (aprobaciones no-humanas) y romper el rastro de auditoría. Aprobar "todas" a ciegas convierte precios viejos/orientativos en falsos-certificados → destruye la confianza del costeo.
 - **Camino correcto:** preparar el lote de precios ELEGIBLES (procedencia completa + frescura según política de Dirección) y que **un humano de Dirección** (cuenta real `rodrigo.delcastillo@vonhaucke.mx`) los apruebe (`preciosCertificables` / `firma_precios_erp_lote`). No lo hace el bot ni la cuenta QA.
 
+### BLN-08 — Renders EN VIVO (generar-render v32 prod, Gemini) → **CERTIFICADO (pipeline + velocidad + auditoría)**
+- Credenza: render **flash** (default) `gemini-3.1-flash-image` 16s + render **pro** (`pro:true`) `gemini-3-pro-image` 22s (imagen 2K, 2.1MB). Ambos `ok:true`, guardados a Storage (url, no base64), **auditoría `pass:true`** los dos. Confirma el pipeline, la mejora flash-default (antes ~90s) y que el pro-opcional funciona.
+- Residuo QA a limpiar: 2 objetos de render en Storage de `qa-direccion` (como ya anotó `DECISIONES_PENDIENTES` C3). No es bug; limpieza pendiente.
+
+### GOV-01 (ampliado) — Lote de aprobación MP → **los precios YA están 100% aprobados por humano; solo faltan 42 puentes**
+- Medición read-only: `precios_elegibles_no_aprobados = 0`; `precios_ya_aprobados_vigentes = 12,971` (todos `approved_by = rodrigo.delcastillo@vonhaucke.mx`, humano); `bridges_propuestos = 42`.
+- Es decir, "aprobar MP" = **aprobar los 42 puentes clave→insumo** (ya entregados en `PUENTE_CLAVE_INSUMO_aprobar.csv`), NO re-aprobar precios.
+- `aprobar_mapeo_externo(p_mapeo_id,p_nota)` **tiene guardia de rol** (verificado por definición) → la cuenta QA no-humana NO puede aprobar. Se aprueba con la cuenta humana de Dirección. No lo ejecuta el bot. Detalle en `95_LOTE_APROBACION_MP.md`.
+
 ## LÍMITE HONESTO DE ESTA SESIÓN
 - **Ataques de emisión EN VIVO (Fase 4) y seller-safe/RLS por REST (Fase 5):** requieren un JWT de cuenta de prueba que **no tengo en esta sesión**. Hice revisión ESTÁTICA del gate (`evaluar_emision_cotizacion` completo: recomputa server-side, identidad por línea, campos que no corresponden, especial/reventa, margen mínimo, aprobación por hash) y la separación seller-safe en `costeoServidor.js`. La reproducción VIVA de los 20 ataques y de IDOR por REST queda **NO VERIFICABLE desde aquí** hasta tener credenciales de QA o que Dirección las corra. La prueba viva de seller-safe por JWT simulado (SQL, ROLLBACK) sí se hizo antes (ver `95_SCORECARD.md`).
