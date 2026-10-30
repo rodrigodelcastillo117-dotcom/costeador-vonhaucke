@@ -49,5 +49,14 @@ BUG CONFIRMADO · RIESGO REPRODUCIDO · RIESGO NO CONFIRMADO · DECISIÓN HUMANA
 - Una cuenta con rol **dirección** y contraseña `123456` en Auth de producción es un riesgo de acceso. Ya estaba señalado en `DECISIONES_PENDIENTES.md` (C3: "cambiar la contraseña trivial de esa cuenta o bajarla a vendedor").
 - **Recomendación:** bajar su rol a vendedor, o contraseña fuerte, o deshabilitarla. No lo ejecuto yo (toca Auth/permisos productivos). La contraseña NO se persiste en repo/memoria por seguridad.
 
+### BLN-07 — Foto→despiece EN VIVO (analizar-mueble v39 prod, Gemini) → **CERTIFICADO (interpretación) con autorización de Gemini**
+- Foto `lab/costear/credenza_nogal.png` → `analizar-mueble` v39 prod con login QA. Resultado: producto "Credenza 3 puertas nogal 1800 mm con base PTR", **16 piezas** con `material_solicitado` + `insumoId` mapeado a catálogo + `material_match` (EXACT/SUBSTITUTE_SUGGESTED) + `confianza` por pieza.
+- **Fail-closed correcto:** "Respaldo MDF 9 mm" no está en catálogo → `insumoId` vacío, `SUBSTITUTE_SUGGESTED`, y **pregunta** al usuario (no inventa el material). 4 preguntas estructuradas (impacto/afecta/supuesto). No presenta inferencia como certeza.
+- Costo: 1 llamada (~22k in / 6.6k out tokens), 99s. Dentro de la autorización de Gemini.
+
+### GOV-01 — "Aprobar todas las materias primas" → **RECHAZADO por diseño (no lo ejecuto), decisión humana real**
+- La cuenta `qa-direccion` es NO-humana (excluida de certificar precios por diseño: `puede_certificar_costo_excluye_no_humanas`). Aprobar precios con ella = recrear el problema P0-03 (aprobaciones no-humanas) y romper el rastro de auditoría. Aprobar "todas" a ciegas convierte precios viejos/orientativos en falsos-certificados → destruye la confianza del costeo.
+- **Camino correcto:** preparar el lote de precios ELEGIBLES (procedencia completa + frescura según política de Dirección) y que **un humano de Dirección** (cuenta real `rodrigo.delcastillo@vonhaucke.mx`) los apruebe (`preciosCertificables` / `firma_precios_erp_lote`). No lo hace el bot ni la cuenta QA.
+
 ## LÍMITE HONESTO DE ESTA SESIÓN
 - **Ataques de emisión EN VIVO (Fase 4) y seller-safe/RLS por REST (Fase 5):** requieren un JWT de cuenta de prueba que **no tengo en esta sesión**. Hice revisión ESTÁTICA del gate (`evaluar_emision_cotizacion` completo: recomputa server-side, identidad por línea, campos que no corresponden, especial/reventa, margen mínimo, aprobación por hash) y la separación seller-safe en `costeoServidor.js`. La reproducción VIVA de los 20 ataques y de IDOR por REST queda **NO VERIFICABLE desde aquí** hasta tener credenciales de QA o que Dirección las corra. La prueba viva de seller-safe por JWT simulado (SQL, ROLLBACK) sí se hizo antes (ver `95_SCORECARD.md`).
