@@ -71,6 +71,7 @@ import {
   marcarConflictoAbierto, leerConflictoAbierto, CONFIRMACION_REAPLICAR,
 } from './datos/conflictoGuardado.js';
 import ConflictoGuardado from './componentes/ConflictoGuardado.jsx';
+import AprobarPuentes from './componentes/AprobarPuentes.jsx';
 import RespaldoConflicto from './componentes/RespaldoConflicto.jsx';
 import { totalesCotizacion } from './datos/totales.js';
 import { aplicarRespaldo } from './datos/respaldo.js';
@@ -1360,6 +1361,7 @@ export default function App() {
                 <span className="menu-cuenta-correo">{sesion.user.email}</span>
                 <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setMostrarGuia((v) => !v); }}>Guía</button>
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('usuarios'); }}>Usuarios</button>}
+                {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('puentes'); }}>Aprobar puentes</button>}
                 <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setRecuperando(false); irA('contrasena'); }}>Contraseña</button>
               </div>
             </details>
@@ -1570,6 +1572,7 @@ export default function App() {
         )}
         {pestania === 'usuarios' && esDireccion && <Usuarios onAviso={mostrarAviso} miCorreo={sesion?.user?.email || ''} />}
         {pestania === 'carga-erp' && esDireccion && <CargaERP onAviso={mostrarAviso} />}
+        {pestania === 'puentes' && esDireccion && <AprobarPuentes />}
         {/* Lo que Voni sabe: lo leen todos (el motor lo aplica igual para
             todos), pero dictar o corregir una regla es de Diseño y Dirección. */}
         {pestania === 'reglas' && <Reglas puedeEditar={veCostos} />}

@@ -550,6 +550,28 @@ export async function aprobarPreciosLote(precioIds, nota = null) {
   return { ok: errores.length === 0, aprobados, errores, solicitados: ids.length };
 }
 
+// PUENTES clave-externa → insumo PROPUESTOS (B2). Lectura directa: RLS exige puede_editar_config()
+// (rol direccion/diseño), así que un vendedor no los ve. No expone economía más allá de lo que el rol ya puede.
+export async function puentesPropuestos() {
+  const { data, error } = await nube
+    .from('insumo_mapeos_externos')
+    .select('id, external_key, external_option, insumo_id, identity_status, confidence, source_document, source_record_id, vigente_desde, estado')
+    .eq('estado', 'propuesto')
+    .order('source_document', { ascending: true });
+  if (error) return { ok: false, error: error.message || 'No se pudieron leer los puentes.' };
+  return { ok: true, filas: data || [] };
+}
+
+// Aprobar UN puente. Usa la RPC de producción `aprobar_mapeo_externo`, que exige `puede_certificar_costo()`
+// (HUMANO; excluye cuentas no-humanas) y graba approved_by = correo autenticado. No se puede firmar por otro.
+export async function aprobarPuente(mapeoId, nota = null) {
+  const id = Number(mapeoId);
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'mapeo_id inválido' };
+  const { error } = await nube.rpc('aprobar_mapeo_externo', { p_mapeo_id: id, p_nota: nota });
+  if (error) return { ok: false, error: error.message || 'No se pudo aprobar el puente.' };
+  return { ok: true };
+}
+
 // Precios VIGENTES que Dirección puede certificar en lote (contrato de origen completo), para ofrecer "aprobar todos los
 // elegibles" sin pedir uno por uno. Sólo lectura; la aprobación sigue exigiendo el click autenticado de Dirección.
 export async function preciosCertificables({ soloNoAprobados = true } = {}) {
