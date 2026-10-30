@@ -35,6 +35,8 @@ BUG CONFIRMADO · RIESGO REPRODUCIDO · RIESGO NO CONFIRMADO · DECISIÓN HUMANA
 ### BLN-04 — Matriz adversarial de cantidades/fracciones → **fail-closed CONFIRMADO (no bug de pérdida)**
 - cantidad 0/null/omitida/negativa/"abc"/NaN/Infinity y hojas 0/-0.25 ⇒ todos PENDIENTE, `costoOficial=null`, no emitible. Nunca $0 silencioso, nunca NaN/Infinity emitible.
 - Observaciones de dirección SEGURA (sobre-costo, no pérdida): `cantidad:1e9` cuesta finito grande (orden real, no bug); `cantidad:0`+geometría cuesta 1 panel (sobre-costo de input raro) → **RIESGO NO CONFIRMADO / P3**, no se corrige (es dirección segura y desestabilizaría el camino geométrico).
+- **Unidad incompatible** (insumo por pza consumido por área m²) ⇒ PENDIENTE con motivo claro ("no se convierte largo×ancho sin conversión documentada"), no emitible. ✓
+- **Formato noCabe** (panel 3000×600 o 2500×1220 > tablero 2440×1220) ⇒ `detalleInsumos[].noCabe`, estado=incompleto, `costoOficial=null`, no emitible. ✓ Este caso **valida BLN-01**: antes `noCabe` NO estaba en `componentesIgnorados`, así que `costoOficial` traía número; con el fix ahora es null.
 
 ---
 
