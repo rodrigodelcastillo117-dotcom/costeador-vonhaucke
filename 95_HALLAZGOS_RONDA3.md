@@ -107,3 +107,68 @@ mapeó el `piezas` CRUDO (largoMM×anchoMM) SIN pasar por `mapIaComps`. **Severi
   falta el dato humano (confirmación de material), queda PENDIENTE documentado.
 - **Dato humano que desbloquea:** `material_confirmado` de cada partida metálica (Dirección/Diseño), más la
   tarifa de metal App LT MG-1 (B8) cuando aplique a la ruta intelisis.
+
+---
+
+## FASE 8 — Política de frescura server-side — **VERIFICADO 2026-10-30 (B6 implementada, sin cambio)**
+
+Evidencia leída de las funciones en producción (pg_get_functiondef):
+- **`public.resolve_canonical_price(insumo_id, fecha)`** (resolver canónico DATA_TRUTH_V1): filtra
+  `estado='aprobado'` + `cost_unit_price_mxn not null` + ventana `vigente_desde ≤ fecha < vigente_hasta`.
+  **NO existe filtro de antigüedad/24m.** El único eje temporal es la ventana de **vigencia**. Un aprobado
+  con `vigente_hasta` nula/futura es `CERTIFIED_PRICE` cualquiera sea su edad → **confirma B6 en servidor**.
+  Devuelve `PENDING_PRICE`(0 filas)/`PRICE_AMBIGUOUS`(>1)/`CERTIFIED_PRICE`(exactamente 1) → fail-closed.
+- **`private_api.resolver_costo_insumo(insumo_id)`** (la que consume el motor): guardia seller-safe
+  (`puede_editar_config()` → dirección/diseño); `estado_certificacion ∈ {CERTIFICADO, PRELIMINAR, PROPUESTO,
+  CONFIG_LEGADO, DESCONOCIDO}`; el config legado se marca **no** certificado (`certificable:false`); DESCONOCIDO
+  **no inventa precio**. Expone `vigencia`(fecha) + `fuente` + `evidencia` → fecha y procedencia visibles.
+- **`private_api.activar_autoridad_costeo(modo, frescura, version_motor)`**: solo Dirección HUMANA
+  (excluye `cuentas_no_humanas`); `frescura ∈ {exigir_vigente, congelar_al_costear}` — **ninguno es corte
+  por edad** (vigencia o congelado-al-costear, consistente con B6).
+
+**Las 4 nociones del directivo, formalmente distintas en el esquema/funciones:**
+| Noción | Dónde vive | No es… |
+|---|---|---|
+| Aprobación | `insumo_precios.estado='aprobado'` (firmada por humano) | …vigencia ni certificación |
+| Vigencia | ventana `vigente_desde/vigente_hasta` (registro abierto) | …un límite de edad |
+| Certificación | `contract_status='DATA_TRUTH_V1'` + `certificable` → CERTIFIED_PRICE | …aprobación a secas |
+| Elegibilidad económica | resuelve a **exactamente un** CERTIFIED_PRICE (PENDING/AMBIGUOUS bloquean) | …vigencia a secas |
+
+`firmar_precios_erp_*(p_meses=24)` usan ventana de meses solo como **alcance de la operación de firmado por
+lote**, NO como gate de elegibilidad. Precio de insumo aprobado ≠ ProductVersion certificada: la emisión de
+líneas product_version pasa por `producto_version_economia` en `evaluar_emision_cotizacion`, separado del
+precio de insumo. **Conclusión: el servidor ya aplica B6 (aprobado válido sin importar antigüedad); no se
+requiere cambio de código. Alcance = resolución de costo/precio; autoridad = Dirección humana.**
+
+---
+
+## FASE 9 — Seguridad y emisión — **VERIFICADO PARCIAL 2026-10-30 (primitivas server-side) · pentest vivo BLOQUEADO (falta qa-ventas)**
+
+### Seller-safe por DATO (no por ocultar React) — verificado leyendo funciones en producción
+- **`public.jsonb_sin_economia(data)`**: stripper RECURSIVO que, normalizando la llave a `[a-z0-9]`, elimina
+  toda clave `^(costo.*|cost.*|margen.*|utilidad.*|profit.*|materialtotal|manoobra.*|indirectos.*|overhead.*|
+  precioproveedor.*|supplierprice.*|preciocompra.*|precioreal.*|costoderivado.*|internalcost.*|internalmargin.*)$`
+  en objetos y arrays anidados. Economía fuera a nivel de datos, no de componente.
+- **`public.partidas_vendedor(p)`**: quita `costoUnitario`, `margen`, `costoDerivado`, `precioReal` de cada partida.
+- **`public.puede_ver_economia()`**: exige `auth.uid()` y delega a `private_api.puede_ver_economia()` (dirección).
+- **`private_api.resolver_costo_insumo`** (FASE 8): lanza excepción si no `puede_editar_config()` antes de
+  entregar cualquier costo. El costo de insumo NO viaja a un rol sin economía.
+
+### Cuenta QA (BLN-06 / P0-03)
+- `qa-direccion@vonhaucke.mx` (rol `direccion`) **está en `public.cuentas_no_humanas`** (junto con `reconciliacion`).
+  `puede_certificar_costo()` excluye no-humanas → qa-direccion **no puede certificar ni aprobar** precios/puentes.
+  La autoridad económica ya está cerrada a esta cuenta por diseño (verificado).
+- **Riesgo residual (BLN-06):** la contraseña QA es débil/compartida. **Remediación = acción HUMANA**
+  (rotar contraseña en el panel de Auth); no se hace desde el repo y no se expone ninguna credencial aquí.
+- **No existe `qa-ventas`**: en `permitidos` solo hay `qa-direccion`. El humano debía crear la cuenta de
+  ventas para probar el seller-safe en vivo.
+
+### Honestidad del alcance
+Las PRIMITIVAS server-side del seller-safe existen y son a nivel de datos (verificado). La **prueba E2E viva
+de los 10 ataques** del directivo (leer costos como vendedor, cotizaciones ajenas, cambiar precios desde
+cliente, revisiones obsoletas, reutilizar aprobaciones, cambiar identidad de partida, manipular cantidades,
+descuentos no autorizados, cambiar snapshots, concurrencia) **está BLOQUEADA** porque falta la cuenta
+`qa-ventas` para el rol sin economía, y parte exige correr con datos aislados. Varios de esos vectores ya
+tienen cobertura server-side previa (SEG-01 emisión server-side, VH-148 conflicto de versión, PROHIBIDOS en
+`validarIntentCosteo`); el pentest vivo completo queda como tarea con `qa-ventas` creada. **No declaro
+seller-safe "probado en vivo" sin esa cuenta.**
