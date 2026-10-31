@@ -172,3 +172,58 @@ descuentos no autorizados, cambiar snapshots, concurrencia) **está BLOQUEADA** 
 tienen cobertura server-side previa (SEG-01 emisión server-side, VH-148 conflicto de versión, PROHIBIDOS en
 `validarIntentCosteo`); el pentest vivo completo queda como tarea con `qa-ventas` creada. **No declaro
 seller-safe "probado en vivo" sin esa cuenta.**
+
+---
+
+## FASE 13 — CI, tests reales vs mock/skip, y las 8 regresiones del directivo — **2026-10-31**
+
+### Las 8 regresiones prohibidas: 7/8 con guard real; A5 reclasificado (ver abajo)
+| # | Comportamiento prohibido | Guard | Evidencia |
+|---|---|---|---|
+| A1 | costo incompleto tratado como oficial | ✅ fuerte | `src/motor/failClosed.test.js:235,21,258,275` (estadoCosto incompleto ⇒ costoOficial null) |
+| A2 | material sin precio → $0 | ✅ fuerte | `failClosed.test.js:90-119` (sin precio ⇒ no emitible, costoTotal null); `hojasCero.test.js:47` |
+| A3 | perfil lineal mal convertido (área≠metros) | ✅ fuerte | `mapIaCompsLineal.test.js:8-44`; **`bln09FotoCostoLineal.test.js` (nuevo R3)** |
+| A4 | precio manipulado desde cliente | ✅ fuerte | `validarIntentCosteo.test.js:14-45` (allowlist: precio/costo/margen/… ⇒ FORBIDDEN_FINANCIAL_FIELD) |
+| A5 | aprobación obsoleta / snapshot forjado | ✅ **CORREGIDO (ver nota)** | VH-148 `cotizaciones.controlOptimista.test.js:59` + gate vivo (abajo) |
+| A6 | fuga de economía al vendedor | ✅ fuerte | `roles.test.js:12`; `cotizaciones.sellerSafe.test.js`; `preservaEconomia.test.js:412` |
+| A7 | colisión espacial | ✅ fuerte | `acomodoInvariantes.test.js:121` (OVERLAP FAIL); `bench/acomodo-calidad/overlapYcapacidad.test.js` |
+| A8 | render con versión equivocada | ✅ fuerte | `renderCanonico.test.js:78,98,89,126` (nunca fallback por nombre; hash vigente) |
+
+### A5 — CORRECCIÓN con evidencia primaria (el agente lo dio por "SIN GUARD EFECTIVO"; NO lo es en prod)
+El inventario marcó el gate de emisión como vulnerable apoyándose en `seguridadGateEmisionSnapshot.test.js:84`
+(`it.fails` "snapshot con OTRO producto … no debe pasar") y su comentario "VIGENTE en producción". **Verifiqué
+la función DESPLEGADA** (`pg_get_functiondef`):
+- `private_api.evaluar_emision_cotizacion` vivo, **md5 `8c23d98a1c4072e01557e3d36ba9f799`**, SÍ ata el snapshot
+  a lo costeado: chequeo de conteo, **identidad por línea**, `campos_partida_no_corresponden(snap, db)` (marca
+  cualquier campo del proyectado cotejable que difiera → `linea_X_no_corresponde_a_lo_costeado`), y **recomputa**
+  el costo desde `producto_version_economia`/`resolver_precio_especial_proyecto` (no confía en el cliente).
+- **El fixture del repo** (`supabase/tests/fixtures/emisionBaseAislada.js:23`, `MD5_PROD` =
+  **`17ec67cf…`**, etiqueta "gate vivo P0-01 (2026-10-17)") **NO coincide** con la función viva. →
+  **DRIFT repo↔prod:** SEG-01/SEG-01c se desplegó DESPUÉS del 17-oct; el `it.fails` describe un gate pre-fix
+  que ya no corre. **En producción el ataque SEG-01 está BLOQUEADO** (evidencia: md5 + cuerpo con el tie).
+- **Hallazgo FASE 13 (no bloquea prod):** los `it.fails` de `seguridadGateEmisionSnapshot.test.js` y el baseline
+  del fixture están STALE → falso-RED (documentan como "vigente" un bug ya corregido en el deploy). **Acción
+  pendiente (cuidadosa, cross-cutting):** refrescar el fixture al md5 vivo `8c23d98a…` y convertir esos
+  `it.fails` en `it` reales contra el gate actual. No se hace a ciegas: toca `MD5_PROD` usado por varias suites.
+
+### PARTE B — tests que no corren de verdad (inventario)
+- **0 skips duros, 0 `.only`.** 1 `skipIf(!hayGit)` benigno (`scripts/integridadGit.test.js:27`).
+- **12 `it.fails` (~23 casos)** = defectos documentados como vigentes. **OJO:** varios describen el estado
+  pre-SEG-01c (A5), por lo que algunos son falso-RED tras el deploy (ver arriba). Otros (STALE re-pega costo
+  `preservaEconomia.test.js:357`, SEG-06 `:96`) requieren verificar contra prod igual que A5 antes de creerlos.
+- **25 e2e Playwright** gateados por credenciales (TEST_EMAIL/VIVO/LIVE_AI/RENDER_PROD…): **apagados en CI sin
+  esas vars** → "verde" de `npm test` NO incluye E2E en vivo. Honestidad: `npm test` (4008) es unit+integración
+  (incl. SQL de prod en pglite), NO el E2E en navegador.
+- **12 `vi.mock`** del límite de red: prueban el CABLEADO del cliente (qué RPC, qué args), no la lógica del
+  servidor (riesgo de falso-verde a nivel cliente si el contrato RPC real difiere). Los `supabase/tests/*`
+  NO mockean: corren SQL exacto de prod sobre pglite (alta fidelidad) — salvo el drift del fixture SEG-01 arriba.
+
+### PARTE C — config
+Sin `vitest.config.*`; `package.json:12 "test":"vitest run"` sin exclude. **Ningún `.test.js` queda fuera de
+`npm test`.** Los `e2e/*.e2e.js` quedan fuera por diseño (corren con Playwright `npm run e2e`).
+
+### Veredicto FASE 13
+Red de regresión sólida para 7 de 8 comportamientos. A5 (gate de emisión) **está protegido en producción**
+(verificado por md5 + cuerpo), pero el repo tiene **drift** (fixture + `it.fails` pre-17-oct) que da un
+falso-RED; refrescar el fixture es la tarea pendiente. "Verde de CI" = unit+integración (4008), **no** incluye
+el E2E en vivo (apagado sin credenciales) — no debe etiquetarse como certificación total.

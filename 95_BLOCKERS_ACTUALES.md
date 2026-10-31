@@ -32,6 +32,15 @@ Separado por tipo. Nada aquí es un defecto económico conocido sin resolver; so
 ## D · En la rama, pendiente de deploy autorizado
 - Hardening **BLN-09** (`src/datos/mapIaComps.js`, commit en rama) — requiere merge+deploy.
 
+## E · Deuda de test (no bloquea prod; evita falsos-RED/verde)
+- **Drift fixture SEG-01 (FASE 13):** `supabase/tests/fixtures/emisionBaseAislada.js` `MD5_PROD` para
+  `private_api.evaluar_emision_cotizacion` = `17ec67cf…` (17-oct), pero el md5 VIVO en prod = `8c23d98a…`
+  (SEG-01c desplegado, con el tie snapshot↔costeado). Los `it.fails` de `seguridadGateEmisionSnapshot.test.js`
+  dan falso-RED. **Acción:** refrescar el fixture al md5 vivo y convertir esos `it.fails` en `it` reales.
+  Es cross-cutting (MD5_PROD lo usan varias suites) → hacerlo con la base viva capturada, no a ciegas.
+- Verificar contra prod los otros `it.fails` (STALE re-pega costo, SEG-06) como se hizo con A5, por si también
+  están corregidos en el deploy y el repo no lo refleja.
+
 ## Orden sugerido para desbloquear (mayor retorno primero)
 1. H5 (crear qa-ventas) → desbloquea E2/E5 (seller-safe + cotizar completo).
 2. H1/H2 (confirmar materiales + aprobar puentes) → desbloquea emisión real de especiales.
