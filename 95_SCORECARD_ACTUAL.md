@@ -16,7 +16,7 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 | 3 | COTIZAR | NO RE-VERIF R3 | — | ciclo completo 1→50 partidas + reabrir + revisión + PDF, con qa-ventas |
 | 4 | COCREAR | NO RE-VERIF R3 | — | 8 casos diseño→validación→expediente→reabrir→COSTEAR |
 | 5 | ACOMODO | NO RE-VERIF R3 | — | validador geométrico independiente + colisiones/pasillos/columnas |
-| 6 | RENDERS | **SIN MEDIR (fidelidad)** | — | fidelidad industrial (puertas/cajones/proporción) — requiere API de pago |
+| 6 | RENDERS | **Parcial (1 render revisado)** | render pv1934 inspeccionado: tipo/material/cajones/cargador PASS; cotas rotuladas REVIEW (alto 0.70 vs 0.75). C2PA presente | fidelidad a escala (N renders) — método a costo cero existe; renders complejos piden más revisión |
 | 7 | VONI | **SIN MEDIR** | — | benchmark ≥30 casos vs referencia revisada — requiere API de pago |
 | 8 | **INSUMOS/ERP/PRECIOS** | **Medido (integridad)** | B6 frescura verificada server-side; 4 nociones distinguidas; fail-closed PENDING/AMBIGUOUS | P0-03: auditoría de los ~1,763 aprobados históricos por qa-direccion (decisión Dirección) |
 | 9 | CATÁLOGO/PRODUCTOS | NO RE-VERIF R3 | — | claves duplicadas (#77) + cotizabilidad de versión |
@@ -30,7 +30,9 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 - **Fresco y fuerte en R3:** COSTEAR (perfil lineal/BLN-09), INSUMOS/ERP (frescura B6), RELEASE/INFRA, y
   parcialmente SEGURIDAD y PDF/EMISIÓN (gate server-side verificado).
 - **SIN MEDIR en R3 (requieren presupuesto de API de pago o cuenta QA o navegador):** VONI (benchmark 30),
-  RENDERS (fidelidad), MOBILE, y el pentest vivo de SEGURIDAD. No invento su calificación.
+  MOBILE, y el pentest vivo de SEGURIDAD. No invento su calificación.
+- **Parcial nuevo en R3:** RENDERS — 1 render inspeccionado a costo cero (conceptual PASS, cotas REVIEW); ver
+  `95_ACOMODO_RENDER_QA.md`. El método (inspección directa de imágenes existentes) NO requiere API de pago.
 - **NO RE-VERIF R3 (hay evidencia previa, no refrescada esta ronda):** INICIO, COTIZAR, COCREAR, ACOMODO,
   CATÁLOGO, ARCHIVO. Su evidencia vive en rondas anteriores (V2/V3/10-10); para un 95 *comprobable* de R3
   hay que correrlas de nuevo con datos aislados.
