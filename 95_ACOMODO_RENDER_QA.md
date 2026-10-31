@@ -30,6 +30,36 @@ primera revisión documentada de fidelidad de ese render.
 **No escribí** los veredictos de validación en la DB de producción (sería certificar economía/calidad con
 cuenta no-humana y un write productivo no autorizado). Quedan como evidencia aquí.
 
+### Caso revisado 2: render id=1 · `producto_version_id=1932` · "Recepción 2.40 m"
+Spec: reception desk / front counter, 2400×?×1100, finish HPL laminate #CBB79B, líneas rectas, 1 módulo.
+Imagen: `renders/cocrear/5/hff688d77-1791146919705.png`.
+- Tipo (mostrador de recepción con escalón de counter): ✅ PASS · Acabado (laminado beige #CBB79B): ✅ PASS ·
+  Geometría (recto, 1 módulo): ✅ PASS · Sin cotas sobrepuestas (modo render limpio) → sin el defecto de cotas del caso 1.
+- **Patrón confirmado (2/2):** los renders cocrear son **conceptos fieles al texto** (tipo/material/forma correctos),
+  no fotografías de un producto físico. Correcto para un diseño nuevo; pero para un producto de CATÁLOGO que ya existe,
+  el render debería partir de la FOTO real del mueble (ver plan abajo).
+
+## Cómo hacer que los renders usen los muebles reales de Von Haucke como referencia
+**La capacidad YA existe en el edge `generar-render`** (corre en Gemini, GEMINI_API_KEY):
+- Acepta hasta **6 imágenes de referencia** (`body.imagen` + `body.imagenes[]`, `index.ts:78-79`).
+- El prompt ya instruye reproducir el producto real: *"use the EXACT furniture pieces shown in the reference images —
+  these are the real Von Haucke products; match their design, wood tone, frames and proportions"* (`:280`),
+  y en modo acomodo *"The REMAINING reference images are the ACTUAL Von Haucke products specified for this room.
+  Reproduce THOSE pieces"* (`:236`). También modo `catalogo` reproduce "the EXACT object in the reference image" (`:129`).
+
+**Lo que falta son DATOS + CABLEADO (no capacidad del modelo):**
+1. **Biblioteca de referencia:** 1–N fotos reales por producto de catálogo (vista 3/4, frente, lateral, detalle),
+   en un bucket (p. ej. `producto-referencia/<producto_id>/...`), ligadas a `producto_id`/`producto_version_id` o a la
+   clave de catálogo. Hoy NO existe esa tabla/bucket (la tabla `renders` guarda renders generados, no fotos de referencia).
+2. **Cableado del cliente:** al generar un render de un producto de catálogo, buscar sus fotos de referencia y pasarlas
+   en `imagenes[]` a `generar-render`. El edge ya las consume; solo hay que alimentarlas.
+3. **Regla honesta:** para un producto de CATÁLOGO que existe → render CON foto real (reproducción fiel). Para un mueble
+   NUEVO de Cocrear (no existe aún) → render de texto = conceptual (como los 2 de arriba), y así debe etiquetarse.
+
+**Esfuerzo:** migración chica (tabla `producto_referencias` + bucket) + un selector en el cliente para subir/elegir las
+fotos + el lookup que las adjunta al render. Es trabajo de datos+UI, NO de IA. Lo puedo preparar en la rama cuando
+autorices; requiere luego deploy de frontend. Dejo la foto real a cargo de quien tenga las fotos de los muebles.
+
 ### Estado de RENDERS tras esta revisión
 De **SIN MEDIR** a **PARCIAL**: 1 render revisado (conceptual PASS, cotas REVIEW). Método repetible a costo
 cero para los demás (`public.renders` tiene 7 filas; 2 con `storage_path`; más imágenes en `renders/generated/`).
