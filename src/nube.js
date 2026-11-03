@@ -834,6 +834,78 @@ export async function subirRenderCanonico({ expedienteId, productoId, productoVe
   } catch (e) { return { ok: false, error: String(e?.message || e) }; }
 }
 
+// ── BIBLIOTECAS DE REFERENCIA PARA RENDERS (fotos reales de muebles + swatches de acabados/cubiertas) ──
+// Alimentan generar-render (imagenes[] + finishes). Ver: supabase/migrations/PROPUESTA_bibliotecas_referencia_render.sql.
+// Leer = cualquier autenticado (no es economía). Escribir = Dirección/Diseño (RLS: puede_editar_config()).
+// El bucket 'referencias' es PRIVADO → para mostrar se firma una URL temporal.
+const REF_BUCKET = 'referencias';
+async function urlFirmadaReferencia(path, segundos = 3600) {
+  if (!path) return null;
+  const { data } = await nube.storage.from(REF_BUCKET).createSignedUrl(path, segundos);
+  return data?.signedUrl || null;
+}
+
+export async function referenciasDeProducto(productoId) {
+  if (!productoId) return { ok: false, error: 'producto requerido', filas: [] };
+  const { data, error } = await nube.from('producto_referencias')
+    .select('id, producto_id, producto_version_id, vista, storage_path, nota, orden, activo, creado_en')
+    .eq('producto_id', productoId).eq('activo', true)
+    .order('orden', { ascending: true }).order('id', { ascending: true });
+  if (error) return { ok: false, error: error.message, filas: [] };
+  const filas = await Promise.all((data || []).map(async (f) => ({ ...f, url: await urlFirmadaReferencia(f.storage_path) })));
+  return { ok: true, filas };
+}
+
+// Sube una foto de mueble al bucket y registra la fila. file = File/Blob del input. Sólo Dirección/Diseño (RLS).
+export async function subirReferenciaProducto(productoId, file, { vista = 'tres_cuartos', productoVersionId = null, nota = null, orden = 0 } = {}) {
+  if (!productoId || !file) return { ok: false, error: 'producto y archivo requeridos' };
+  const tipo = file.type || 'image/jpeg';
+  const ext = (tipo.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+  const path = `producto/${productoId}/${Date.now()}-${Math.random().toString(16).slice(2, 8)}.${ext}`;
+  const up = await nube.storage.from(REF_BUCKET).upload(path, file, { upsert: false, contentType: tipo });
+  if (up.error) return { ok: false, error: up.error.message };
+  const { data, error } = await nube.from('producto_referencias')
+    .insert({ producto_id: productoId, producto_version_id: productoVersionId, vista, storage_path: path, nota, orden })
+    .select('id').maybeSingle();
+  if (error) { await nube.storage.from(REF_BUCKET).remove([path]); return { ok: false, error: error.message }; }
+  return { ok: true, id: data?.id, storage_path: path, url: await urlFirmadaReferencia(path) };
+}
+
+export async function borrarReferenciaProducto(id) {
+  if (!id) return { ok: false, error: 'id requerido' };
+  const { error } = await nube.from('producto_referencias').update({ activo: false }).eq('id', id);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true };
+}
+
+export async function acabadosReferencia() {
+  const { data, error } = await nube.from('acabado_referencias')
+    .select('id, clave, nombre, categoria, hex, insumo_clave, storage_path, nota, activo')
+    .eq('activo', true).order('categoria', { ascending: true }).order('nombre', { ascending: true });
+  if (error) return { ok: false, error: error.message, filas: [] };
+  const filas = await Promise.all((data || []).map(async (f) => ({ ...f, url: await urlFirmadaReferencia(f.storage_path) })));
+  return { ok: true, filas };
+}
+
+// Alta/actualización de un acabado (swatch opcional). clave única. Sólo Dirección/Diseño (RLS).
+export async function guardarAcabadoReferencia({ clave, nombre, categoria, hex = null, insumoClave = null, nota = null, file = null }) {
+  if (!clave || !nombre || !categoria) return { ok: false, error: 'clave, nombre y categoría requeridos' };
+  let storage_path = null;
+  if (file) {
+    const tipo = file.type || 'image/jpeg';
+    const ext = (tipo.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+    storage_path = `acabado/${clave}/${Date.now()}.${ext}`;
+    const up = await nube.storage.from(REF_BUCKET).upload(storage_path, file, { upsert: true, contentType: tipo });
+    if (up.error) return { ok: false, error: up.error.message };
+  }
+  const fila = { clave, nombre, categoria, hex, insumo_clave: insumoClave, nota };
+  if (storage_path) fila.storage_path = storage_path;
+  const { data, error } = await nube.from('acabado_referencias')
+    .upsert(fila, { onConflict: 'clave' }).select('id').maybeSingle();
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, id: data?.id, storage_path, url: storage_path ? await urlFirmadaReferencia(storage_path) : null };
+}
+
 // GATE DE EMISIÓN autoritativo (server-side). Devuelve { ok, estado, motivos[], economics[], hash }.
 // estado ∈ ALLOWED | ECONOMICS_INCOMPLETE | APPROVAL_REQUIRED | BLOCKED. Seller-safe
 // (no trae cifras de costo/margen, sólo razones). Degrada: si falla, { ok:false, estado:'DESCONOCIDO' }.
