@@ -31,7 +31,8 @@ import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
 import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js';
-import { buscarInsumosMotor } from '../nube.js';
+import { aplicarMemoriaMaterial, clavesParaMemoria } from '../datos/memoriaMaterial.js';
+import { buscarInsumosMotor, resolverMapeosMaterial, proponerMapeoMaterial } from '../nube.js';
 import { preciosAprobables, preciosNoAprobables } from '../datos/autoridadCosteoServidor.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { sugerirLineaParaCosteo, segmentarPorProducto } from '../datos/emparejarLinea.js';
@@ -651,6 +652,12 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     const { comps: finales, aplicadas } = hermanas ? aplicarAHermanas(comps, i, prev.insumoId, insumoId, parcheHermana) : { comps, aplicadas: [] };
     editarComponentes(finales);
     if (aplicadas.length) setConfMsg(`Propuse ${ins?.nombre || insumoId} también para ${aplicadas.length} pieza(s) del mismo material (${aplicadas.join(', ')}). Quedan por confirmar.`);
+    // Parte B · APRENDER: al CONFIRMAR un humano «material pedido → insumo», se graba como puente propuesto para
+    // reusarlo en el próximo mueble (lo aprueba luego Dirección). Mejor esfuerzo, sin await: nunca bloquea la UI.
+    if (confirmado && insumoId) {
+      const pedido = prev.material_solicitado || prev.nombre || '';
+      if (pedido) proponerMapeoMaterial(pedido, insumoId, { pedidoCrudo: prev.nombre || '' }).catch(() => {});
+    }
   }
   function costoPieza(c, ins) {
     const neto = netoComponente(c, b.piezas); const p = ins.precio ?? ins.precioBase ?? 0;
@@ -677,22 +684,40 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     // REGLA DE CASA (12-oct, Dirección): lo que quede pendiente se busca en TODO el catálogo de Compras
     // (ERP) y entra PROVISIONAL (por confirmar). Asíncrono: no bloquea la propuesta; si llega tarde
     // (otra corrida ya empezó) se descarta. Se fusiona por posición+nombre sobre el BOM vigente.
-    amarrarPendientesERP(comps, { buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos })
-      .then(({ comps: amarrados, amarrados: lista }) => {
-        if (!lista.length || !aceptaCorrida(corridaId, corrida.current)) return;
-        setB((prev) => {
-          const act = Array.isArray(prev.componentes) ? prev.componentes : [];
-          if (act.length !== amarrados.length) return prev;
-          // VH-149: sólo campos de material, sobre piezas que siguen sin material (no pisa ediciones hechas mientras llegaba).
-          const fus = fusionarAmarreEnBom(act, amarrados, insumos);
-          // VH-174 (mesa de juntas por texto): un renglón que la IA nombró "Canto de paneles…" SIN material no era
-          // tapacanto para las reglas de casa; el amarre lo volvía tapacanto DESPUÉS y quedaba contado dos veces
-          // (27.24 m). Las reglas de casa son idempotentes: se re-aplican sobre lo amarrado.
-          return { ...prev, componentes: conAcompanantes(fus, insumos) };
-        });
-        setConfMsg(`Catálogo de Compras: ${lista.length} material(es) amarrado(s) con precio real, por confirmar: ${lista.map((x) => x.insumoNombre).slice(0, 5).join(', ')}${lista.length > 5 ? '…' : ''}.`);
-      })
-      .catch(() => {});
+    // Parte B · MEMORIA primero: lo que Dirección ya confirmó antes (puentes voni_material APROBADOS) se reusa —
+    // la identidad firmada pesa más que una búsqueda a ciegas. Lo que la memoria no cubra pasa a la REGLA DE CASA
+    // (amarre al catálogo de Compras, 12-oct). Ambos entran PROVISIONAL (por confirmar): la emisión sigue bloqueada
+    // hasta confirmación humana. Asíncrono: no bloquea; si llega tarde (otra corrida ya empezó) se descarta; se
+    // fusiona por posición+nombre sobre el BOM vigente (VH-149), sólo campos de material.
+    (async () => {
+      let base = comps; let porMemoria = [];
+      try {
+        const claves = clavesParaMemoria(comps, insumos);
+        const memoria = claves.length ? await resolverMapeosMaterial(claves) : {};
+        if (Object.keys(memoria).length) {
+          const r = await aplicarMemoriaMaterial(comps, { memoria, buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos });
+          base = r.comps; porMemoria = r.aplicados;
+        }
+      } catch (_e) { /* la memoria es mejor esfuerzo: nunca rompe el costeo */ }
+      let lista = [];
+      try {
+        const r = await amarrarPendientesERP(base, { buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos });
+        base = r.comps; lista = r.amarrados;
+      } catch (_e) { /* el amarre es mejor esfuerzo */ }
+      if ((!porMemoria.length && !lista.length) || !aceptaCorrida(corridaId, corrida.current)) return;
+      setB((prev) => {
+        const act = Array.isArray(prev.componentes) ? prev.componentes : [];
+        if (act.length !== base.length) return prev;
+        // VH-149: sólo campos de material, sobre piezas que siguen sin material (no pisa ediciones hechas mientras llegaba).
+        // VH-174: las reglas de casa son idempotentes; se re-aplican sobre lo amarrado.
+        const fus = fusionarAmarreEnBom(act, base, insumos);
+        return { ...prev, componentes: conAcompanantes(fus, insumos) };
+      });
+      const partes = [];
+      if (porMemoria.length) partes.push(`${porMemoria.length} por memoria (Dirección ya los confirmó antes)`);
+      if (lista.length) partes.push(`${lista.length} del catálogo de Compras con precio real`);
+      setConfMsg(`Materiales propuestos por confirmar: ${partes.join(' + ')}.`);
+    })();
     // VH-152 (Dirección 13-oct): si un curado SIN precio certificable tiene gemelo técnico exacto en Compras
     // con precio real certificable, se PROPONE el gemelo (provisional, por confirmar). Asíncrono y tardío:
     // sólo se fusiona sobre piezas que siguen con el mismo curado y sin confirmación humana.

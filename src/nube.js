@@ -10,6 +10,7 @@ import { validarIntentCosteo, intentDesdePieza } from './datos/validarIntentCost
 import { validarSolicitudCocrear } from './datos/cocrearServidor.js';
 import { renderParaPartida } from './datos/renderPartida.js';
 import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
+import { normalizarClaveMaterial } from './datos/claveMaterial.js';
 import { createClient } from '@supabase/supabase-js';
 import { mensajeErrorEdge } from './datos/erroresEdge.js';
 import {
@@ -583,6 +584,56 @@ export async function aprobarPuente(mapeoId, nota = null) {
   const { error } = await nube.rpc('aprobar_mapeo_externo', { p_mapeo_id: id, p_nota: nota });
   if (error) return { ok: false, error: error.message || 'No se pudo aprobar el puente.' };
   return { ok: true };
+}
+
+// MEMORIA DE MATERIAL (Parte B · "confirma una vez → se reusa"). Cuando un HUMANO (dirección/diseño) confirma que
+// un material pedido = un insumo, se graba como PUENTE PROPUESTO voni_material clave→insumo para reusarlo en el
+// próximo mueble. Mejor esfuerzo, sin bloquear el flujo: si el rol no puede escribir (RLS), ya existe o algo falla,
+// no estorba. La IDENTIDAD la firma luego Dirección en "Aprobar puentes" (RPC aprobar_mapeo_externo); el bot nunca
+// la aprueba. No escribe economía: sólo la correspondencia clave→insumo (dato que el rol ya podía ver).
+export async function proponerMapeoMaterial(solicitado, insumoId, { pedidoCrudo = '' } = {}) {
+  const clave = normalizarClaveMaterial(solicitado);
+  const id = String(insumoId || '').trim();
+  if (!clave || !id) return { ok: false, error: 'clave o insumo vacío' };
+  try {
+    // Dedup: no re-proponer lo mismo (propuesto o ya aprobado) → no ensucia la pantalla de aprobación.
+    const { data: ya } = await nube.from('insumo_mapeos_externos')
+      .select('id').eq('source_system', 'voni_material').eq('external_key', clave)
+      .eq('insumo_id', id).in('estado', ['propuesto', 'aprobado']).limit(1);
+    if (ya && ya.length) return { ok: true, yaExistia: true };
+    const hoy = new Date().toISOString().slice(0, 10);
+    const { error } = await nube.from('insumo_mapeos_externos').insert({
+      source_system: 'voni_material', external_key: clave, external_option: '',
+      insumo_id: id, identity_status: 'EXACT_ATTRIBUTES', confidence: '1.00', estado: 'propuesto',
+      vigente_desde: hoy, source_document: 'Confirmación en Costeador',
+      source_record_id: String(pedidoCrudo || solicitado || clave).slice(0, 200),
+      evidencia: `Confirmado en Costeador: «${String(solicitado || '').slice(0, 120)}» → ${id}`,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e?.message || 'error' }; }
+}
+
+// Lee los puentes voni_material APROBADOS para un conjunto de claves normalizadas → { clave: {insumoId, mapeoId, aprobadoPor} }.
+// RLS: lectura para dirección/diseño (el rol que costea). Un vendedor recibe {} y la memoria no aplica. No expone
+// precio ni nombre, sólo la identidad ya firmada por Dirección. Mejor esfuerzo: cualquier error → {}.
+export async function resolverMapeosMaterial(claves = []) {
+  const uniq = [...new Set((Array.isArray(claves) ? claves : []).map((c) => String(c || '').trim()).filter(Boolean))];
+  if (!uniq.length) return {};
+  try {
+    const { data, error } = await nube.from('insumo_mapeos_externos')
+      .select('external_key, insumo_id, id, approved_by')
+      .eq('source_system', 'voni_material').eq('estado', 'aprobado')
+      .in('external_key', uniq);
+    if (error || !Array.isArray(data)) return {};
+    const out = {};
+    for (const r of data) {
+      if (r && r.external_key && !out[r.external_key]) {
+        out[r.external_key] = { insumoId: String(r.insumo_id), mapeoId: r.id, aprobadoPor: r.approved_by || null };
+      }
+    }
+    return out;
+  } catch (_e) { return {}; }
 }
 
 // Precios VIGENTES que Dirección puede certificar en lote (contrato de origen completo), para ofrecer "aprobar todos los
