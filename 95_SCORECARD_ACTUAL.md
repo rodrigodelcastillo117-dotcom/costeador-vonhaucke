@@ -36,6 +36,11 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 - **RENDIMIENTO medido R3:** P0.COSTEO latencia p50 ~1.5 s, p95 <1.8 s en caliente, PLANA de 1→50 componentes, 0 errores/60 llamadas; SLO propuesto. Ver `95_P0COSTEO_LATENCIA.md`.
 - **P0-03 CERRADO en R3 (hallazgo material):** el blocker "1,763 aprobados por qa-direccion" ya no existe: rastro de auditoría
   muestra 1,763/1,763 re-firmados por el humano Dirección, 0 precios vivos confían en cuenta no humana. Ver `95_P8_INSUMOS_P0-03_RESUELTO.md`.
+- **COTIZAR a escala (§5):** 5 partidas en vivo, UI→DB→PDF cuadran al centavo ($23,174.94), seller-safe por partida y en PDF;
+  ver `95_COTIZAR_ESCALA.md`. Pendiente: estrés de paginación PDF a 30/50.
+- **P0.COSTEO concurrencia (§12):** fail-closed CERRADO bajo carga (0 costos falsos en 36 llamadas, 1 fallida incluida);
+  SLO de latencia concurrente SIN MEDIR-pleno (confundido por el túnel único del contenedor — requiere staging). Ver `95_P0COSTEO_CONCURRENCIA.md`.
+- **MEJORA AUTÓNOMA (FASE 17):** herrajes→compra-venta implementada y probada (4008 verde); ver `95_MEJORAS_AUTONOMAS.md`.
 - **Parcial nuevo en R3:** RENDERS — 2 renders inspeccionados a costo cero (conceptual PASS, cotas REVIEW); ver
   `95_ACOMODO_RENDER_QA.md`. VONI — benchmark adversarial de 5 casos (4/5), ver `95_VONI_BENCHMARK.md`.
   Ambos con evidencia fresca; faltan la escala (N renders / 30 casos VONI con referencias humanas) para "medido pleno".

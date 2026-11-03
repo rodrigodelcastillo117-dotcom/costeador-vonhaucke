@@ -1,0 +1,20 @@
+# 95_MEJORAS_AUTONOMAS — registro de innovación (FASE 17 · GOD MODE)
+
+Mejoras que el agente identificó por iniciativa propia (no pedidas explícitamente como lista de pendientes), evaluadas por
+valor y riesgo. Regla: nada de inventar datos; nada económico/comercial/permisos/productivo sin autorización humana.
+
+| # | Mejora | Problema que resuelve | Beneficio medido | Riesgo | Pruebas | Estado |
+|---|---|---|---|---|---|---|
+| 1 | **Herrajes → compra-venta** | Jaladeras/bisagras/correderas/chapas/niveladores cargaban 20% de mano de obra de fabricación en la estimación de Alba, como si se fabricaran. No se fabrican: se compran e instalan. | 16 familias golden bajan costo (−0.1% a −4.64%); 0 suben. Revela que el **margen real era MÁS ALTO** de lo mostrado (sistema sobre-contaba MO de herraje). | Bajo: baja costos (nunca fail-open); reversible (1 línea). | 4008 tests verde + build verde; golden actualizado con explicación; `95_HERRAJES_COMPRAVENTA.md`. | **IMPLEMENTADA Y PROBADA** (commit 56656db). Autorizada por Dirección. NO desplegada a prod (requiere OK de deploy). |
+| 2 | Aviso de margen bajo real por partida en COTIZAR (Dirección) | El `margenMinimo` (25%) y `minMarkupLinea` (45%) existen en el motor pero no hay evidencia de que la UI avise en vivo cuando una partida cae bajo el piso tras descuento. | Previene emitir bajo el mínimo por error de descuento. | Medio: toca UI de cotizar; debe no exponer costo al vendedor (solo Dirección). | — (pendiente de diseño) | PENDIENTE DE AUTORIZACIÓN (es cambio de UX económica; requiere criterio de Dirección sobre dónde y a quién avisar). |
+| 3 | Detección de duplicados de clave en catálogo (ATPU/ATOM3/ATFAL150ABS, módulo 12U) | Tarea #77 abierta: claves duplicadas por descripción. Hoy no hay chequeo automático que los liste para revisión humana. | Reduce errores de amarre al material equivocado. | Bajo: solo LISTA para revisión, no aprueba ni fusiona (respeta "no aprobar equivalencias automáticamente"). | — (prototipo pendiente) | PENDIENTE (prototipo de reporte solo-lectura; no aprueba nada). |
+
+## Notas de criterio
+- **#1** se separó deliberadamente de "inventar": no se tocó ningún precio ni se creó materia; solo se reclasificó el %
+  de MO de una sección ya existente, con autorización explícita y prueba RED→GREEN (los goldens fallaron, se re-generaron
+  con explicación, verde).
+- **#2 y #3** NO se implementan por iniciativa propia porque tocan criterio económico (#2) o rozan la regla de "no aprobar
+  equivalencias" (#3); se dejan como propuestas con su motivo, que es exactamente lo que FASE 17 §7 pide clasificar como
+  "PENDIENTE DE AUTORIZACIÓN" en vez de ejecutar a ciegas.
+- Oportunidades adicionales detectadas y su razón de NO ejecutarlas aún: flete 10% (desacuerdo sin cerrar Rodrigo vs
+  levantamiento, documentado en el motor — decisión humana); índices de 3 FK recomendados (DDL de prod — requiere OK).
