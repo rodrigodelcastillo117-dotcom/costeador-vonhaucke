@@ -38,6 +38,7 @@ import { sugerirLineaParaCosteo, segmentarPorProducto } from '../datos/emparejar
 import { detectarOmisiones } from '../datos/deteccionOmisiones.js';
 import { proponerRouting } from '../datos/routingFabricacion.js';
 import { clasificarPorSubsistema } from '../datos/subsistemas.js';
+import { analizarValor } from '../datos/ingenieriaValor.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, patchPropuestaHermana, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
@@ -119,6 +120,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   const [omisiones, setOmisiones] = useState(null); // COSTEAR 100 (FASE 11+22): ¿qué componente/operación implícito falta? (auditoría, no cambia el BOM)
   const [routing, setRouting] = useState(null); // COSTEAR 100 (FASE 5/C): operaciones de fabricación propuestas (sin tiempos certificados)
   const [subsistemas, setSubsistemas] = useState(null); // COSTEAR 100 (FASE 4/B): subsistemas + ubicación económica (fábrica/compra-venta/proyecto/confirmar)
+  const [ingValor, setIngValor] = useState(null); // COSTEAR 100 (FASE 21): VONI ingeniería de valor — mejoras propuestas (ahorro sólo con datos)
   const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
   const [confirmadas, setConfirmadas] = useState({});   // {textoPregunta: respuesta} acumuladas entre pasadas
   const [confMsg, setConfMsg] = useState('');           // feedback tras aplicar respuestas
@@ -554,7 +556,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     const s = semillaCocrear;
     corrida.current++;
     setExpId(null); setEtiquetasTxt('cocrear'); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1);
-    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setOmisiones(null); setRouting(null); setSubsistemas(null); setAnalisis(null); setErrorIA('');
+    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setOmisiones(null); setRouting(null); setSubsistemas(null); setIngValor(null); setAnalisis(null); setErrorIA('');
     setB((prev) => ({ ...prev, nombre: s.nombre || '', descripcionCliente: s.descripcion || '', piezas: 1, componentes: [], planos: [], materiales: [],
       imagen: s.imagen?.base64 ? `data:${s.imagen.mediaType || 'image/jpeg'};base64,${s.imagen.base64}` : null,
       dificultad: s.dificultad && s.dificultad !== 'normal' ? s.dificultad : undefined, analysisId: corrida.current }));
@@ -738,6 +740,9 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     try { const _rt = proponerRouting({ piezas: Array.isArray(p.piezas) ? p.piezas : [] }); setRouting(_rt && _rt.operaciones.length ? _rt : null); } catch (_e) { setRouting(null); }
     // COSTEAR 100 (FASE 4/B): subsistemas + ubicación económica (fábrica/compra-venta/proyecto/confirmar).
     try { const _ss = clasificarPorSubsistema({ piezas: Array.isArray(p.piezas) ? p.piezas : [] }); setSubsistemas(_ss && _ss.presentes.length ? _ss : null); } catch (_e) { setSubsistemas(null); }
+    // COSTEAR 100 (FASE 21): VONI ingeniería de valor — propone mejoras (menos desperdicio / mejor fabricación /
+    // sustitución). No cambia el diseño ni el costo; ahorro sólo con datos reales, lo desconocido es hipótesis.
+    try { const _iv = analizarValor({ piezas: Array.isArray(p.piezas) ? p.piezas : [] }); setIngValor(_iv && _iv.oportunidades.length ? _iv : null); } catch (_e) { setIngValor(null); }
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
     setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
@@ -750,7 +755,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   // Devuelve el id de corrida para amarrar nombre/BOM/costo/render y descartar respuestas viejas.
   function nuevaCorrida() {
     const id = ++corrida.current;
-    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setOmisiones(null); setRouting(null); setSubsistemas(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
+    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setOmisiones(null); setRouting(null); setSubsistemas(null); setIngValor(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); // nuevo producto = nuevo expediente
     setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); // producto nuevo = sin BOM canónico, vive en Alba
@@ -1371,6 +1376,33 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
               </div>
               <div className="ayuda gris" style={{ marginTop: 2 }}>
                 <em>Operaciones inferidas del despiece. Faltan <strong>tiempos y tarifas reales</strong> (Ingeniería/Producción) para costear la mano de obra oficialmente; por eso la MO del routing no es certificable todavía.</em>
+              </div>
+            </div>
+          )}
+
+          {ingValor && Array.isArray(ingValor.oportunidades) && ingValor.oportunidades.length > 0 && (
+            <div className="alerta" style={{ background: '#f6f3fb', border: '1px solid #d8cdea', borderLeft: '4px solid #6b4ea3', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+              <div style={{ fontWeight: 700, color: '#4e3a7a' }}>¿Qué mejoraría VONI?</div>
+              {ingValor.resumen?.palanca_de_costo && (
+                <div className="ayuda gris" style={{ marginTop: 2 }}>
+                  La mayor palanca de costo está en <strong>{ingValor.resumen.palanca_de_costo.subsistema}</strong> ({ingValor.resumen.palanca_de_costo.pct}% del material).
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '6px 0' }}>
+                {ingValor.oportunidades.map((o, i) => (
+                  <div key={i} style={{ background: '#fff', border: '1px solid #d8cdea', borderRadius: 8, padding: '6px 10px' }}>
+                    <div style={{ fontWeight: 600, color: '#4e3a7a' }}>{o.titulo}
+                      {o.requiere_validacion_ingenieria ? <span style={{ fontSize: 11, color: '#9a2c2c', fontWeight: 700 }}> · requiere Ingeniería</span> : null}
+                    </div>
+                    <div className="texto" style={{ marginTop: 2 }}>{o.porque}</div>
+                    <div className="ayuda gris" style={{ marginTop: 2 }}>
+                      Beneficio: {o.beneficio} · Riesgo: {o.riesgo} · Ahorro: {o.ahorro ? (o.ahorro.fuente === 'CALCULADO' ? `$${Number(o.ahorro.monto).toLocaleString('es-MX')}` : `hipótesis (${o.ahorro.base})`) : 'mejora de calidad, no de costo'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="ayuda gris" style={{ marginTop: 2 }}>
+                <em>VONI propone; Ingeniería valida. No cambié el diseño ni el costo original; los ahorros son hipótesis hasta tener datos reales.</em>
               </div>
             </div>
           )}
