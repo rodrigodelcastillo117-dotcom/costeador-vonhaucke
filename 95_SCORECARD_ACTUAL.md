@@ -11,8 +11,8 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 ## Resumen por área
 | # | Área | Estado R3 | Evidencia fresca R3 | Qué falta para 95 comprobable |
 |---|---|---|---|---|
-| 1 | INICIO | NO RE-VERIF R3 | — | E2E de subida foto/PDF/texto + ruteo, en vivo |
-| 2 | **COSTEAR** | **Medido (alto)** | BLN-09 cerrado; 4008 tests verde; paridad cliente=servidor; merma D2; fail-closed | foto→costo E2E con Gemini real (reusa BLN-07); confirmación de materiales (humano) |
+| 1 | **INICIO** | **Parcial (3 entradas IA probadas)** | las 3 entradas de interpretación probadas en vivo opus-5: texto→despiece, plano→floorSpec, foto→despiece (`95_TEXTO/PLANO/FOTO_*_OPUS5.md`) | ruteo UI de subida (navegador) + E2E completo foto→cotización |
+| 2 | **COSTEAR** | **Medido (alto) + foto→despiece probado** | BLN-09 cerrado; 4008 tests verde; paridad cliente=servidor; merma D2; fail-closed. **foto real → despiece 17 piezas** (opus-5, `95_FOTO_A_DESPIECE_OPUS5.md`): producto/materiales/herrajes correctos, honesto en incertidumbre | costo OFICIAL requiere confirmación humana de medidas + materiales (la IA ya las pide) |
 | 3 | **COTIZAR** | **Medido (E2E navegador)** | ciclo completo en vivo con vendedor real: crear→persistir(DB 4869)→reabrir→PDF→borrar; cuadre al centavo ($1,650→IVA 16%→TOTAL $2,162.82 = DB); partida y PDF seller-safe; limpieza verificada. Ver `95_COTIZAR_E2E_NAVEGADOR.md` | Configurador/variantes; 24 proyectos; por plano (opus-5) |
 | 4 | **COCREAR** | **Parcial (interpretación IA probada)** | opus-5 real: brief §3 → despiece 18 piezas (dims/materiales/roles correctos), seller-safe por pieza; `95_TEXTO_A_DESPIECE_OPUS5.md` | 8 casos completos diseño→cambios→expediente→reabrir→COSTEAR (más opus-5 presupuestado) |
 | 5 | ACOMODO | **Medido (validador independiente)** | 9 acomodos reales: 6 PASS/2 REVIEW/1 FAIL; el estado del sistema concuerda 3/3 con el validador independiente (no esconde la colisión) | proyectos nuevos con geometría difícil (columnas/pasillos/puertas) + root-cause de la colisión 4859 |
