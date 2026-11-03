@@ -57,8 +57,15 @@ Imagen: `renders/cocrear/5/hff688d77-1791146919705.png`.
    NUEVO de Cocrear (no existe aún) → render de texto = conceptual (como los 2 de arriba), y así debe etiquetarse.
 
 **Esfuerzo:** migración chica (tabla `producto_referencias` + bucket) + un selector en el cliente para subir/elegir las
-fotos + el lookup que las adjunta al render. Es trabajo de datos+UI, NO de IA. Lo puedo preparar en la rama cuando
-autorices; requiere luego deploy de frontend. Dejo la foto real a cargo de quien tenga las fotos de los muebles.
+fotos + el lookup que las adjunta al render. Es trabajo de datos+UI, NO de IA. Dejo la foto real a cargo de quien tenga
+las fotos de los muebles.
+
+**PREPARADO (no aplicado):** `supabase/migrations/PROPUESTA_bibliotecas_referencia_render.sql` crea las DOS
+bibliotecas + bucket privado `referencias` + RLS (ver = autenticado, editar = Dirección/Diseño) con bloque de rollback:
+- `producto_referencias` (fotos reales de muebles → `generar-render.imagenes[]`).
+- `acabado_referencias` (swatches de acabados y CUBIERTAS con hex + `insumo_clave` → finishes del render).
+Falta, para activarlo: (1) aplicar la migración con tu OK, (2) un selector en el cliente para subir/elegir foto+acabado,
+(3) el lookup que los adjunta al llamar `generar-render`. (1) y (3) no se desplegan sin autorización.
 
 ### Estado de RENDERS tras esta revisión
 De **SIN MEDIR** a **PARCIAL**: 1 render revisado (conceptual PASS, cotas REVIEW). Método repetible a costo
