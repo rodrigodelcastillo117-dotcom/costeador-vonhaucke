@@ -35,6 +35,7 @@ import { buscarInsumosMotor } from '../nube.js';
 import { preciosAprobables, preciosNoAprobables } from '../datos/autoridadCosteoServidor.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { sugerirLineaParaCosteo, segmentarPorProducto } from '../datos/emparejarLinea.js';
+import { detectarOmisiones } from '../datos/deteccionOmisiones.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, patchPropuestaHermana, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
@@ -113,6 +114,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
   const [sugerenciaLinea, setSugerenciaLinea] = useState(null); // FASE 17: ¿el despiece se parece a un SKU de línea? (sugerencia, no auto-selección)
   const [multiMueble, setMultiMueble] = useState(null); // FASE 17 #2: ¿la foto/texto trae varios muebles? (aviso informativo, no cambia el flujo)
+  const [omisiones, setOmisiones] = useState(null); // COSTEAR 100 (FASE 11+22): ¿qué componente/operación implícito falta? (auditoría, no cambia el BOM)
   const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
   const [confirmadas, setConfirmadas] = useState({});   // {textoPregunta: respuesta} acumuladas entre pasadas
   const [confMsg, setConfMsg] = useState('');           // feedback tras aplicar respuestas
@@ -548,7 +550,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     const s = semillaCocrear;
     corrida.current++;
     setExpId(null); setEtiquetasTxt('cocrear'); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1);
-    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setAnalisis(null); setErrorIA('');
+    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setOmisiones(null); setAnalisis(null); setErrorIA('');
     setB((prev) => ({ ...prev, nombre: s.nombre || '', descripcionCliente: s.descripcion || '', piezas: 1, componentes: [], planos: [], materiales: [],
       imagen: s.imagen?.base64 ? `data:${s.imagen.mediaType || 'image/jpeg'};base64,${s.imagen.base64}` : null,
       dificultad: s.dificultad && s.dificultad !== 'normal' ? s.dificultad : undefined, analysisId: corrida.current }));
@@ -724,6 +726,10 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     // FASE 17 #2: ¿el despiece trae VARIOS muebles (p. ej. escritorio + credenza en una foto)? Avisa para
     // costearlos por separado (más preciso). SÓLO informa: no parte ni recostea nada automáticamente.
     try { const _seg = segmentarPorProducto(p); setMultiMueble(_seg && _seg.multiProducto ? _seg.segmentos.map((s) => s.mueble) : null); } catch (_e) { setMultiMueble(null); }
+    // COSTEAR 100 (FASE 11+22): auditoría de omisiones / ingeniería invisible. ¿Qué componente u operación
+    // implícito NO aparece en el despiece (puertas sin bisagra, metal sin unión, LED sin driver…)? SÓLO avisa;
+    // no agrega cantidades ni cambia el BOM. El humano confirma; el motor costea.
+    try { const _om = detectarOmisiones({ piezas: Array.isArray(p.piezas) ? p.piezas : [] }); setOmisiones(_om && _om.hallazgos.length ? _om : null); } catch (_e) { setOmisiones(null); }
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
     setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
@@ -736,7 +742,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   // Devuelve el id de corrida para amarrar nombre/BOM/costo/render y descartar respuestas viejas.
   function nuevaCorrida() {
     const id = ++corrida.current;
-    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
+    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setOmisiones(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); // nuevo producto = nuevo expediente
     setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); // producto nuevo = sin BOM canónico, vive en Alba
@@ -1300,6 +1306,33 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
               <div className="texto" style={{ marginTop: 4 }}>
                 Detecté <strong>{multiMueble.length}</strong> muebles ({multiMueble.join(' + ')}). Para un costo más preciso,
                 conviene costear cada uno por separado (una foto o descripción por mueble). <em>Este es sólo un aviso; no cambié el despiece.</em>
+              </div>
+            </div>
+          )}
+
+          {omisiones && Array.isArray(omisiones.hallazgos) && omisiones.hallazgos.length > 0 && (
+            <div className="alerta" style={{ background: '#f4f6fb', border: '1px solid #ccd6ea', borderLeft: '4px solid #2f5fb0', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+              <div style={{ fontWeight: 700, color: '#274d8c' }}>Auditoría de ingeniería — ¿qué podría faltar?</div>
+              {omisiones.resumen?.bloquea_certificacion && (
+                <div className="texto" style={{ marginTop: 4, color: '#9a2c2c', fontWeight: 600 }}>
+                  Hay una posible omisión funcional crítica: el costo no debería certificarse como oficial hasta resolverla.
+                </div>
+              )}
+              <ul style={{ margin: '6px 0 2px', paddingLeft: 18 }}>
+                {omisiones.hallazgos.map((h, i) => {
+                  const col = h.severidad === 'OMISION' ? '#9a2c2c' : h.severidad === 'RIESGO' ? '#8a6d1b' : '#5b6472';
+                  const et = h.severidad === 'OMISION' ? 'OMISIÓN' : h.severidad;
+                  return (
+                    <li key={i} style={{ marginBottom: 6 }}>
+                      <span style={{ color: col, fontWeight: 700, fontSize: 12 }}>[{et}]</span>{' '}
+                      <span className="texto">{h.mensaje}</span>
+                      {h.pregunta ? <div className="ayuda gris" style={{ marginTop: 2 }}>{h.pregunta}</div> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="ayuda gris" style={{ marginTop: 2 }}>
+                <em>Son avisos de ingeniería (la IA propone; Ingeniería confirma). No cambié el despiece ni agregué cantidades.</em>
               </div>
             </div>
           )}
