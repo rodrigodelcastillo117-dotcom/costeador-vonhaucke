@@ -1,7 +1,7 @@
 // FASE 17 · emparejarLinea: el despiece de la IA (de la FOTO real Eclipse Drift) debe
 // SUGERIR el SKU de línea correcto, por encima de distractores, y SIEMPRE pedir confirmación humana.
 import { describe, it, expect } from 'vitest';
-import { emparejarLinea, atributosDeIA, parsearNombreProducto } from './emparejarLinea.js';
+import { emparejarLinea, atributosDeIA, parsearNombreProducto, sugerirLineaParaCosteo } from './emparejarLinea.js';
 
 // Salida REAL de analizar-mueble (opus-5 visión) sobre la foto del escritorio Eclipse Drift (2026-11-03).
 const PROPUESTA_FOTO = {
@@ -66,5 +66,34 @@ describe('emparejarLinea · FASE 17', () => {
     const r = emparejarLinea({ puertas: 9, cajones: 9, largoMM: 50, material: 'cristal' }, CANDIDATOS);
     // Config imposible contra estos candidatos → o ninguno, o confianza BAJA; nunca ALTA.
     expect(r.confianza).not.toBe('ALTA');
+  });
+});
+
+describe('sugerirLineaParaCosteo · foto → SKU → PRECIO DE LÍNEA real (COSTEAR)', () => {
+  // Variantes REALES de PRECIOS_LINEA (mismo config, distinto material → distinto precio de lista).
+  const PRECIOS = [
+    { c: 'EDCZAE61P2CCH', ln: 'ECLIPSE DRIFT', ruta: 'drift', l: 33270, m: 22190, d: 'CREDENZA DOBLE DE 1800  X 400 X 600 mm MODELO ECLIPSE DRIFT, CON 2 CAJONES, 1 PUERTA, CUERPO EN MELAMINA CANTO ABS COLOR NEGRO Y CUBIERTAS; EN CHAPA DE MADERA  --  EDCZAE61P2CCH' },
+    { c: 'EDCZAE61P2CABS', ln: 'ECLIPSE DRIFT', ruta: 'drift', l: 19240, m: 12830, d: 'CREDENZA DOBLE DE 1800  X 400 X 600 mm MODELO ECLIPSE DRIFT, CON 2 CAJONES, 1 PUERTA, CUERPO EN MELAMINA CANTO ABS COLOR NEGRO Y CUBIERTAS; EN MELAMINA CANTO ABS  --  EDCZAE61P2CABS' },
+    { c: 'EDCZAE61P2CHPELABS', ln: 'ECLIPSE DRIFT', ruta: 'drift', l: 22820, m: 15220, d: 'CREDENZA DOBLE DE 1800  X 400 X 600 mm MODELO ECLIPSE DRIFT, CON 2 CAJONES, 1 PUERTA, CUERPO EN MELAMINA CANTO ABS COLOR NEGRO Y CUBIERTAS; EN MELAMINA Y PERFIL CON CANTO CLEAF  --  EDCZAE61P2CHPELABS' },
+  ];
+  const candidatos = PRECIOS.map((a) => ({ id: a.c, codigo: a.c, familia: a.ln, nombre: a.d, ruta: a.ruta, precioLista: a.l, piso: a.m }));
+
+  it('la foto (nogal/chapa) resuelve a EDCZAE61P2CCH y su PRECIO DE LISTA real $33,270', () => {
+    const r = sugerirLineaParaCosteo(PROPUESTA_FOTO, candidatos);
+    expect(r.esProbableLinea).toBe(true);
+    expect(r.sku).toBe('EDCZAE61P2CCH');
+    expect(r.precioLista).toBe(33270);
+    expect(r.requiereConfirmacionHumana).toBe(true); // sigue pidiendo confirmación
+  });
+
+  it('distinguir el MATERIAL evita un error de $14k (madera $33,270 vs melamina $19,240)', () => {
+    const r = sugerirLineaParaCosteo(PROPUESTA_FOTO, candidatos);
+    const cods = r.alternativas.map((a) => a.codigo);
+    expect(cods).toContain('EDCZAE61P2CABS'); // la melamina aparece como alternativa...
+    const madera = r.alternativas.find((a) => a.codigo === 'EDCZAE61P2CCH');
+    const melamina = r.alternativas.find((a) => a.codigo === 'EDCZAE61P2CABS');
+    expect(madera.precioLista - melamina.precioLista).toBe(14030); // ...con su precio, para que el humano vea la diferencia
+    // y la de madera (que coincide con la foto) va primero.
+    expect(r.alternativas[0].codigo).toBe('EDCZAE61P2CCH');
   });
 });

@@ -17,6 +17,8 @@
 //    · Determinista y testeable sin red.
 // ============================================================================
 
+import { PRECIOS_LINEA } from './preciosLinea.js';
+
 const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 /** Extrae {familia, puertas, cajones, largoMM, fondoMM, altoMM, material} del NOMBRE estructurado de un producto. */
@@ -135,5 +137,37 @@ export function emparejarLinea(propuesta, productos = []) {
     // Decisión explícita: SIEMPRE requiere confirmación humana; el emparejador sólo propone.
     requiereConfirmacionHumana: true,
     autoseleccionado: null,
+  };
+}
+
+// --- Wiring a los PRECIOS DE LÍNEA del cliente (precio de lista real por SKU) ---
+
+/** Convierte el catálogo de precios de línea (PRECIOS_LINEA) a candidatos para el emparejador. */
+export function candidatosDePreciosLinea(lista = PRECIOS_LINEA) {
+  return (Array.isArray(lista) ? lista : []).map((a) => ({
+    id: a.c, codigo: a.c, familia: a.ln, nombre: a.d, ruta: a.ruta,
+    precioLista: a.l ?? null, piso: a.m ?? null,
+  }));
+}
+
+/**
+ * Para COSTEAR: ante un despiece de IA, ¿se parece a un producto de LÍNEA con precio documentado?
+ * Devuelve el mejor SKU, su PRECIO DE LISTA real y las alternativas (misma config, distinto material/acabado)
+ * para que el humano elija. NO auto-selecciona ni cambia precios: sólo apunta a precios YA documentados.
+ * El valor: evita costear a la medida un producto de línea y amarra al precio correcto por material
+ * (p. ej. chapa de madera $33,270 vs melamina $19,240 — distinguir el material es $14k).
+ */
+export function sugerirLineaParaCosteo(propuesta, candidatos = candidatosDePreciosLinea()) {
+  const r = emparejarLinea(propuesta, candidatos);
+  const mejor = r.mejor;
+  return {
+    ...r,
+    esProbableLinea: !!mejor && (mejor.confianza === 'ALTA' || mejor.confianza === 'MEDIA'),
+    sku: mejor ? mejor.producto.codigo : null,
+    precioLista: mejor ? (mejor.producto.precioLista ?? null) : null,
+    alternativas: r.sugerencias.map((s) => ({
+      codigo: s.producto.codigo, precioLista: s.producto.precioLista ?? null,
+      confianza: s.confianza, razones: s.razones,
+    })),
   };
 }
