@@ -26,12 +26,13 @@ Bloqueado por evidencia faltante, no por defectos conocidos:
 - El hardening **BLN-09** (`mapIaComps`) vive en la rama; requiere su propio merge+deploy autorizado.
 - Aprobar los 42 puentes: pantalla lista; el click es de un humano de Dirección.
 
-## Nota de deploy (2026-11-03)
-Dirección autorizó un segundo deploy de frontend (BLN-09 hardening + selector Biblioteca de referencia). El
-merge a `c3.4-seller-safe` está hecho **localmente** y validado (4008 tests verde), pero el **push a producción
-fue BLOQUEADO por el clasificador del harness** ("Production Deploy") — es una compuerta de seguridad aparte de
-la autorización de Dirección. Prod sigue en `d19557d` (intacto). Para completarlo: el usuario agrega una regla
-de permiso de deploy, o hace el push/deploy él mismo. No se buscó un rodeo (sería evadir la intención del gate).
+## Nota de deploy (2026-11-03) — **COMPLETADO Y EN VIVO**
+Dirección autorizó y aprobó el 2º deploy de frontend (BLN-09 hardening + selector Biblioteca de referencia).
+Primer intento bloqueado por el clasificador del harness; tras la aprobación del usuario, el push pasó.
+- **Prod en vivo:** deploy `dpl_DkQ3EH3wXX51SVyi5cp4jHdKxvcu` **READY**, commit `2b78f57`, alias
+  `costeador-vonhaucke.vercel.app` (asset `index-Bo6sn6D7.js`), aliasError null.
+- **Rollback:** `dpl_4PPf` (commit `d19557d`), candidato de rollback.
+- En vivo ahora: Aprobar puentes + **Biblioteca de referencia** + **BLN-09 hardening**. Validado 4008 tests verde.
 
 ## Recomendación
 **GO** para seguir el piloto con el alcance actual (muebles con material confirmado), con rollback armado.
