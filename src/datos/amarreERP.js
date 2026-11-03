@@ -9,7 +9,7 @@
 //  Puro salvo por `buscar` y `agregarInsumo` (inyectados) para poder probarlo sin red.
 // ============================================================================
 import { candidatosDeFamilia, familiaDeMaterial, severidadConflicto_, textoCambio_, MATCH, FAMILIAS_HERRAJE } from './materialMatch.js';
-import { conTramoPorPieza } from '../motor/calculo.js';
+import { conTramoPorPieza, precioUsable } from '../motor/calculo.js';
 
 const PENDIENTES = new Set([MATCH.NOT_AVAILABLE, 'PENDING_MATERIAL', 'PENDING_PRICE', 'PENDING_PURCHASING', '']);
 const STOP_Q = new Set(['para', 'con', 'del', 'los', 'las', 'una', 'uno', 'por', 'sin', 'cal', 'calibre', 'mm', 'negro', 'negra', 'blanco', 'blanca', 'gris', 'estructura', 'puerta', 'puertas', 'cajon', 'cajones', 'kit', 'juego', 'pza']);
@@ -34,11 +34,21 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
   const amarrados = [], sinCandidato = [];
   if (typeof buscar !== 'function') return { comps: out, amarrados, sinCandidato };
   for (const c of out) {
-    if (!c || c.insumoId || c.excluida) continue;
+    if (!c || c.excluida) continue;
+    // Nunca se re-busca ni se pisa un material confirmado por un humano.
+    if (c.material_confirmado === true || (c._match && c._match.confirmado_por_usuario)) continue;
+    const resuelto = c.insumoId ? insumos[c.insumoId] : null;
+    // Elegible: (a) sin insumoId con clase pendiente, o (b) resuelto a un bucket genérico SIN precio
+    // usable (p.ej. "tornillería"/"cerradura"): se re-busca el ESPECÍFICO con precio real del ERP.
     const clase = c.material_match || (c._match && c._match.clase) || '';
-    if (!PENDIENTES.has(clase)) continue;
+    const sinPrecioUtil = !!c.insumoId && !precioUsable(resuelto);
+    if (!((!c.insumoId && PENDIENTES.has(clase)) || sinPrecioUtil)) continue;
+    const idPrevio = String(c.insumoId || '');   // para no re-proponer el mismo bucket sin precio
     const solicitado = String(c.material_solicitado || c.nombre || '').trim();
-    const fam = familiaDeMaterial(solicitado);
+    // Familia del material pedido; si el texto suelto no la da (p.ej. "remache") pero la pieza ya
+    // cayó en un bucket, usa la familia del bucket para no rendirse.
+    let fam = familiaDeMaterial(solicitado);
+    if (!fam && resuelto) fam = familiaDeMaterial(resuelto.nombre || '');
     if (!solicitado || !fam || fam === 'equipo_externo') { sinCandidato.push(c.nombre || solicitado); continue; }   // sin familia reconocible o equipo del cliente: lo decide la persona
     // La búsqueda del servidor es por término (ILIKE): "PTR cal.14 negro" no encuentra nada, "ptr" sí.
     // Se consulta la frase sin acentos y cada palabra significativa, y se unen los resultados.
@@ -64,6 +74,8 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
     const { ambiguo, mejor } = candidatosDeFamilia(solicitado, conPrecio.length ? conPrecio : utiles);
     if (ambiguo || !mejor) { sinCandidato.push(c.nombre || solicitado); continue; }
     const fila = (filas || []).find((f) => f.id === mejor.id) || mejor;
+    // No re-proponer el MISMO bucket genérico sin precio que ya traía la pieza.
+    if (fila.id === idPrevio && !precioUsable(resuelto)) { sinCandidato.push(c.nombre || solicitado); continue; }
     // VH-155: las medidas explícitas del NOMBRE de la pieza ("Jaladeras rectas 300 mm") cuentan para el conflicto
     // aunque `material_solicitado` sólo diga "jaladera": antes un candidato de 128 mm entraba como propuesta
     // compatible y la confirmación en bloque lo daba por bueno.
@@ -90,12 +102,19 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
 // hacía `{ ...c, ...amarrado }` y el objeto amarrado —calculado sobre el BOM VIEJO— pisaba esas ediciones.
 // Ahora sólo viajan los campos de MATERIAL del amarre, y sólo a piezas que siguen sin material.
 const CAMPOS_AMARRE = ['insumoId', 'material_match', 'candidate_insumo_id', '_match'];
-export function fusionarAmarreEnBom(actuales = [], amarrados = []) {
+export function fusionarAmarreEnBom(actuales = [], amarrados = [], insumos = {}) {
   const act = Array.isArray(actuales) ? actuales : [];
   if (!Array.isArray(amarrados) || act.length !== amarrados.length) return act;
   return act.map((c, i) => {
     const a = amarrados[i];
-    if (!c || !a || c.nombre !== a.nombre || c.insumoId || c.excluida) return c;
+    if (!c || !a || c.nombre !== a.nombre || c.excluida) return c;
+    // Nunca se pisa lo que un humano confirmó.
+    if (c.material_confirmado === true || (c._match && c._match.confirmado_por_usuario)) return c;
+    // Protege la edición del usuario: una pieza con material que SÍ cuesta no se toca. Sólo se fusiona
+    // el amarre cuando la pieza seguía sin material, O cayó en un bucket genérico sin precio usable
+    // (el amarre ERP lo reemplaza por el específico con precio real).
+    const bucketSinPrecio = !!c.insumoId && !precioUsable(insumos[c.insumoId]);
+    if (c.insumoId && !bucketSinPrecio) return c;
     if (!a.insumoId && !a.candidate_insumo_id) return c;
     const parche = {};
     for (const k of CAMPOS_AMARRE) if (a[k] !== undefined) parche[k] = a[k];
