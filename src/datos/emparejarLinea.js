@@ -140,6 +140,59 @@ export function emparejarLinea(propuesta, productos = []) {
   };
 }
 
+// --- Segmentación multi-producto (FASE 17 #2) ---------------------------------
+// Una foto/plano puede traer VARIOS muebles (p. ej. "escritorio en L con credenza").
+// Para emparejar/costear bien, conviene separarlos: el fondo del escritorio (800) no
+// debe mezclarse con la config de la credenza (1 puerta, 2 cajones). Agrupa las piezas
+// del despiece por el MUEBLE al que pertenecen, leyendo el sustantivo en el nombre de
+// cada pieza ("Cubierta escritorio", "Patas credenza"). Determinista, sin IA.
+
+const MUEBLES_SEG = ['escritorio', 'credenza', 'mesa', 'silla', 'sillon', 'librero', 'archivero',
+  'gaveta', 'pedestal', 'recepcion', 'mostrador', 'banca', 'mampara', 'biombo', 'cajonera', 'buro', 'estante'];
+
+/** ¿A qué mueble pertenece esta pieza, por su nombre? null si no se puede decir. */
+export function muebleDePieza(pieza = {}) {
+  const t = sinAcentos(`${pieza.nombre || ''} ${pieza.semantic_role || ''}`);
+  for (const m of MUEBLES_SEG) if (t.includes(m)) return m;
+  return null;
+}
+
+/**
+ * Segmenta un despiece de IA en sub-productos por mueble.
+ * @returns {{ multiProducto:boolean, segmentos: Array<{ mueble:string, piezas:Array, nPiezas:number }>, sinClasificar:number }}
+ * Si no logra distinguir ≥2 muebles, devuelve un solo segmento (el producto completo).
+ */
+export function segmentarPorProducto(propuesta = {}) {
+  const piezas = Array.isArray(propuesta.piezas) ? propuesta.piezas : [];
+  const grupos = new Map();
+  let sinClasificar = 0;
+  for (const p of piezas) {
+    const m = muebleDePieza(p);
+    if (!m) { sinClasificar += 1; continue; }
+    if (!grupos.has(m)) grupos.set(m, []);
+    grupos.get(m).push(p);
+  }
+  const segmentos = [...grupos.entries()].map(([mueble, ps]) => ({ mueble, piezas: ps, nPiezas: ps.length }))
+    .sort((a, b) => b.nPiezas - a.nPiezas);
+  // Las piezas sin clasificar (herrajes/pintura/tornillería comunes) se adjuntan al segmento mayor,
+  // no se pierden. Si hay 0 ó 1 mueble distinto, no es multi-producto: un solo segmento con todo.
+  if (segmentos.length <= 1) {
+    return { multiProducto: false, segmentos: segmentos.length ? segmentos : [{ mueble: propuesta.tipo || 'producto', piezas, nPiezas: piezas.length }], sinClasificar };
+  }
+  return { multiProducto: true, segmentos, sinClasificar };
+}
+
+/** Construye una sub-propuesta costeable/emparejable para UN segmento (hereda textos para la config). */
+export function propuestaDeSegmento(propuesta, segmento) {
+  return {
+    producto: `${propuesta.producto || ''}`,
+    descripcionCliente: propuesta.descripcionCliente || '',
+    tipo: segmento.mueble,
+    materiales: propuesta.materiales || [],
+    piezas: segmento.piezas,
+  };
+}
+
 // --- Wiring a los PRECIOS DE LÍNEA del cliente (precio de lista real por SKU) ---
 
 /** Convierte el catálogo de precios de línea (PRECIOS_LINEA) a candidatos para el emparejador. */

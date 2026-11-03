@@ -1,7 +1,7 @@
 // FASE 17 · emparejarLinea: el despiece de la IA (de la FOTO real Eclipse Drift) debe
 // SUGERIR el SKU de línea correcto, por encima de distractores, y SIEMPRE pedir confirmación humana.
 import { describe, it, expect } from 'vitest';
-import { emparejarLinea, atributosDeIA, parsearNombreProducto, sugerirLineaParaCosteo } from './emparejarLinea.js';
+import { emparejarLinea, atributosDeIA, parsearNombreProducto, sugerirLineaParaCosteo, segmentarPorProducto, muebleDePieza } from './emparejarLinea.js';
 
 // Salida REAL de analizar-mueble (opus-5 visión) sobre la foto del escritorio Eclipse Drift (2026-11-03).
 const PROPUESTA_FOTO = {
@@ -66,6 +66,32 @@ describe('emparejarLinea · FASE 17', () => {
     const r = emparejarLinea({ puertas: 9, cajones: 9, largoMM: 50, material: 'cristal' }, CANDIDATOS);
     // Config imposible contra estos candidatos → o ninguno, o confianza BAJA; nunca ALTA.
     expect(r.confianza).not.toBe('ALTA');
+  });
+});
+
+describe('segmentarPorProducto · FASE 17 #2 (multi-producto en una foto)', () => {
+  it('parte la foto (escritorio EN L CON credenza) en 2 sub-productos', () => {
+    const seg = segmentarPorProducto(PROPUESTA_FOTO);
+    expect(seg.multiProducto).toBe(true);
+    const muebles = seg.segmentos.map((s) => s.mueble);
+    expect(muebles).toContain('escritorio');
+    expect(muebles).toContain('credenza');
+    // La cubierta y las patas del escritorio caen en el segmento 'escritorio'.
+    const esc = seg.segmentos.find((s) => s.mueble === 'escritorio');
+    expect(esc.piezas.some((p) => /cubierta escritorio/i.test(p.nombre))).toBe(true);
+    expect(esc.piezas.some((p) => /patas escritorio/i.test(p.nombre))).toBe(true);
+  });
+
+  it('un mueble simple NO se marca multi-producto (un solo segmento con todo)', () => {
+    const simple = { tipo: 'mesa', piezas: [{ nombre: 'Cubierta mesa', semantic_role: 'cubierta' }, { nombre: 'Patas mesa', semantic_role: 'pata' }] };
+    const seg = segmentarPorProducto(simple);
+    expect(seg.multiProducto).toBe(false);
+    expect(seg.segmentos).toHaveLength(1);
+  });
+
+  it('muebleDePieza clasifica por el nombre', () => {
+    expect(muebleDePieza({ nombre: 'Cubierta credenza 1600' })).toBe('credenza');
+    expect(muebleDePieza({ nombre: 'Tornillería' })).toBeNull();
   });
 });
 
