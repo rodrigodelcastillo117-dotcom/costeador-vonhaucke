@@ -109,7 +109,13 @@ const REGLAS = [
     subsistema: 'electrico',
     evaluar(ctx) {
       if (!ctx.hayTexto(/\bled\b|ilumina|tira de luz|lampara|luminari|spot\b/)) return null;
-      if (ctx.hayTexto(/driver|fuente.*(poder|aliment|conmutad)|transformador|balastr|controlador|eliminador/)) return null;
+      // Ya trae su alimentación si hay driver/transformador/controlador, una fuente de
+      // (poder/alimentación/voltaje/corriente/energía), una marca de fuente conmutada
+      // (Mean Well), o un KIT que empaca su fuente (p.ej. "Kit iluminación LED (tiras +
+      // fuente + arnés)"). El '·' separa piezas en el blob: [^·] mantiene kit↔fuente en el
+      // mismo renglón. (Antes exigía "fuente" + "poder/aliment" → falso positivo con la
+      // fuente Mean Well del kit TELCEL, que BLOQUEABA la certificación sin razón.)
+      if (ctx.hayTexto(/driver|transformador|balastr|controlador|eliminador|mean\s*well|fuente\s*(de\s*)?(poder|aliment|conmutad|voltaj|corrient|energ)|\bkit\b[^·]*\bfuente\b|\bfuente\b[^·]*\bkit\b/)) return null;
       return {
         categoria: 'componente', severidad: 'OMISION', certeza: 'INFERIDO', bloquea_certificacion: true,
         mensaje: 'Hay iluminación LED pero no hay driver/fuente de poder ni transformador. Un LED no funciona sin su alimentación.',
