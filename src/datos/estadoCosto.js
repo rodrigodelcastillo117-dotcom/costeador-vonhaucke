@@ -26,7 +26,10 @@ export const TORNILLERIA_GENERICA = 'tornilleria';
 // Estados del servidor con los que hay costo calculable. Cualquier otro (incompleto, bloqueado, desconocido) bloquea.
 const ESTADOS_SRV_CALCULABLES = new Set(['certificado', 'preliminar']);
 
-export function clasificarCosto({ emision = {}, servidor = null, componentes = [], insumos = null, d2Ratificada = D2_RATIFICADA_POR_PRODUCCION } = {}) {
+// COSTEAR 100 (FASE 11/22 → gate): `omisionesCriticas` son mensajes de omisión FUNCIONAL crítica detectados por
+// deteccionOmisiones (bloquea_certificacion=true, p. ej. LED sin driver). Fail-closed: si llegan, el costo no tiene
+// base defendible para validarse → BLOQUEADO. Parámetro OPCIONAL (default []): quien no lo pasa no cambia de estado.
+export function clasificarCosto({ emision = {}, servidor = null, componentes = [], insumos = null, d2Ratificada = D2_RATIFICADA_POR_PRODUCCION, omisionesCriticas = [] } = {}) {
   const b = emision.bloqueos || {};
   const pend = Array.isArray(emision.pendientes) ? emision.pendientes : [];
   const duros = [
@@ -41,6 +44,10 @@ export function clasificarCosto({ emision = {}, servidor = null, componentes = [
   const yaListadas = new Set(duros.join(' | ').split(/[:·|]/).map((x) => x.trim()));
   for (const c of componentes || []) {
     if (c && !c.excluida && !String(c.insumoId || '').trim() && c.nombre && !yaListadas.has(c.nombre)) duros.push(`Sin material: ${c.nombre}`);
+  }
+  // COSTEAR 100: una omisión funcional crítica (LED sin driver, etc.) impide validar el costo como oficial.
+  for (const m of (Array.isArray(omisionesCriticas) ? omisionesCriticas : [])) {
+    if (m) duros.push(`Omisión funcional crítica: ${String(m)}`);
   }
   // Auditoría 2026-10-14 (P1-02): el SERVIDOR es autoridad. Si su validación vigente dice incompleto/bloqueado —o un
   // estado que no conocemos— el costo está BLOQUEADO aunque la pantalla no haya encontrado el motivo por su cuenta.

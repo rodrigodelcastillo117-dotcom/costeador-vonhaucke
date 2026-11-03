@@ -33,4 +33,13 @@ describe('estado del costo en tres niveles', () => {
     expect(r.estado).toBe('preliminar'); expect(r.motivos.join(' ')).toMatch(/D3/);
     expect(clasificarCosto({ emision: em(), servidor: SRV_OK, componentes: [{ nombre: 'Pija 10x15', insumoId: 'erp-pi1015g' }] }).estado).toBe('validado');
   });
+  it('COSTEAR 100: una omisión funcional crítica BLOQUEA aunque el servidor certifique (fail-closed)', () => {
+    const r = clasificarCosto({ emision: em(), servidor: SRV_OK, omisionesCriticas: ['Hay iluminación LED pero no hay driver/fuente de poder ni transformador.'] });
+    expect(r.estado).toBe('bloqueado');
+    expect(r.motivos.join(' ')).toMatch(/Omisión funcional crítica.*driver/i);
+  });
+  it('retrocompatible: sin omisionesCriticas, el estado no cambia (sigue VALIDADO)', () => {
+    expect(clasificarCosto({ emision: em(), servidor: SRV_OK, omisionesCriticas: [] }).estado).toBe('validado');
+    expect(clasificarCosto({ emision: em(), servidor: SRV_OK }).estado).toBe('validado');
+  });
 });

@@ -283,7 +283,12 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   const emision = (bloqueosEstructura.length || bloqueosLectura.length) ? { ...emision0, emitible: false, pendientes: [...(emision0.pendientes || []), ...bloqueosEstructura.map((o) => `Estructura: ${o.mensaje}`), ...bloqueosLectura] } : emision0;
   const emitible = emision.emitible;
   // Estado para la persona en TRES niveles (validado / preliminar / bloqueado) con sus motivos: misma regla que se guarda.
-  const estadoCosto3 = clasificarCosto({ emision, componentes: b.componentes, insumos, servidor: validacionSrv && validacionSrv.bomHash === bomHash(b.componentes)
+  // COSTEAR 100 (FASE 11/22 → gate): una omisión funcional crítica del BOM real (p. ej. LED sin driver) bloquea validar.
+  const omisionesCriticas = useMemo(() => {
+    try { return detectarOmisiones({ piezas: b.componentes, insumos }).hallazgos.filter((h) => h.bloquea_certificacion).map((h) => h.mensaje); }
+    catch (_e) { return []; }
+  }, [b.componentes, insumos]);
+  const estadoCosto3 = clasificarCosto({ emision, componentes: b.componentes, insumos, omisionesCriticas, servidor: validacionSrv && validacionSrv.bomHash === bomHash(b.componentes)
     ? { estado: validacionSrv.estado, aprobacionHumana: validacionSrv.aprobacionHumana, advertencias: validacionSrv.advertencias, bomVigente: true } : null });
   // VH-151: piezas cuyo largo×ancho es el tamaño de la HOJA comercial (o excede el formato): la IA confundió hoja con pieza.
   const piezasTamanoHoja = useMemo(() => piezasConTamanoDeHoja(b.componentes, insumos), [b.componentes, insumos]);
