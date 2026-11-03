@@ -19,8 +19,8 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 | 6 | RENDERS | **Parcial (1 render revisado)** | render pv1934 inspeccionado: tipo/material/cajones/cargador PASS; cotas rotuladas REVIEW (alto 0.70 vs 0.75). C2PA presente | fidelidad a escala (N renders) — método a costo cero existe; renders complejos piden más revisión |
 | 7 | VONI | **Medido (12 casos, 11/12)** | benchmark adversarial vivo: abstención, matemática espacial/geométrica, política de descuento, no-inventar-costo, disciplina de dominio PASS; 1 caso sobre-prudente | ~18 casos más (foto/plano) + referencias revisadas por humano; seller-safe vivo (qa-ventas) |
 | 8 | **INSUMOS/ERP/PRECIOS** | **Medido (integridad + P0-03 cerrado)** | B6 frescura server-side; fail-closed PENDING/AMBIGUOUS; conteos en vivo (10,185 activos, 42 puentes propuestos/0 aprobados); **P0-03 resuelto por datos: 1,763/1,763 re-firmados por humano, 0 precios vivos confían en cuenta no humana** (`95_P8_INSUMOS_P0-03_RESUELTO.md`) | aprobar 42 puentes (clic humano); revisión de contenido cifra-por-cifra (proceso Dirección) |
-| 9 | CATÁLOGO/PRODUCTOS | NO RE-VERIF R3 | — | claves duplicadas (#77) + cotizabilidad de versión |
-| 10 | ARCHIVO/REABRIR | NO RE-VERIF R3 | — | guardar→reabrir→modificar→revisión en vivo |
+| 9 | CATÁLOGO/PRODUCTOS | **Parcial (selector vivo)** | selector del vendedor en vivo: "Eclipse" → 24 productos con clave ERP (EDBAS1120M…) y precio de venta; "Agregar" crea partida cotizable | claves duplicadas (#77) + cotizabilidad de versión |
+| 10 | ARCHIVO/REABRIR | **Parcial (reabrir verificado)** | reabrir en vivo demostrado 2× (vendedor abre su 4869; Dirección abre propuesta) → read-back renderiza con partidas/cliente/folio | modificar→revisión→re-guardar en vivo |
 | 11 | **PDF/EMISIÓN** | **Medido (PDF en vivo)** | PDF de propuesta generado en navegador (jsPDF, 7 pág): 0 léxico de costo, solo precios de venta; borrador lleva marca de agua BORRADOR·NO REGISTRADO; gate `evaluar_emision_cotizacion` server-side (SEG-01). Ver `95_PDF_EMISION_NAVEGADOR.md` | emisión OFICIAL E2E (requiere autorizar emitir en prod) |
 | 12 | **SEGURIDAD** | **Medido (pentest vivo 14/14)** | pentest en vivo con cuenta rol vendedor: costos/precios/piso/cotizaciones ajenas/escritura/aprobaciones todo BLOQUEADO; VONI y costear devuelven precio, no costo | auditoría históricos qa-direccion (P0-03); rotar contraseña QA |
 | 13 | **MOBILE** | **Medido (smoke)** | iPhone 13 (390px) ambos roles: 0 overflow horizontal, 0 tap-targets <32px, Cotizar abre sin overflow, 0 errores de consola. Ver `95_MOBILE_SMOKE_NAVEGADOR.md` | E2E completo en móvil (subir foto/cámara, cotización completa + PDF) — necesita opus-5 + pasada dedicada |
@@ -39,7 +39,8 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 - **Parcial nuevo en R3:** RENDERS — 2 renders inspeccionados a costo cero (conceptual PASS, cotas REVIEW); ver
   `95_ACOMODO_RENDER_QA.md`. VONI — benchmark adversarial de 5 casos (4/5), ver `95_VONI_BENCHMARK.md`.
   Ambos con evidencia fresca; faltan la escala (N renders / 30 casos VONI con referencias humanas) para "medido pleno".
-- **NO RE-VERIF R3 (hay evidencia previa, no refrescada esta ronda):** INICIO, COCREAR, CATÁLOGO, ARCHIVO.
+- **NO RE-VERIF R3 (hay evidencia previa, no refrescada esta ronda):** INICIO, COCREAR. (CATÁLOGO y ARCHIVO ya
+  refrescados parcialmente esta ronda vía el E2E de Cotizar de línea: selector vivo y reabrir verificado.)
   (COTIZAR y ACOMODO ya refrescados esta ronda; COCREAR: su validación-IA está probada vía VONI benchmark
   —casos de fabricabilidad/contradicción/material— y su persistencia es análoga a COTIZAR; falta su
   interpretación fresca con IA, que corre en analizar-mueble/opus-5, presupuesto diferido por Dirección.)
