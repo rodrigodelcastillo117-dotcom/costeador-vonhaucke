@@ -65,6 +65,10 @@ La mecánica es correcta y acotada. El punto que NO cierra "bajó el costo / pas
   y el fail-closed sigue bloqueando lo incompleto. El riesgo es un preliminar de estimación ~1-5% bajo en especiales con mucha
   herrajería — acotado y reversible (quitar `'herrajes'` del Set + restaurar 16 goldens).
 
-## Pendiente humano concreto
+## Pendiente humano concreto → RESUELTO
 Alba / Ingeniería: ¿el armado de fábrica de herrajes (correderas/bisagras/cerraduras) es traslado puro (1% MO) o lleva labor?
 De su respuesta sale el fix (a/b/c) o la confirmación de dejarlo. Es la única pregunta abierta de este release.
+
+**DECISIÓN (2026-11-03, Rodrigo del Castillo, Dirección): SE DEJA.** Herrajes permanece en compra-venta (MO 1% / GI 5%),
+opción (c): Dirección confirma el criterio. Queda documentado el riesgo acotado (estimación pura de especiales con mucha
+herrajería ~1-5% baja; líneas y órdenes con horas no afectadas; reversible). No se abre fix (a) ni (b). Punto cerrado.
