@@ -34,7 +34,7 @@ function vista(piezas = [], insumos = null) {
     return { rol, texto };
   });
   const blob = norm.map((p) => p.texto).join(' · ');
-  const metalMiembros = norm.filter((p) => /lamina|tubular|\bptr\b|perfil|solera|angulo|placa|acero/.test(p.texto)).length;
+  const metalMiembros = norm.filter((p) => /\blamina\b|tubular|\bptr\b|perfil|solera|angulo|placa|acero/.test(p.texto)).length;
   const estructurales = norm.filter((p) => ['cubierta', 'lateral', 'entrepano', 'puerta', 'faldon', 'fondo', 'respaldo', 'pata', 'gaveta', 'conector'].includes(p.rol)).length;
   // "Fabricables" = piezas estructurales (por rol) + miembros metálicos (lámina/tubular, que son
   // materia prima que SE CONVIERTE en estructura). El armado/embalaje/inspección dependen de esto,
@@ -55,7 +55,7 @@ function vista(piezas = [], insumos = null) {
 const OPERACIONES = [
   // --- corte / preparación de materia prima ---
   { op: 'corte_lamina', nombre: 'Corte de lámina', centro: 'metalmecánica', categoria: 'fabricacion', orden: 10,
-    disparo: (v) => v.tieneTexto(/lamina|placa|solera/) && { evidencia: 'lámina/placa en el BOM' } },
+    disparo: (v) => v.tieneTexto(/\blamina\b|placa|solera/) && { evidencia: 'lámina/placa en el BOM' } },
   { op: 'corte_tubo', nombre: 'Corte de tubo/perfil', centro: 'metalmecánica', categoria: 'fabricacion', orden: 11,
     disparo: (v) => v.tieneTexto(/tubular|\bptr\b|perfil|angulo/) && { evidencia: 'tubular/PTR/perfil en el BOM' } },
   { op: 'corte_tablero', nombre: 'Corte/seccionado de tablero', centro: 'carpintería', categoria: 'fabricacion', orden: 12,
@@ -64,9 +64,9 @@ const OPERACIONES = [
     disparo: (v) => v.tieneTexto(/cristal|vidrio|templado|acrilico|policarbonato|espejo/) && { evidencia: 'vidrio/acrílico en el BOM', tercero_probable: true } },
   // --- conformado de metal ---
   { op: 'punzonado', nombre: 'Punzonado/barrenado', centro: 'metalmecánica', categoria: 'fabricacion', orden: 20,
-    disparo: (v) => v.tieneTexto(/lamina|placa/) && { evidencia: 'lámina (barrenos/troqueles habituales)' } },
+    disparo: (v) => v.tieneTexto(/\blamina\b|placa/) && { evidencia: 'lámina (barrenos/troqueles habituales)' } },
   { op: 'doblez', nombre: 'Doblez', centro: 'metalmecánica', categoria: 'fabricacion', orden: 21,
-    disparo: (v) => v.tieneTexto(/lamina|placa|solera/) && { evidencia: 'lámina/solera (dobleces habituales)' } },
+    disparo: (v) => v.tieneTexto(/\blamina\b|placa|solera/) && { evidencia: 'lámina/solera (dobleces habituales)' } },
   // --- unión ---
   { op: 'soldadura', nombre: 'Soldadura', centro: 'metalmecánica', categoria: 'ensamble', orden: 30,
     disparo: (v) => (v.metalMiembros >= 2 || v.tieneTexto(/tubular|\bptr\b|perfil/)) && !v.tieneTexto(/atornill|remach/) && { evidencia: `${v.metalMiembros} miembro(s) metálico(s): requieren unión` } },

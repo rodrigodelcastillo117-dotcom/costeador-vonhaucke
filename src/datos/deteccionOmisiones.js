@@ -92,7 +92,7 @@ const REGLAS = [
     subsistema: 'estructura',
     evaluar(ctx) {
       // estructura metálica: lámina, tubular, PTR, perfil, solera, ángulo, acero
-      const metal = ctx.piezas.filter((p) => /lamina|tubular|\bptr\b|perfil|solera|angulo|acero|poste|bastidor metal/.test(p.texto));
+      const metal = ctx.piezas.filter((p) => /\blamina\b|tubular|\bptr\b|perfil|solera|angulo|acero|poste|bastidor metal/.test(p.texto));
       if (metal.length < 1) return null;
       // ¿hay una operación o renglón de unión? (soldadura, remache, tornillo estructural, doblez/punzonado = proceso metal)
       if (ctx.hayTexto(/soldad|remach|punzon|doblad/) || ctx.hayOperacion(/soldad|remach|punzon|doblad|corte.*lamina|corte.*tubo/)) return null;

@@ -33,6 +33,16 @@ describe('routingFabricacion · operaciones implícitas por material/rol', () =>
     expect(tiene(r, 'instalacion_herrajes').centro).toBe('ensamble');
   });
 
+  it('mueble SÓLO de melamina (sin metal) → NO propone soldadura ni corte de lámina (melamina ≠ lámina)', () => {
+    const r = proponerRouting({ piezas: [
+      { nombre: 'Cubierta melamina', semantic_role: 'cubierta' },
+      { nombre: 'Lateral melamina', semantic_role: 'lateral' },
+    ] });
+    expect(tiene(r, 'soldadura')).toBeFalsy();
+    expect(tiene(r, 'corte_lamina')).toBeFalsy();
+    expect(tiene(r, 'corte_tablero')).toBeTruthy();
+  });
+
   it('iluminación → cableado + pruebas eléctricas', () => {
     const r = proponerRouting({ piezas: [{ nombre: 'Tira LED 12V' }, { nombre: 'Driver 60W' }] });
     expect(tiene(r, 'cableado')).toBeTruthy();

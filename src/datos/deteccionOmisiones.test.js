@@ -62,6 +62,14 @@ describe('deteccionOmisiones · reglas de componentes implícitos', () => {
     expect(clave(r, 'metal_sin_union')).toBeTruthy();
   });
 
+  it('mueble SÓLO de melamina (sin metal) → NO marca "metal sin unión" (melamina ≠ lámina)', () => {
+    const r = detectarOmisiones({ piezas: [
+      { nombre: 'Cubierta melamina', semantic_role: 'cubierta' },
+      { nombre: 'Lateral melamina', semantic_role: 'lateral' },
+    ] });
+    expect(clave(r, 'metal_sin_union')).toBeFalsy();
+  });
+
   it('estructura metálica CON soldadura en el routing → no marca omisión de unión', () => {
     const r = detectarOmisiones({
       piezas: [{ nombre: 'Lámina negra calibre 18' }, { nombre: 'Tubular industrial 1"' }],
