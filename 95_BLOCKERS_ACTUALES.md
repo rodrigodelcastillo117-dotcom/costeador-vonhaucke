@@ -10,7 +10,7 @@ Separado por tipo. Nada aquí es un defecto económico conocido sin resolver; so
 | H2 | Aprobar los 42 puentes clave→insumo | Pantalla en vivo; la firma la da un humano (qa-direccion está excluida por diseño) |
 | H3 | MG-1: tarifa de hora-metal App LT (B8) | Decisión de costeo Dirección/Alba (ruta intelisis) |
 | H4 | Rotar la contraseña de la cuenta QA (BLN-06) | Acción en el panel de Auth; no se hace desde el repo |
-| H5 | Crear cuenta `qa-ventas` (rol ventas) | Necesaria para el pentest seller-safe en vivo |
+| ~~H5~~ | ~~Crear cuenta `qa-ventas`~~ | **RESUELTO 2026-11-03:** Dirección creó `ventasprueba@vonhaucke.mx` (rol vendedor) → pentest seller-safe 14/14 (`95_SEGURIDAD_EMISION_QA.md`) |
 | H6 | P0-03: decidir destino de ~1,763 precios aprobados históricamente por qa-direccion | Confianza económica de Dirección (re-firmar por humano o marcar) |
 
 ## B · Presupuesto de API de pago (directivo: "no quemar APIs; reutiliza evidencia")
@@ -24,10 +24,10 @@ Separado por tipo. Nada aquí es un defecto económico conocido sin resolver; so
 | ID | Qué |
 |---|---|
 | E1 | 24 proyectos E2E (8 COSTEAR + 8 COTIZAR + 8 COCREAR) con datos y trazabilidad propios |
-| E2 | COTIZAR ciclo completo 1→50 partidas, reabrir, revisión, PDF autorizado (requiere qa-ventas para seller-safe) |
+| E2 | COTIZAR ciclo completo 1→50 partidas, reabrir, revisión, PDF autorizado (ya hay cuenta vendedor `ventasprueba`) |
 | E3 | MOBILE/tablet/desktop por los 3 roles (navegador headless) |
 | E4 | ACOMODO con validador geométrico independiente (colisiones/pasillos/columnas) |
-| E5 | Pentest vivo 10 ataques (requiere qa-ventas) |
+| ~~E5~~ | ~~Pentest vivo 10 ataques~~ — **HECHO 2026-11-03: 14/14 PASS** (`95_SEGURIDAD_EMISION_QA.md`) |
 
 ## D · En la rama, pendiente de deploy autorizado
 - Hardening **BLN-09** (`src/datos/mapIaComps.js`, commit en rama) — requiere merge+deploy.

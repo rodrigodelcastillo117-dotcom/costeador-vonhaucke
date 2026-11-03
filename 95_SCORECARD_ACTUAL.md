@@ -22,14 +22,15 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 | 9 | CATÁLOGO/PRODUCTOS | NO RE-VERIF R3 | — | claves duplicadas (#77) + cotizabilidad de versión |
 | 10 | ARCHIVO/REABRIR | NO RE-VERIF R3 | — | guardar→reabrir→modificar→revisión en vivo |
 | 11 | PDF/EMISIÓN | Parcial (gate verificado) | gate `evaluar_emision_cotizacion` existe server-side; no confía en economía cliente (SEG-01) | emisión PDF autorizada E2E en entorno de prueba |
-| 12 | **SEGURIDAD** | **Medido parcial** | seller-safe por DATO (jsonb_sin_economia/partidas_vendedor/guardia costo); qa-direccion no-humana | pentest vivo 10 ataques — BLOQUEADO (falta qa-ventas) |
+| 12 | **SEGURIDAD** | **Medido (pentest vivo 14/14)** | pentest en vivo con cuenta rol vendedor: costos/precios/piso/cotizaciones ajenas/escritura/aprobaciones todo BLOQUEADO; VONI y costear devuelven precio, no costo | auditoría históricos qa-direccion (P0-03); rotar contraseña QA |
 | 13 | MOBILE | **SIN MEDIR** | — | tareas completas en móvil/tablet por los 3 roles (navegador) |
 | 14 | **RELEASE/INFRA** | **Medido (alto)** | deploy prod en vivo `d19557d` verificado; manifiesto; rollback; 4008 tests; build verde | — (BLN-09 pendiente de su propio deploy) |
 
 ## Lectura honesta
 - **Fresco y fuerte en R3:** COSTEAR (perfil lineal/BLN-09), INSUMOS/ERP (frescura B6), RELEASE/INFRA, y
   parcialmente SEGURIDAD y PDF/EMISIÓN (gate server-side verificado).
-- **SIN MEDIR en R3 (requieren cuenta QA o navegador):** MOBILE, y el pentest vivo de SEGURIDAD. No invento su calificación.
+- **SIN MEDIR en R3 (requiere navegador):** MOBILE. No invento su calificación.
+- **CERTIFICADO vivo en R3:** SEGURIDAD seller-safe — pentest con cuenta rol vendedor, 14/14 vectores bloqueados; ver `95_SEGURIDAD_EMISION_QA.md`.
 - **Parcial nuevo en R3:** RENDERS — 2 renders inspeccionados a costo cero (conceptual PASS, cotas REVIEW); ver
   `95_ACOMODO_RENDER_QA.md`. VONI — benchmark adversarial de 5 casos (4/5), ver `95_VONI_BENCHMARK.md`.
   Ambos con evidencia fresca; faltan la escala (N renders / 30 casos VONI con referencias humanas) para "medido pleno".

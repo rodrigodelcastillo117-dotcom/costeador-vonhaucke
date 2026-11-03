@@ -163,15 +163,16 @@ requiere cambio de código. Alcance = resolución de costo/precio; autoridad = D
 - **No existe `qa-ventas`**: en `permitidos` solo hay `qa-direccion`. El humano debía crear la cuenta de
   ventas para probar el seller-safe en vivo.
 
-### Honestidad del alcance
-Las PRIMITIVAS server-side del seller-safe existen y son a nivel de datos (verificado). La **prueba E2E viva
-de los 10 ataques** del directivo (leer costos como vendedor, cotizaciones ajenas, cambiar precios desde
-cliente, revisiones obsoletas, reutilizar aprobaciones, cambiar identidad de partida, manipular cantidades,
-descuentos no autorizados, cambiar snapshots, concurrencia) **está BLOQUEADA** porque falta la cuenta
-`qa-ventas` para el rol sin economía, y parte exige correr con datos aislados. Varios de esos vectores ya
-tienen cobertura server-side previa (SEG-01 emisión server-side, VH-148 conflicto de versión, PROHIBIDOS en
-`validarIntentCosteo`); el pentest vivo completo queda como tarea con `qa-ventas` creada. **No declaro
-seller-safe "probado en vivo" sin esa cuenta.**
+### Pentest vivo — **COMPLETADO 2026-11-03 (14/14 PASS)**
+Dirección creó la cuenta rol vendedor `ventasprueba@vonhaucke.mx`. Con ella se corrió el pentest seller-safe
+EN VIVO (REST/RPC/Edge). **Resultado: 14/14 vectores bloqueados o despojados.** El vendedor no pudo leer
+costos (`resolver_costo_insumo`/`catalogo_motor` → 400), precios (`insumo_precios` 0 filas), piso
+(`lista_precio_items` 403), cotizaciones ajenas crudas (403), config con precios (0 filas); no pudo escribir
+precios (400) ni en la biblioteca de referencia nueva (42501); no pudo aprobar precios ni puentes ("no
+autorizado"); `puede_ver_economia()` = false; VONI y `costear-servidor` le devuelven **precioVenta** (el precio
+a cotizar) pero **NUNCA costoUnitario/margen**. Detalle completo en `95_SEGURIDAD_EMISION_QA.md`. **Seller-safe
+CERTIFICADO por DATOS en producción.** (Pendiente menor: rotar contraseña QA — BLN-06; auditoría de históricos
+qa-direccion — P0-03.)
 
 ---
 
