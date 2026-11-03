@@ -1,0 +1,898 @@
+[
+ {
+  "id": "NEXUS",
+  "linea": "living",
+  "nombre": "NEXUS · escritorio con credenza",
+  "medidas": "1600 × 500 × 750 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta Nogal 28",
+    "q": 1,
+    "L": 1200,
+    "W": 450,
+    "mat": "no28"
+   },
+   {
+    "nombre": "Lateral",
+    "q": 2,
+    "L": 612,
+    "W": 450,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Piso",
+    "q": 1,
+    "L": 1168,
+    "W": 450,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Divisor",
+    "q": 2,
+    "L": 596,
+    "W": 450,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Trasero",
+    "q": 1,
+    "L": 1168,
+    "W": 596,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Entrepaño bahía abierta",
+    "q": 1,
+    "L": 328,
+    "W": 430,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente cajón comedero",
+    "q": 1,
+    "L": 330,
+    "W": 150,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Costado caja comedero",
+    "q": 2,
+    "L": 400,
+    "W": 100,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente/fondo caja comedero",
+    "q": 2,
+    "L": 266,
+    "W": 100,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Charola HPL con 2 huecos para tazón",
+    "q": 1,
+    "L": 400,
+    "W": 290,
+    "mat": "mdf16hpl"
+   },
+   {
+    "nombre": "Frente cajón",
+    "q": 3,
+    "L": 380,
+    "W": 192,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Costado caja cajón",
+    "q": 6,
+    "L": 400,
+    "W": 140,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón",
+    "q": 6,
+    "L": 316,
+    "W": 140,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Fondo cajón",
+    "q": 3,
+    "L": 400,
+    "W": 350,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Frente de nido con arco 300 × 420",
+    "q": 1,
+    "L": 426,
+    "W": 596,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Cubierta escritorio en ángulo Nogal 28 (rect. envolvente)",
+    "q": 1,
+    "L": 1300,
+    "W": 600,
+    "mat": "no28"
+   },
+   {
+    "nombre": "Pata escritorio Grafito 28",
+    "q": 1,
+    "L": 722,
+    "W": 500,
+    "mat": "gr28"
+   },
+   {
+    "nombre": "Repisa elevada Nogal 28",
+    "q": 1,
+    "L": 1300,
+    "W": 280,
+    "mat": "no28"
+   },
+   {
+    "nombre": "Soporte de repisa",
+    "q": 2,
+    "L": 280,
+    "W": 120,
+    "mat": "gr16"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "gn",
+    "tableros": [
+     {
+      "mat": "no28",
+      "nombre": "Melamina 28 mm Nogal Neo TX (B805) · Nogal",
+      "ref": "B805 · 2026-06-04",
+      "hojasLote": 10,
+      "hojasUnidad": 1,
+      "eficiencia": 58,
+      "costo": 1107
+     },
+     {
+      "mat": "gr16",
+      "nombre": "Melamina 16 mm Antracita Light TX (B761) · Grafito",
+      "ref": "B761 · 2026-07-07",
+      "hojasLote": 15,
+      "hojasUnidad": 1.5,
+      "eficiencia": 87,
+      "costo": 1042.2
+     },
+     {
+      "mat": "mdf16hpl",
+      "nombre": "MDF laminado plástico (HPL) 2 caras 16 mm",
+      "ref": "MVLMMD04280500 · 2025-11-19",
+      "hojasLote": 1,
+      "hojasUnidad": 0.1,
+      "eficiencia": 40,
+      "costo": 146.77
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 72,
+      "costo": 33.26
+     },
+     {
+      "mat": "gr28",
+      "nombre": "Melamina 28 mm Antracita Light TX (B761) · Grafito",
+      "ref": "B761 · 2026-07-07",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 62,
+      "costo": 259.02
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 13.53,
+      "costo": 216.48
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 10.12,
+      "costo": 111.32
+     },
+     {
+      "tipo": "Canto ABS 22×1 mm (flexible, curvas)",
+      "metros": 9.57,
+      "costo": 42.97
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Corredera Häfele ext. total con retén 400 mm (par)",
+      "cant": 4,
+      "costo": 168,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Perfil gola aluminio tipo C (m)",
+      "cant": 1.2,
+      "costo": 166.16,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tazón acero inoxidable (compra externa)",
+      "cant": 2,
+      "costo": 180,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Gancho para correa (compra externa)",
+      "cant": 1,
+      "costo": 30,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 32,
+      "costo": 135.04,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 4,
+      "costo": 40,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 80,
+      "costo": 80,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 3804.42,
+    "materialFab": 3594.42,
+    "materialCv": 210,
+    "fab": 6692.56,
+    "maquila25": 8923.41,
+    "maquila35": 10296.24,
+    "maquila50": 13385.11,
+    "estimados": 330
+   }
+  ]
+ },
+ {
+  "id": "MUSE-R",
+  "linea": "living",
+  "nombre": "MUSE · tocador con torre y nido",
+  "medidas": "1600 × 500 × 1400 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta Nogal 28",
+    "q": 1,
+    "L": 1600,
+    "W": 500,
+    "mat": "no28"
+   },
+   {
+    "nombre": "Lateral pedestal / nido",
+    "q": 4,
+    "L": 722,
+    "W": 480,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Piso pedestal / nido",
+    "q": 2,
+    "L": 418,
+    "W": 480,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Trasero bajo cubierta",
+    "q": 1,
+    "L": 1568,
+    "W": 300,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente cajón pedestal",
+    "q": 3,
+    "L": 450,
+    "W": 230,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Costado caja cajón",
+    "q": 8,
+    "L": 420,
+    "W": 140,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón",
+    "q": 8,
+    "L": 360,
+    "W": 140,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Fondo cajón",
+    "q": 4,
+    "L": 380,
+    "W": 420,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Frente cajón central",
+    "q": 1,
+    "L": 600,
+    "W": 120,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente de nido con arco",
+    "q": 1,
+    "L": 450,
+    "W": 722,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Torre: laterales",
+    "q": 2,
+    "L": 800,
+    "W": 250,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Torre: tapa y base",
+    "q": 2,
+    "L": 418,
+    "W": 250,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Torre: repisas",
+    "q": 4,
+    "L": 418,
+    "W": 230,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Torre: trasero",
+    "q": 1,
+    "L": 800,
+    "W": 418,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Respaldo del espejo",
+    "q": 1,
+    "L": 850,
+    "W": 700,
+    "mat": "gr16"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "gn",
+    "tableros": [
+     {
+      "mat": "no28",
+      "nombre": "Melamina 28 mm Nogal Neo TX (B805) · Nogal",
+      "ref": "B805 · 2026-06-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 55,
+      "costo": 553.5
+     },
+     {
+      "mat": "gr16",
+      "nombre": "Melamina 16 mm Antracita Light TX (B761) · Grafito",
+      "ref": "B761 · 2026-07-07",
+      "hojasLote": 23,
+      "hojasUnidad": 2.3,
+      "eficiencia": 86,
+      "costo": 1598.04
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 73,
+      "costo": 49.89
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 4.62,
+      "costo": 73.92
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 17.36,
+      "costo": 190.94
+     },
+     {
+      "tipo": "Canto ABS 22×1 mm (flexible, curvas)",
+      "metros": 12.03,
+      "costo": 54.03
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Espejo 6 mm cantos pulidos ($/m²)",
+      "cant": 0.52,
+      "costo": 451.88,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Kit LED perimetral de línea 4000K CRI90 + dimmer (PRECIO OBJETIVO, cotizar)",
+      "cant": 2,
+      "costo": 1400,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Corredera Häfele ext. total con retén 400 mm (par)",
+      "cant": 4,
+      "costo": 168,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Perfil gola aluminio tipo C (m)",
+      "cant": 2,
+      "costo": 276.93,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 6,
+      "costo": 69.3,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 30,
+      "costo": 126.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.15,
+      "costo": 87.9,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 0.6,
+      "costo": 57,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 80,
+      "costo": 80,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 5317.94,
+    "materialFab": 3386.06,
+    "materialCv": 1931.88,
+    "fab": 8142.69,
+    "maquila25": 10856.92,
+    "maquila35": 12527.22,
+    "maquila50": 16285.39,
+    "estimados": 1560
+   }
+  ]
+ },
+ {
+  "id": "NEST-R",
+  "linea": "living",
+  "nombre": "NEST · mesa de centro con nicho y cajón",
+  "medidas": "1200 × 700 × 400 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta Nogal 28",
+    "q": 1,
+    "L": 1200,
+    "W": 700,
+    "mat": "no28"
+   },
+   {
+    "nombre": "Lateral",
+    "q": 2,
+    "L": 372,
+    "W": 680,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Piso",
+    "q": 1,
+    "L": 1168,
+    "W": 680,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Divisor",
+    "q": 1,
+    "L": 356,
+    "W": 680,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Fondo",
+    "q": 1,
+    "L": 1168,
+    "W": 356,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Repisa",
+    "q": 1,
+    "L": 560,
+    "W": 660,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente cajón",
+    "q": 1,
+    "L": 560,
+    "W": 170,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Costado caja cajón",
+    "q": 2,
+    "L": 600,
+    "W": 120,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón",
+    "q": 2,
+    "L": 500,
+    "W": 120,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Fondo cajón",
+    "q": 1,
+    "L": 600,
+    "W": 520,
+    "mat": "mdf55"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "gn",
+    "tableros": [
+     {
+      "mat": "no28",
+      "nombre": "Melamina 28 mm Nogal Neo TX (B805) · Nogal",
+      "ref": "B805 · 2026-06-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 58,
+      "costo": 553.5
+     },
+     {
+      "mat": "gr16",
+      "nombre": "Melamina 16 mm Antracita Light TX (B761) · Grafito",
+      "ref": "B761 · 2026-07-07",
+      "hojasLote": 11,
+      "hojasUnidad": 1.1,
+      "eficiencia": 84,
+      "costo": 764.28
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 54,
+      "costo": 33.26
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 4.18,
+      "costo": 66.88
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 8.7,
+      "costo": 95.71
+     },
+     {
+      "tipo": "Canto ABS 22×1 mm (flexible, curvas)",
+      "metros": 2.42,
+      "costo": 10.87
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Corredera Häfele ext. total con retén 400 mm (par)",
+      "cant": 1,
+      "costo": 42,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.33,
+      "costo": 193.38,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 1,
+      "costo": 95,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 14,
+      "costo": 59.08,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 40,
+      "costo": 40,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 2000.16,
+    "materialFab": 2000.16,
+    "materialCv": 0,
+    "fab": 3600.28,
+    "maquila25": 4800.37,
+    "maquila35": 5538.89,
+    "maquila50": 7200.56,
+    "estimados": 40
+   }
+  ]
+ },
+ {
+  "id": "HAVEN-R",
+  "linea": "living",
+  "nombre": "HAVEN · mueble TV con nido",
+  "medidas": "2000 × 400 × 560 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta Nogal 28",
+    "q": 1,
+    "L": 2000,
+    "W": 400,
+    "mat": "no28"
+   },
+   {
+    "nombre": "Lateral",
+    "q": 2,
+    "L": 472,
+    "W": 400,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Piso",
+    "q": 1,
+    "L": 1968,
+    "W": 400,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Trasero",
+    "q": 1,
+    "L": 1968,
+    "W": 456,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Divisor",
+    "q": 2,
+    "L": 456,
+    "W": 380,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Entrepaño bahía abierta",
+    "q": 2,
+    "L": 400,
+    "W": 370,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Entrepaño bahía puertas",
+    "q": 1,
+    "L": 1000,
+    "W": 370,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Puerta",
+    "q": 3,
+    "L": 330,
+    "W": 454,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Zoclo metido (largo)",
+    "q": 1,
+    "L": 1900,
+    "W": 60,
+    "mat": "gr16"
+   },
+   {
+    "nombre": "Zoclo metido (corto)",
+    "q": 2,
+    "L": 340,
+    "W": 60,
+    "mat": "gr16"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "gn",
+    "tableros": [
+     {
+      "mat": "no28",
+      "nombre": "Melamina 28 mm Nogal Neo TX (B805) · Nogal",
+      "ref": "B805 · 2026-06-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 55,
+      "costo": 553.5
+     },
+     {
+      "mat": "gr16",
+      "nombre": "Melamina 16 mm Antracita Light TX (B761) · Grafito",
+      "ref": "B761 · 2026-07-07",
+      "hojasLote": 15,
+      "hojasUnidad": 1.5,
+      "eficiencia": 84,
+      "costo": 1042.2
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 5.28,
+      "costo": 84.48
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 14.34,
+      "costo": 157.78
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Bisagra cierre suave 110°",
+      "cant": 6,
+      "costo": 124.98,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Kit LED perimetral de línea 4000K CRI90 + dimmer (PRECIO OBJETIVO, cotizar)",
+      "cant": 1,
+      "costo": 700,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.2,
+      "costo": 117.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 0.7,
+      "costo": 66.5,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet rectangular",
+      "cant": 1,
+      "costo": 33.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet pasacables Ø2\"",
+      "cant": 2,
+      "costo": 12.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 6,
+      "costo": 69.3,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 24,
+      "costo": 101.28,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 3203.42,
+    "materialFab": 2423.42,
+    "materialCv": 780,
+    "fab": 5188.96,
+    "maquila25": 6918.61,
+    "maquila35": 7983.01,
+    "maquila50": 10377.92,
+    "estimados": 840
+   }
+  ]
+ }
+]
