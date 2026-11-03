@@ -30,7 +30,8 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 - **Fresco y fuerte en R3:** COSTEAR (perfil lineal/BLN-09), INSUMOS/ERP (frescura B6), RELEASE/INFRA, y
   parcialmente SEGURIDAD y PDF/EMISIÓN (gate server-side verificado).
 - **SIN MEDIR en R3 (requiere navegador):** MOBILE. No invento su calificación.
-- **CERTIFICADO vivo en R3:** SEGURIDAD seller-safe — pentest con cuenta rol vendedor, 14/14 vectores bloqueados; ver `95_SEGURIDAD_EMISION_QA.md`.
+- **CERTIFICADO vivo en R3:** SEGURIDAD seller-safe — pentest con cuenta rol vendedor, 14/14 vectores bloqueados; ver `95_SEGURIDAD_EMISION_QA.md`. Asesor Supabase (16 SECURITY DEFINER + 8 RLS-sin-policy) = 0 vulns, `95_SEGURIDAD_SUPABASE_QA.md`.
+- **RENDIMIENTO medido R3:** P0.COSTEO latencia p50 ~1.5 s, p95 <1.8 s en caliente, PLANA de 1→50 componentes, 0 errores/60 llamadas; SLO propuesto. Ver `95_P0COSTEO_LATENCIA.md`.
 - **Parcial nuevo en R3:** RENDERS — 2 renders inspeccionados a costo cero (conceptual PASS, cotas REVIEW); ver
   `95_ACOMODO_RENDER_QA.md`. VONI — benchmark adversarial de 5 casos (4/5), ver `95_VONI_BENCHMARK.md`.
   Ambos con evidencia fresca; faltan la escala (N renders / 30 casos VONI con referencias humanas) para "medido pleno".
