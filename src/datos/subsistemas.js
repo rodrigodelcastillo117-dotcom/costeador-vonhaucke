@@ -62,7 +62,7 @@ export const SUBSISTEMAS = [
     clave: 'paneleria', nombre: 'Panelería y carpintería', ubicacion: UBICACION.FABRICA,
     nota: 'Tableros fabricados: melamina, MDF, MDP, triplay, HPL, chapa; cubiertas, costados, puertas, cajones, entrepaños.',
     roles: new Set(['cubierta', 'lateral', 'entrepano', 'puerta', 'faldon', 'fondo', 'respaldo', 'gaveta', 'frente_cajon']),
-    palabras: /melamina|\bmdf\b|\bmdp\b|aglomerad|triplay|contrachapad|\bhpl\b|chapa|tablero|cubierta|entrepano|respaldo|\bfondo\b|puerta|caj[oó]n|gaveta/,
+    palabras: /melamina|\bmdf\b|\bmdp\b|aglomerad|triplay|contrachapad|\bhpl\b|chapa|tablero|cubierta|entrepano|respaldo|\bfondo\b|puerta|caj[oó]n|gaveta|tira de madera|madera de pino|madera maciza|madera solida|\bduela\b|\btabl[oó]n\b/,
   },
   {
     clave: 'embalaje_logistica', nombre: 'Embalaje, logística y montaje', ubicacion: UBICACION.PROYECTO,
