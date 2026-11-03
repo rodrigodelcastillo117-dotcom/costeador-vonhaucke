@@ -16,8 +16,9 @@ import { recetaBench } from '../datos/bench.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
-import { generarRender, analizarTexto, buscarProductosMaestroTexto, buscarInsumosMotor } from '../nube.js';
+import { generarRender, analizarTexto, buscarProductosMaestroTexto, buscarInsumosMotor, resolverMapeosMaterial, proponerMapeoMaterial } from '../nube.js';
 import { amarrarPendientesERP } from '../datos/amarreERP.js';
+import { aplicarMemoriaMaterial, clavesParaMemoria } from '../datos/memoriaMaterial.js';
 import { pesos2, pct, pct1, colorMerma } from '../util.js';
 import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
@@ -156,10 +157,24 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       }
       const compsIA = conAcompanantes(mapIaComps(p), insumos);
       set({ nombre: costeo.nombre || p.producto || '', descripcionCliente: p.descripcionCliente || desc, componentes: compsIA });
-      // Regla de casa (12-oct): pendientes → catálogo de Compras (ERP), provisional por confirmar.
-      amarrarPendientesERP(compsIA, { buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos })
-        .then(({ comps: amarrados, amarrados: lista }) => { if (lista.length) set({ componentes: amarrados }); })
-        .catch(() => {});
+      // Parte B · MEMORIA primero (puentes voni_material APROBADOS por Dirección), luego REGLA DE CASA (12-oct):
+      // lo pendiente → catálogo de Compras (ERP). Ambos entran provisional (por confirmar). Mejor esfuerzo.
+      (async () => {
+        let base = compsIA; let cambio = false;
+        try {
+          const claves = clavesParaMemoria(compsIA, insumos);
+          const memoria = claves.length ? await resolverMapeosMaterial(claves) : {};
+          if (Object.keys(memoria).length) {
+            const r = await aplicarMemoriaMaterial(compsIA, { memoria, buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos });
+            base = r.comps; cambio = cambio || r.aplicados.length > 0;
+          }
+        } catch (_e) { /* memoria: mejor esfuerzo */ }
+        try {
+          const r = await amarrarPendientesERP(base, { buscar: buscarInsumosMotor, agregarInsumo: onAgregarInsumo || (() => {}), insumos });
+          base = r.comps; cambio = cambio || r.amarrados.length > 0;
+        } catch (_e) { /* amarre: mejor esfuerzo */ }
+        if (cambio) set({ componentes: base });
+      })();
       setEstructuraVoni(p.design_intent ? graphFromPropuesta(p) : null);
       // VH-066: si el catálogo central no estuvo, la edge lo dice (`catalogoFuente`);
       // el Asistente especial ya avisaba (#8) y esta pantalla se lo callaba.
@@ -289,6 +304,12 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     const finales = hermanas ? aplicarAHermanas(comps, i, prev.insumoId, insumoId, parche).comps : comps;
     // Adhesivo automático: elegir superficie sólida arrastra su adhesivo de uniones.
     set({ componentes: conAcompanantes(finales, insumos) });
+    // Parte B · APRENDER: al CONFIRMAR un humano «material pedido → insumo», se graba como puente propuesto para
+    // reusarlo (lo aprueba luego Dirección). Mejor esfuerzo, sin await: nunca bloquea la UI.
+    if (confirmado && insumoId) {
+      const pedido = prev.material_solicitado || prev.nombre || '';
+      if (pedido) proponerMapeoMaterial(pedido, insumoId, { pedidoCrudo: prev.nombre || '' }).catch(() => {});
+    }
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)
   function costoPieza(c, ins, n) {
