@@ -942,7 +942,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           const prep = await prepararPdfRapido(file, { previewPx: 1200 });
           const doc = prep.doc;
           if (prep.numPaginas > 1) {
-            setPdfSel({ doc, numPaginas: prep.numPaginas, pagina: 1, preview: prep.preview, msAFirstPreview: prep.msAFirstPreview });
+            setPdfSel({ file, doc, numPaginas: prep.numPaginas, pagina: 1, preview: prep.preview, msAFirstPreview: prep.msAFirstPreview });
             setAnalizando(false);
             return; // preview rápido; el trabajo pesado ocurre sólo al confirmar
           }
@@ -998,13 +998,28 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   }
 
   // Analiza TODAS las hojas juntas (un mismo mueble repartido en varias páginas:
-  // vista general + detalle por parte). La IA las integra en un solo despiece.
+  // vista general + detalle por parte + LISTA DE DESPIECE). La IA las integra en un
+  // solo despiece.
+  // PDF chico → se manda NATIVO (documento): la IA lee TODAS las hojas con su TEXTO
+  // real (cotas y tabla de despiece/BOM) SIN la pérdida del rasterizado a JPEG, que es
+  // justo lo que hacía que no se leyera la tabla de materiales de una hoja interior.
+  // Sólo si el PDF es muy grande, o el envío nativo no da un despiece utilizable, se
+  // rasterizan las hojas a imagen (fallback de siempre).
+  const PDF_NATIVO_MAX_BYTES = 15 * 1024 * 1024; // ≤15 MB cabe nativo bajo el límite del edge (25 MB decodificados)
   async function analizarTodasPdf() {
     if (!pdfSel) return;
     const sel = pdfSel;
     setPdfSel(null); setErrorIA(''); setAnalizando(true);
     const cid = nuevaCorrida();
     try {
+      if (sel.file && sel.file.size <= PDF_NATIVO_MAX_BYTES) {
+        try {
+          const base64 = await archivoABase64(sel.file);
+          const ok = await analizarYLlenar(base64, 'application/pdf', sel.preview, cid);
+          if (ok) return; // nativo leyó todas las hojas (incluida la de materiales)
+          // nativo no dio despiece utilizable → cae al rasterizado de todas las hojas
+        } catch (_eNativo) { /* cae al rasterizado */ }
+      }
       const paginas = sel.numPaginas <= 8
         ? Array.from({ length: sel.numPaginas }, (_, i) => i + 1)
         : paginasAlrededor(sel.pagina, sel.numPaginas, 3);
@@ -1027,13 +1042,14 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     );
   }
 
-  // Selector de hoja: un plano en PDF trae varias páginas (varios muebles/vistas).
-  // Se elige la hoja del mueble a costear y solo esa se manda a la IA (como imagen).
+  // Selector de hoja: un plano en PDF trae varias páginas (vistas + detalle + LISTA DE
+  // DESPIECE). Por default se leen TODAS las hojas juntas (nativo, con texto) para no
+  // perder la tabla de materiales, que suele estar en una hoja interior.
   if (pdfSel) {
     return (
       <div className="asistente">
         <div className="pregunta">Tu plano tiene {pdfSel.numPaginas} páginas</div>
-        <div className="pregunta-sub">Si es UN mueble repartido en varias hojas (general + detalle por parte), analízalas <strong>juntas</strong> para un costeo completo. Si cada hoja es un mueble distinto, analiza <strong>solo una</strong>.</div>
+        <div className="pregunta-sub">Casi siempre es <strong>UN mueble</strong> repartido en varias hojas (vistas + detalle + <strong>lista de materiales</strong>): léelas <strong>todas juntas</strong> para un costeo completo — la tabla de materiales suele venir en una hoja interior. Usa <strong>solo una</strong> únicamente si cada hoja es un mueble distinto.</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '12px 0', flexWrap: 'wrap' }}>
           <button className="boton" onClick={() => verPaginaPdf(pdfSel.pagina - 1)} disabled={pdfSel.pagina <= 1}>‹ Anterior</button>
           <strong>Página {pdfSel.pagina} de {pdfSel.numPaginas}</strong>
@@ -1044,7 +1060,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             style={{ maxWidth: '100%', border: '1px solid rgba(0,0,0,.18)', borderRadius: 8, display: 'block' }} />
         )}
         <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <button className="boton primario grande" onClick={analizarTodasPdf}>{pdfSel.numPaginas > 8 ? 'Analizar vistas cercanas (máx. 7)' : `Analizar las ${pdfSel.numPaginas} hojas juntas (un mueble)`}</button>
+          <button className="boton primario grande" onClick={analizarTodasPdf}>{pdfSel.numPaginas > 8 ? 'Leer todo el plano (vistas cercanas)' : `Leer las ${pdfSel.numPaginas} hojas (incluye materiales) ✓`}</button>
           <button className="boton grande" onClick={analizarPaginaPdf}>Solo esta hoja</button>
           <button className="boton fantasma" onClick={() => setPdfSel(null)}>Cancelar</button>
         </div>

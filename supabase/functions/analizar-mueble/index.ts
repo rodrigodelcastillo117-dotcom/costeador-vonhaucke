@@ -276,6 +276,14 @@ Deno.serve(async (req) => {
     "  · Si existe un material de OTRA familia que PODRÍA servir como sustituto → insumoId='' y material_match='SUBSTITUTE_SUGGESTED', y explica en 'nota' cuál sugieres y por qué (lo confirmará un humano).\n" +
     "  ⛔ PROHIBIDO sustituir una familia por otra en silencio. Ejemplo real que NO debe repetirse: piden SUPERFICIE SÓLIDA (solid surface/Corian/Krion) y la cuelan como MDF+laminado HPL porque 'se parecen' — eso FALSEA el costo. Superficie sólida ≠ MDF ≠ melamina ≠ laminado ≠ piedra. Acero inoxidable ≠ lámina común. PET acústico ≠ MDF.\n" +
     "  Un material NOT_AVAILABLE se queda SIN precio (pendiente de precio real); es MEJOR marcarlo pendiente que inventarlo con otra familia.\n\n" +
+    "TABLA / LISTA DE DESPIECE = AUTORIDAD (lo MAS importante cuando existe): muchos planos tecnicos traen una LISTA DE DESPIECE/MATERIALES/BOM en forma de TABLA (columnas tipo 'No. · Clave · Clave PDM · Descripcion · Cantidad', o 'PARTES', 'MATERIALES', 'ITEM / QTY'). Esa tabla SUELE ESTAR EN UNA HOJA DISTINTA a las vistas (p.ej. hoja 2 de 4). Si el documento trae varias hojas, REVISALAS TODAS y BUSCA esa tabla. Cuando exista, es el BOM OFICIAL y manda sobre lo que dedujiste de los dibujos:\n" +
+    "  · CADA renglon de la tabla es UNA pieza del despiece: emitela en 'piezas'. Lee la tabla COMPLETA, renglon por renglon; no te saltes ninguno.\n" +
+    "  · NO vuelvas a derivar del dibujo una pieza que ya esta en la tabla, y NO la dupliques. Una pieza que sale de la tabla se cuenta UNA vez con la Cantidad que diga la tabla.\n" +
+    "  · La 'Clave'/'Clave PDM' identifica la pieza: ponla en 'nombre' (o en 'evidencia') y usa la DESCRIPCION como material_solicitado.\n" +
+    "  · Saca largoMM/anchoMM, material y acabado de la DESCRIPCION del renglon. Ej: 'CUERPO ... 1200 X 865 X 600 mm EN LAMINA' → lamina, 1200x865x600; 'CAPELO DE CRISTAL 1148 X 548 X 254 ESPESOR 6 mm' → cristal 6mm, 1148x548x254; 'CAJA DE LUZ ... ACRILICO ... 3.0 mm' → acrilico 3mm; 'KIT DE ILUMINACION LED ...' → kit LED comprado. Mapea al catalogo por FAMILIA igual que siempre (insumoId EXACT, o '' si la familia no existe).\n" +
+    "  · procedencia=MEASURED y confianza='alta' para lo que salga de la tabla; pagina = la hoja donde esta la tabla. Un dato que la tabla YA da (material, medida o cantidad) esta DECIDIDO: NO lo preguntes en 'preguntas'.\n" +
+    "  · COMPRADOS/herrajes de la tabla (remache, pija, tornillo, clavo, corredera, pasador, bisagra, kit LED, silicon, sellador, placa) van forma='pieza' y NO llevan 'hojas'.\n" +
+    "  · Si NO hay tabla de despiece en ninguna hoja, trabaja como siempre desde las vistas y cotas.\n\n" +
     "REGLAS CLAVE (mias, respetalas):\n" +
     "A) ANCLA A NUESTROS DATOS: dentro de la MISMA familia SIEMPRE escoge el id del catálogo más cercano (por color/espesor) y ASÍGNALO — eso es EXACT para costear. insumoId='' SÓLO cuando falta la FAMILIA completa, nunca por un color distinto. NUNCA uses el id 'más cercano' de OTRA familia (eso sí está prohibido). Que ninguna pieza con material nombrado quede sin id. Usa formatos comerciales reales MX/Norteamerica (tablero 1.22x2.44 m, tubo 6 m, lamina 4x8/4x10 ft, tela ancho 1.40 m).\n" +
     "B) CUANTIFICA, no solo describas: merma % actual vs optimizada, piezas por tablero, kg de acero, horas por proceso, ahorro en % (NO en pesos).\n" +
@@ -328,7 +336,7 @@ Deno.serve(async (req) => {
     ? `DESCRIPCION DEL MUEBLE (en palabras del cliente):\n"${desc}"\n\nInterprétalo como OBJETO y realiza la Auditoria Tecnica, BOM y Estrategia completa. Rellena 'design_intent' y el 'semantic_role'/'relacion' de cada pieza. Marca como supuesto (confianza baja) y pregunta lo que el texto no especifique.`
     : imgs.length > 1
       ? `Te doy ${imgs.length} HOJAS del MISMO mueble (vista general + detalle por parte). Intégralas en UN SOLO despiece/BOM y una sola auditoria — NO las trates como muebles distintos. Usa las cotas y especificaciones de TODAS las hojas.`
-      : "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble.";
+      : "Realiza la Auditoria Tecnica, BOM y Estrategia de Industrializacion completa de este mueble. Si el archivo es un PDF de VARIAS HOJAS, LEELAS TODAS (no solo la primera): las vistas y la LISTA DE DESPIECE suelen estar en hojas distintas. Si hay una tabla de despiece/materiales, usala como BOM autoritativo.";
   // Texto + imagen: adjunta la intención del usuario como contexto (regla I del system).
   if (!soloTexto && desc) {
     textoTarea += `\n\nINTENCION DEL USUARIO (texto, prioriza como intención; la imagen es evidencia geométrica):\n"${desc}"`;
