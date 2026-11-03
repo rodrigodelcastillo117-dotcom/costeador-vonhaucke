@@ -31,6 +31,7 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
   parcialmente SEGURIDAD y PDF/EMISIÓN (gate server-side verificado).
 - **SIN MEDIR en R3 (requiere navegador):** MOBILE. No invento su calificación.
 - **CERTIFICADO vivo en R3:** SEGURIDAD seller-safe — pentest con cuenta rol vendedor, 14/14 vectores bloqueados; ver `95_SEGURIDAD_EMISION_QA.md`. Asesor Supabase (16 SECURITY DEFINER + 8 RLS-sin-policy) = 0 vulns, `95_SEGURIDAD_SUPABASE_QA.md`.
+- **SELLER-SAFE EN UI (navegador R3):** Playwright vivo contra prod 2b78f57 — el vendedor no tiene ruta a Costear/Materiales/Dirección/ERP y su DOM no contiene léxico de costo (home + 3 pantallas de datos); diff de menú por rol. Ver `95_SELLERSAFE_UI_NAVEGADOR.md`. (Cierra el hueco "UI renderizada" que la cert por API no cubría.)
 - **RENDIMIENTO medido R3:** P0.COSTEO latencia p50 ~1.5 s, p95 <1.8 s en caliente, PLANA de 1→50 componentes, 0 errores/60 llamadas; SLO propuesto. Ver `95_P0COSTEO_LATENCIA.md`.
 - **P0-03 CERRADO en R3 (hallazgo material):** el blocker "1,763 aprobados por qa-direccion" ya no existe: rastro de auditoría
   muestra 1,763/1,763 re-firmados por el humano Dirección, 0 precios vivos confían en cuenta no humana. Ver `95_P8_INSUMOS_P0-03_RESUELTO.md`.
