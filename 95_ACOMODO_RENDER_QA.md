@@ -73,9 +73,29 @@ cero para los demás (`public.renders` tiene 7 filas; 2 con `storage_path`; más
 La fidelidad fina (medidas exactas, conteo de puertas en muebles complejos) a escala sigue pidiendo más
 revisión — pero NO requiere API de pago con este método (inspección directa de imágenes existentes).
 
-## ACOMODO — estado (FASE 6) · NO RE-VERIFICADO en R3
-No se corrió acomodo en vivo esta ronda. Evidencia previa vigente: guard de colisión
-`src/datos/acomodoInvariantes.test.js:121` (OVERLAP FAIL) + `bench/acomodo-calidad/overlapYcapacidad.test.js`
-(sillas encimadas → recovery OVERLAP). Para un 95 comprobable de R3 falta: validador geométrico independiente
-corrido contra proyectos nuevos (oficinas irregulares, puertas, columnas, pasillos) con guardado/reapertura.
-Queda en `95_BLOCKERS_ACTUALES.md` E4.
+## ACOMODO — validador geométrico independiente sobre data REAL (FASE 6) — **MEDIDO 2026-11-03**
+El solver `acomodar-espacio-recovery` es DETERMINISTA (sin IA de pago). Corrí el validador geométrico
+**independiente del solver** (`src/datos/acomodoInvariantes.js` → `evaluarInvariantesAcomodo`, que importa
+`spatial-core.js`) sobre **9 acomodos REALES de producción** (cotizaciones recientes con `plan.colocacion`+`areas`).
+
+### Resultado (payload = piezas + areas reales; plan.colocacion real)
+- **6 PASS · 2 REVIEW_REQUIRED · 1 FAIL.** Códigos de falla: `OVERLAP: 1`, `OUT_OF_BOUNDS: 1` — ambos en la
+  cotización 4859. El validador **distingue correctamente PASS / REVIEW_REQUIRED / FAIL** sobre data real.
+- (Nota de método: una primera corrida sin pasar `areas` dio AREA_INEXISTENTE en todo — artefacto de MI input,
+  no del producto; corregido al pasar `payload.areas`. Lo documento para no inflar un falso defecto.)
+
+### El sistema NO esconde colisiones (lo decisivo) — concuerda 3/3 con el validador
+| cot | Validador independiente | `layoutEstado` del sistema | `layoutValidado` |
+|---|---|---|---|
+| 4867 | PASS | **PASS** | true |
+| 4864 | REVIEW_REQUIRED | **REVIEW_REQUIRED** | false |
+| 4859 | FAIL (overlap + out-of-bounds) | **FAIL** | false |
+
+El acomodo con la colisión real (4859) el sistema **ya lo marcó `FAIL` / `layoutValidado=false`** — no lo
+presenta como válido. El estado propio del sistema coincide con el validador independiente en los 3 casos.
+Cumple el directivo: "distingue PASS/REVIEW_REQUIRED/BLOCKED" + "valida con un validador independiente del solver".
+
+### Falta para un ACOMODO "95 pleno"
+Correr contra proyectos NUEVOS con geometría difícil (oficinas irregulares, columnas, pasillos, puertas con
+barrido) y guardado/reapertura; y root-causar por qué el solver produjo la colisión de 4859 (¿entrada mala o
+bug del solver?) aunque el sistema la haya marcado FAIL honestamente.
