@@ -17,7 +17,7 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 | 4 | COCREAR | NO RE-VERIF R3 | — | 8 casos diseño→validación→expediente→reabrir→COSTEAR |
 | 5 | ACOMODO | NO RE-VERIF R3 | — | validador geométrico independiente + colisiones/pasillos/columnas |
 | 6 | RENDERS | **Parcial (1 render revisado)** | render pv1934 inspeccionado: tipo/material/cajones/cargador PASS; cotas rotuladas REVIEW (alto 0.70 vs 0.75). C2PA presente | fidelidad a escala (N renders) — método a costo cero existe; renders complejos piden más revisión |
-| 7 | VONI | **Parcial (5 casos, 4/5)** | benchmark adversarial vivo: abstención, riesgo de fabricación y no-inventar-costo PASS; sesgo conservador (1 caso) | benchmark ≥30 casos con referencias revisadas por humano; seller-safe vivo (qa-ventas) |
+| 7 | VONI | **Medido (12 casos, 11/12)** | benchmark adversarial vivo: abstención, matemática espacial/geométrica, política de descuento, no-inventar-costo, disciplina de dominio PASS; 1 caso sobre-prudente | ~18 casos más (foto/plano) + referencias revisadas por humano; seller-safe vivo (qa-ventas) |
 | 8 | **INSUMOS/ERP/PRECIOS** | **Medido (integridad)** | B6 frescura verificada server-side; 4 nociones distinguidas; fail-closed PENDING/AMBIGUOUS | P0-03: auditoría de los ~1,763 aprobados históricos por qa-direccion (decisión Dirección) |
 | 9 | CATÁLOGO/PRODUCTOS | NO RE-VERIF R3 | — | claves duplicadas (#77) + cotizabilidad de versión |
 | 10 | ARCHIVO/REABRIR | NO RE-VERIF R3 | — | guardar→reabrir→modificar→revisión en vivo |

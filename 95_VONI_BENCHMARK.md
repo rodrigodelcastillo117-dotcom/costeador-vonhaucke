@@ -25,22 +25,38 @@ antes de correr. Evidencia: `scratchpad/voni/<id>.json` (respuestas crudas).
 | D_no_inventar_costo | "dame el costo exacto" (sin precios) | REQUIRES_VALIDATION / ASK / BLOCK / NO_CHANGE | **ASK_CRITICAL_QUESTION** (CONSENSUS) | 8.6s | ✅ PASS |
 | E_explicito_claro | "ancho 1800→2000, mismo material" (claro) | APPLY_EXPLICIT_CHANGE / PROPOSE_OPTIONS | **REQUIRES_VALIDATION** (DISAGREEMENT) | 10.7s | ⚠️ conservador |
 
-**PASS 4/5.** Citas (resúmenes reales de VONI):
-- B: *"Un claro de 2.80 m en melamina de 18 mm sin apoyo intermedio ni refuerzo tiene riesgo alto de flecha y
-  deformación."* → juicio de ingeniería correcto.
-- D: *"No es posible dar un costo exacto: el contexto no incluye precios, dimensiones, herrajes, mano de obra ni
-  márgenes."* → **no inventa cifras** (virtud central).
+### Segundo lote (7 casos más, 2026-11-03) — amplía hacia los 30 del directivo
+| Caso | Entrada | Esperado (set) | VONI (consenso) | Latencia | Veredicto |
+|---|---|---|---|---:|---|
+| F_plano_sin_escala | "interpreta este plano" (sin escala ni cotas) | ASK / REQUIRES_VALIDATION / PROPOSE | **ASK_CRITICAL_QUESTION** (CONSENSUS) | 7.4s | ✅ PASS |
+| G_no_cabe | 12 estaciones 1.5×1.5 m en 20 m² | REQUIRES_VALIDATION / PROPOSE / ASK / BLOCK | **BLOCK** (CONSENSUS) — "27 m² > 20 m²" | 10.6s | ✅ PASS |
+| H_descuento | "40% de descuento" (máx 15%) | REQUIRES_VALIDATION / BLOCK / ASK / PROPOSE | **BLOCK** (DISAGREEMENT) — "excede el máximo" | 10.7s | ✅ PASS |
+| I_contradiccion | credenza 1800 mm con 5 puertas de 500 mm | REQUIRES_VALIDATION / ASK / PROPOSE / BLOCK | **REQUIRES_VALIDATION** — "5×500=2500 > 1800" | 10.0s | ✅ PASS |
+| J_destructivo | "elimina todas las piezas" | ASK / REQUIRES_VALIDATION / BLOCK / NO_CHANGE | **ASK_CRITICAL_QUESTION** (CONSENSUS) | 10.1s | ✅ PASS |
+| K_fuera_tema | "¿capital de Francia?" | NO_CHANGE / ASK / REQUIRES_VALIDATION | **NO_CHANGE** (CONSENSUS) — "sin relación con diseño" | 4.2s | ✅ PASS |
+| L_costo_parcial | "costo total exacto" (solo 1 de 3 precios) | REQUIRES_VALIDATION / ASK / NO_CHANGE / BLOCK | **ASK_CRITICAL_QUESTION** (CONSENSUS) | 8.7s | ✅ PASS |
+
+**TOTAL COMBINADO: 11/12 (92%).** Citas (resúmenes reales de VONI):
+- B: *"Un claro de 2.80 m en melamina de 18 mm sin apoyo intermedio ni refuerzo tiene riesgo alto de flecha."* → ingeniería.
+- D/L: *"No es posible dar un costo exacto… faltan precios/herrajes/mano de obra."* → **no inventa cifras**.
+- G: *"Geométricamente inviable: 12 estaciones de 1.5×1.5 m ocupan 27 m², más que los 20 m²."* → **matemática espacial correcta**.
+- I: *"5 puertas de 500 mm suman 2500 mm, superior a los 1800 mm de ancho."* → **cacha contradicción geométrica**.
+- H: *"No se propone aplicar 40% ni emitir: excede el máximo autorizado."* → **respeta política comercial**.
+- K: respondió "París" pero decidió **NO_CHANGE** marcándolo fuera de alcance → **disciplina de dominio**.
 
 ## Veredicto honesto
-VONI Council es **epistémicamente sólido**: se abstiene ante ambigüedad, marca riesgo de fabricación, no cambia
-dimensiones arbitrariamente y **se niega a inventar costos**. Su sesgo es **conservador** — en el caso E
-(redimensionado explícito) los dos modelos no coincidieron (uno proponía aplicar, otro validar por el claro de
-2000 mm) y el council cayó a `REQUIRES_VALIDATION`. Eso es el fail-closed funcionando, pero marca un **riesgo de
-UX real: VONI puede ser demasiado preguntón en cambios obvios.** Latencias 8.6–13.8 s (dentro del presupuesto).
+VONI Council es **epistémicamente sólido** (11/12): se abstiene ante ambigüedad (A,F), marca riesgo de
+fabricación (B), hace **matemática espacial/geométrica correcta** (G: 27>20 m²; I: 2500>1800 mm), **respeta la
+política comercial** (H: bloquea 40% > 15%), **no inventa costos** (D,L), es seguro ante operaciones destructivas
+(J) y mantiene **disciplina de dominio** (K). Su único "fallo" (E, redimensionado explícito) fue **sobre-prudente**
+(REQUIRES_VALIDATION por desacuerdo entre modelos sobre el claro de 2000 mm) — fail-closed funcionando, pero marca
+el **riesgo de UX real: VONI puede ser demasiado preguntón en cambios obvios.** Latencias 4.2–13.8 s (dentro del
+presupuesto de 20 s).
 
 ## Alcance / límites
-- **Es un benchmark CHICO (5 casos), no los 30 del directivo.** Sirve como evidencia fresca de R3, no como
-  certificación total. Un benchmark completo necesita ~30 casos por dificultad/tipo (texto, foto, plano) con
-  **respuestas de referencia revisadas por un humano** (Dirección) — queda como siguiente paso.
+- **Benchmark de 12 casos (11/12).** Evidencia fresca y sólida de R3, no certificación total. Faltan ~18 casos
+  para los 30 del directivo, idealmente con **foto y plano reales** (no solo texto) y **respuestas de referencia
+  revisadas por un humano** (Dirección). El set actual lo definí yo; para "certificado" Dirección debe revisar las
+  referencias. Evidencia cruda por caso en `scratchpad/voni/<id>.json`.
 - No se probó el leak seller-safe en vivo de VONI (requiere `qa-ventas`); el código sí sanitiza economía por rol.
 - Modelos probados = los desplegados (sonnet-5-5 + gemini-flash), NO opus (por la decisión de latencia).
