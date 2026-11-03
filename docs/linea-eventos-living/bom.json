@@ -1,0 +1,2641 @@
+[
+ {
+  "id": "BAR-118",
+  "linea": "eventos",
+  "nombre": "Barra Modular 118",
+  "medidas": "1180 × 590 × 1100 mm",
+  "piezas": [
+   {
+    "nombre": "Lateral",
+    "q": 2,
+    "L": 1060,
+    "W": 490,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Frente estructural (porta-piel)",
+    "q": 1,
+    "L": 1144,
+    "W": 1060,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Entrepaño de trabajo h=850",
+    "q": 1,
+    "L": 1144,
+    "W": 450,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Travesaño trasero superior",
+    "q": 1,
+    "L": 1144,
+    "W": 100,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Listón colgador francés (cuerpo)",
+    "q": 1,
+    "L": 1144,
+    "W": 80,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Piso (agua de hielo)",
+    "q": 1,
+    "L": 1144,
+    "W": 472,
+    "mat": "trip18h"
+   },
+   {
+    "nombre": "Zoclo trasero",
+    "q": 1,
+    "L": 1144,
+    "W": 80,
+    "mat": "trip18h"
+   },
+   {
+    "nombre": "Cubierta HPL",
+    "q": 1,
+    "L": 1180,
+    "W": 590,
+    "mat": "mdf25hpl"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 12,
+      "hojasUnidad": 1.2,
+      "eficiencia": 85,
+      "costo": 1170
+     },
+     {
+      "mat": "trip18h",
+      "nombre": "Triplay hidrófugo pino 18 mm",
+      "ref": "MPMATR01010102 · 2025-07-08",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 72,
+      "costo": 179.4
+     },
+     {
+      "mat": "mdf25hpl",
+      "nombre": "MDF laminado plástico (HPL) 2 caras 25 mm",
+      "ref": "MVLMMD04010700 · 2025-11-19",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 80,
+      "costo": 566.52
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 12.01,
+      "costo": 132.13
+     },
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 3.89,
+      "costo": 62.3
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 16,
+      "costo": 67.52,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Unión entre módulos (tuerca inserto + tornillo)",
+      "cant": 10,
+      "costo": 72.1,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 2356.18,
+    "materialFab": 2356.18,
+    "materialCv": 0,
+    "fab": 4241.12,
+    "maquila25": 5654.82,
+    "maquila35": 6524.8,
+    "maquila50": 8482.23,
+    "estimados": 132.1
+   }
+  ]
+ },
+ {
+  "id": "PED-59",
+  "linea": "eventos",
+  "nombre": "Pedestal / Esquinero 59",
+  "medidas": "590 × 590 × 1100 mm",
+  "piezas": [
+   {
+    "nombre": "Lateral",
+    "q": 2,
+    "L": 1060,
+    "W": 490,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Frente",
+    "q": 1,
+    "L": 1060,
+    "W": 454,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Tapa trasera removible (imanes)",
+    "q": 1,
+    "L": 1060,
+    "W": 454,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Entrepaño",
+    "q": 1,
+    "L": 454,
+    "W": 454,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Piso",
+    "q": 1,
+    "L": 454,
+    "W": 454,
+    "mat": "trip18h"
+   },
+   {
+    "nombre": "Cubierta HPL",
+    "q": 1,
+    "L": 590,
+    "W": 590,
+    "mat": "mdf25hpl"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 10,
+      "hojasUnidad": 1,
+      "eficiencia": 76,
+      "costo": 975
+     },
+     {
+      "mat": "trip18h",
+      "nombre": "Triplay hidrófugo pino 18 mm",
+      "ref": "MPMATR01010102 · 2025-07-08",
+      "hojasLote": 1,
+      "hojasUnidad": 0.1,
+      "eficiencia": 71,
+      "costo": 59.8
+     },
+     {
+      "mat": "mdf25hpl",
+      "nombre": "MDF laminado plástico (HPL) 2 caras 25 mm",
+      "ref": "MVLMMD04010700 · 2025-11-19",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 60,
+      "costo": 377.68
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 10.07,
+      "costo": 110.71
+     },
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 2.6,
+      "costo": 41.54
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 10,
+      "costo": 42.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Unión entre módulos (tuerca inserto + tornillo)",
+      "cant": 8,
+      "costo": 57.68,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Imán Ø18 mm 3600 G",
+      "cant": 4,
+      "costo": 104.32,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 40,
+      "costo": 40,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 1855.13,
+    "materialFab": 1855.13,
+    "materialCv": 0,
+    "fab": 3339.24,
+    "maquila25": 4452.31,
+    "maquila35": 5137.29,
+    "maquila50": 6678.47,
+    "estimados": 97.68
+   }
+  ]
+ },
+ {
+  "id": "PIEL-R",
+  "linea": "eventos",
+  "nombre": "Piel Roble",
+  "medidas": "1180 × 1040 mm",
+  "piezas": [
+   {
+    "nombre": "Piel",
+    "q": 1,
+    "L": 1180,
+    "W": 1040,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Listón colgador francés (piel)",
+    "q": 1,
+    "L": 1144,
+    "W": 80,
+    "mat": "mdf18m"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "roble",
+    "tableros": [
+     {
+      "mat": "mel16:roble",
+      "nombre": "Melamina 16 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 85,
+      "costo": 342.5
+     },
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 1,
+      "hojasUnidad": 0.1,
+      "eficiencia": 32,
+      "costo": 97.5
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 4.88,
+      "costo": 53.72
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 20,
+      "costo": 20,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 513.72,
+    "materialFab": 513.72,
+    "materialCv": 0,
+    "fab": 924.7,
+    "maquila25": 1232.94,
+    "maquila35": 1422.62,
+    "maquila50": 1849.41,
+    "estimados": 20
+   }
+  ]
+ },
+ {
+  "id": "PIEL-L",
+  "linea": "eventos",
+  "nombre": "Piel Luminosa",
+  "medidas": "1180 × 1040 × 80 mm",
+  "piezas": [
+   {
+    "nombre": "Marco caja de luz largo",
+    "q": 2,
+    "L": 1180,
+    "W": 80,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Marco caja de luz corto",
+    "q": 2,
+    "L": 1004,
+    "W": 80,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Fondo reflejante blanco",
+    "q": 1,
+    "L": 1180,
+    "W": 1040,
+    "mat": "mdf55m"
+   },
+   {
+    "nombre": "Difusor acrílico opalino",
+    "q": 1,
+    "L": 1180,
+    "W": 1040,
+    "mat": "acr"
+   },
+   {
+    "nombre": "Listón colgador francés (piel)",
+    "q": 1,
+    "L": 1144,
+    "W": 80,
+    "mat": "mdf18m"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 76,
+      "costo": 195
+     },
+     {
+      "mat": "mdf55m",
+      "nombre": "MDF melamina 2 caras 5.5 mm (MDF6)",
+      "ref": "MVLMMD01280200 · 2026-08-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 85,
+      "costo": 291
+     },
+     {
+      "mat": "acr",
+      "nombre": "Acrílico opalino 3 mm 6×8 ft",
+      "ref": "MVLPAO00821600 · 2025-12-12",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 56,
+      "costo": 997.5
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 0.7,
+      "costo": 7.74
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Kit LED retroiluminación 4 tiras (escalado de ERP MDMEKT01000004)",
+      "cant": 1,
+      "costo": 2567,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 40,
+      "costo": 40,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 4098.24,
+    "materialFab": 1531.24,
+    "materialCv": 2567,
+    "fab": 5477.26,
+    "maquila25": 7303.01,
+    "maquila35": 8426.55,
+    "maquila50": 10954.52,
+    "estimados": 2607
+   }
+  ]
+ },
+ {
+  "id": "PIEL-M",
+  "linea": "eventos",
+  "nombre": "Piel Marca (vinil impreso)",
+  "medidas": "1180 × 1040 mm",
+  "piezas": [
+   {
+    "nombre": "Base MDF para vinil",
+    "q": 1,
+    "L": 1180,
+    "W": 1040,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Listón colgador francés (piel)",
+    "q": 1,
+    "L": 1144,
+    "W": 80,
+    "mat": "mdf18m"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 85,
+      "costo": 83.16
+     },
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 1,
+      "hojasUnidad": 0.1,
+      "eficiencia": 32,
+      "costo": 97.5
+     }
+    ],
+    "cantos": [],
+    "herrajes": [
+     {
+      "nombre": "Vinil impreso con marca ($/m²) — NO está en ERP",
+      "cant": 1.23,
+      "costo": 369,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 15,
+      "costo": 15,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 564.66,
+    "materialFab": 195.66,
+    "materialCv": 369,
+    "fab": 743.32,
+    "maquila25": 991.09,
+    "maquila35": 1143.57,
+    "maquila50": 1486.64,
+    "estimados": 384
+   }
+  ]
+ },
+ {
+  "id": "PER-X",
+  "linea": "eventos",
+  "nombre": "Periquera Equis",
+  "medidas": "Ø590 × 1100 mm",
+  "piezas": [
+   {
+    "nombre": "Panel X trapecio 590→250 (rect. envolvente)",
+    "q": 2,
+    "L": 1075,
+    "W": 590,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Cubierta redonda HPL (rect. envolvente)",
+    "q": 1,
+    "L": 590,
+    "W": 590,
+    "mat": "mdf25hpl"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 87,
+      "costo": 487.5
+     },
+     {
+      "mat": "mdf25hpl",
+      "nombre": "MDF laminado plástico (HPL) 2 caras 25 mm",
+      "ref": "MVLMMD04010700 · 2025-11-19",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 60,
+      "costo": 377.68
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 6.64,
+      "costo": 73.08
+     },
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 2.04,
+      "costo": 32.56
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Placa acero negro 1/4\" ($/m²)",
+      "cant": 0.1156,
+      "costo": 106.18,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Pintura en polvo Black TX (kg)",
+      "cant": 0.25,
+      "costo": 27,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 4,
+      "costo": 40,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Unión entre módulos (tuerca inserto + tornillo)",
+      "cant": 8,
+      "costo": 57.68,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 30,
+      "costo": 30,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 1277.88,
+    "materialFab": 1277.88,
+    "materialCv": 0,
+    "fab": 2300.18,
+    "maquila25": 3066.91,
+    "maquila35": 3538.74,
+    "maquila50": 4600.36,
+    "estimados": 127.68
+   }
+  ]
+ },
+ {
+  "id": "MESA-X",
+  "linea": "eventos",
+  "nombre": "Mesa Imperial Equis (10 personas)",
+  "medidas": "2400 × 1000 × 760 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta",
+    "q": 1,
+    "L": 2400,
+    "W": 1000,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Caballete X panel ancho",
+    "q": 2,
+    "L": 732,
+    "W": 800,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Caballete X panel corto",
+    "q": 2,
+    "L": 732,
+    "W": 500,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Viga central (doble)",
+    "q": 2,
+    "L": 1600,
+    "W": 120,
+    "mat": "mdf18m"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "roble",
+    "tableros": [
+     {
+      "mat": "mel28:roble",
+      "nombre": "Melamina 28 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 10,
+      "hojasUnidad": 1,
+      "eficiencia": 83,
+      "costo": 1140
+     },
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 11,
+      "hojasUnidad": 1.1,
+      "eficiencia": 72,
+      "costo": 1072.5
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 7.48,
+      "costo": 119.68
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 15.05,
+      "costo": 165.53
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 8,
+      "costo": 80,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Unión entre módulos (tuerca inserto + tornillo)",
+      "cant": 8,
+      "costo": 57.68,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 8,
+      "costo": 92.4,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 2787.79,
+    "materialFab": 2787.79,
+    "materialCv": 0,
+    "fab": 5018.02,
+    "maquila25": 6690.69,
+    "maquila35": 7720.03,
+    "maquila50": 10036.04,
+    "estimados": 197.68
+   },
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mel28:negro",
+      "nombre": "Melamina 28 mm Black (B721)",
+      "ref": "B721 · 2026-07-09",
+      "hojasLote": 10,
+      "hojasUnidad": 1,
+      "eficiencia": 83,
+      "costo": 1026.9
+     },
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 11,
+      "hojasUnidad": 1.1,
+      "eficiencia": 72,
+      "costo": 1072.5
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 7.48,
+      "costo": 119.68
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 15.05,
+      "costo": 165.53
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 8,
+      "costo": 80,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Unión entre módulos (tuerca inserto + tornillo)",
+      "cant": 8,
+      "costo": 57.68,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 8,
+      "costo": 92.4,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 2674.69,
+    "materialFab": 2674.69,
+    "materialCv": 0,
+    "fab": 4814.44,
+    "maquila25": 6419.25,
+    "maquila35": 7406.83,
+    "maquila50": 9628.88,
+    "estimados": 197.68
+   }
+  ]
+ },
+ {
+  "id": "MESA-DJ",
+  "linea": "eventos",
+  "nombre": "Mesa DJ (va detrás de la fachada)",
+  "medidas": "2400 × 700 × 950 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta MDF melamina negra 25 mm",
+    "q": 1,
+    "L": 2400,
+    "W": 700,
+    "mat": "mdf25m"
+   },
+   {
+    "nombre": "Caballete X panel ancho",
+    "q": 2,
+    "L": 925,
+    "W": 600,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Caballete X panel corto",
+    "q": 2,
+    "L": 925,
+    "W": 400,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Viga central (doble)",
+    "q": 2,
+    "L": 1600,
+    "W": 120,
+    "mat": "mdf18m"
+   },
+   {
+    "nombre": "Repisa trasera p/ multicontacto y laptop",
+    "q": 1,
+    "L": 2000,
+    "W": 200,
+    "mat": "mdf18m"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mdf25m",
+      "nombre": "MDF melamina 2 caras 25 mm (MDF25M)",
+      "ref": "MVLMMD01280700 · 2026-07-03",
+      "hojasLote": 10,
+      "hojasUnidad": 1,
+      "eficiencia": 58,
+      "costo": 1252.8
+     },
+     {
+      "mat": "mdf18m",
+      "nombre": "MDF melamina 2 caras 18 mm (MDF18M)",
+      "ref": "MVLMMD01011700 · 2026-08-10",
+      "hojasLote": 12,
+      "hojasUnidad": 1.2,
+      "eficiencia": 76,
+      "costo": 1170
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 6.82,
+      "costo": 109.12
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 18.26,
+      "costo": 200.86
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Grommet pasacables Ø2\"",
+      "cant": 2,
+      "costo": 12.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet rectangular",
+      "cant": 1,
+      "costo": 33.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Multicontacto 2 contactos (LUMATESOF)",
+      "cant": 1,
+      "costo": 352,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 8,
+      "costo": 80,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Unión entre módulos (tuerca inserto + tornillo)",
+      "cant": 8,
+      "costo": 57.68,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 8,
+      "costo": 92.4,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 3421.06,
+    "materialFab": 3069.06,
+    "materialCv": 352,
+    "fab": 5897.43,
+    "maquila25": 7863.24,
+    "maquila35": 9072.97,
+    "maquila50": 11794.86,
+    "estimados": 197.68
+   }
+  ]
+ },
+ {
+  "id": "TOC-01",
+  "linea": "casa",
+  "nombre": "Tocador Hollywood",
+  "medidas": "1100 × 450 × 760 mm · con espejo 1660",
+  "piezas": [
+   {
+    "nombre": "Cubierta",
+    "q": 1,
+    "L": 1100,
+    "W": 450,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Lateral",
+    "q": 2,
+    "L": 732,
+    "W": 450,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Divisor pedestal",
+    "q": 1,
+    "L": 732,
+    "W": 434,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Piso pedestal",
+    "q": 1,
+    "L": 434,
+    "W": 368,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Trasero pedestal",
+    "q": 1,
+    "L": 700,
+    "W": 368,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Travesaño trasero (hueco de rodillas)",
+    "q": 1,
+    "L": 668,
+    "W": 150,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente cajón pedestal",
+    "q": 3,
+    "L": 400,
+    "W": 230,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente cajón central (makeup)",
+    "q": 1,
+    "L": 700,
+    "W": 100,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Costado caja cajón",
+    "q": 6,
+    "L": 400,
+    "W": 180,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón",
+    "q": 6,
+    "L": 300,
+    "W": 180,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Costado caja cajón central",
+    "q": 2,
+    "L": 400,
+    "W": 70,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón central",
+    "q": 2,
+    "L": 600,
+    "W": 70,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Fondo cajones",
+    "q": 3,
+    "L": 400,
+    "W": 330,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Fondo cajón central",
+    "q": 1,
+    "L": 630,
+    "W": 400,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Respaldo de espejo",
+    "q": 1,
+    "L": 900,
+    "W": 900,
+    "mat": "mel16:ACB"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "roble",
+    "tableros": [
+     {
+      "mat": "mel28:roble",
+      "nombre": "Melamina 28 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 57,
+      "costo": 342
+     },
+     {
+      "mat": "mel16:roble",
+      "nombre": "Melamina 16 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 15,
+      "hojasUnidad": 1.5,
+      "eficiencia": 81,
+      "costo": 1027.5
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 74,
+      "costo": 49.89
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 3.41,
+      "costo": 54.56
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 21.24,
+      "costo": 233.65
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Espejo 6 mm cantos pulidos ($/m²)",
+      "cant": 0.64,
+      "costo": 556.16,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Kit LED perimetral en perfil difusor (ref. ERP MDMEKT01000008)",
+      "cant": 1,
+      "costo": 2227.4,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Multicontacto 2 contactos (LUMATESOF)",
+      "cant": 1,
+      "costo": 352,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Corredera ext. total cierre lento (par)",
+      "cant": 4,
+      "costo": 767.24,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Perfil gola aluminio tipo C (m)",
+      "cant": 2,
+      "costo": 276.93,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 2,
+      "costo": 20,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 12,
+      "costo": 50.64,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 50,
+      "costo": 50,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 6134.18,
+    "materialFab": 2918.62,
+    "materialCv": 3215.56,
+    "fab": 8662,
+    "maquila25": 11549.34,
+    "maquila35": 13326.16,
+    "maquila50": 17324.01,
+    "estimados": 150
+   },
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mel28:negro",
+      "nombre": "Melamina 28 mm Black (B721)",
+      "ref": "B721 · 2026-07-09",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 85,
+      "costo": 205.38
+     },
+     {
+      "mat": "mel16:negro",
+      "nombre": "Melamina 16 mm Black (B721)",
+      "ref": "B721 · 2025-09-17",
+      "hojasLote": 14,
+      "hojasUnidad": 1.4,
+      "eficiencia": 87,
+      "costo": 807.41
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 74,
+      "costo": 49.89
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 3.41,
+      "costo": 54.56
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 21.24,
+      "costo": 233.65
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Espejo 6 mm cantos pulidos ($/m²)",
+      "cant": 0.64,
+      "costo": 556.16,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Kit LED perimetral en perfil difusor (ref. ERP MDMEKT01000008)",
+      "cant": 1,
+      "costo": 2227.4,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Multicontacto 2 contactos (LUMATESOF)",
+      "cant": 1,
+      "costo": 352,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Corredera ext. total cierre lento (par)",
+      "cant": 4,
+      "costo": 767.24,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Perfil gola aluminio tipo C (m)",
+      "cant": 2,
+      "costo": 276.93,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 2,
+      "costo": 20,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 12,
+      "costo": 50.64,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 50,
+      "costo": 50,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 5777.47,
+    "materialFab": 2561.91,
+    "materialCv": 3215.56,
+    "fab": 8019.92,
+    "maquila25": 10693.23,
+    "maquila35": 12338.34,
+    "maquila50": 16039.85,
+    "estimados": 150
+   }
+  ]
+ },
+ {
+  "id": "TOC-01L",
+  "linea": "casa",
+  "nombre": "Tocador Hollywood Lite",
+  "medidas": "1100 × 450 × 760 mm · con espejo 1660",
+  "piezas": [
+   {
+    "nombre": "Cubierta",
+    "q": 1,
+    "L": 1100,
+    "W": 450,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Lateral",
+    "q": 2,
+    "L": 732,
+    "W": 450,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Divisor pedestal",
+    "q": 1,
+    "L": 732,
+    "W": 434,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Piso pedestal",
+    "q": 1,
+    "L": 434,
+    "W": 368,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Trasero pedestal",
+    "q": 1,
+    "L": 700,
+    "W": 368,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Travesaño trasero (hueco de rodillas)",
+    "q": 1,
+    "L": 668,
+    "W": 150,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente cajón pedestal",
+    "q": 3,
+    "L": 400,
+    "W": 230,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente cajón central (makeup)",
+    "q": 1,
+    "L": 700,
+    "W": 100,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Costado caja cajón",
+    "q": 6,
+    "L": 400,
+    "W": 180,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón",
+    "q": 6,
+    "L": 300,
+    "W": 180,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Costado caja cajón central",
+    "q": 2,
+    "L": 400,
+    "W": 70,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón central",
+    "q": 2,
+    "L": 600,
+    "W": 70,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Fondo cajones",
+    "q": 3,
+    "L": 400,
+    "W": 330,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Fondo cajón central",
+    "q": 1,
+    "L": 630,
+    "W": 400,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Respaldo de espejo",
+    "q": 1,
+    "L": 900,
+    "W": 900,
+    "mat": "mel16:ACB"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "roble",
+    "tableros": [
+     {
+      "mat": "mel28:roble",
+      "nombre": "Melamina 28 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 57,
+      "costo": 342
+     },
+     {
+      "mat": "mel16:roble",
+      "nombre": "Melamina 16 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 15,
+      "hojasUnidad": 1.5,
+      "eficiencia": 81,
+      "costo": 1027.5
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 74,
+      "costo": 49.89
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 3.41,
+      "costo": 54.56
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 21.24,
+      "costo": 233.65
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Espejo 6 mm cantos pulidos ($/m²)",
+      "cant": 0.64,
+      "costo": 556.16,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Kit LED perimetral de línea 4000K CRI90 + dimmer (PRECIO OBJETIVO, cotizar)",
+      "cant": 1,
+      "costo": 700,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Corredera Häfele ext. total con retén 400 mm (par)",
+      "cant": 4,
+      "costo": 168,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Perfil gola aluminio tipo C (m)",
+      "cant": 2,
+      "costo": 276.93,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 2,
+      "costo": 20,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 12,
+      "costo": 50.64,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 50,
+      "costo": 50,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 3655.54,
+    "materialFab": 2319.38,
+    "materialCv": 1336.16,
+    "fab": 5591.21,
+    "maquila25": 7454.95,
+    "maquila35": 8601.86,
+    "maquila50": 11182.42,
+    "estimados": 850
+   },
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mel28:negro",
+      "nombre": "Melamina 28 mm Black (B721)",
+      "ref": "B721 · 2026-07-09",
+      "hojasLote": 2,
+      "hojasUnidad": 0.2,
+      "eficiencia": 85,
+      "costo": 205.38
+     },
+     {
+      "mat": "mel16:negro",
+      "nombre": "Melamina 16 mm Black (B721)",
+      "ref": "B721 · 2025-09-17",
+      "hojasLote": 14,
+      "hojasUnidad": 1.4,
+      "eficiencia": 87,
+      "costo": 807.41
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 74,
+      "costo": 49.89
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 3.41,
+      "costo": 54.56
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 21.24,
+      "costo": 233.65
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Espejo 6 mm cantos pulidos ($/m²)",
+      "cant": 0.64,
+      "costo": 556.16,
+      "est": false,
+      "cv": true
+     },
+     {
+      "nombre": "Kit LED perimetral de línea 4000K CRI90 + dimmer (PRECIO OBJETIVO, cotizar)",
+      "cant": 1,
+      "costo": 700,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Corredera Häfele ext. total con retén 400 mm (par)",
+      "cant": 4,
+      "costo": 168,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Perfil gola aluminio tipo C (m)",
+      "cant": 2,
+      "costo": 276.93,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 2,
+      "costo": 20,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 12,
+      "costo": 50.64,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 50,
+      "costo": 50,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 3298.83,
+    "materialFab": 1962.67,
+    "materialCv": 1336.16,
+    "fab": 4949.13,
+    "maquila25": 6598.84,
+    "maquila35": 7614.04,
+    "maquila50": 9898.25,
+    "estimados": 850
+   }
+  ]
+ },
+ {
+  "id": "ESC-01",
+  "linea": "casa",
+  "nombre": "Escritorio Compañero",
+  "medidas": "1500 × 590 × 750 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta",
+    "q": 1,
+    "L": 1500,
+    "W": 590,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Pata panel derecha",
+    "q": 1,
+    "L": 722,
+    "W": 590,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Lateral pedestal",
+    "q": 2,
+    "L": 722,
+    "W": 560,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Piso pedestal / nicho",
+    "q": 1,
+    "L": 560,
+    "W": 412,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Entrepaño (separa cajón y nicho)",
+    "q": 1,
+    "L": 540,
+    "W": 412,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Trasero pedestal",
+    "q": 1,
+    "L": 722,
+    "W": 412,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Frente cajón",
+    "q": 1,
+    "L": 450,
+    "W": 250,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Costado caja cajón",
+    "q": 2,
+    "L": 500,
+    "W": 180,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Frente/fondo caja cajón",
+    "q": 2,
+    "L": 340,
+    "W": 180,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Fondo cajón",
+    "q": 1,
+    "L": 500,
+    "W": 380,
+    "mat": "mdf55"
+   },
+   {
+    "nombre": "Faldón trasero / pared del canal",
+    "q": 1,
+    "L": 1012,
+    "W": 300,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Charola canal de cables",
+    "q": 1,
+    "L": 1000,
+    "W": 150,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Tapa abatible del canal",
+    "q": 1,
+    "L": 1000,
+    "W": 120,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Repisa gato: base",
+    "q": 1,
+    "L": 400,
+    "W": 300,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Repisa gato: respaldo",
+    "q": 1,
+    "L": 400,
+    "W": 120,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Repisa gato: costados",
+    "q": 2,
+    "L": 300,
+    "W": 120,
+    "mat": "mel19:ACB"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "roble",
+    "tableros": [
+     {
+      "mat": "mel28:roble",
+      "nombre": "Melamina 28 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 90,
+      "costo": 570
+     },
+     {
+      "mat": "mel19:roble",
+      "nombre": "Melamina 19 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 10,
+      "hojasUnidad": 1,
+      "eficiencia": 76,
+      "costo": 718
+     },
+     {
+      "mat": "mel16:roble",
+      "nombre": "Melamina 16 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 66,
+      "costo": 205.5
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 1,
+      "hojasUnidad": 0.1,
+      "eficiencia": 65,
+      "costo": 16.63
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 6.83,
+      "costo": 109.3
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 14.69,
+      "costo": 161.54
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Corredera ext. total cierre lento (par)",
+      "cant": 1,
+      "costo": 191.81,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Bisagra cierre suave 110°",
+      "cant": 2,
+      "costo": 41.66,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet pasacables Ø2\"",
+      "cant": 2,
+      "costo": 12.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.338,
+      "costo": 198.06,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 1.5,
+      "costo": 142.5,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 14,
+      "costo": 59.08,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 2532.88,
+    "materialFab": 2532.88,
+    "materialCv": 0,
+    "fab": 4559.18,
+    "maquila25": 6078.9,
+    "maquila35": 7014.12,
+    "maquila50": 9118.36,
+    "estimados": 60
+   },
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mel28:negro",
+      "nombre": "Melamina 28 mm Black (B721)",
+      "ref": "B721 · 2026-07-09",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 90,
+      "costo": 513.45
+     },
+     {
+      "mat": "mel19:negro",
+      "nombre": "Melamina 19 mm Black (B721)",
+      "ref": "B721 · 2026-07-02",
+      "hojasLote": 9,
+      "hojasUnidad": 0.9,
+      "eficiencia": 85,
+      "costo": 575.92
+     },
+     {
+      "mat": "mel16:negro",
+      "nombre": "Melamina 16 mm Black (B721)",
+      "ref": "B721 · 2025-09-17",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 66,
+      "costo": 173.02
+     },
+     {
+      "mat": "mdf55",
+      "nombre": "MDF natural 5.5 mm",
+      "ref": "MVLMMD02280200 · 2026-04-27",
+      "hojasLote": 1,
+      "hojasUnidad": 0.1,
+      "eficiencia": 65,
+      "costo": 16.63
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 6.83,
+      "costo": 109.3
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 14.69,
+      "costo": 161.54
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Corredera ext. total cierre lento (par)",
+      "cant": 1,
+      "costo": 191.81,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Bisagra cierre suave 110°",
+      "cant": 2,
+      "costo": 41.66,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet pasacables Ø2\"",
+      "cant": 2,
+      "costo": 12.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.338,
+      "costo": 198.06,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 1.5,
+      "costo": 142.5,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 14,
+      "costo": 59.08,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 2301.76,
+    "materialFab": 2301.76,
+    "materialCv": 0,
+    "fab": 4143.17,
+    "maquila25": 5524.23,
+    "maquila35": 6374.11,
+    "maquila50": 8286.34,
+    "estimados": 60
+   }
+  ]
+ },
+ {
+  "id": "MC-01",
+  "linea": "casa",
+  "nombre": "Mesa de Centro Guarida",
+  "medidas": "1100 × 590 × 420 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta (esquinas R50)",
+    "q": 1,
+    "L": 1100,
+    "W": 590,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Costado con arco de entrada",
+    "q": 2,
+    "L": 392,
+    "W": 590,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Piso",
+    "q": 1,
+    "L": 1044,
+    "W": 550,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Divisor cueva / repisa",
+    "q": 1,
+    "L": 550,
+    "W": 345,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Frente cueva con ventana ovalada",
+    "q": 1,
+    "L": 500,
+    "W": 345,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Fondo cueva",
+    "q": 1,
+    "L": 500,
+    "W": 345,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Rieles bolsillo rascador",
+    "q": 2,
+    "L": 380,
+    "W": 60,
+    "mat": "mel19:ACB"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "roble",
+    "tableros": [
+     {
+      "mat": "mel28:roble",
+      "nombre": "Melamina 28 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 77,
+      "costo": 570
+     },
+     {
+      "mat": "mel19:roble",
+      "nombre": "Melamina 19 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 80,
+      "costo": 359
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 8.12,
+      "costo": 129.89
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 6.78,
+      "costo": 74.54
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.26,
+      "costo": 152.36,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 0.8,
+      "costo": 76,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Repuesto rascador de cartón (compra externa)",
+      "cant": 1,
+      "costo": 120,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 12,
+      "costo": 50.64,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 40,
+      "costo": 40,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 1618.62,
+    "materialFab": 1498.62,
+    "materialCv": 120,
+    "fab": 2824.72,
+    "maquila25": 3766.29,
+    "maquila35": 4345.72,
+    "maquila50": 5649.44,
+    "estimados": 160
+   },
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mel28:negro",
+      "nombre": "Melamina 28 mm Black (B721)",
+      "ref": "B721 · 2026-07-09",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 77,
+      "costo": 513.45
+     },
+     {
+      "mat": "mel19:negro",
+      "nombre": "Melamina 19 mm Black (B721)",
+      "ref": "B721 · 2026-07-02",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 80,
+      "costo": 319.96
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 8.12,
+      "costo": 129.89
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 6.78,
+      "costo": 74.54
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.26,
+      "costo": 152.36,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 0.8,
+      "costo": 76,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Repuesto rascador de cartón (compra externa)",
+      "cant": 1,
+      "costo": 120,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 12,
+      "costo": 50.64,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 4,
+      "costo": 46.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 40,
+      "costo": 40,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 1523.03,
+    "materialFab": 1403.03,
+    "materialCv": 120,
+    "fab": 2652.65,
+    "maquila25": 3536.86,
+    "maquila35": 4081,
+    "maquila50": 5305.29,
+    "estimados": 160
+   }
+  ]
+ },
+ {
+  "id": "TV-01",
+  "linea": "casa",
+  "nombre": "Mueble TV Arenero",
+  "medidas": "1800 × 480 × 610 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta",
+    "q": 1,
+    "L": 1800,
+    "W": 480,
+    "mat": "mel28:ACB"
+   },
+   {
+    "nombre": "Lateral (uno con arco Ø220 para el gato)",
+    "q": 2,
+    "L": 472,
+    "W": 480,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Piso",
+    "q": 1,
+    "L": 1762,
+    "W": 460,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Divisor",
+    "q": 2,
+    "L": 434,
+    "W": 460,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Entrepaño centro",
+    "q": 1,
+    "L": 562,
+    "W": 440,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Puerta (arenero ranurada / guardado)",
+    "q": 2,
+    "L": 600,
+    "W": 472,
+    "mat": "mel19:ACB"
+   },
+   {
+    "nombre": "Trasero cerrado (cables y ventila)",
+    "q": 1,
+    "L": 1762,
+    "W": 472,
+    "mat": "mel16:ACB"
+   },
+   {
+    "nombre": "Charola arenero HPL: piso",
+    "q": 1,
+    "L": 562,
+    "W": 440,
+    "mat": "mdf16hpl"
+   },
+   {
+    "nombre": "Charola arenero HPL: paredes largas",
+    "q": 2,
+    "L": 562,
+    "W": 150,
+    "mat": "mdf16hpl"
+   },
+   {
+    "nombre": "Charola arenero HPL: paredes cortas",
+    "q": 2,
+    "L": 408,
+    "W": 150,
+    "mat": "mdf16hpl"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "roble",
+    "tableros": [
+     {
+      "mat": "mel28:roble",
+      "nombre": "Melamina 28 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 60,
+      "costo": 570
+     },
+     {
+      "mat": "mel19:roble",
+      "nombre": "Melamina 19 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 12,
+      "hojasUnidad": 1.2,
+      "eficiencia": 71,
+      "costo": 861.6
+     },
+     {
+      "mat": "mel16:roble",
+      "nombre": "Melamina 16 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 57,
+      "costo": 342.5
+     },
+     {
+      "mat": "mdf16hpl",
+      "nombre": "MDF laminado plástico (HPL) 2 caras 16 mm",
+      "ref": "MVLMMD04280500 · 2025-11-19",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 62,
+      "costo": 440.31
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 5.02,
+      "costo": 80.26
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 11.95,
+      "costo": 131.41
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Bisagra cierre suave 110°",
+      "cant": 4,
+      "costo": 83.32,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet rectangular",
+      "cant": 1,
+      "costo": 33.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet pasacables Ø2\"",
+      "cant": 2,
+      "costo": 12.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "PTR 1.5\" ($/m)",
+      "cant": 0.66,
+      "costo": 53.13,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Placa acero negro 1/4\" ($/m²)",
+      "cant": 0.021599999999999998,
+      "costo": 19.84,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Pintura en polvo Black TX (kg)",
+      "cant": 0.3,
+      "costo": 32.39,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 6,
+      "costo": 69.3,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Filtro de carbón para ventila (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 20,
+      "costo": 84.4,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 3034.65,
+    "materialFab": 2874.65,
+    "materialCv": 160,
+    "fab": 5343.97,
+    "maquila25": 7125.3,
+    "maquila35": 8221.5,
+    "maquila50": 10687.95,
+    "estimados": 220
+   },
+   {
+    "acabado": "negro",
+    "tableros": [
+     {
+      "mat": "mel28:negro",
+      "nombre": "Melamina 28 mm Black (B721)",
+      "ref": "B721 · 2026-07-09",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 60,
+      "costo": 513.45
+     },
+     {
+      "mat": "mel19:negro",
+      "nombre": "Melamina 19 mm Black (B721)",
+      "ref": "B721 · 2026-07-02",
+      "hojasLote": 12,
+      "hojasUnidad": 1.2,
+      "eficiencia": 71,
+      "costo": 767.89
+     },
+     {
+      "mat": "mel16:negro",
+      "nombre": "Melamina 16 mm Black (B721)",
+      "ref": "B721 · 2025-09-17",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 57,
+      "costo": 288.36
+     },
+     {
+      "mat": "mdf16hpl",
+      "nombre": "MDF laminado plástico (HPL) 2 caras 16 mm",
+      "ref": "MVLMMD04280500 · 2025-11-19",
+      "hojasLote": 3,
+      "hojasUnidad": 0.3,
+      "eficiencia": 62,
+      "costo": 440.31
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 5.02,
+      "costo": 80.26
+     },
+     {
+      "tipo": "Canto ABS 22×2 mm",
+      "metros": 11.95,
+      "costo": 131.41
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Bisagra cierre suave 110°",
+      "cant": 4,
+      "costo": 83.32,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet rectangular",
+      "cant": 1,
+      "costo": 33.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Grommet pasacables Ø2\"",
+      "cant": 2,
+      "costo": 12.6,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "PTR 1.5\" ($/m)",
+      "cant": 0.66,
+      "costo": 53.13,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Placa acero negro 1/4\" ($/m²)",
+      "cant": 0.021599999999999998,
+      "costo": 19.84,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Pintura en polvo Black TX (kg)",
+      "cant": 0.3,
+      "costo": 32.39,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Nivelador 3/8\" plataforma 60 mm",
+      "cant": 6,
+      "costo": 69.3,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Filtro de carbón para ventila (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Kit antivuelco a muro (compra externa)",
+      "cant": 1,
+      "costo": 80,
+      "est": true,
+      "cv": true
+     },
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 20,
+      "costo": 84.4,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 60,
+      "costo": 60,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 2830.25,
+    "materialFab": 2670.25,
+    "materialCv": 160,
+    "fab": 4976.06,
+    "maquila25": 6634.74,
+    "maquila35": 7655.47,
+    "maquila50": 9952.12,
+    "estimados": 220
+   }
+  ]
+ }
+]

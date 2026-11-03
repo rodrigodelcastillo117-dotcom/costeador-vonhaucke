@@ -1,0 +1,490 @@
+<title>Catálogo Eventos y Living</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ficha técnica de taller. Planos a la izquierda, especificación y números a la derecha; todo en una columna en teléfono. */
+:root {
+  --bg: #f2f3f0; --surface: #ffffff; --ink: #191b1a; --muted: #5d645f; --rule: #d5d8d3;
+  --accent: #8f6a2a; --accent-soft: #efe6d2;
+  --bad: #ac3b2b; --mid: #96701c; --good: #3a7349;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  /* materiales del dibujo */
+  --roble: #c9a275; --roble-veta: #ae8757; --negro: #272826; --negro2: #363733; --hpl: #1c1d1c;
+  --metal: #8c9093; --trip: #dcc69c; --hueco: #e9eae6; --hueco2: #d9dbd6; --cojin: #8f9ca4; --gola: #a3a8ab;
+  --luz1: #fff8e2; --luz2: #ffe1a0; --glow: #ffcf70; --esp1: #e6eef1; --esp2: #b7c5cb; --hoja: #eee5d2;
+  --line: #141514; --on-dark: #efe7d6;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111312; --surface: #181b19; --ink: #e7e9e5; --muted: #9ba29d; --rule: #2a2f2c;
+  --accent: #d4aa5e; --accent-soft: #2a2417; --bad: #e27b69; --mid: #dba64a; --good: #7fc290;
+  --roble: #b48d60; --roble-veta: #9a7548; --negro: #2c2e2c; --negro2: #3b3d39; --hpl: #222422;
+  --metal: #7b7f82; --trip: #a8936b; --hueco: #1e2120; --hueco2: #2a2e2c; --cojin: #6f7c84; --gola: #868b8e;
+  --luz1: #f6e8c0; --luz2: #e8c477; --glow: #f0bf5c; --esp1: #7d8d94; --esp2: #4c5a60; --hoja: #3a3427;
+  --line: #8d948f; --on-dark: #efe7d6; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #111312; --surface: #181b19; --ink: #e7e9e5; --muted: #9ba29d; --rule: #2a2f2c;
+  --accent: #d4aa5e; --accent-soft: #2a2417; --bad: #e27b69; --mid: #dba64a; --good: #7fc290;
+  --roble: #b48d60; --roble-veta: #9a7548; --negro: #2c2e2c; --negro2: #3b3d39; --hpl: #222422;
+  --metal: #7b7f82; --trip: #a8936b; --hueco: #1e2120; --hueco2: #2a2e2c; --cojin: #6f7c84; --gola: #868b8e;
+  --luz1: #f6e8c0; --luz2: #e8c477; --glow: #f0bf5c; --esp1: #7d8d94; --esp2: #4c5a60; --hoja: #3a3427;
+  --line: #8d948f; --on-dark: #efe7d6; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 56px; }
+h1, h2, h3, h4 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h1 { font-size: clamp(34px, 6vw, 64px); font-stretch: 118%; font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: clamp(24px, 3.4vw, 34px); font-stretch: 112%; font-weight: 750; }
+h3 { font-size: 22px; font-stretch: 108%; font-weight: 700; }
+h4 { font-size: 16px; font-weight: 700; font-stretch: 105%; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sub { display: block; font-size: 12px; color: var(--muted); font-family: var(--body); white-space: normal; }
+section { display: grid; gap: 24px; }
+.lede { font-size: 18px; max-width: 64ch; }
+.hero { display: grid; gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+.hero .stats { display: flex; flex-wrap: wrap; gap: 10px 28px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.hero .stats b { color: var(--ink); font-weight: 500; }
+
+/* veredicto */
+.verdict { width: 100%; border-collapse: collapse; }
+.verdict td { padding: 12px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+.verdict td:first-child { width: 34%; font-weight: 600; }
+.verdict td.score { width: 92px; }
+.pill { display: inline-flex; align-items: baseline; gap: 2px; font-family: var(--mono); font-weight: 500; font-size: 15px; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; }
+.pill small { font-size: 11px; opacity: .8; }
+.s-bad { color: var(--bad); } .s-mid { color: var(--mid); } .s-good { color: var(--good); }
+.wrong { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--bad); border: 1px solid var(--bad); padding: 0 6px; margin-right: 6px; }
+.tbl { overflow-x: auto; }
+
+/* respuesta premium */
+.answer { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; background: var(--surface); border: 1px solid var(--rule); padding: 24px; }
+.answer .stack { display: grid; gap: 10px; font-family: var(--mono); font-size: 13px; }
+.stack .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--rule); padding-bottom: 6px; }
+.stack .row.tot { border-bottom: 0; color: var(--accent); font-weight: 500; }
+.answer ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 60ch; }
+
+/* acabados */
+.finishes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.finish { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start; }
+.sw { width: 96px; height: 120px; border: 1px solid var(--rule); }
+.sw svg { width: 100%; height: 100%; display: block; }
+.finish ul { margin: 6px 0 0; padding: 0; list-style: none; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.finish p { font-size: 14px; margin-top: 6px; }
+
+/* fichas */
+.line-h { display: grid; gap: 8px; border-top: 3px solid var(--ink); padding-top: 14px; }
+.sheet { display: grid; gap: 16px; border-top: 1px solid var(--rule); padding-top: 22px; }
+.sheet-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.code { font-family: var(--mono); font-size: 12px; color: var(--accent); border: 1px solid var(--accent); padding: 1px 7px; }
+.med { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.sheet-b { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.draw { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; min-width: 0; }
+.draw figure { margin: 0; flex: 1 1 180px; min-width: 0; display: grid; gap: 4px; }
+.draw figure.wide { flex-basis: 100%; }
+.draw figure.side { flex: 0 1 280px; }
+.dw { width: 100%; height: auto; max-height: 380px; display: block; }
+figcaption { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.spec { display: grid; gap: 14px; min-width: 0; }
+.pts { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14.5px; }
+.armado { font-size: 14px; padding: 10px 12px; background: var(--accent-soft); }
+.money, .mkt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.money th, .money td, .mkt th, .mkt td { padding: 7px 0; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; font-weight: 400; }
+.money td.num, .mkt td.num, .mkt th.num, .money th.num { text-align: right; padding-left: 12px; }
+.money tr.hl th, .money tr.hl td { font-weight: 600; color: var(--accent); border-bottom: 2px solid var(--accent); }
+.mkt thead th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mkt .mult { color: var(--accent); }
+.fine { font-size: 13px; color: var(--muted); }
+
+/* pieles */
+.pieles { display: grid; gap: 12px; }
+.piel-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.piel { margin: 0; display: grid; gap: 6px; }
+.piel figcaption { display: grid; gap: 1px; }
+.piel figcaption b { color: var(--ink); font-family: var(--body); font-size: 14px; }
+
+/* hoja */
+.hojas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.hojas svg { width: 100%; height: auto; }
+.summary { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 760px; }
+.summary th, .summary td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.summary thead th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.summary td.num, .summary th.num { text-align: right; }
+.cols2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.cols2 ul, .cols2 ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+.sources { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.sources a { word-break: break-word; }
+
+/* dibujo */
+.dw rect, .dw polygon, .dw ellipse, .dw circle, .dw path { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.f-roble { fill: url(#veta); } .f-negro { fill: var(--negro); } .f-negro2 { fill: var(--negro2); } .f-hpl { fill: var(--hpl); }
+.f-hpl-soft { fill: var(--hueco2); } .f-luz { fill: url(#luz); } .f-espejo { fill: url(#espejo); } .f-metal { fill: var(--metal); }
+.f-trip { fill: var(--trip); } .f-hueco { fill: var(--hueco); } .f-hueco2 { fill: var(--hueco2); } .f-cojin { fill: var(--cojin); }
+.f-gola { fill: var(--gola); } .f-hoja { fill: var(--hoja); }
+.dw .dash { fill: none; stroke: var(--muted); stroke-dasharray: 6 5; }
+.dw .glow { fill: none; stroke: var(--glow); stroke-width: 9; opacity: .9; }
+.dw line.dim { stroke: var(--muted); stroke-width: .8; vector-effect: non-scaling-stroke; }
+.dw text { font-family: var(--mono); }
+.dw .dimt, .dw .lbl { fill: var(--muted); }
+.dw .lbl-on-dark { fill: var(--on-dark); }
+.dw .brand { fill: var(--on-dark); font-family: var(--display); font-weight: 800; letter-spacing: .08em; }
+.pv-b { fill: var(--roble); } .pv-l { fill: none; stroke: var(--roble-veta); stroke-width: 2.5; }
+.gl1 { stop-color: var(--luz1); } .gl2 { stop-color: var(--luz2); } .ge1 { stop-color: var(--esp1); } .ge2 { stop-color: var(--esp2); }
+
+@media (max-width: 860px) {
+  .sheet-b, .answer, .cols2 { grid-template-columns: minmax(0, 1fr); }
+  .verdict td:first-child { width: auto; }
+}
+@media (max-width: 520px) {
+  .piel-row { grid-template-columns: minmax(0, 1fr); }
+  .hojas { grid-template-columns: minmax(0, 1fr); }
+  .verdict tr { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .verdict td:first-child { grid-column: 1 / -1; border-top: 1px solid var(--rule); padding-bottom: 2px; }
+  .verdict td.score, .verdict td:last-child { border-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="veta" width="200" height="60" patternUnits="userSpaceOnUse">
+      <rect width="200" height="60" class="pv-b"/>
+      <path d="M0 14 C50 8 120 22 200 12 M0 38 C60 44 140 30 200 40 M0 52 C70 48 130 58 200 54" class="pv-l"/>
+    </pattern>
+    <linearGradient id="luz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="gl1"/><stop offset="1" class="gl2"/></linearGradient>
+    <linearGradient id="espejo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="ge1"/><stop offset=".55" class="ge2"/><stop offset="1" class="ge1"/></linearGradient>
+  </defs>
+</svg>
+
+<main class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Catálogo v0 · maquila Von Haucke · noviembre 2026</span>
+  <h1>Eventos y Living</h1>
+  <p class="lede">5 piezas para eventos, 4 para casa, 2 acabados. Los precios de material salen del ERP de Von Haucke (última compra), el aprovechamiento de hoja del optimizador de corte del costeador y el costo de fabricación de la fórmula de Alba. No es una cotización: es la base para decidir qué prototipar.</p>
+  <div class="stats"><span><b>9</b> productos</span><span><b>2</b> acabados</span><span><b>0</b> piezas de madera maciza</span><span><b>1</b> cuerpo de barra para 4 usos</span></div>
+</header>
+
+<section aria-labelledby="h-ver">
+  <h2 id="h-ver">Calificación honesta de tus ideas</h2>
+  <div class="tbl"><table class="verdict">
+    <tr><td>Dos negocios desde el día uno: renta para eventos y venta de muebles para casa</td><td class="score"><span class="pill s-bad">4<small>/10</small></span></td><td>Son dos operaciones distintas. Renta es bodega, camiones, cuadrillas, daños y cobranza. Casa es marketing, envíos y devoluciones. Arranca con una y prueba la otra con una sola pieza.</td></tr>
+    <tr><td>Eventos con sistema modular y pieles intercambiables, vendido B2B</td><td class="score"><span class="pill s-good">7<small>/10</small></span></td><td>Aquí VH tiene ventaja real: fabrica metal, HPL, LED y tapicería en una planta. Las agencias no comparan contra Amazon. Antes de rentar tú, véndele a quien ya renta.</td></tr>
+    <tr><td>Melamina de aglomerado para muebles de renta</td><td class="score"><span class="pill s-bad">3<small>/10</small></span></td><td><span class="wrong">ESTÁS EQUIVOCADO</span>El aglomerado se hincha con el agua del hielo, los cantos se despostillan en el camión y el minifix se barre al tercer armado. Usa MDF de 18 mm, cubierta HPL y piso hidrófugo.</td></tr>
+    <tr><td>Living “un poco más abajo, pero con diseño increíble”</td><td class="score"><span class="pill s-good">7<small>/10</small></span></td><td>Tienes razón sobre el mercado: el volumen en casa no es premium. El supuesto débil es el costo. Con la estructura actual de VH, salimos de 5 a 9 veces más caros que el importado, no “un poco”. Abajo está la cuenta.</td></tr>
+    <tr><td>Tocador “mamón pero barato” en melamina, para casa</td><td class="score"><span class="pill s-bad">3<small>/10</small></span></td><td><span class="wrong">ESTÁS EQUIVOCADO</span>El tablero es solo el 23% del material. Lo caro es el LED, el espejo y las correderas. Para baños de mujeres en salones, restaurantes y oficinas (B2B) sube a 7/10.</td></tr>
+    <tr><td>“Pet friendly” como etiqueta</td><td class="score"><span class="pill s-mid">5<small>/10</small></span></td><td>Así sola no vende. Vende cuando resuelve algo concreto: arenero que no huele ni hincha el mueble, cables que el perro no muerde, acabado que no marca las uñas.</td></tr>
+    <tr><td>Catálogo corto con 2 acabados</td><td class="score"><span class="pill s-good">9<small>/10</small></span></td><td>Es la mejor decisión de la lista: menos inventario, lotes más grandes y mejor precio de compra.</td></tr>
+  </table></div>
+</section>
+
+<section aria-labelledby="h-prem">
+  <h2 id="h-prem">¿Living es premium, o un poco más abajo con diseño increíble?</h2>
+  <div class="answer">
+    <div style="display:grid;gap:14px">
+      <p><b>Un poco más abajo.</b> Lo parecido en Mercado Libre, Amazon, Walmart y Liverpool está entre <span class="num">$1,500</span> y <span class="num">$4,700</span>. Quien paga $20,000 por una mesa quiere madera sólida o laca, no melamina. El lugar correcto es 1.5 a 2.5 veces el importado, con un diseño que se note en fotos.</p>
+      <p>El problema es la cadena de costos. Hoy cada peso de material se convierte en unos 6 pesos de precio público:</p>
+      <div class="stack">
+        <div class="row"><span>Fabricación VH (MO 20% + indirectos 3×MO)</span><span>×1.80</span></div>
+        <div class="row"><span>Margen piso de VH (25% sobre precio)</span><span>÷0.75</span></div>
+        <div class="row"><span>Canal Mercado Libre / Amazon (comisión, envío, devoluciones, anuncios)</span><span>×2.50</span></div>
+        <div class="row tot"><span>Material → precio público</span><span>×6.0</span></div>
+      </div>
+      <p>Con esa cadena, una mesa de centro con $1,619 de material sale en $9,500. El importado cuesta entre $1,500 y $4,200.</p>
+    </div>
+    <div style="display:grid;gap:14px">
+      <h4>Cómo llegar a “un poco más caro, diseño increíble”</h4>
+      <ol>
+        <li><b>Precio objetivo primero, diseño después.</b> Cada pieza de Living tiene abajo un precio objetivo y el material máximo que le cabe.</li>
+        <li><b>Factor de línea en VH.</b> La fórmula ×1.8 está pensada para proyectos corporativos. Un lote repetido de 20 piezas con CNC debería costar menos. Supuse ×1.4; hay que medirlo con tiempos reales.</li>
+        <li><b>Venta directa</b> por Instagram, TikTok y web, con ML solo como vitrina: ×2.0 en lugar de ×2.5.</li>
+        <li><b>El “increíble” va en lo barato:</b> proporción, cubiertas de 28 mm, gola en lugar de jaladera, color y un detalle firma (el arco de la guarida). LED, cierre lento y cojines quedan como opciones, no en el precio base.</li>
+      </ol>
+      <div class="stack"><div class="row tot"><span>Cadena con esos cambios</span><span>×3.7</span></div></div>
+      <p class="fine">Aun así hay que quitarle material a cada pieza: mesa de centro -19%, escritorio -27%, mueble TV -30%, tocador -49%. Las tres primeras son alcanzables. El tocador para casa no cierra.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-acb">
+  <h2 id="h-acb">Dos acabados</h2>
+  <div class="finishes">
+    <div class="finish">
+      <div class="sw"><svg viewBox="0 0 96 120" aria-hidden="true"><rect width="96" height="120" style="fill:url(#veta)"/></svg></div>
+      <div><h4>Roble Mérida TX · B806</h4>
+        <ul><li>16 mm $685 · 19 mm $718 · 28 mm $1,140</li><li>última compra 04-ago-2026</li></ul>
+        <p>Veta cálida y textura que esconde rayones de uñas y de montaje. Sirve en bodas sin mantel y en sala.</p></div>
+    </div>
+    <div class="finish">
+      <div class="sw"><svg viewBox="0 0 96 120" aria-hidden="true"><rect width="96" height="120" style="fill:var(--negro)"/></svg></div>
+      <div><h4>Negro · B721 Black</h4>
+        <ul><li>16 mm $577 · 19 mm $640 · 28 mm $1,027</li><li>última compra jul-2026 (16 mm: sep-2025)</li></ul>
+        <p>Entre 10 y 25% más barato que el roble. Desaparece bajo la luz de un evento y hace ver caro un tocador. Hay que confirmar con Compras si es mate: si es liso, cambiar a Antracita Light TX (B761).</p></div>
+    </div>
+  </div>
+  <p class="fine">En eventos el cuerpo siempre va negro y el color lo pone la piel. Un tercer acabado solo si las ventas lo piden: Blanco Absoluto B809, el más barato del ERP ($449 en 16 mm).</p>
+</section>
+
+<section aria-labelledby="h-ev">
+  <div class="line-h">
+    <span class="eyebrow">Línea 1 · venta B2B a rentadoras, agencias BTL y venues; renta propia después</span>
+    <h2 id="h-ev">Eventos: un cuerpo, muchas caras</h2>
+    <p>Dos piezas (barra 118 y pedestal 59) arman barras rectas, en L, en U, recepciones y la cabina DJ. La periquera y la mesa imperial comparten el mismo caballete en X. Todo está medido a 590 mm para que salgan más piezas por hoja.</p>
+  </div>
+  <figure class="wide"><svg class="dw" viewBox="-80 -120 11840 2680" role="img" aria-label="Tres configuraciones con las mismas dos piezas"><rect x="0.0" y="1710.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="0.0" y="2240.0" width="1180.0" height="60.0" rx="0" class="f-luz"/><rect x="1180.0" y="1710.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="1180.0" y="2240.0" width="1180.0" height="60.0" rx="0" class="f-luz"/><rect x="2360.0" y="1710.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="2360.0" y="2240.0" width="1180.0" height="60.0" rx="0" class="f-luz"/><text x="1770.0" y="2500.0" font-size="135.0" text-anchor="middle" class="lbl">Recta · 3 barras · 3.54 m</text><rect x="4440.0" y="1710.0" width="590.0" height="590.0" rx="0" class="f-roble"/><rect x="5030.0" y="1710.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="5030.0" y="2240.0" width="1180.0" height="60.0" rx="0" class="f-luz"/><rect x="6210.0" y="1710.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="6210.0" y="2240.0" width="1180.0" height="60.0" rx="0" class="f-luz"/><rect x="4440.0" y="530.0" width="590.0" height="1180.0" rx="0" class="f-hpl"/><rect x="4440.0" y="530.0" width="60.0" height="1180.0" rx="0" class="f-luz"/><text x="5915.0" y="2500.0" font-size="135.0" text-anchor="middle" class="lbl">En L · 1 pedestal + 3 barras</text><rect x="8290.0" y="1710.0" width="590.0" height="590.0" rx="0" class="f-roble"/><rect x="8880.0" y="1710.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="8880.0" y="2240.0" width="1180.0" height="60.0" rx="0" class="f-luz"/><rect x="10060.0" y="1710.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="10060.0" y="2240.0" width="1180.0" height="60.0" rx="0" class="f-luz"/><rect x="11240.0" y="1710.0" width="590.0" height="590.0" rx="0" class="f-roble"/><rect x="8860.0" y="900.0" width="2400.0" height="700.0" rx="0" class="f-negro"/><text x="10060.0" y="1250.0" font-size="120.0" text-anchor="middle" class="lbl-on-dark">mesa DJ h 950</text><rect x="9560.0" y="150.0" width="1000.0" height="600.0" rx="0" class="dash"/><text x="10060.0" y="500.0" font-size="135.0" text-anchor="middle" class="lbl">DJ</text><text x="10060.0" y="2500.0" font-size="135.0" text-anchor="middle" class="lbl">Cabina DJ · fachada 3.54 m</text><text x="5840.0" y="50.0" font-size="120.0" text-anchor="middle" class="dimt">público ↓ (vista desde arriba)</text></svg><figcaption>Tres configuraciones con las mismas dos piezas</figcaption></figure>
+  
+<article class="sheet" id="bar-118">
+  <header class="sheet-h"><span class="code">BAR-118</span><h3>Barra Modular 118</h3><span class="med">1180 × 590 × 1100 mm</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class=""><svg class="dw" viewBox="-60 -60 1390 1330" role="img" aria-label="Frente con piel Luminosa"><rect x="45.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="1105.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="0.0" y="25.0" width="1180.0" height="1060.0" rx="0" class="f-negro"/><rect x="0.0" y="40.0" width="1180.0" height="1040.0" rx="0" class="f-luz"/><rect x="0.0" y="0.0" width="1180.0" height="25.0" rx="0" class="f-hpl"/><line x1="0.0" y1="1170.0" x2="1180.0" y2="1170.0" class="dim"/><line x1="0.0" y1="1184.6" x2="0.0" y2="1155.4" class="dim"/><line x1="1180.0" y1="1184.6" x2="1180.0" y2="1155.4" class="dim"/><text x="590.0" y="1218.0" font-size="35.4" text-anchor="middle" class="dimt">1180</text><line x1="1250.0" y1="1100.0" x2="1250.0" y2="0.0" class="dim"/><line x1="1235.4" y1="1100.0" x2="1264.6" y2="1100.0" class="dim"/><line x1="1235.4" y1="0.0" x2="1264.6" y2="0.0" class="dim"/><text x="1295.9" y="550.0" font-size="35.4" text-anchor="middle" class="dimt" transform="rotate(-90 1295.9 550.0)">1100</text></svg><figcaption>Frente con piel Luminosa</figcaption></figure><figure class=""><svg class="dw" viewBox="-60 -60 800 1330" role="img" aria-label="Corte lateral"><rect x="100.0" y="25.0" width="490.0" height="1060.0" rx="0" class="f-hueco"/><rect x="20.0" y="40.0" width="80.0" height="1040.0" rx="0" class="f-luz"/><rect x="100.0" y="25.0" width="18.0" height="1060.0" rx="0" class="f-negro"/><rect x="118.0" y="1067.0" width="472.0" height="18.0" rx="0" class="f-trip"/><rect x="118.0" y="250.0" width="450.0" height="18.0" rx="0" class="f-negro"/><rect x="572.0" y="25.0" width="18.0" height="100.0" rx="0" class="f-negro"/><rect x="572.0" y="1005.0" width="18.0" height="80.0" rx="0" class="f-trip"/><rect x="0.0" y="0.0" width="590.0" height="25.0" rx="0" class="f-hpl"/><rect x="115.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="545.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><text x="345.0" y="200.0" font-size="26.9" text-anchor="middle" class="lbl">entrepaño barman h 850</text><text x="345.0" y="1040.0" font-size="26.9" text-anchor="middle" class="lbl">piso triplay hidrófugo</text><line x1="0.0" y1="1170.0" x2="590.0" y2="1170.0" class="dim"/><line x1="0.0" y1="1182.6" x2="0.0" y2="1157.4" class="dim"/><line x1="590.0" y1="1182.6" x2="590.0" y2="1157.4" class="dim"/><text x="295.0" y="1211.3" font-size="30.5" text-anchor="middle" class="dimt">590</text><line x1="0.0" y1="-40.0" x2="100.0" y2="-40.0" class="dim"/><line x1="0.0" y1="-27.4" x2="0.0" y2="-52.6" class="dim"/><line x1="100.0" y1="-27.4" x2="100.0" y2="-52.6" class="dim"/><text x="50.0" y="1.3" font-size="30.5" text-anchor="middle" class="dimt">vuelo 100</text><line x1="660.0" y1="1100.0" x2="660.0" y2="250.0" class="dim"/><line x1="647.4" y1="1100.0" x2="672.6" y2="1100.0" class="dim"/><line x1="647.4" y1="250.0" x2="672.6" y2="250.0" class="dim"/><text x="699.5" y="675.0" font-size="30.5" text-anchor="middle" class="dimt" transform="rotate(-90 699.5 675.0)">850</text><text x="60.0" y="1250.0" font-size="28.7" text-anchor="middle" class="lbl">cliente</text><text x="540.0" y="1250.0" font-size="28.7" text-anchor="middle" class="lbl">barman</text></svg><figcaption>Corte lateral</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Cubierta HPL 25 mm: aguanta hielo, limón y alcohol. La melamina se mancha y se hincha en el canto.</li><li>Piso de triplay hidrófugo: es el único lugar del catálogo con madera, porque ahí gotea el hielo.</li><li>Cuerpo de MDF 18 mm: aguanta armar y desarmar 50+ veces. El aglomerado se desmorona en el minifix a la tercera.</li><li>Frente con colgador francés: cambia de look con una piel (Roble, Luminosa o Marca) sin herramienta.</li><li>Niveladores 3/8&quot;: jardines y haciendas nunca están parejos. Huecos de mano en los costados, pesa unos 60 kg.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> Llega armada. Une módulos con 4 tornillos y llave Allen (2 min). Piel: se cuelga en 30 s.</p>
+      <table class="money">
+        <tr><th>Material (ERP VH)</th><td class="num">$2,870</td></tr>
+        <tr><th>Costo fabricación VH (fórmula Alba ×1.8)</th><td class="num">$5,166</td></tr>
+        <tr><th>Maquila VH (margen piso 25%)</th><td class="num">$6,888</td></tr>
+        <tr class="hl"><th>Nuestro precio B2B (×1.5)</th><td class="num">$10,400</td></tr>
+      </table>
+      <p class="fine">Precio con piel Roble. Con piel Luminosa: $19,500.</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en el mercado</th><th class="num">Precio</th><th class="num">Nosotros</th></tr></thead><tr><td>Liverpool<span class="sub">Barra de bar HAUS Rivoli, madera y chapa (para casa, no evento)</span></td><td class="num">$18,899</td><td class="num mult">0.6×</td></tr><tr><td>Mercado Libre / Walmart<span class="sub">Mesa plegable portafolio 1.80 m que se usa como barra con mantel</span></td><td class="num">$699</td><td class="num mult">14.9×</td></tr></table>
+    </div>
+  </div>
+</article>
+<section class="pieles"><h4>Pieles de la barra: el mismo cuerpo, otra cara</h4><div class="piel-row"><figure class="piel"><svg class="dw" viewBox="-20 -20 1220 1080" role="img" aria-label="Piel Roble"><rect x="0.0" y="0.0" width="1180.0" height="1040.0" rx="0" class="f-roble"/></svg><figcaption><b>Piel Roble</b><span>Melamina 16 Roble TX</span><span class="num">$1,900</span></figcaption></figure><figure class="piel"><svg class="dw" viewBox="-20 -20 1220 1080" role="img" aria-label="Piel Luminosa"><rect x="0.0" y="0.0" width="1180.0" height="1040.0" rx="0" class="f-luz"/></svg><figcaption><b>Piel Luminosa</b><span>Acrílico opalino + LED</span><span class="num">$11,000</span></figcaption></figure><figure class="piel"><svg class="dw" viewBox="-20 -20 1220 1080" role="img" aria-label="Piel Marca"><rect x="0.0" y="0.0" width="1180.0" height="1040.0" rx="0" class="f-negro2"/><text x="590.0" y="570.0" font-size="136.0" text-anchor="middle" class="brand">TU MARCA</text></svg><figcaption><b>Piel Marca</b><span>MDF 5.5 + vinil del cliente</span><span class="num">$1,500</span></figcaption></figure></div></section>
+<article class="sheet" id="ped-59">
+  <header class="sheet-h"><span class="code">PED-59</span><h3>Pedestal Esquinero 59</h3><span class="med">590 × 590 × 1100 mm</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class=""><svg class="dw" viewBox="-60 -60 800 1330" role="img" aria-label="Frente con piel Roble y costado"><rect x="45.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="515.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="0.0" y="25.0" width="490.0" height="1060.0" rx="0" class="f-negro"/><rect x="0.0" y="40.0" width="490.0" height="1040.0" rx="0" class="f-roble"/><rect x="490.0" y="25.0" width="100.0" height="1060.0" rx="0" class="f-negro2"/><rect x="0.0" y="0.0" width="590.0" height="25.0" rx="0" class="f-hpl"/><line x1="0.0" y1="1170.0" x2="590.0" y2="1170.0" class="dim"/><line x1="0.0" y1="1182.6" x2="0.0" y2="1157.4" class="dim"/><line x1="590.0" y1="1182.6" x2="590.0" y2="1157.4" class="dim"/><text x="295.0" y="1211.3" font-size="30.5" text-anchor="middle" class="dimt">590</text><line x1="660.0" y1="1100.0" x2="660.0" y2="0.0" class="dim"/><line x1="647.4" y1="1100.0" x2="672.6" y2="1100.0" class="dim"/><line x1="647.4" y1="0.0" x2="672.6" y2="0.0" class="dim"/><text x="699.5" y="550.0" font-size="30.5" text-anchor="middle" class="dimt" transform="rotate(-90 699.5 550.0)">1100</text></svg><figcaption>Frente con piel Roble y costado</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Esquina de las barras en L y U, remate de la cabina DJ.</li><li>Solo también funciona: podio, hostess, exhibidor de botella en una activación de marca.</li><li>Vuelo de cubierta en dos caras, así cierra la esquina sin hueco.</li><li>Tapa trasera removible con imanes: guardado para hielo seco, cables, servilletas.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> Llega armado. Se une a la barra con 4 tornillos. Tapa trasera con imanes, sin herramienta.</p>
+      <table class="money">
+        <tr><th>Material (ERP VH)</th><td class="num">$1,855</td></tr>
+        <tr><th>Costo fabricación VH (fórmula Alba ×1.8)</th><td class="num">$3,339</td></tr>
+        <tr><th>Maquila VH (margen piso 25%)</th><td class="num">$4,452</td></tr>
+        <tr class="hl"><th>Nuestro precio B2B (×1.5)</th><td class="num">$6,700</td></tr>
+      </table>
+      <p class="fine">Precio sin piel.</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en el mercado</th><th class="num">Precio</th><th class="num">Nosotros</th></tr></thead><tr><td>Mercado Libre / Amazon<span class="sub">Pedestal exhibidor para evento</span></td><td class="num">no encontré precio</td><td class="num mult"></td></tr></table>
+    </div>
+  </div>
+</article>
+<article class="sheet" id="per-x">
+  <header class="sheet-h"><span class="code">PER-X</span><h3>Periquera Equis</h3><span class="med">Ø590 × 1100 mm</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class=""><svg class="dw" viewBox="-60 -60 800 1330" role="img" aria-label="Alzado"><rect x="125.0" y="1088.0" width="340.0" height="6.0" rx="0" class="f-metal"/><rect x="0.0" y="1088.0" width="30.0" height="12.0" rx="0" class="f-metal"/><rect x="560.0" y="1088.0" width="30.0" height="12.0" rx="0" class="f-metal"/><polygon points="0.0,1088.0 590.0,1088.0 420.0,25.0 170.0,25.0" class="f-negro"/><rect x="286.0" y="25.0" width="18.0" height="1063.0" rx="0" class="f-negro2"/><rect x="0.0" y="0.0" width="590.0" height="25.0" rx="0" class="f-hpl"/><text x="295.0" y="1060.0" font-size="21.5" text-anchor="middle" class="lbl-on-dark">lastre acero 1/4&quot;</text><line x1="0.0" y1="1170.0" x2="590.0" y2="1170.0" class="dim"/><line x1="0.0" y1="1182.6" x2="0.0" y2="1157.4" class="dim"/><line x1="590.0" y1="1182.6" x2="590.0" y2="1157.4" class="dim"/><text x="295.0" y="1211.3" font-size="30.5" text-anchor="middle" class="dimt">590</text><line x1="660.0" y1="1100.0" x2="660.0" y2="0.0" class="dim"/><line x1="647.4" y1="1100.0" x2="672.6" y2="1100.0" class="dim"/><line x1="647.4" y1="0.0" x2="672.6" y2="0.0" class="dim"/><text x="699.5" y="550.0" font-size="30.5" text-anchor="middle" class="dimt" transform="rotate(-90 699.5 550.0)">1100</text></svg><figcaption>Alzado</figcaption></figure><figure class=""><svg class="dw" viewBox="-40 -40 670 670" role="img" aria-label="Planta"><circle cx="295.0" cy="295.0" r="295.0" class="f-hpl-soft"/><rect x="0.0" y="286.0" width="590.0" height="18.0" rx="0" class="f-negro"/><rect x="286.0" y="0.0" width="18.0" height="590.0" rx="0" class="f-negro"/><text x="295.0" y="620.0" font-size="30.6" text-anchor="middle" class="dimt">planta · ensamble a media madera</text></svg><figcaption>Planta</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Se guarda plana: 10 periqueras caben en unos 60 cm de rack, contra un cuarto lleno de periqueras armadas.</li><li>Cubierta Ø590 HPL y no Ø600: así salen 8 por hoja en vez de 3 (-31% de costo).</li><li>Placa lastre de acero 1/4&quot; abajo (5.8 kg, pintura en polvo VH).</li><li>Riesgo: según mi cuenta se vuelca con unos 55 kg recargados en el borde en diagonal. Hay que probarlo en el prototipo.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> Sin herramienta: dos paneles se ensamblan en X y la cubierta se fija con 4 perillas. 1 minuto.</p>
+      <table class="money">
+        <tr><th>Material (ERP VH)</th><td class="num">$1,278</td></tr>
+        <tr><th>Costo fabricación VH (fórmula Alba ×1.8)</th><td class="num">$2,300</td></tr>
+        <tr><th>Maquila VH (margen piso 25%)</th><td class="num">$3,067</td></tr>
+        <tr class="hl"><th>Nuestro precio B2B (×1.5)</th><td class="num">$4,700</td></tr>
+      </table>
+      <p class="fine">Los dos paneles X se pueden rotular con vinil de marca.</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en el mercado</th><th class="num">Precio</th><th class="num">Nosotros</th></tr></thead><tr><td>Mercado Libre<span class="sub">Mesa periquera de madera</span></td><td class="num">$1,642</td><td class="num mult">2.9×</td></tr></table>
+    </div>
+  </div>
+</article>
+<article class="sheet" id="mesa-x">
+  <header class="sheet-h"><span class="code">MESA-X</span><h3>Mesa Imperial Equis</h3><span class="med">2400 × 1000 × 760 mm · 10 personas</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class="wide"><svg class="dw" viewBox="-60 -60 2660 1020" role="img" aria-label="Lateral largo"><polygon points="150.0,748.0 650.0,748.0 600.0,28.0 200.0,28.0" class="f-negro"/><rect x="391.0" y="28.0" width="18.0" height="720.0" rx="0" class="f-negro2"/><rect x="150.0" y="748.0" width="30.0" height="12.0" rx="0" class="f-metal"/><rect x="620.0" y="748.0" width="30.0" height="12.0" rx="0" class="f-metal"/><polygon points="1750.0,748.0 2250.0,748.0 2200.0,28.0 1800.0,28.0" class="f-negro"/><rect x="1991.0" y="28.0" width="18.0" height="720.0" rx="0" class="f-negro2"/><rect x="1750.0" y="748.0" width="30.0" height="12.0" rx="0" class="f-metal"/><rect x="2220.0" y="748.0" width="30.0" height="12.0" rx="0" class="f-metal"/><rect x="400.0" y="28.0" width="1600.0" height="120.0" rx="0" class="f-negro2"/><rect x="0.0" y="0.0" width="2400.0" height="28.0" rx="0" class="f-roble"/><text x="1200.0" y="240.0" font-size="63.8" text-anchor="middle" class="lbl">viga central · evita pandeo</text><line x1="0.0" y1="840.0" x2="2400.0" y2="840.0" class="dim"/><line x1="0.0" y1="867.9" x2="0.0" y2="812.1" class="dim"/><line x1="2400.0" y1="867.9" x2="2400.0" y2="812.1" class="dim"/><text x="1200.0" y="931.8" font-size="67.8" text-anchor="middle" class="dimt">2400</text><line x1="2480.0" y1="760.0" x2="2480.0" y2="0.0" class="dim"/><line x1="2452.1" y1="760.0" x2="2507.9" y2="760.0" class="dim"/><line x1="2452.1" y1="0.0" x2="2507.9" y2="0.0" class="dim"/><text x="2567.8" y="380.0" font-size="67.8" text-anchor="middle" class="dimt" transform="rotate(-90 2567.8 380.0)">760</text></svg><figcaption>Lateral largo</figcaption></figure><figure class=""><svg class="dw" viewBox="-60 -60 1260 1020" role="img" aria-label="Cabecera"><polygon points="100.0,748.0 900.0,748.0 800.0,28.0 200.0,28.0" class="f-negro"/><rect x="491.0" y="28.0" width="18.0" height="720.0" rx="0" class="f-negro2"/><rect x="482.0" y="28.0" width="36.0" height="120.0" rx="0" class="f-metal"/><rect x="100.0" y="748.0" width="30.0" height="12.0" rx="0" class="f-metal"/><rect x="870.0" y="748.0" width="30.0" height="12.0" rx="0" class="f-metal"/><rect x="0.0" y="0.0" width="1000.0" height="28.0" rx="0" class="f-roble"/><line x1="0.0" y1="840.0" x2="1000.0" y2="840.0" class="dim"/><line x1="0.0" y1="853.2" x2="0.0" y2="826.8" class="dim"/><line x1="1000.0" y1="853.2" x2="1000.0" y2="826.8" class="dim"/><text x="500.0" y="883.5" font-size="32.1" text-anchor="middle" class="dimt">1000</text></svg><figcaption>Cabecera</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Mismos caballetes X que la periquera: mismo programa de CNC, menos SKUs.</li><li>Se alinea en línea: mesas imperiales de 10, 20 o 30 m para bodas.</li><li>Viga central doble: el aglomerado de 28 mm en 1.6 m de claro se pandea con los años.</li><li>Se ve como madera sin mantel, que es justo lo que no da la mesa plegable de plástico.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> Sin herramienta: caballetes en X, viga que se engancha y cubierta con perillas. 2 personas, 3 minutos.</p>
+      <table class="money">
+        <tr><th>Material (ERP VH)</th><td class="num">$2,788</td></tr>
+        <tr><th>Costo fabricación VH (fórmula Alba ×1.8)</th><td class="num">$5,018</td></tr>
+        <tr><th>Maquila VH (margen piso 25%)</th><td class="num">$6,691</td></tr>
+        <tr class="hl"><th>Nuestro precio B2B (×1.5)</th><td class="num">$10,100</td></tr>
+      </table>
+      <p class="fine">Cubierta Roble 28 mm: sale una hoja exacta por mesa (83% de aprovechamiento).</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en el mercado</th><th class="num">Precio</th><th class="num">Nosotros</th></tr></thead><tr><td>Mercado Libre / Walmart / Liverpool<span class="sub">Mesa plegable portafolio 1.80 m (plástico)</span></td><td class="num">$699</td><td class="num mult">14.4×</td></tr><tr><td>Costco / Home Depot<span class="sub">Mesa plegable Lifetime 2.44 m</span></td><td class="num">no encontré precio</td><td class="num mult"></td></tr></table>
+    </div>
+  </div>
+</article>
+<article class="sheet" id="dj-354">
+  <header class="sheet-h"><span class="code">DJ-354</span><h3>Cabina DJ 354</h3><span class="med">Fachada 3540 × 590 × 1100 mm + mesa DJ 2400 × 700 × 950</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class="wide"><svg class="dw" viewBox="-60 -60 3800 1360" role="img" aria-label="Frente: pedestales con piel Roble, barras con piel Luminosa"><rect x="570.0" y="125.0" width="2400.0" height="25.0" rx="0" class="dash"/><rect x="1100.0" y="30.0" width="1340.0" height="95.0" rx="0" class="dash"/><rect x="0.0" y="25.0" width="590.0" height="1060.0" rx="0" class="f-negro"/><rect x="0.0" y="40.0" width="590.0" height="1040.0" rx="0" class="f-roble"/><rect x="0.0" y="0.0" width="590.0" height="25.0" rx="0" class="f-hpl"/><rect x="25.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="535.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="590.0" y="25.0" width="1180.0" height="1060.0" rx="0" class="f-negro"/><rect x="590.0" y="40.0" width="1180.0" height="1040.0" rx="0" class="f-luz"/><rect x="590.0" y="0.0" width="1180.0" height="25.0" rx="0" class="f-hpl"/><rect x="615.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="1715.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="1770.0" y="25.0" width="1180.0" height="1060.0" rx="0" class="f-negro"/><rect x="1770.0" y="40.0" width="1180.0" height="1040.0" rx="0" class="f-luz"/><rect x="1770.0" y="0.0" width="1180.0" height="25.0" rx="0" class="f-hpl"/><rect x="1795.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="2895.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="2950.0" y="25.0" width="590.0" height="1060.0" rx="0" class="f-negro"/><rect x="2950.0" y="40.0" width="590.0" height="1040.0" rx="0" class="f-roble"/><rect x="2950.0" y="0.0" width="590.0" height="25.0" rx="0" class="f-hpl"/><rect x="2975.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="3485.0" y="1085.0" width="30.0" height="15.0" rx="0" class="f-metal"/><text x="1770.0" y="85.0" font-size="79.8" text-anchor="middle" class="lbl">equipo sobre mesa DJ a 950 (oculto)</text><line x1="0.0" y1="1180.0" x2="3540.0" y2="1180.0" class="dim"/><line x1="0.0" y1="1219.9" x2="0.0" y2="1140.1" class="dim"/><line x1="3540.0" y1="1219.9" x2="3540.0" y2="1140.1" class="dim"/><text x="1770.0" y="1311.1" font-size="96.9" text-anchor="middle" class="dimt">3540</text><line x1="3620.0" y1="1100.0" x2="3620.0" y2="0.0" class="dim"/><line x1="3580.1" y1="1100.0" x2="3659.9" y2="1100.0" class="dim"/><line x1="3580.1" y1="0.0" x2="3659.9" y2="0.0" class="dim"/><text x="3745.4" y="550.0" font-size="96.9" text-anchor="middle" class="dimt" transform="rotate(-90 3745.4 550.0)">1100</text></svg><figcaption>Frente: pedestales con piel Roble, barras con piel Luminosa</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>La fachada oculta el equipo: la mesa DJ va atrás a 950 y la fachada mide 1100.</li><li>Mesa con grommets, repisa trasera y multicontacto: cero cables colgando al frente.</li><li>Cuando no hay DJ, las piezas se rentan como barra. Eso sube el uso del inventario.</li><li>Las cabinas plegables de licra son de 1.2 a 2 m y se ven de DJ de fiesta. Esta es de 3.5 m y se ve de marca.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> 10 minutos y una llave Allen. La única pieza nueva es la mesa DJ. Todo lo demás es la barra.</p>
+      <table class="money">
+        <tr><th>Material (ERP VH)</th><td class="num">$20,554</td></tr>
+        <tr><th>Costo fabricación VH (fórmula Alba ×1.8)</th><td class="num">$32,937</td></tr>
+        <tr><th>Maquila VH (margen piso 25%)</th><td class="num">$43,916</td></tr>
+        <tr class="hl"><th>Nuestro precio B2B (×1.5)</th><td class="num">$65,900</td></tr>
+      </table>
+      <p class="fine">Kit: 2 barras + 2 pedestales + mesa DJ + 2 pieles luminosas + pieles roble en los pedestales.</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en el mercado</th><th class="num">Precio</th><th class="num">Nosotros</th></tr></thead><tr><td>Tiendas DJ (España)<span class="sub">Vonyx DB5 Pro plegable 2.0 m, marco metálico + licra</span></td><td class="num">€599</td><td class="num mult"></td></tr><tr><td>Tiendas DJ (España)<span class="sub">Innox FlexBooth 200</span></td><td class="num">€199</td><td class="num mult"></td></tr></table>
+    </div>
+  </div>
+</article>
+</section>
+
+<section aria-labelledby="h-lv">
+  <div class="line-h">
+    <span class="eyebrow">Línea 2 · venta a casa · pet friendly donde resuelve algo</span>
+    <h2 id="h-lv">Living</h2>
+    <p>Cada ficha trae dos precios: el que sale hoy con la estructura de costos de VH y el objetivo de “un poco más caro que el importado”. La diferencia es lo que hay que rediseñar.</p>
+  </div>
+  
+<article class="sheet" id="toc-01">
+  <header class="sheet-h"><span class="code">TOC-01</span><h3>Tocador Hollywood</h3><span class="med">1100 × 450 × 760 mm · con espejo 1660</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class=""><svg class="dw" viewBox="-60 -60 1330 1890" role="img" aria-label="Frente, acabado Negro"><rect x="0.0" y="928.0" width="1100.0" height="732.0" rx="0" class="f-hueco"/><rect x="0.0" y="928.0" width="16.0" height="732.0" rx="0" class="f-negro"/><rect x="1084.0" y="928.0" width="16.0" height="732.0" rx="0" class="f-negro"/><rect x="384.0" y="1060.0" width="16.0" height="600.0" rx="0" class="f-negro"/><rect x="400.0" y="928.0" width="684.0" height="132.0" rx="0" class="f-hueco"/><rect x="416.0" y="1090.0" width="668.0" height="150.0" rx="0" class="f-hueco2"/><rect x="2.0" y="1430.0" width="396.0" height="210.0" rx="0" class="f-negro"/><rect x="2.0" y="1405.0" width="396.0" height="25.0" rx="0" class="f-gola"/><rect x="2.0" y="1195.0" width="396.0" height="210.0" rx="0" class="f-negro"/><rect x="2.0" y="1170.0" width="396.0" height="25.0" rx="0" class="f-gola"/><rect x="2.0" y="960.0" width="396.0" height="210.0" rx="0" class="f-negro"/><rect x="2.0" y="935.0" width="396.0" height="25.0" rx="0" class="f-gola"/><rect x="402.0" y="960.0" width="680.0" height="100.0" rx="0" class="f-negro"/><rect x="402.0" y="935.0" width="680.0" height="25.0" rx="0" class="f-gola"/><rect x="0.0" y="900.0" width="1100.0" height="28.0" rx="0" class="f-negro"/><rect x="100.0" y="0.0" width="900.0" height="900.0" rx="0" class="f-negro"/><rect x="150.0" y="50.0" width="800.0" height="800.0" rx="0" class="glow"/><rect x="150.0" y="50.0" width="800.0" height="800.0" rx="0" class="f-espejo"/><text x="550.0" y="450.0" font-size="40.8" text-anchor="middle" class="lbl">espejo 800 × 800</text><text x="550.0" y="510.0" font-size="35.7" text-anchor="middle" class="lbl">LED 4000 K · CRI 90 · dimmer</text><line x1="0.0" y1="1730.0" x2="1100.0" y2="1730.0" class="dim"/><line x1="0.0" y1="1747.9" x2="0.0" y2="1712.1" class="dim"/><line x1="1100.0" y1="1747.9" x2="1100.0" y2="1712.1" class="dim"/><text x="550.0" y="1788.7" font-size="43.4" text-anchor="middle" class="dimt">1100</text><line x1="1160.0" y1="1660.0" x2="1160.0" y2="900.0" class="dim"/><line x1="1142.1" y1="1660.0" x2="1177.9" y2="1660.0" class="dim"/><line x1="1142.1" y1="900.0" x2="1177.9" y2="900.0" class="dim"/><text x="1216.1" y="1280.0" font-size="43.4" text-anchor="middle" class="dimt" transform="rotate(-90 1216.1 1280.0)">760</text><line x1="1250.0" y1="1660.0" x2="1250.0" y2="0.0" class="dim"/><line x1="1232.1" y1="1660.0" x2="1267.9" y2="1660.0" class="dim"/><line x1="1232.1" y1="0.0" x2="1267.9" y2="0.0" class="dim"/><text x="1306.1" y="830.0" font-size="43.4" text-anchor="middle" class="dimt" transform="rotate(-90 1306.1 830.0)">1660</text></svg><figcaption>Frente, acabado Negro</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Espejo 800 × 800 con LED en perfil difusor, sin focos (los focos se ven baratos, calientan y se funden).</li><li>Pide 4000 K y CRI 90 o más. El kit del ERP es de 2700 K, que cambia el tono de piel. Malo para maquillaje.</li><li>3 cajones + 1 cajón plano para maquillaje, sin jaladeras (perfil gola de aluminio).</li><li>Correa antivuelco al muro: el espejo arriba sube el centro de gravedad.</li><li>Si va en baño: cubierta HPL y cantos sellados.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> 15 min y un desarmador. Los cajones y el espejo con LED llegan armados y cableados.</p>
+      <table class="money three">
+        <thead><tr><th></th><th class="num">Material</th><th class="num">Precio público</th></tr></thead>
+        <tr><th>Hoy: costo VH ×1.8, maquila 25%, venta en ML ×2.5</th><td class="num">$6,134</td><td class="num">$28,900</td></tr>
+        <tr><th>Versión Lite (LED de línea $700, correderas Häfele, sin multicontacto)</th><td class="num">$3,656</td><td class="num">$18,700</td></tr>
+        <tr class="hl"><th>Objetivo: diseño increíble, un poco más caro que el importado</th><td class="num">$1,848</td><td class="num">$6,900</td></tr>
+      </table>
+      <p class="fine">Para llegar al objetivo, el material tiene que bajar <b>49%</b> y VH tiene que dar factor de línea (ver “¿Premium o un poco más abajo?”).</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en ML / Amazon / retail</th><th class="num">Precio</th><th class="num">Objetivo</th></tr></thead><tr><td>Walmart<span class="sub">Vanity LED, 5 cajones + taburete, 80×40×140</span></td><td class="num">$3,379</td><td class="num mult">2.0×</td></tr><tr><td>Amazon (vía Promodescuentos)<span class="sub">Tocador con espejo y 10 luces</span></td><td class="num">$3,880</td><td class="num mult">1.8×</td></tr></table>
+    </div>
+  </div>
+</article>
+<article class="sheet" id="esc-01">
+  <header class="sheet-h"><span class="code">ESC-01</span><h3>Escritorio Compañero</h3><span class="med">1500 × 590 × 750 mm</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class="wide"><svg class="dw" viewBox="-60 -60 1760 1130" role="img" aria-label="Frente, acabado Roble"><rect x="450.0" y="148.0" width="1022.0" height="300.0" rx="0" class="f-hueco2"/><rect x="0.0" y="148.0" width="19.0" height="707.0" rx="0" class="f-roble"/><rect x="431.0" y="148.0" width="19.0" height="707.0" rx="0" class="f-roble"/><rect x="19.0" y="836.0" width="412.0" height="19.0" rx="0" class="f-roble"/><rect x="19.0" y="419.0" width="412.0" height="417.0" rx="0" class="f-hueco"/><rect x="40.0" y="766.0" width="370.0" height="70.0" rx="30" class="f-cojin"/><text x="225.0" y="620.0" font-size="37.0" text-anchor="middle" class="lbl">nicho mascota</text><rect x="19.0" y="400.0" width="412.0" height="19.0" rx="0" class="f-roble"/><rect x="2.0" y="150.0" width="446.0" height="250.0" rx="0" class="f-roble"/><rect x="150.0" y="168.0" width="150.0" height="12.0" rx="0" class="f-gola"/><rect x="1472.0" y="148.0" width="28.0" height="722.0" rx="0" class="f-roble"/><rect x="0.0" y="120.0" width="1500.0" height="28.0" rx="0" class="f-roble"/><rect x="1060.0" y="101.0" width="400.0" height="19.0" rx="0" class="f-roble"/><rect x="1060.0" y="0.0" width="19.0" height="101.0" rx="0" class="f-roble"/><rect x="1441.0" y="0.0" width="19.0" height="101.0" rx="0" class="f-roble"/><rect x="1079.0" y="56.0" width="362.0" height="45.0" rx="18" class="f-cojin"/><text x="1260.0" y="-20.0" font-size="37.0" text-anchor="middle" class="lbl">repisa gato</text><rect x="15.0" y="855.0" width="30.0" height="15.0" rx="0" class="f-metal"/><rect x="405.0" y="855.0" width="30.0" height="15.0" rx="0" class="f-metal"/><line x1="0.0" y1="950.0" x2="1500.0" y2="950.0" class="dim"/><line x1="0.0" y1="968.5" x2="0.0" y2="931.5" class="dim"/><line x1="1500.0" y1="968.5" x2="1500.0" y2="931.5" class="dim"/><text x="750.0" y="1010.7" font-size="44.9" text-anchor="middle" class="dimt">1500</text><line x1="1570.0" y1="870.0" x2="1570.0" y2="120.0" class="dim"/><line x1="1551.5" y1="870.0" x2="1588.5" y2="870.0" class="dim"/><line x1="1551.5" y1="120.0" x2="1588.5" y2="120.0" class="dim"/><text x="1628.1" y="495.0" font-size="44.9" text-anchor="middle" class="dimt" transform="rotate(-90 1628.1 495.0)">750</text><line x1="1670.0" y1="870.0" x2="1670.0" y2="0.0" class="dim"/><line x1="1651.5" y1="870.0" x2="1688.5" y2="870.0" class="dim"/><line x1="1651.5" y1="0.0" x2="1688.5" y2="0.0" class="dim"/><text x="1728.1" y="435.0" font-size="44.9" text-anchor="middle" class="dimt" transform="rotate(-90 1728.1 435.0)">870</text></svg><figcaption>Frente, acabado Roble</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Nicho a ras de piso junto a tus pies (412 × 410 × 560) con cojín lavable de tapicería VH. Le cabe un gato o un perro chico; un perro mediano no.</li><li>Repisa para gato junto al monitor: le das un lugar alto a tu lado y deja de acostarse en el teclado.</li><li>Canal de cables cerrado con tapa: los cables quedan fuera del alcance de los dientes.</li><li>Melamina TX (texturizada): esconde los rayones de uñas. La lisa o el brillo los marcan.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> 10 min. El pedestal llega armado y la cubierta, la pata y el faldón van con minifix.</p>
+      <table class="money three">
+        <thead><tr><th></th><th class="num">Material</th><th class="num">Precio público</th></tr></thead>
+        <tr><th>Hoy: costo VH ×1.8, maquila 25%, venta en ML ×2.5</th><td class="num">$2,533</td><td class="num">$15,200</td></tr>
+        
+        <tr class="hl"><th>Objetivo: diseño increíble, un poco más caro que el importado</th><td class="num">$1,848</td><td class="num">$6,900</td></tr>
+      </table>
+      <p class="fine">Para llegar al objetivo, el material tiene que bajar <b>27%</b> y VH tiene que dar factor de línea (ver “¿Premium o un poco más abajo?”).</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en ML / Amazon / retail</th><th class="num">Precio</th><th class="num">Objetivo</th></tr></thead><tr><td>Mercado Libre<span class="sub">Escritorio 120×48 con cajón y llave</span></td><td class="num">$2,899</td><td class="num mult">2.4×</td></tr><tr><td>Mercado Libre<span class="sub">Escritorio 1.2 m con cajón y repisas</span></td><td class="num">$3,999</td><td class="num mult">1.7×</td></tr></table>
+    </div>
+  </div>
+</article>
+<article class="sheet" id="mc-01">
+  <header class="sheet-h"><span class="code">MC-01</span><h3>Mesa de Centro Guarida</h3><span class="med">1100 × 590 × 420 mm</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class="wide"><svg class="dw" viewBox="-60 -60 1330 650" role="img" aria-label="Frente, acabado Roble"><rect x="0.0" y="28.0" width="28.0" height="382.0" rx="0" class="f-roble"/><rect x="1072.0" y="28.0" width="28.0" height="382.0" rx="0" class="f-roble"/><rect x="28.0" y="381.0" width="1044.0" height="19.0" rx="0" class="f-roble"/><rect x="28.0" y="28.0" width="500.0" height="353.0" rx="0" class="f-roble"/><ellipse cx="278.0" cy="205.0" rx="140.0" ry="100.0" class="f-hueco"/><rect x="180.0" y="260.0" width="196.0" height="40.0" rx="16" class="f-cojin"/><rect x="528.0" y="28.0" width="19.0" height="353.0" rx="0" class="f-roble"/><rect x="547.0" y="28.0" width="525.0" height="353.0" rx="0" class="f-hueco"/><rect x="620.0" y="341.0" width="260.0" height="40.0" rx="0" class="f-hueco2"/><rect x="640.0" y="311.0" width="220.0" height="30.0" rx="0" class="f-hueco2"/><rect x="0.0" y="0.0" width="1100.0" height="28.0" rx="0" class="f-roble"/><line x1="0.0" y1="490.0" x2="1100.0" y2="490.0" class="dim"/><line x1="0.0" y1="506.8" x2="0.0" y2="473.2" class="dim"/><line x1="1100.0" y1="506.8" x2="1100.0" y2="473.2" class="dim"/><text x="550.0" y="545.2" font-size="40.8" text-anchor="middle" class="dimt">1100</text><line x1="1160.0" y1="420.0" x2="1160.0" y2="0.0" class="dim"/><line x1="1143.2" y1="420.0" x2="1176.8" y2="420.0" class="dim"/><line x1="1143.2" y1="0.0" x2="1176.8" y2="0.0" class="dim"/><text x="1212.8" y="210.0" font-size="40.8" text-anchor="middle" class="dimt" transform="rotate(-90 1212.8 210.0)">420</text></svg><figcaption>Frente, acabado Roble</figcaption></figure><figure class="side"><svg class="dw" viewBox="-40 -60 670 600" role="img" aria-label="Costado"><rect x="0.0" y="28.0" width="590.0" height="382.0" rx="0" class="f-roble"/><path d="M175.0,381.0 L175.0,231.0 A120.0,120.0 0 0 1 415.0,231.0 L415.0,381.0 Z" class="f-hueco"/><rect x="0.0" y="0.0" width="590.0" height="28.0" rx="0" class="f-roble"/><text x="295.0" y="490.0" font-size="20.8" text-anchor="middle" class="dimt">costado: entrada en arco</text></svg><figcaption>Costado</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Cueva cerrada con entrada en arco por el costado y ventana ovalada al frente.</li><li>Bolsillo para rascador de cartón estándar: lo venden en cualquier tienda de mascotas. El sisal se acaba y no se cambia.</li><li>Repisa abierta para control y revistas. Esquinas R50.</li><li>Es la pieza más barata de Living y la más fotografiable. La recomiendo como pieza héroe.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> 5 minutos y 4 minifix. El cojín va aparte.</p>
+      <table class="money three">
+        <thead><tr><th></th><th class="num">Material</th><th class="num">Precio público</th></tr></thead>
+        <tr><th>Hoy: costo VH ×1.8, maquila 25%, venta en ML ×2.5</th><td class="num">$1,619</td><td class="num">$9,500</td></tr>
+        
+        <tr class="hl"><th>Objetivo: diseño increíble, un poco más caro que el importado</th><td class="num">$1,313</td><td class="num">$4,900</td></tr>
+      </table>
+      <p class="fine">Para llegar al objetivo, el material tiene que bajar <b>19%</b> y VH tiene que dar factor de línea (ver “¿Premium o un poco más abajo?”).</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en ML / Amazon / retail</th><th class="num">Precio</th><th class="num">Objetivo</th></tr></thead><tr><td>Liverpool<span class="sub">Mesa de centro armable melamina (Nuestro Nido)</span></td><td class="num">$1,499</td><td class="num mult">3.3×</td></tr><tr><td>Liverpool<span class="sub">Mesa de centro armable melamina (Excelsior)</span></td><td class="num">$4,189</td><td class="num mult">1.2×</td></tr></table>
+    </div>
+  </div>
+</article>
+<article class="sheet" id="tv-01">
+  <header class="sheet-h"><span class="code">TV-01</span><h3>Mueble TV Arenero</h3><span class="med">1800 × 480 × 610 mm</span></header>
+  <div class="sheet-b">
+    <div class="draw"><figure class="wide"><svg class="dw" viewBox="-60 -60 2060 1640" role="img" aria-label="Frente, acabado Negro"><rect x="290.0" y="0.0" width="1220.0" height="690.0" rx="0" class="dash"/><text x="900.0" y="345.0" font-size="55.6" text-anchor="middle" class="dimt">TV 55&quot;</text><rect x="40.0" y="1270.0" width="40.0" height="110.0" rx="0" class="f-metal"/><rect x="880.0" y="1270.0" width="40.0" height="110.0" rx="0" class="f-metal"/><rect x="1720.0" y="1270.0" width="40.0" height="110.0" rx="0" class="f-metal"/><rect x="0.0" y="798.0" width="1800.0" height="472.0" rx="0" class="f-hueco"/><rect x="0.0" y="798.0" width="19.0" height="472.0" rx="0" class="f-negro"/><rect x="1781.0" y="798.0" width="19.0" height="472.0" rx="0" class="f-negro"/><rect x="19.0" y="1251.0" width="1762.0" height="19.0" rx="0" class="f-negro"/><rect x="21.0" y="800.0" width="596.0" height="449.0" rx="0" class="f-negro"/><rect x="120.0" y="950.0" width="400.0" height="10.0" rx="0" class="f-hueco"/><rect x="120.0" y="926.0" width="400.0" height="10.0" rx="0" class="f-hueco"/><rect x="120.0" y="902.0" width="400.0" height="10.0" rx="0" class="f-hueco"/><rect x="120.0" y="878.0" width="400.0" height="10.0" rx="0" class="f-hueco"/><rect x="120.0" y="854.0" width="400.0" height="10.0" rx="0" class="f-hueco"/><rect x="120.0" y="830.0" width="400.0" height="10.0" rx="0" class="f-hueco"/><rect x="619.0" y="800.0" width="19.0" height="449.0" rx="0" class="f-negro"/><rect x="1162.0" y="800.0" width="19.0" height="449.0" rx="0" class="f-negro"/><rect x="638.0" y="1016.0" width="524.0" height="19.0" rx="0" class="f-negro"/><rect x="760.0" y="1181.0" width="280.0" height="70.0" rx="0" class="f-hueco2"/><rect x="1183.0" y="800.0" width="596.0" height="449.0" rx="0" class="f-negro"/><rect x="0.0" y="770.0" width="1800.0" height="28.0" rx="0" class="f-negro"/><text x="319.0" y="1130.0" font-size="46.3" text-anchor="middle" class="lbl-on-dark">arenero</text><line x1="0.0" y1="1460.0" x2="1800.0" y2="1460.0" class="dim"/><line x1="0.0" y1="1481.6" x2="0.0" y2="1438.4" class="dim"/><line x1="1800.0" y1="1481.6" x2="1800.0" y2="1438.4" class="dim"/><text x="900.0" y="1531.1" font-size="52.5" text-anchor="middle" class="dimt">1800</text><line x1="1870.0" y1="1380.0" x2="1870.0" y2="770.0" class="dim"/><line x1="1848.4" y1="1380.0" x2="1891.6" y2="1380.0" class="dim"/><line x1="1848.4" y1="770.0" x2="1891.6" y2="770.0" class="dim"/><text x="1938.0" y="1075.0" font-size="52.5" text-anchor="middle" class="dimt" transform="rotate(-90 1938.0 1075.0)">610</text><line x1="1970.0" y1="1380.0" x2="1970.0" y2="1270.0" class="dim"/><line x1="1948.4" y1="1380.0" x2="1991.6" y2="1380.0" class="dim"/><line x1="1948.4" y1="1270.0" x2="1991.6" y2="1270.0" class="dim"/><text x="2038.0" y="1325.0" font-size="52.5" text-anchor="middle" class="dimt" transform="rotate(-90 2038.0 1325.0)">110</text></svg><figcaption>Frente, acabado Negro</figcaption></figure><figure class="side"><svg class="dw" viewBox="-40 -60 560 790" role="img" aria-label="Costado"><rect x="20.0" y="500.0" width="40.0" height="110.0" rx="0" class="f-metal"/><rect x="420.0" y="500.0" width="40.0" height="110.0" rx="0" class="f-metal"/><rect x="0.0" y="28.0" width="480.0" height="472.0" rx="0" class="f-negro"/><path d="M130.0,481.0 L130.0,331.0 A110.0,110.0 0 0 1 350.0,331.0 L350.0,481.0 Z" class="f-hueco"/><rect x="0.0" y="0.0" width="480.0" height="28.0" rx="0" class="f-negro"/><text x="240.0" y="680.0" font-size="20.8" text-anchor="middle" class="dimt">costado: entrada Ø220</text></svg><figcaption>Costado</figcaption></figure></div>
+    <div class="spec">
+      <ul class="pts"><li>Compartimento de arenero con entrada Ø220 por el costado (izquierda o derecha, se decide al fabricar), puerta ranurada y filtro de carbón.</li><li>Charola interior de MDF con HPL, desmontable: la orina hincha el aglomerado en semanas. No es negociable.</li><li>Trasero cerrado con pasacables: no queda ningún cable al alcance de los dientes.</li><li>Patas de 110 mm: pasa la aspiradora robot por el pelo. Kit antivuelco para mueble y tele.</li></ul>
+      <p class="armado"><b>Armado fácil.</b> 15 min. Patas atornilladas a insertos y puertas ajustadas desde fábrica.</p>
+      <table class="money three">
+        <thead><tr><th></th><th class="num">Material</th><th class="num">Precio público</th></tr></thead>
+        <tr><th>Hoy: costo VH ×1.8, maquila 25%, venta en ML ×2.5</th><td class="num">$3,035</td><td class="num">$17,900</td></tr>
+        
+        <tr class="hl"><th>Objetivo: diseño increíble, un poco más caro que el importado</th><td class="num">$2,116</td><td class="num">$7,900</td></tr>
+      </table>
+      <p class="fine">Para llegar al objetivo, el material tiene que bajar <b>30%</b> y VH tiene que dar factor de línea (ver “¿Premium o un poco más abajo?”).</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en ML / Amazon / retail</th><th class="num">Precio</th><th class="num">Objetivo</th></tr></thead><tr><td>Liverpool<span class="sub">Mueble TV armable 180 cm MDP (Madesa)</span></td><td class="num">$3,589</td><td class="num mult">2.2×</td></tr><tr><td>Walmart<span class="sub">Mueble arenero oculto 140×45×52, 2 gatos</span></td><td class="num">$4,693</td><td class="num mult">1.7×</td></tr></table>
+    </div>
+  </div>
+</article>
+</section>
+
+<section aria-labelledby="h-cmp">
+  <h2 id="h-cmp">Comparativa contra el mercado</h2>
+  <div class="tbl"><table class="summary">
+    <thead><tr><th>Línea</th><th>Producto</th><th class="num">Material</th><th class="num">Fab. VH</th><th class="num">Nuestro precio</th><th class="num">Lo parecido</th><th class="num">Veces más caro</th></tr></thead>
+    <tbody><tr><td>Eventos</td><td>Barra Modular 118</td><td class="num">$2,870</td><td class="num">$5,166</td><td class="num">$10,400</td><td class="num">$18,899, $699</td><td class="num">0.6–14.9×</td></tr><tr><td>Eventos</td><td>Pedestal Esquinero 59</td><td class="num">$1,855</td><td class="num">$3,339</td><td class="num">$6,700</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Eventos</td><td>Periquera Equis</td><td class="num">$1,278</td><td class="num">$2,300</td><td class="num">$4,700</td><td class="num">$1,642</td><td class="num">2.9×</td></tr><tr><td>Eventos</td><td>Mesa Imperial Equis</td><td class="num">$2,788</td><td class="num">$5,018</td><td class="num">$10,100</td><td class="num">$699</td><td class="num">14.4×</td></tr><tr><td>Eventos</td><td>Cabina DJ 354</td><td class="num">$20,554</td><td class="num">$32,937</td><td class="num">$65,900</td><td class="num">—</td><td class="num">—</td></tr><tr><td>Living</td><td>Tocador Hollywood</td><td class="num">$6,134</td><td class="num">$8,662</td><td class="num">$28,900 <span class="sub">objetivo $6,900</span></td><td class="num">$3,379, $3,880</td><td class="num">7.4–8.6× <span class="sub">objetivo 1.8–2.0×</span></td></tr><tr><td>Living</td><td>Escritorio Compañero</td><td class="num">$2,533</td><td class="num">$4,559</td><td class="num">$15,200 <span class="sub">objetivo $6,900</span></td><td class="num">$2,899, $3,999</td><td class="num">3.8–5.2× <span class="sub">objetivo 1.7–2.4×</span></td></tr><tr><td>Living</td><td>Mesa de Centro Guarida</td><td class="num">$1,619</td><td class="num">$2,825</td><td class="num">$9,500 <span class="sub">objetivo $4,900</span></td><td class="num">$1,499, $4,189</td><td class="num">2.3–6.3× <span class="sub">objetivo 1.2–3.3×</span></td></tr><tr><td>Living</td><td>Mueble TV Arenero</td><td class="num">$3,035</td><td class="num">$5,344</td><td class="num">$17,900 <span class="sub">objetivo $7,900</span></td><td class="num">$3,589, $4,693</td><td class="num">3.8–5.0× <span class="sub">objetivo 1.7–2.2×</span></td></tr></tbody>
+  </table></div>
+  <p class="fine">Eventos: precio B2B = maquila VH × 1.5. Living: precio público = maquila VH × 2.5 (venta en ML/Amazon). “Veces más caro” va del producto más caro al más barato de la lista. En eventos casi nadie vende algo equivalente: la comparación es contra lo que hoy usan las rentadoras (mesa plegable con mantel).</p>
+</section>
+
+<section aria-labelledby="h-hoja">
+  <h2 id="h-hoja">Diseñar a la hoja</h2>
+  <p>Una hoja de 1220 × 2440 deja 1200 útiles después del refile de 10 mm por lado. Con una cubierta de 1200 cabe una por fila; con 1180 caben dos. Esa diferencia de 2 cm bajó el costo de fabricación entre 17 y 31%.</p>
+  <div class="hojas"><figure><svg class="dw" viewBox="-20 -40 2480 1430" role="img" aria-label="Antes"><rect x="0.0" y="0.0" width="2440.0" height="1220.0" rx="0" class="f-hoja"/><rect x="10.0" y="560.0" width="1200.0" height="650.0" rx="0" class="f-hpl"/><rect x="1216.0" y="560.0" width="1200.0" height="650.0" rx="0" class="f-hpl"/><text x="1220.0" y="1340.0" font-size="99.0" text-anchor="middle" class="dimt">1200 × 650 → 2 cubiertas por hoja</text></svg></figure><figure><svg class="dw" viewBox="-20 -40 2480 1430" role="img" aria-label="Después"><rect x="0.0" y="0.0" width="2440.0" height="1220.0" rx="0" class="f-hoja"/><rect x="10.0" y="620.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="1196.0" y="620.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="10.0" y="24.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><rect x="1196.0" y="24.0" width="1180.0" height="590.0" rx="0" class="f-hpl"/><text x="1220.0" y="1340.0" font-size="99.0" text-anchor="middle" class="dimt">1180 × 590 → 4 cubiertas por hoja</text></svg></figure></div>
+  <div class="tbl"><table class="summary" style="min-width:520px">
+    <thead><tr><th>Pieza</th><th>Cambio</th><th class="num">Fab. antes</th><th class="num">Fab. después</th></tr></thead>
+    <tbody>
+      <tr><td>Barra</td><td>1200 × 650 → 1180 × 590</td><td class="num">$5,106</td><td class="num">$4,241 <span class="sub">-17%</span></td></tr>
+      <tr><td>Pedestal</td><td>650 → 590</td><td class="num">$4,493</td><td class="num">$3,339 <span class="sub">-26%</span></td></tr>
+      <tr><td>Periquera</td><td>Ø600 → Ø590: 3 → 8 cubiertas por hoja</td><td class="num">$3,344</td><td class="num">$2,300 <span class="sub">-31%</span></td></tr>
+      <tr><td>Escritorio</td><td>fondo 650 → 590: 1 → 2 cubiertas de 28 mm por hoja</td><td class="num">$5,723</td><td class="num">$4,559 <span class="sub">-20%</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="h-nose" class="cols2">
+  <div style="display:grid;gap:12px">
+    <h2 id="h-nose">Lo que no sé</h2>
+    <ul>
+      <li><b>Precios de renta en CDMX.</b> Ninguna rentadora publica tarifas. Solo encontré una guía general: mesas entre $140 y $240 por unidad. Hay que hacer 5 llamadas como cliente.</li>
+      <li><b>Precios exactos de Mercado Libre y Amazon.</b> Las dos páginas bloquearon mi consulta automática. Las referencias vienen de Walmart, Liverpool y notas de ofertas de ML y Amazon. Revisa 3 anuncios por producto a mano.</li>
+      <li><b>Color de MDF melamina 18 y 25 mm.</b> El ERP no dice si existe en negro.</li>
+      <li><b>LED.</b> Los kits del ERP son de proyecto ($1,454 a $2,619). Usé $2,567 para la piel luminosa y $700 como objetivo para el tocador Lite. Ninguno está cotizado.</li>
+      <li><b>Estimados fuera del ERP:</b> vinil impreso ($300/m²), escuadras, perillas, rascador, filtro de carbón y kit antivuelco.</li>
+      <li><b>Mano de obra real.</b> La fórmula de VH es un porcentaje del material, no tiempos medidos. Los cantos en curva (periquera, arcos, esquinas R50) llevan más trabajo del que la fórmula supone.</li>
+      <li><b>Factor de línea ×1.4.</b> Es un supuesto mío, no de Alba.</li>
+      <li><b>Cabinas DJ.</b> Solo encontré precios en euros (España). No los convertí porque no verifiqué el tipo de cambio.</li>
+      <li><b>Estabilidad.</b> El vuelco de la periquera y del tocador lo calculé a mano. Falta la prueba física.</li>
+    </ul>
+  </div>
+  <div style="display:grid;gap:12px">
+    <h2>Siguientes pasos</h2>
+    <ol>
+      <li>Decide arrancar con Eventos vendido B2B. Renta propia hasta tener 3 clientes ancla.</li>
+      <li>Prototipo de eventos: 2 barras, 1 pedestal, 3 pieles y 2 periqueras. Son <span class="num">$31,423</span> de maquila sin IVA. Pruébalo con agua, 20 armados y vuelco.</li>
+      <li>Llévalo a 5 agencias o venues y pregunta cuánto pagarían por comprarlo y cuánto por rentarlo.</li>
+      <li>Pide a Alba el costeo de un lote de 20 con tiempos reales. Si el factor baja de ×1.8 a ~×1.4, Living se vuelve viable.</li>
+      <li>Living: rediseña la Mesa de Centro Guarida a $1,313 de material o menos y vende 10 a pedido por Instagram antes de tocar las otras 3.</li>
+      <li>Tocador: solo como estación para baños de mujeres en venues y restaurantes. Para casa no cierra.</li>
+    </ol>
+  </div>
+</section>
+
+<section aria-labelledby="h-src">
+  <h2 id="h-src" style="font-size:20px">Fuentes de mercado</h2>
+  <div class="sources">
+    <a href="https://www.walmart.com.mx/browse/muebles/recamaras-y-closets/tocadores-y-mesas-de-noche/265290_265299_265304">Walmart México: tocadores y mesas de noche</a>
+    <a href="https://www.promodescuentos.com/ofertas/tocador-de-maquillaje-con-espejo-y-10-luces-1200870">Promodescuentos: tocador con espejo y 10 luces en Amazon</a>
+    <a href="https://www.xataka.com.mx/seleccion/este-tocador-tiene-52-descuento-mercado-libre-cuenta-espejo-led-estacion-carga">Xataka: tocador con espejo LED en Mercado Libre</a>
+    <a href="https://www.walmart.com.mx/browse/mascotas/gatos/arena-y-areneros-para-gatos/265487_265505_265508">Walmart México: areneros y muebles arenero</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/mesa-armable-de-melamina/999686860967">Liverpool: mesa de centro armable de melamina</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/mesa-de-centro-armable-de-melamina/999695436721">Liverpool: mesa de centro Excelsior</a>
+    <a href="https://listado.mercadolibre.com.mx/escritorio-con-cajones-con-llave">Mercado Libre: escritorios con cajón</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/mueble-de-tv-armable/1193836999">Liverpool: mueble de TV armable 180 cm</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/barra-bar-armable-rivoli-de-madera/1170574105">Liverpool: barra de bar HAUS Rivoli</a>
+    <a href="https://www.walmart.com.mx/ip/Mesa-Plegable-de-Plastico-Tipo-Portafolio-para-Eventos-Jardin-Interior-y-Exterior-1-80-Metros/00061567820527">Walmart México: mesa plegable portafolio 1.80 m</a>
+    <a href="https://listado.mercadolibre.com.mx/mesa-periquera-de-cristal">Mercado Libre: mesas periqueras</a>
+    <a href="https://www.costco.com.mx/Muebles/Mesas-y-Escritorios/Mesas-para-Exterior/Lifetime-Mesa-Plegable-244m-Color-Blanco/p/671440">Costco México: mesa plegable Lifetime 2.44 m</a>
+    <a href="https://bax-shop.es/cabinas-de-dj/vonyx-db5-pro-opvouwbaar-dj-booth-systeem">Bax-shop: Vonyx DB5 Pro</a>
+    <a href="https://www.cronoshare.com.mx/cuanto-cuesta/renta-mobiliario-eventos">Cronoshare: cuánto cuesta rentar mobiliario para eventos</a>
+  </div>
+</section>
+
+</main>

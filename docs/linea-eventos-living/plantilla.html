@@ -1,0 +1,327 @@
+<title>Catálogo Eventos y Living</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ficha técnica de taller. Planos a la izquierda, especificación y números a la derecha; todo en una columna en teléfono. */
+:root {
+  --bg: #f2f3f0; --surface: #ffffff; --ink: #191b1a; --muted: #5d645f; --rule: #d5d8d3;
+  --accent: #8f6a2a; --accent-soft: #efe6d2;
+  --bad: #ac3b2b; --mid: #96701c; --good: #3a7349;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  /* materiales del dibujo */
+  --roble: #c9a275; --roble-veta: #ae8757; --negro: #272826; --negro2: #363733; --hpl: #1c1d1c;
+  --metal: #8c9093; --trip: #dcc69c; --hueco: #e9eae6; --hueco2: #d9dbd6; --cojin: #8f9ca4; --gola: #a3a8ab;
+  --luz1: #fff8e2; --luz2: #ffe1a0; --glow: #ffcf70; --esp1: #e6eef1; --esp2: #b7c5cb; --hoja: #eee5d2;
+  --line: #141514; --on-dark: #efe7d6;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111312; --surface: #181b19; --ink: #e7e9e5; --muted: #9ba29d; --rule: #2a2f2c;
+  --accent: #d4aa5e; --accent-soft: #2a2417; --bad: #e27b69; --mid: #dba64a; --good: #7fc290;
+  --roble: #b48d60; --roble-veta: #9a7548; --negro: #2c2e2c; --negro2: #3b3d39; --hpl: #222422;
+  --metal: #7b7f82; --trip: #a8936b; --hueco: #1e2120; --hueco2: #2a2e2c; --cojin: #6f7c84; --gola: #868b8e;
+  --luz1: #f6e8c0; --luz2: #e8c477; --glow: #f0bf5c; --esp1: #7d8d94; --esp2: #4c5a60; --hoja: #3a3427;
+  --line: #8d948f; --on-dark: #efe7d6; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #111312; --surface: #181b19; --ink: #e7e9e5; --muted: #9ba29d; --rule: #2a2f2c;
+  --accent: #d4aa5e; --accent-soft: #2a2417; --bad: #e27b69; --mid: #dba64a; --good: #7fc290;
+  --roble: #b48d60; --roble-veta: #9a7548; --negro: #2c2e2c; --negro2: #3b3d39; --hpl: #222422;
+  --metal: #7b7f82; --trip: #a8936b; --hueco: #1e2120; --hueco2: #2a2e2c; --cojin: #6f7c84; --gola: #868b8e;
+  --luz1: #f6e8c0; --luz2: #e8c477; --glow: #f0bf5c; --esp1: #7d8d94; --esp2: #4c5a60; --hoja: #3a3427;
+  --line: #8d948f; --on-dark: #efe7d6; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 56px; }
+h1, h2, h3, h4 { font-family: var(--display); text-wrap: balance; margin: 0; line-height: 1.08; }
+h1 { font-size: clamp(34px, 6vw, 64px); font-stretch: 118%; font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: clamp(24px, 3.4vw, 34px); font-stretch: 112%; font-weight: 750; }
+h3 { font-size: 22px; font-stretch: 108%; font-weight: 700; }
+h4 { font-size: 16px; font-weight: 700; font-stretch: 105%; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sub { display: block; font-size: 12px; color: var(--muted); font-family: var(--body); white-space: normal; }
+section { display: grid; gap: 24px; }
+.lede { font-size: 18px; max-width: 64ch; }
+.hero { display: grid; gap: 18px; padding-bottom: 8px; border-bottom: 1px solid var(--rule); }
+.hero .stats { display: flex; flex-wrap: wrap; gap: 10px 28px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.hero .stats b { color: var(--ink); font-weight: 500; }
+
+/* veredicto */
+.verdict { width: 100%; border-collapse: collapse; }
+.verdict td { padding: 12px 10px; border-top: 1px solid var(--rule); vertical-align: top; }
+.verdict td:first-child { width: 34%; font-weight: 600; }
+.verdict td.score { width: 92px; }
+.pill { display: inline-flex; align-items: baseline; gap: 2px; font-family: var(--mono); font-weight: 500; font-size: 15px; padding: 2px 9px; border-radius: 999px; border: 1px solid currentColor; }
+.pill small { font-size: 11px; opacity: .8; }
+.s-bad { color: var(--bad); } .s-mid { color: var(--mid); } .s-good { color: var(--good); }
+.wrong { display: inline-block; font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--bad); border: 1px solid var(--bad); padding: 0 6px; margin-right: 6px; }
+.tbl { overflow-x: auto; }
+
+/* respuesta premium */
+.answer { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 28px; background: var(--surface); border: 1px solid var(--rule); padding: 24px; }
+.answer .stack { display: grid; gap: 10px; font-family: var(--mono); font-size: 13px; }
+.stack .row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--rule); padding-bottom: 6px; }
+.stack .row.tot { border-bottom: 0; color: var(--accent); font-weight: 500; }
+.answer ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 60ch; }
+
+/* acabados */
+.finishes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+.finish { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: start; }
+.sw { width: 96px; height: 120px; border: 1px solid var(--rule); }
+.sw svg { width: 100%; height: 100%; display: block; }
+.finish ul { margin: 6px 0 0; padding: 0; list-style: none; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.finish p { font-size: 14px; margin-top: 6px; }
+
+/* fichas */
+.line-h { display: grid; gap: 8px; border-top: 3px solid var(--ink); padding-top: 14px; }
+.sheet { display: grid; gap: 16px; border-top: 1px solid var(--rule); padding-top: 22px; }
+.sheet-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.code { font-family: var(--mono); font-size: 12px; color: var(--accent); border: 1px solid var(--accent); padding: 1px 7px; }
+.med { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.sheet-b { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.draw { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; min-width: 0; }
+.draw figure { margin: 0; flex: 1 1 180px; min-width: 0; display: grid; gap: 4px; }
+.draw figure.wide { flex-basis: 100%; }
+.draw figure.side { flex: 0 1 280px; }
+.dw { width: 100%; height: auto; max-height: 380px; display: block; }
+figcaption { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+.spec { display: grid; gap: 14px; min-width: 0; }
+.pts { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14.5px; }
+.armado { font-size: 14px; padding: 10px 12px; background: var(--accent-soft); }
+.money, .mkt { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.money th, .money td, .mkt th, .mkt td { padding: 7px 0; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; font-weight: 400; }
+.money td.num, .mkt td.num, .mkt th.num, .money th.num { text-align: right; padding-left: 12px; }
+.money tr.hl th, .money tr.hl td { font-weight: 600; color: var(--accent); border-bottom: 2px solid var(--accent); }
+.mkt thead th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.mkt .mult { color: var(--accent); }
+.fine { font-size: 13px; color: var(--muted); }
+
+/* pieles */
+.pieles { display: grid; gap: 12px; }
+.piel-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.piel { margin: 0; display: grid; gap: 6px; }
+.piel figcaption { display: grid; gap: 1px; }
+.piel figcaption b { color: var(--ink); font-family: var(--body); font-size: 14px; }
+
+/* hoja */
+.hojas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+.hojas svg { width: 100%; height: auto; }
+.summary { width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 760px; }
+.summary th, .summary td { padding: 9px 10px 9px 0; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: top; }
+.summary thead th { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 400; }
+.summary td.num, .summary th.num { text-align: right; }
+.cols2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+.cols2 ul, .cols2 ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+.sources { font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.sources a { word-break: break-word; }
+
+/* dibujo */
+.dw rect, .dw polygon, .dw ellipse, .dw circle, .dw path { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.f-roble { fill: url(#veta); } .f-negro { fill: var(--negro); } .f-negro2 { fill: var(--negro2); } .f-hpl { fill: var(--hpl); }
+.f-hpl-soft { fill: var(--hueco2); } .f-luz { fill: url(#luz); } .f-espejo { fill: url(#espejo); } .f-metal { fill: var(--metal); }
+.f-trip { fill: var(--trip); } .f-hueco { fill: var(--hueco); } .f-hueco2 { fill: var(--hueco2); } .f-cojin { fill: var(--cojin); }
+.f-gola { fill: var(--gola); } .f-hoja { fill: var(--hoja); }
+.dw .dash { fill: none; stroke: var(--muted); stroke-dasharray: 6 5; }
+.dw .glow { fill: none; stroke: var(--glow); stroke-width: 9; opacity: .9; }
+.dw line.dim { stroke: var(--muted); stroke-width: .8; vector-effect: non-scaling-stroke; }
+.dw text { font-family: var(--mono); }
+.dw .dimt, .dw .lbl { fill: var(--muted); }
+.dw .lbl-on-dark { fill: var(--on-dark); }
+.dw .brand { fill: var(--on-dark); font-family: var(--display); font-weight: 800; letter-spacing: .08em; }
+.pv-b { fill: var(--roble); } .pv-l { fill: none; stroke: var(--roble-veta); stroke-width: 2.5; }
+.gl1 { stop-color: var(--luz1); } .gl2 { stop-color: var(--luz2); } .ge1 { stop-color: var(--esp1); } .ge2 { stop-color: var(--esp2); }
+
+@media (max-width: 860px) {
+  .sheet-b, .answer, .cols2 { grid-template-columns: minmax(0, 1fr); }
+  .verdict td:first-child { width: auto; }
+}
+@media (max-width: 520px) {
+  .piel-row { grid-template-columns: minmax(0, 1fr); }
+  .hojas { grid-template-columns: minmax(0, 1fr); }
+  .verdict tr { display: grid; grid-template-columns: auto minmax(0, 1fr); }
+  .verdict td:first-child { grid-column: 1 / -1; border-top: 1px solid var(--rule); padding-bottom: 2px; }
+  .verdict td.score, .verdict td:last-child { border-top: 0; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="veta" width="200" height="60" patternUnits="userSpaceOnUse">
+      <rect width="200" height="60" class="pv-b"/>
+      <path d="M0 14 C50 8 120 22 200 12 M0 38 C60 44 140 30 200 40 M0 52 C70 48 130 58 200 54" class="pv-l"/>
+    </pattern>
+    <linearGradient id="luz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="gl1"/><stop offset="1" class="gl2"/></linearGradient>
+    <linearGradient id="espejo" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="ge1"/><stop offset=".55" class="ge2"/><stop offset="1" class="ge1"/></linearGradient>
+  </defs>
+</svg>
+
+<main class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Catálogo v0 · maquila Von Haucke · noviembre 2026</span>
+  <h1>Eventos y Living</h1>
+  <p class="lede">5 piezas para eventos, 4 para casa, 2 acabados. Los precios de material salen del ERP de Von Haucke (última compra), el aprovechamiento de hoja del optimizador de corte del costeador y el costo de fabricación de la fórmula de Alba. No es una cotización: es la base para decidir qué prototipar.</p>
+  <div class="stats"><span><b>9</b> productos</span><span><b>2</b> acabados</span><span><b>0</b> piezas de madera maciza</span><span><b>1</b> cuerpo de barra para 4 usos</span></div>
+</header>
+
+<section aria-labelledby="h-ver">
+  <h2 id="h-ver">Calificación honesta de tus ideas</h2>
+  <div class="tbl"><table class="verdict">
+    <tr><td>Dos negocios desde el día uno: renta para eventos y venta de muebles para casa</td><td class="score"><span class="pill s-bad">4<small>/10</small></span></td><td>Son dos operaciones distintas. Renta es bodega, camiones, cuadrillas, daños y cobranza. Casa es marketing, envíos y devoluciones. Arranca con una y prueba la otra con una sola pieza.</td></tr>
+    <tr><td>Eventos con sistema modular y pieles intercambiables, vendido B2B</td><td class="score"><span class="pill s-good">7<small>/10</small></span></td><td>Aquí VH tiene ventaja real: fabrica metal, HPL, LED y tapicería en una planta. Las agencias no comparan contra Amazon. Antes de rentar tú, véndele a quien ya renta.</td></tr>
+    <tr><td>Melamina de aglomerado para muebles de renta</td><td class="score"><span class="pill s-bad">3<small>/10</small></span></td><td><span class="wrong">ESTÁS EQUIVOCADO</span>El aglomerado se hincha con el agua del hielo, los cantos se despostillan en el camión y el minifix se barre al tercer armado. Usa MDF de 18 mm, cubierta HPL y piso hidrófugo.</td></tr>
+    <tr><td>Living “un poco más abajo, pero con diseño increíble”</td><td class="score"><span class="pill s-good">7<small>/10</small></span></td><td>Tienes razón sobre el mercado: el volumen en casa no es premium. El supuesto débil es el costo. Con la estructura actual de VH, salimos de 5 a 9 veces más caros que el importado, no “un poco”. Abajo está la cuenta.</td></tr>
+    <tr><td>Tocador “mamón pero barato” en melamina, para casa</td><td class="score"><span class="pill s-bad">3<small>/10</small></span></td><td><span class="wrong">ESTÁS EQUIVOCADO</span>El tablero es solo el 23% del material. Lo caro es el LED, el espejo y las correderas. Para baños de mujeres en salones, restaurantes y oficinas (B2B) sube a 7/10.</td></tr>
+    <tr><td>“Pet friendly” como etiqueta</td><td class="score"><span class="pill s-mid">5<small>/10</small></span></td><td>Así sola no vende. Vende cuando resuelve algo concreto: arenero que no huele ni hincha el mueble, cables que el perro no muerde, acabado que no marca las uñas.</td></tr>
+    <tr><td>Catálogo corto con 2 acabados</td><td class="score"><span class="pill s-good">9<small>/10</small></span></td><td>Es la mejor decisión de la lista: menos inventario, lotes más grandes y mejor precio de compra.</td></tr>
+  </table></div>
+</section>
+
+<section aria-labelledby="h-prem">
+  <h2 id="h-prem">¿Living es premium, o un poco más abajo con diseño increíble?</h2>
+  <div class="answer">
+    <div style="display:grid;gap:14px">
+      <p><b>Un poco más abajo.</b> Lo parecido en Mercado Libre, Amazon, Walmart y Liverpool está entre <span class="num">$1,500</span> y <span class="num">$4,700</span>. Quien paga $20,000 por una mesa quiere madera sólida o laca, no melamina. El lugar correcto es 1.5 a 2.5 veces el importado, con un diseño que se note en fotos.</p>
+      <p>El problema es la cadena de costos. Hoy cada peso de material se convierte en unos 6 pesos de precio público:</p>
+      <div class="stack">
+        <div class="row"><span>Fabricación VH (MO 20% + indirectos 3×MO)</span><span>×1.80</span></div>
+        <div class="row"><span>Margen piso de VH (25% sobre precio)</span><span>÷0.75</span></div>
+        <div class="row"><span>Canal Mercado Libre / Amazon (comisión, envío, devoluciones, anuncios)</span><span>×2.50</span></div>
+        <div class="row tot"><span>Material → precio público</span><span>×6.0</span></div>
+      </div>
+      <p>Con esa cadena, una mesa de centro con $1,619 de material sale en $9,500. El importado cuesta entre $1,500 y $4,200.</p>
+    </div>
+    <div style="display:grid;gap:14px">
+      <h4>Cómo llegar a “un poco más caro, diseño increíble”</h4>
+      <ol>
+        <li><b>Precio objetivo primero, diseño después.</b> Cada pieza de Living tiene abajo un precio objetivo y el material máximo que le cabe.</li>
+        <li><b>Factor de línea en VH.</b> La fórmula ×1.8 está pensada para proyectos corporativos. Un lote repetido de 20 piezas con CNC debería costar menos. Supuse ×1.4; hay que medirlo con tiempos reales.</li>
+        <li><b>Venta directa</b> por Instagram, TikTok y web, con ML solo como vitrina: ×2.0 en lugar de ×2.5.</li>
+        <li><b>El “increíble” va en lo barato:</b> proporción, cubiertas de 28 mm, gola en lugar de jaladera, color y un detalle firma (el arco de la guarida). LED, cierre lento y cojines quedan como opciones, no en el precio base.</li>
+      </ol>
+      <div class="stack"><div class="row tot"><span>Cadena con esos cambios</span><span>×{{MASS}}</span></div></div>
+      <p class="fine">Aun así hay que quitarle material a cada pieza: mesa de centro -19%, escritorio -27%, mueble TV -30%, tocador -49%. Las tres primeras son alcanzables. El tocador para casa no cierra.</p>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="h-acb">
+  <h2 id="h-acb">Dos acabados</h2>
+  <div class="finishes">
+    <div class="finish">
+      <div class="sw"><svg viewBox="0 0 96 120" aria-hidden="true"><rect width="96" height="120" style="fill:url(#veta)"/></svg></div>
+      <div><h4>Roble Mérida TX · B806</h4>
+        <ul><li>16 mm $685 · 19 mm $718 · 28 mm $1,140</li><li>última compra 04-ago-2026</li></ul>
+        <p>Veta cálida y textura que esconde rayones de uñas y de montaje. Sirve en bodas sin mantel y en sala.</p></div>
+    </div>
+    <div class="finish">
+      <div class="sw"><svg viewBox="0 0 96 120" aria-hidden="true"><rect width="96" height="120" style="fill:var(--negro)"/></svg></div>
+      <div><h4>Negro · B721 Black</h4>
+        <ul><li>16 mm $577 · 19 mm $640 · 28 mm $1,027</li><li>última compra jul-2026 (16 mm: sep-2025)</li></ul>
+        <p>Entre 10 y 25% más barato que el roble. Desaparece bajo la luz de un evento y hace ver caro un tocador. Hay que confirmar con Compras si es mate: si es liso, cambiar a Antracita Light TX (B761).</p></div>
+    </div>
+  </div>
+  <p class="fine">En eventos el cuerpo siempre va negro y el color lo pone la piel. Un tercer acabado solo si las ventas lo piden: Blanco Absoluto B809, el más barato del ERP ($449 en 16 mm).</p>
+</section>
+
+<section aria-labelledby="h-ev">
+  <div class="line-h">
+    <span class="eyebrow">Línea 1 · venta B2B a rentadoras, agencias BTL y venues; renta propia después</span>
+    <h2 id="h-ev">Eventos: un cuerpo, muchas caras</h2>
+    <p>Dos piezas (barra 118 y pedestal 59) arman barras rectas, en L, en U, recepciones y la cabina DJ. La periquera y la mesa imperial comparten el mismo caballete en X. Todo está medido a 590 mm para que salgan más piezas por hoja.</p>
+  </div>
+  {{SISTEMA}}
+  {{EVENTOS}}
+</section>
+
+<section aria-labelledby="h-lv">
+  <div class="line-h">
+    <span class="eyebrow">Línea 2 · venta a casa · pet friendly donde resuelve algo</span>
+    <h2 id="h-lv">Living</h2>
+    <p>Cada ficha trae dos precios: el que sale hoy con la estructura de costos de VH y el objetivo de “un poco más caro que el importado”. La diferencia es lo que hay que rediseñar.</p>
+  </div>
+  {{LIVING}}
+</section>
+
+<section aria-labelledby="h-cmp">
+  <h2 id="h-cmp">Comparativa contra el mercado</h2>
+  <div class="tbl"><table class="summary">
+    <thead><tr><th>Línea</th><th>Producto</th><th class="num">Material</th><th class="num">Fab. VH</th><th class="num">Nuestro precio</th><th class="num">Lo parecido</th><th class="num">Veces más caro</th></tr></thead>
+    <tbody>{{TABLA}}</tbody>
+  </table></div>
+  <p class="fine">Eventos: precio B2B = maquila VH × 1.5. Living: precio público = maquila VH × 2.5 (venta en ML/Amazon). “Veces más caro” va del producto más caro al más barato de la lista. En eventos casi nadie vende algo equivalente: la comparación es contra lo que hoy usan las rentadoras (mesa plegable con mantel).</p>
+</section>
+
+<section aria-labelledby="h-hoja">
+  <h2 id="h-hoja">Diseñar a la hoja</h2>
+  <p>Una hoja de 1220 × 2440 deja 1200 útiles después del refile de 10 mm por lado. Con una cubierta de 1200 cabe una por fila; con 1180 caben dos. Esa diferencia de 2 cm bajó el costo de fabricación entre 17 y 31%.</p>
+  <div class="hojas"><figure>{{HOJA_ANTES}}</figure><figure>{{HOJA_DESP}}</figure></div>
+  <div class="tbl"><table class="summary" style="min-width:520px">
+    <thead><tr><th>Pieza</th><th>Cambio</th><th class="num">Fab. antes</th><th class="num">Fab. después</th></tr></thead>
+    <tbody>
+      <tr><td>Barra</td><td>1200 × 650 → 1180 × 590</td><td class="num">$5,106</td><td class="num">$4,241 <span class="sub">-17%</span></td></tr>
+      <tr><td>Pedestal</td><td>650 → 590</td><td class="num">$4,493</td><td class="num">$3,339 <span class="sub">-26%</span></td></tr>
+      <tr><td>Periquera</td><td>Ø600 → Ø590: 3 → 8 cubiertas por hoja</td><td class="num">$3,344</td><td class="num">$2,300 <span class="sub">-31%</span></td></tr>
+      <tr><td>Escritorio</td><td>fondo 650 → 590: 1 → 2 cubiertas de 28 mm por hoja</td><td class="num">$5,723</td><td class="num">$4,559 <span class="sub">-20%</span></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section aria-labelledby="h-nose" class="cols2">
+  <div style="display:grid;gap:12px">
+    <h2 id="h-nose">Lo que no sé</h2>
+    <ul>
+      <li><b>Precios de renta en CDMX.</b> Ninguna rentadora publica tarifas. Solo encontré una guía general: mesas entre $140 y $240 por unidad. Hay que hacer 5 llamadas como cliente.</li>
+      <li><b>Precios exactos de Mercado Libre y Amazon.</b> Las dos páginas bloquearon mi consulta automática. Las referencias vienen de Walmart, Liverpool y notas de ofertas de ML y Amazon. Revisa 3 anuncios por producto a mano.</li>
+      <li><b>Color de MDF melamina 18 y 25 mm.</b> El ERP no dice si existe en negro.</li>
+      <li><b>LED.</b> Los kits del ERP son de proyecto ($1,454 a $2,619). Usé $2,567 para la piel luminosa y $700 como objetivo para el tocador Lite. Ninguno está cotizado.</li>
+      <li><b>Estimados fuera del ERP:</b> vinil impreso ($300/m²), escuadras, perillas, rascador, filtro de carbón y kit antivuelco.</li>
+      <li><b>Mano de obra real.</b> La fórmula de VH es un porcentaje del material, no tiempos medidos. Los cantos en curva (periquera, arcos, esquinas R50) llevan más trabajo del que la fórmula supone.</li>
+      <li><b>Factor de línea ×1.4.</b> Es un supuesto mío, no de Alba.</li>
+      <li><b>Cabinas DJ.</b> Solo encontré precios en euros (España). No los convertí porque no verifiqué el tipo de cambio.</li>
+      <li><b>Estabilidad.</b> El vuelco de la periquera y del tocador lo calculé a mano. Falta la prueba física.</li>
+    </ul>
+  </div>
+  <div style="display:grid;gap:12px">
+    <h2>Siguientes pasos</h2>
+    <ol>
+      <li>Decide arrancar con Eventos vendido B2B. Renta propia hasta tener 3 clientes ancla.</li>
+      <li>Prototipo de eventos: 2 barras, 1 pedestal, 3 pieles y 2 periqueras. Son <span class="num">{{PROTO}}</span> de maquila sin IVA. Pruébalo con agua, 20 armados y vuelco.</li>
+      <li>Llévalo a 5 agencias o venues y pregunta cuánto pagarían por comprarlo y cuánto por rentarlo.</li>
+      <li>Pide a Alba el costeo de un lote de 20 con tiempos reales. Si el factor baja de ×1.8 a ~×1.4, Living se vuelve viable.</li>
+      <li>Living: rediseña la Mesa de Centro Guarida a $1,313 de material o menos y vende 10 a pedido por Instagram antes de tocar las otras 3.</li>
+      <li>Tocador: solo como estación para baños de mujeres en venues y restaurantes. Para casa no cierra.</li>
+    </ol>
+  </div>
+</section>
+
+<section aria-labelledby="h-src">
+  <h2 id="h-src" style="font-size:20px">Fuentes de mercado</h2>
+  <div class="sources">
+    <a href="https://www.walmart.com.mx/browse/muebles/recamaras-y-closets/tocadores-y-mesas-de-noche/265290_265299_265304">Walmart México: tocadores y mesas de noche</a>
+    <a href="https://www.promodescuentos.com/ofertas/tocador-de-maquillaje-con-espejo-y-10-luces-1200870">Promodescuentos: tocador con espejo y 10 luces en Amazon</a>
+    <a href="https://www.xataka.com.mx/seleccion/este-tocador-tiene-52-descuento-mercado-libre-cuenta-espejo-led-estacion-carga">Xataka: tocador con espejo LED en Mercado Libre</a>
+    <a href="https://www.walmart.com.mx/browse/mascotas/gatos/arena-y-areneros-para-gatos/265487_265505_265508">Walmart México: areneros y muebles arenero</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/mesa-armable-de-melamina/999686860967">Liverpool: mesa de centro armable de melamina</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/mesa-de-centro-armable-de-melamina/999695436721">Liverpool: mesa de centro Excelsior</a>
+    <a href="https://listado.mercadolibre.com.mx/escritorio-con-cajones-con-llave">Mercado Libre: escritorios con cajón</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/mueble-de-tv-armable/1193836999">Liverpool: mueble de TV armable 180 cm</a>
+    <a href="https://www.liverpool.com.mx/tienda/pdp/barra-bar-armable-rivoli-de-madera/1170574105">Liverpool: barra de bar HAUS Rivoli</a>
+    <a href="https://www.walmart.com.mx/ip/Mesa-Plegable-de-Plastico-Tipo-Portafolio-para-Eventos-Jardin-Interior-y-Exterior-1-80-Metros/00061567820527">Walmart México: mesa plegable portafolio 1.80 m</a>
+    <a href="https://listado.mercadolibre.com.mx/mesa-periquera-de-cristal">Mercado Libre: mesas periqueras</a>
+    <a href="https://www.costco.com.mx/Muebles/Mesas-y-Escritorios/Mesas-para-Exterior/Lifetime-Mesa-Plegable-244m-Color-Blanco/p/671440">Costco México: mesa plegable Lifetime 2.44 m</a>
+    <a href="https://bax-shop.es/cabinas-de-dj/vonyx-db5-pro-opvouwbaar-dj-booth-systeem">Bax-shop: Vonyx DB5 Pro</a>
+    <a href="https://www.cronoshare.com.mx/cuanto-cuesta/renta-mobiliario-eventos">Cronoshare: cuánto cuesta rentar mobiliario para eventos</a>
+  </div>
+</section>
+
+</main>
