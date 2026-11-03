@@ -1302,7 +1302,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           )}
 
           {sugerenciaLinea && sugerenciaLinea.mejor && (
-            <div className="alerta" style={{ background: '#eef5f0', border: '1px solid #cfe3d6', borderLeft: '4px solid #1f6f54', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+            <div className="alerta" style={{ background: '#eef5f0', border: '1px solid #cfe3d6', borderLeft: '4px solid #1f6f54', borderRadius: 10, padding: '10px 14px', margin: '10px 0', display: 'block', color: '#2a2a2a' }}>
               <div style={{ fontWeight: 700, color: '#1f6f54' }}>¿Es un producto de LÍNEA?</div>
               <div className="texto" style={{ marginTop: 4 }}>
                 Esto se parece a <strong>{sugerenciaLinea.sku}</strong>
@@ -1319,7 +1319,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           )}
 
           {Array.isArray(multiMueble) && multiMueble.length > 1 && (
-            <div className="alerta" style={{ background: '#fff7e6', border: '1px solid #f0dca8', borderLeft: '4px solid #b8860b', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+            <div className="alerta" style={{ background: '#fff7e6', border: '1px solid #f0dca8', borderLeft: '4px solid #b8860b', borderRadius: 10, padding: '10px 14px', margin: '10px 0', display: 'block', color: '#2a2a2a' }}>
               <div style={{ fontWeight: 700, color: '#8a6d1b' }}>Parece haber varios muebles en esta imagen</div>
               <div className="texto" style={{ marginTop: 4 }}>
                 Detecté <strong>{multiMueble.length}</strong> muebles ({multiMueble.join(' + ')}). Para un costo más preciso,
@@ -1329,7 +1329,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           )}
 
           {omisiones && Array.isArray(omisiones.hallazgos) && omisiones.hallazgos.length > 0 && (
-            <div className="alerta" style={{ background: '#f4f6fb', border: '1px solid #ccd6ea', borderLeft: '4px solid #2f5fb0', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+            <div className="alerta" style={{ background: '#f4f6fb', border: '1px solid #ccd6ea', borderLeft: '4px solid #2f5fb0', borderRadius: 10, padding: '10px 14px', margin: '10px 0', display: 'block', color: '#2a2a2a' }}>
               <div style={{ fontWeight: 700, color: '#274d8c' }}>Auditoría de ingeniería — ¿qué podría faltar?</div>
               {omisiones.resumen?.bloquea_certificacion && (
                 <div className="texto" style={{ marginTop: 4, color: '#9a2c2c', fontWeight: 600 }}>
@@ -1356,7 +1356,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           )}
 
           {routing && Array.isArray(routing.operaciones) && routing.operaciones.length > 0 && (
-            <div className="alerta" style={{ background: '#f3f6f4', border: '1px solid #cfe0d4', borderLeft: '4px solid #3d7a5a', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+            <div className="alerta" style={{ background: '#f3f6f4', border: '1px solid #cfe0d4', borderLeft: '4px solid #3d7a5a', borderRadius: 10, padding: '10px 14px', margin: '10px 0', display: 'block', color: '#2a2a2a' }}>
               <div style={{ fontWeight: 700, color: '#2f5f46' }}>Así lo fabricaría</div>
               {subsistemas && Array.isArray(subsistemas.presentes) && subsistemas.presentes.length > 0 && (
                 <div className="texto" style={{ marginTop: 4 }}>
@@ -1386,7 +1386,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           )}
 
           {ingValor && Array.isArray(ingValor.oportunidades) && ingValor.oportunidades.length > 0 && (
-            <div className="alerta" style={{ background: '#f6f3fb', border: '1px solid #d8cdea', borderLeft: '4px solid #6b4ea3', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+            <div className="alerta" style={{ background: '#f6f3fb', border: '1px solid #d8cdea', borderLeft: '4px solid #6b4ea3', borderRadius: 10, padding: '10px 14px', margin: '10px 0', display: 'block', color: '#2a2a2a' }}>
               <div style={{ fontWeight: 700, color: '#4e3a7a' }}>¿Qué mejoraría VONI?</div>
               {ingValor.resumen?.palanca_de_costo && (
                 <div className="ayuda gris" style={{ marginTop: 2 }}>
