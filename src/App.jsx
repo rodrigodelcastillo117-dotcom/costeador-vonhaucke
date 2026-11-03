@@ -72,6 +72,7 @@ import {
 } from './datos/conflictoGuardado.js';
 import ConflictoGuardado from './componentes/ConflictoGuardado.jsx';
 import AprobarPuentes from './componentes/AprobarPuentes.jsx';
+import BibliotecaReferencias from './componentes/BibliotecaReferencias.jsx';
 import RespaldoConflicto from './componentes/RespaldoConflicto.jsx';
 import { totalesCotizacion } from './datos/totales.js';
 import { aplicarRespaldo } from './datos/respaldo.js';
@@ -1362,6 +1363,7 @@ export default function App() {
                 <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setMostrarGuia((v) => !v); }}>Guía</button>
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('usuarios'); }}>Usuarios</button>}
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('puentes'); }}>Aprobar puentes</button>}
+                {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('referencias'); }}>Biblioteca de referencia</button>}
                 <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setRecuperando(false); irA('contrasena'); }}>Contraseña</button>
               </div>
             </details>
@@ -1573,6 +1575,7 @@ export default function App() {
         {pestania === 'usuarios' && esDireccion && <Usuarios onAviso={mostrarAviso} miCorreo={sesion?.user?.email || ''} />}
         {pestania === 'carga-erp' && esDireccion && <CargaERP onAviso={mostrarAviso} />}
         {pestania === 'puentes' && esDireccion && <AprobarPuentes />}
+        {pestania === 'referencias' && esDireccion && <BibliotecaReferencias />}
         {/* Lo que Voni sabe: lo leen todos (el motor lo aplica igual para
             todos), pero dictar o corregir una regla es de Diseño y Dirección. */}
         {pestania === 'reglas' && <Reglas puedeEditar={veCostos} />}
