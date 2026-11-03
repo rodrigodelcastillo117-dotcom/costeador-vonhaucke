@@ -41,3 +41,13 @@ calculado) y si requiere Ingeniería; más la palanca de costo. Sin pantalla int
 Los **dos cerebros** de COSTEAR ya existen: Cerebro 1 (precisión industrial: subsistemas + routing + omisiones +
 materiales) y Cerebro 2 (ingeniería de valor). Para que VONI dé ahorros **calculados** (no hipótesis) faltan los datos
 de corte/tiempos/precios alternativos — mismo gating que el resto (integración de fábrica).
+
+## Mejora 2026-11-03 (segunda iteración, autorizada "mejorías en VONI")
+- **Versiones A/B/C** (FASE 21 §6): las oportunidades se agrupan en **A** (Original, referencia), **B** (Optimización
+  económica: reducir soldaduras, nesting, estandarizar, lote, consolidar materiales) y **C** (Optimización de
+  calidad/fabricación: sustitución por durabilidad, modularizar). El panel de COSTEAR las muestra por versión.
+- **2 reglas nuevas** (deterministas, sin datos nuevos, ahorro en hipótesis):
+  - `reducir_materiales_distintos` (compras): ≥6 SKUs distintos → consolidar reduce compras/inventario/preparaciones.
+  - `modularizar_transporte` (diseño, requiere Ingeniería): pieza ≥2400 mm → dividir en módulos facilita transporte e
+    instalación; las juntas pueden requerir refuerzo.
+- Validación: `ingenieriaValor.test.js` ampliado (variantes A/B/C + reglas nuevas) + build. Sigue sin inventar ahorros.
