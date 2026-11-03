@@ -18,7 +18,7 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 | 5 | ACOMODO | **Medido (validador independiente)** | 9 acomodos reales: 6 PASS/2 REVIEW/1 FAIL; el estado del sistema concuerda 3/3 con el validador independiente (no esconde la colisión) | proyectos nuevos con geometría difícil (columnas/pasillos/puertas) + root-cause de la colisión 4859 |
 | 6 | RENDERS | **Parcial (1 render revisado)** | render pv1934 inspeccionado: tipo/material/cajones/cargador PASS; cotas rotuladas REVIEW (alto 0.70 vs 0.75). C2PA presente | fidelidad a escala (N renders) — método a costo cero existe; renders complejos piden más revisión |
 | 7 | VONI | **Medido (12 casos, 11/12)** | benchmark adversarial vivo: abstención, matemática espacial/geométrica, política de descuento, no-inventar-costo, disciplina de dominio PASS; 1 caso sobre-prudente | ~18 casos más (foto/plano) + referencias revisadas por humano; seller-safe vivo (qa-ventas) |
-| 8 | **INSUMOS/ERP/PRECIOS** | **Medido (integridad)** | B6 frescura verificada server-side; 4 nociones distinguidas; fail-closed PENDING/AMBIGUOUS | P0-03: auditoría de los ~1,763 aprobados históricos por qa-direccion (decisión Dirección) |
+| 8 | **INSUMOS/ERP/PRECIOS** | **Medido (integridad + P0-03 cerrado)** | B6 frescura server-side; fail-closed PENDING/AMBIGUOUS; conteos en vivo (10,185 activos, 42 puentes propuestos/0 aprobados); **P0-03 resuelto por datos: 1,763/1,763 re-firmados por humano, 0 precios vivos confían en cuenta no humana** (`95_P8_INSUMOS_P0-03_RESUELTO.md`) | aprobar 42 puentes (clic humano); revisión de contenido cifra-por-cifra (proceso Dirección) |
 | 9 | CATÁLOGO/PRODUCTOS | NO RE-VERIF R3 | — | claves duplicadas (#77) + cotizabilidad de versión |
 | 10 | ARCHIVO/REABRIR | NO RE-VERIF R3 | — | guardar→reabrir→modificar→revisión en vivo |
 | 11 | PDF/EMISIÓN | Parcial (gate verificado) | gate `evaluar_emision_cotizacion` existe server-side; no confía en economía cliente (SEG-01) | emisión PDF autorizada E2E en entorno de prueba |
@@ -32,6 +32,8 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 - **SIN MEDIR en R3 (requiere navegador):** MOBILE. No invento su calificación.
 - **CERTIFICADO vivo en R3:** SEGURIDAD seller-safe — pentest con cuenta rol vendedor, 14/14 vectores bloqueados; ver `95_SEGURIDAD_EMISION_QA.md`. Asesor Supabase (16 SECURITY DEFINER + 8 RLS-sin-policy) = 0 vulns, `95_SEGURIDAD_SUPABASE_QA.md`.
 - **RENDIMIENTO medido R3:** P0.COSTEO latencia p50 ~1.5 s, p95 <1.8 s en caliente, PLANA de 1→50 componentes, 0 errores/60 llamadas; SLO propuesto. Ver `95_P0COSTEO_LATENCIA.md`.
+- **P0-03 CERRADO en R3 (hallazgo material):** el blocker "1,763 aprobados por qa-direccion" ya no existe: rastro de auditoría
+  muestra 1,763/1,763 re-firmados por el humano Dirección, 0 precios vivos confían en cuenta no humana. Ver `95_P8_INSUMOS_P0-03_RESUELTO.md`.
 - **Parcial nuevo en R3:** RENDERS — 2 renders inspeccionados a costo cero (conceptual PASS, cotas REVIEW); ver
   `95_ACOMODO_RENDER_QA.md`. VONI — benchmark adversarial de 5 casos (4/5), ver `95_VONI_BENCHMARK.md`.
   Ambos con evidencia fresca; faltan la escala (N renders / 30 casos VONI con referencias humanas) para "medido pleno".
