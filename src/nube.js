@@ -325,10 +325,23 @@ export async function analizarTexto(catalogo, descripcion) {
 // y lo CRITICA contra las cotas (infla/baja/duplica/inventa), lo corrige y llena el
 // 'razonamiento' de consumo por pieza. Si falla, se devuelve la propuesta original
 // (la verificación es una mejora, no un requisito — nunca deja al usuario sin nada).
+// Un plano en PDF nativo guarda su base64 (empieza con 'JVBER' = '%PDF') en el estado.
+// En los pases de verificación/respuesta NO puede mandarse como `imagenes` (el edge arma
+// bloques image/jpeg y Anthropic rechaza bytes de PDF → invalid_request_error): va como
+// DOCUMENTO (image + mediaType application/pdf), con lo que además re-lee TODAS las hojas.
+// Una sola imagen rasterizada (JPEG) o varias hojas rasterizadas siguen yendo como `imagenes`.
+export function cuerpoVisionRevision(imagenes) {
+  const arr = Array.isArray(imagenes) ? imagenes.filter(Boolean) : [];
+  if (arr.length === 1 && /^JVBER/.test(String(arr[0]))) {
+    return { image: arr[0], mediaType: 'application/pdf' };
+  }
+  return { imagenes: arr };
+}
+
 export async function verificarDespiece(catalogo, imagenes, propuesta) {
   try {
     const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
-      body: { catalogo, imagenes, revisar: propuesta },
+      body: { catalogo, ...cuerpoVisionRevision(imagenes), revisar: propuesta },
     });
     if (error || !data?.ok) return { ok: true, propuesta, verificado: false };
     return { ...data, verificado: true };
@@ -342,7 +355,7 @@ export async function verificarDespiece(catalogo, imagenes, propuesta) {
 export async function responderDespiece(catalogo, imagenes, propuesta, respuestas) {
   try {
     const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
-      body: { catalogo, imagenes, revisar: propuesta, respuestas },
+      body: { catalogo, ...cuerpoVisionRevision(imagenes), revisar: propuesta, respuestas },
     });
     if (error || !data?.ok) {
       let msg = error ? mensajeErrorEdge(error, 'No se pudo aplicar las respuestas.') : undefined; try { const j = await error?.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
