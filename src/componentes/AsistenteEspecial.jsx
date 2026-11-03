@@ -684,7 +684,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           const act = Array.isArray(prev.componentes) ? prev.componentes : [];
           if (act.length !== amarrados.length) return prev;
           // VH-149: sólo campos de material, sobre piezas que siguen sin material (no pisa ediciones hechas mientras llegaba).
-          const fus = fusionarAmarreEnBom(act, amarrados);
+          const fus = fusionarAmarreEnBom(act, amarrados, insumos);
           // VH-174 (mesa de juntas por texto): un renglón que la IA nombró "Canto de paneles…" SIN material no era
           // tapacanto para las reglas de casa; el amarre lo volvía tapacanto DESPUÉS y quedaba contado dos veces
           // (27.24 m). Las reglas de casa son idempotentes: se re-aplican sobre lo amarrado.

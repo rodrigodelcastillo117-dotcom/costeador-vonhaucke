@@ -201,7 +201,7 @@ const FAMILIAS = [
   ['herraje_corredera', /corredera|\bslide|\briel\b/i],
   ['herraje_jaladera',  /jaladera|tirador|\bhandle|manija/i],
   ['herraje_nivelador', /nivelador|regat[oó]n|leveler|leveller/i],
-  ['herraje_cerradura', /cerradura|\block\b/i],
+  ['herraje_cerradura', /cerradura|\block\b|pasador|cerrojo/i],
   // VH-181 (prueba ciega ERP 2026-10-13, biombo ATBIOCRT5): "Soporte tipo clamp/escuadra metálica…, acabado pintura en
   // polvo" se amarraba a PINTURA y cobraba 2 kg ($337.12) en vez de 2 soportes. El objeto manda sobre su acabado.
   ['herraje_soporte',   /\bsoporte|escuadra|\bclamp\b|m[eé]nsula|bracket/i],
@@ -219,7 +219,7 @@ const FAMILIAS = [
   ['electrico',         /contacto|multicontacto|caja\s+el[eé]ctrica|\busb\b|byrne/i],
   ['adhesivo',          /adhesivo|pegamento|resistol|silic[oó]n/i],
   // VH-176: «atornillada/atornillado» describe cómo se fija una pieza, no es tornillería (\b antes de tornill).
-  ['tornilleria',       /\btornill|\bpija|taquete|rondana|tuerca/i],
+  ['tornilleria',       /\btornill|\bpija|taquete|rondana|tuerca|remaches?|\bclavos?\b|\bpernos?\b|\bgrapas?\b/i],
   // VH-165 (2026-10-13, mesa de centro V4): "soldadura para tubo" caía en metal_lamina por "tubo" y se
   // auto-asignaba al PTR cal. 14 ($270.78 como si fuera 1 m de tubo, y sumaba área al cromado). La
   // soldadura es un consumible: sin insumo propio queda pendiente, nunca se costea como perfil.

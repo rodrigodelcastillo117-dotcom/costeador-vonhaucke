@@ -32,7 +32,7 @@ describe('amarre al catálogo de Compras (ERP) · provisional, nunca inventa pre
     expect(r.comps[0].insumoId).toBe(''); expect(r.sinCandidato).toEqual(['Refrigerador doble puerta']);
   });
   it('ya amarrado localmente → no se toca', async () => {
-    const r = await amarrarPendientesERP([{ nombre: 'Bisagras', insumoId: 'bisagra', material_match: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED }], { buscar, agregarInsumo: () => { throw new Error('no debía'); }, insumos: {} });
+    const r = await amarrarPendientesERP([{ nombre: 'Bisagras', insumoId: 'bisagra', material_match: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED }], { buscar, agregarInsumo: () => { throw new Error('no debía'); }, insumos: { bisagra: { nombre: 'Bisagra', precio: 19 } } });
     expect(r.amarrados).toHaveLength(0);
   });
   it('atributo crítico distinto (calibre) → candidato preseleccionado, NO costea', async () => {
@@ -91,7 +91,7 @@ describe('fusionarAmarreEnBom (VH-149): el amarre tardío no pisa lo que la pers
   it('si la persona ya eligió material o excluyó la pieza, el amarre no la toca; si cambió el nombre o el largo del BOM, no fusiona', async () => {
     const { fusionarAmarreEnBom } = await import('./amarreERP.js');
     const a = { nombre: 'Lateral', insumoId: 'erp-x', _match: { erp: true } };
-    expect(fusionarAmarreEnBom([{ nombre: 'Lateral', insumoId: 'mdf' }], [a])[0].insumoId).toBe('mdf');
+    expect(fusionarAmarreEnBom([{ nombre: 'Lateral', insumoId: 'mdf' }], [a], { mdf: { precio: 100 } })[0].insumoId).toBe('mdf');
     expect(fusionarAmarreEnBom([{ nombre: 'Lateral', excluida: true }], [a])[0].insumoId).toBeUndefined();
     expect(fusionarAmarreEnBom([{ nombre: 'Costado' }], [a])[0].insumoId).toBeUndefined();
     const dos = fusionarAmarreEnBom([{ nombre: 'Lateral' }, { nombre: 'Otra' }], [a]);
@@ -108,5 +108,37 @@ describe('VH-155: las medidas del nombre de la pieza cuentan para el conflicto',
     expect(comps[0].material_match).toBe('SAME_FAMILY_CRITICAL_CONFLICT');
     expect(comps[0].candidate_insumo_id).toBe('erp-jal128');
     expect(amarrados[0].critico).toBe(true);
+  });
+});
+
+describe('amarre ERP · bucket genérico SIN precio se re-busca al específico (remache/pasador/clavo)', () => {
+  it('pieza resuelta a "tornillería" genérica SIN precio → re-busca y propone el remache ERP con precio (por confirmar)', async () => {
+    const buscarT = async (q) => q.toLowerCase().includes('remache')
+      ? [{ id: 'erp-remache-am46', nombre: 'REMACHE POP AM-46 ALUMINIO', unidad: 'pza', precio: 0.6, clasificacion: 'erp', evidencia: { certificable: true } }]
+      : [];
+    const comps = [{ nombre: 'Remache pop AM-46', material_solicitado: 'remache pop aluminio', insumoId: 'tornilleria', material_match: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, forma: 'pieza', cantidad: 45 }];
+    const r = await amarrarPendientesERP(comps, { buscar: buscarT, agregarInsumo: () => {}, insumos: { tornilleria: { nombre: 'Tornillería', precio: null } } });
+    expect(r.comps[0].insumoId).toBe('erp-remache-am46');
+    expect(r.comps[0].material_match).toBe(MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED);
+    expect(r.comps[0]._match.erp).toBe(true);
+  });
+  it('pieza resuelta a un insumo CON precio → NO se re-busca (se respeta)', async () => {
+    const r = await amarrarPendientesERP([{ nombre: 'Correderas', material_solicitado: 'correderas', insumoId: 'corredera-ok', material_match: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED }], { buscar: async () => { throw new Error('no debía buscar'); }, insumos: { 'corredera-ok': { nombre: 'Corredera 16"', precio: 70 } } });
+    expect(r.amarrados).toHaveLength(0);
+    expect(r.comps[0].insumoId).toBe('corredera-ok');
+  });
+});
+
+describe('fusionarAmarreEnBom · reemplaza bucket sin precio; protege material real y confirmado', () => {
+  it('bucket genérico SIN precio usable → recibe el amarre ERP específico', async () => {
+    const { fusionarAmarreEnBom } = await import('./amarreERP.js');
+    const a = { nombre: 'Remache', insumoId: 'erp-remache-am46', material_match: 'SAME_FAMILY_COMPATIBLE_PROPOSED', candidate_insumo_id: 'erp-remache-am46', _match: { erp: true } };
+    const r = fusionarAmarreEnBom([{ nombre: 'Remache', insumoId: 'tornilleria' }], [a], { tornilleria: { precio: null } });
+    expect(r[0].insumoId).toBe('erp-remache-am46');
+  });
+  it('material confirmado por humano → protegido aunque el insumo no tenga precio', async () => {
+    const { fusionarAmarreEnBom } = await import('./amarreERP.js');
+    const a = { nombre: 'X', insumoId: 'erp-y', _match: { erp: true } };
+    expect(fusionarAmarreEnBom([{ nombre: 'X', insumoId: 'maquila', material_confirmado: true }], [a], { maquila: { precio: null } })[0].insumoId).toBe('maquila');
   });
 });
