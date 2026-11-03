@@ -90,6 +90,39 @@ describe('ingenieriaValor · honestidad (no inventa ahorros; no cambia el diseñ
   });
 });
 
+describe('ingenieriaValor · mejoras FASE 21 §6 (variantes A/B/C) + reglas nuevas', () => {
+  it('≥6 materiales distintos → "consolidar materiales/SKUs" (variante B, compras)', () => {
+    const piezas = Array.from({ length: 6 }, (_, i) => ({ nombre: `Pieza ${i}`, insumoId: `ins${i}` }));
+    const o = analizarValor({ piezas }).oportunidades.find((x) => x.regla === 'reducir_materiales_distintos');
+    expect(o).toBeTruthy();
+    expect(o.categoria).toBe('compras');
+    expect(o.variante).toBe('B');
+  });
+
+  it('pieza ≥2400 mm → "modularizar para transporte" (variante C, requiere Ingeniería)', () => {
+    const r = analizarValor({ piezas: [{ nombre: 'Cubierta corrida', semantic_role: 'cubierta', largoMM: 3000, anchoMM: 600 }] });
+    const o = r.oportunidades.find((x) => x.regla === 'modularizar_transporte');
+    expect(o).toBeTruthy();
+    expect(o.variante).toBe('C');
+    expect(o.requiere_validacion_ingenieria).toBe(true);
+  });
+
+  it('expone variantes A (original) / B (económica) / C (calidad) con las oportunidades agrupadas', () => {
+    const r = analizarValor({ piezas: [
+      { nombre: 'Lámina negra 18' }, { nombre: 'Lámina negra 14' }, { nombre: 'Tubular 1"' }, { nombre: 'Perfil' },
+      { nombre: 'Puerta MDF', semantic_role: 'puerta' }, { nombre: 'Laca poliuretano' },
+    ], cantidad: 3 });
+    expect(r.variantes.A.nombre).toMatch(/original/i);
+    expect(Array.isArray(r.variantes.B.oportunidades)).toBe(true);
+    expect(Array.isArray(r.variantes.C.oportunidades)).toBe(true);
+    // reducir_soldaduras es económica (B); material_durabilidad es calidad (C).
+    expect(r.variantes.B.oportunidades.some((o) => o.regla === 'reducir_soldaduras')).toBe(true);
+    expect(r.variantes.C.oportunidades.some((o) => o.regla === 'material_durabilidad')).toBe(true);
+    // Toda oportunidad cae en B o C (ninguna huérfana).
+    expect(r.variantes.B.oportunidades.length + r.variantes.C.oportunidades.length).toBe(r.oportunidades.length);
+  });
+});
+
 describe('ingenieriaValor · módulo REAL TELCEL (Almacenamiento) no dispara falsa sustitución de material', () => {
   it('la pintura en polvo del metal NO dispara "MDF→HPL" (es acabado del acero, no del MDF)', () => {
     const r = analizarValor({ piezas: [

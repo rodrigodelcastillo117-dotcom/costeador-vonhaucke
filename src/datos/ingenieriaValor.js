@@ -125,7 +125,47 @@ export function analizarValor(entrada = {}) {
     });
   }
 
+  // V6 · Consolidar materiales/SKUs distintos (simplifica compras, inventario y preparaciones).
+  const distintos = new Set(v.map((p) => p.insumoId).filter(Boolean));
+  if (distintos.size >= 6) {
+    add({
+      regla: 'reducir_materiales_distintos', categoria: 'compras',
+      titulo: 'Consolidar materiales / SKUs',
+      porque: `El BOM usa ${distintos.size} materiales distintos; consolidar reduce compras, inventario y cambios de material en fábrica.`,
+      beneficio: 'Menos SKUs que comprar y menos preparaciones por cambio de material.',
+      riesgo: 'No cambiar un material donde su función lo exige; sólo equivalencias aprobadas.',
+      ahorro: { fuente: 'HIPOTESIS', base: 'depende de precios por volumen y de equivalencias aprobadas (no calculado)' },
+      requiere_validacion_ingenieria: false, confianza: 'MEDIA',
+    });
+  }
+  // V7 · Modularizar piezas muy grandes para transporte e instalación.
+  const grande = v.find((p) => Math.max(p.largo, p.ancho) >= 2400);
+  if (grande) {
+    const dim = Math.max(grande.largo, grande.ancho);
+    add({
+      regla: 'modularizar_transporte', categoria: 'diseno',
+      titulo: 'Modularizar para transporte e instalación',
+      porque: `Hay una pieza de ${dim} mm; dividir en módulos facilita transporte, maniobras e instalación en sitio.`,
+      beneficio: 'Transporte más seguro/barato y montaje en sitio más simple.',
+      riesgo: 'Agrega uniones/ensamble; las juntas pueden requerir refuerzo.',
+      ahorro: { fuente: 'HIPOTESIS', base: 'depende del flete/maniobra reales vs. costo de las uniones (no calculado)' },
+      requiere_validacion_ingenieria: true, confianza: 'MEDIA',
+    });
+  }
+
   oportunidades.sort((a, b) => (CONF_ORDEN[a.confianza] - CONF_ORDEN[b.confianza]) || a.regla.localeCompare(b.regla));
+
+  // Versiones A/B/C (FASE 21 §6): A = original (referencia); B = optimización económica; C = calidad/fabricación.
+  const VARIANTE = {
+    reducir_soldaduras: 'B', nesting_tableros: 'B', estandarizar_repetidas: 'B', fabricacion_lote: 'B', reducir_materiales_distintos: 'B',
+    material_durabilidad: 'C', modularizar_transporte: 'C',
+  };
+  for (const o of oportunidades) o.variante = VARIANTE[o.regla] || 'B';
+  const variantes = {
+    A: { clave: 'A', nombre: 'Original', descripcion: 'El producto tal como fue solicitado (referencia base). No se cambia.' },
+    B: { clave: 'B', nombre: 'Optimización económica', oportunidades: oportunidades.filter((o) => o.variante === 'B') },
+    C: { clave: 'C', nombre: 'Optimización de calidad / fabricación', oportunidades: oportunidades.filter((o) => o.variante === 'C') },
+  };
 
   // Palanca de costo: dónde se concentra el material (si hay costos cargados). Es CONTEXTO
   // calculado (una participación real), NO un ahorro.
@@ -145,6 +185,7 @@ export function analizarValor(entrada = {}) {
 
   return {
     oportunidades,
+    variantes,
     resumen: {
       total: oportunidades.length,
       // Honestidad: ahorros con monto CALCULADO hoy = 0 (faltan datos de corte/tiempos/precios alternativos).

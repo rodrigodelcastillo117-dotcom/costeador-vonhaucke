@@ -1393,19 +1393,29 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                   La mayor palanca de costo está en <strong>{ingValor.resumen.palanca_de_costo.subsistema}</strong> ({ingValor.resumen.palanca_de_costo.pct}% del material).
                 </div>
               )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '6px 0' }}>
-                {ingValor.oportunidades.map((o, i) => (
-                  <div key={i} style={{ background: '#fff', border: '1px solid #d8cdea', borderRadius: 8, padding: '6px 10px' }}>
-                    <div style={{ fontWeight: 600, color: '#4e3a7a' }}>{o.titulo}
-                      {o.requiere_validacion_ingenieria ? <span style={{ fontSize: 11, color: '#9a2c2c', fontWeight: 700 }}> · requiere Ingeniería</span> : null}
-                    </div>
-                    <div className="texto" style={{ marginTop: 2 }}>{o.porque}</div>
-                    <div className="ayuda gris" style={{ marginTop: 2 }}>
-                      Beneficio: {o.beneficio} · Riesgo: {o.riesgo} · Ahorro: {o.ahorro ? (o.ahorro.fuente === 'CALCULADO' ? `$${Number(o.ahorro.monto).toLocaleString('es-MX')}` : `hipótesis (${o.ahorro.base})`) : 'mejora de calidad, no de costo'}
+              {['B', 'C'].map((vk) => {
+                const grupo = ingValor.variantes && ingValor.variantes[vk];
+                const ops = grupo && Array.isArray(grupo.oportunidades) ? grupo.oportunidades : [];
+                if (!ops.length) return null;
+                return (
+                  <div key={vk} style={{ margin: '6px 0' }}>
+                    <div style={{ fontWeight: 600, color: '#4e3a7a', fontSize: 13 }}>Versión {vk} — {grupo.nombre}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+                      {ops.map((o, i) => (
+                        <div key={i} style={{ background: '#fff', border: '1px solid #d8cdea', borderRadius: 8, padding: '6px 10px' }}>
+                          <div style={{ fontWeight: 600, color: '#4e3a7a' }}>{o.titulo}
+                            {o.requiere_validacion_ingenieria ? <span style={{ fontSize: 11, color: '#9a2c2c', fontWeight: 700 }}> · requiere Ingeniería</span> : null}
+                          </div>
+                          <div className="texto" style={{ marginTop: 2 }}>{o.porque}</div>
+                          <div className="ayuda gris" style={{ marginTop: 2 }}>
+                            Beneficio: {o.beneficio} · Riesgo: {o.riesgo} · Ahorro: {o.ahorro ? (o.ahorro.fuente === 'CALCULADO' ? `$${Number(o.ahorro.monto).toLocaleString('es-MX')}` : `hipótesis (${o.ahorro.base})`) : 'mejora de calidad, no de costo'}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+              })}
               <div className="ayuda gris" style={{ marginTop: 2 }}>
                 <em>VONI propone; Ingeniería valida. No cambié el diseño ni el costo original; los ahorros son hipótesis hasta tener datos reales.</em>
               </div>
