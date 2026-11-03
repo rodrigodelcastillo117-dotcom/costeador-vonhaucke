@@ -13,7 +13,7 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 |---|---|---|---|---|
 | 1 | INICIO | NO RE-VERIF R3 | — | E2E de subida foto/PDF/texto + ruteo, en vivo |
 | 2 | **COSTEAR** | **Medido (alto)** | BLN-09 cerrado; 4008 tests verde; paridad cliente=servidor; merma D2; fail-closed | foto→costo E2E con Gemini real (reusa BLN-07); confirmación de materiales (humano) |
-| 3 | COTIZAR | **Parcial (núcleo vivo)** | crear→reabrir→gate(ALLOWED)→borrar en vivo; raw-insert bloqueado (42501); seller-safe sobre cotización | revisión+aprobación+PDF (navegador); ciclo 1→50 partidas |
+| 3 | **COTIZAR** | **Medido (E2E navegador)** | ciclo completo en vivo con vendedor real: crear→persistir(DB 4869)→reabrir→PDF→borrar; cuadre al centavo ($1,650→IVA 16%→TOTAL $2,162.82 = DB); partida y PDF seller-safe; limpieza verificada. Ver `95_COTIZAR_E2E_NAVEGADOR.md` | Configurador/variantes; 24 proyectos; por plano (opus-5) |
 | 4 | COCREAR | NO RE-VERIF R3 | — | 8 casos diseño→validación→expediente→reabrir→COSTEAR |
 | 5 | ACOMODO | **Medido (validador independiente)** | 9 acomodos reales: 6 PASS/2 REVIEW/1 FAIL; el estado del sistema concuerda 3/3 con el validador independiente (no esconde la colisión) | proyectos nuevos con geometría difícil (columnas/pasillos/puertas) + root-cause de la colisión 4859 |
 | 6 | RENDERS | **Parcial (1 render revisado)** | render pv1934 inspeccionado: tipo/material/cajones/cargador PASS; cotas rotuladas REVIEW (alto 0.70 vs 0.75). C2PA presente | fidelidad a escala (N renders) — método a costo cero existe; renders complejos piden más revisión |
