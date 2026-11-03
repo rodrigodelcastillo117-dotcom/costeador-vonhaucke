@@ -13,7 +13,7 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 |---|---|---|---|---|
 | 1 | INICIO | NO RE-VERIF R3 | — | E2E de subida foto/PDF/texto + ruteo, en vivo |
 | 2 | **COSTEAR** | **Medido (alto)** | BLN-09 cerrado; 4008 tests verde; paridad cliente=servidor; merma D2; fail-closed | foto→costo E2E con Gemini real (reusa BLN-07); confirmación de materiales (humano) |
-| 3 | COTIZAR | NO RE-VERIF R3 | — | ciclo completo 1→50 partidas + reabrir + revisión + PDF, con qa-ventas |
+| 3 | COTIZAR | **Parcial (núcleo vivo)** | crear→reabrir→gate(ALLOWED)→borrar en vivo; raw-insert bloqueado (42501); seller-safe sobre cotización | revisión+aprobación+PDF (navegador); ciclo 1→50 partidas |
 | 4 | COCREAR | NO RE-VERIF R3 | — | 8 casos diseño→validación→expediente→reabrir→COSTEAR |
 | 5 | ACOMODO | NO RE-VERIF R3 | — | validador geométrico independiente + colisiones/pasillos/columnas |
 | 6 | RENDERS | **Parcial (1 render revisado)** | render pv1934 inspeccionado: tipo/material/cajones/cargador PASS; cotas rotuladas REVIEW (alto 0.70 vs 0.75). C2PA presente | fidelidad a escala (N renders) — método a costo cero existe; renders complejos piden más revisión |
@@ -34,9 +34,9 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 - **Parcial nuevo en R3:** RENDERS — 2 renders inspeccionados a costo cero (conceptual PASS, cotas REVIEW); ver
   `95_ACOMODO_RENDER_QA.md`. VONI — benchmark adversarial de 5 casos (4/5), ver `95_VONI_BENCHMARK.md`.
   Ambos con evidencia fresca; faltan la escala (N renders / 30 casos VONI con referencias humanas) para "medido pleno".
-- **NO RE-VERIF R3 (hay evidencia previa, no refrescada esta ronda):** INICIO, COTIZAR, COCREAR, ACOMODO,
+- **NO RE-VERIF R3 (hay evidencia previa, no refrescada esta ronda):** INICIO, COCREAR, ACOMODO,
   CATÁLOGO, ARCHIVO. Su evidencia vive en rondas anteriores (V2/V3/10-10); para un 95 *comprobable* de R3
-  hay que correrlas de nuevo con datos aislados.
+  hay que correrlas de nuevo con datos aislados. (COTIZAR ya refrescado parcial esta ronda.)
 
 ## Veredicto de madurez (honesto, 1–10 de "listo para 95 comprobable en las 14")
 **6/10.** El núcleo económico (motor, frescura, emisión, seller-safe por datos) está sólido y fail-closed, y

@@ -26,6 +26,13 @@ Bloqueado por evidencia faltante, no por defectos conocidos:
 - El hardening **BLN-09** (`mapIaComps`) vive en la rama; requiere su propio merge+deploy autorizado.
 - Aprobar los 42 puentes: pantalla lista; el click es de un humano de Dirección.
 
+## Nota de deploy (2026-11-03)
+Dirección autorizó un segundo deploy de frontend (BLN-09 hardening + selector Biblioteca de referencia). El
+merge a `c3.4-seller-safe` está hecho **localmente** y validado (4008 tests verde), pero el **push a producción
+fue BLOQUEADO por el clasificador del harness** ("Production Deploy") — es una compuerta de seguridad aparte de
+la autorización de Dirección. Prod sigue en `d19557d` (intacto). Para completarlo: el usuario agrega una regla
+de permiso de deploy, o hace el push/deploy él mismo. No se buscó un rodeo (sería evadir la intención del gate).
+
 ## Recomendación
 **GO** para seguir el piloto con el alcance actual (muebles con material confirmado), con rollback armado.
 **NO-GO** para anunciar "95 en las 14 áreas" hasta cerrar las 4 SIN MEDIR y re-verificar las 6 pendientes.
