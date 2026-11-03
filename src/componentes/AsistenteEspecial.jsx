@@ -34,6 +34,7 @@ import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js
 import { buscarInsumosMotor } from '../nube.js';
 import { preciosAprobables, preciosNoAprobables } from '../datos/autoridadCosteoServidor.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
+import { sugerirLineaParaCosteo } from '../datos/emparejarLinea.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, patchPropuestaHermana, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
@@ -110,6 +111,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   const [catalogoFuente, setCatalogoFuente] = useState(null); // 'canonico' | 'cliente-fallback' (#8: aviso si el catálogo central no estuvo)
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
+  const [sugerenciaLinea, setSugerenciaLinea] = useState(null); // FASE 17: ¿el despiece se parece a un SKU de línea? (sugerencia, no auto-selección)
   const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
   const [confirmadas, setConfirmadas] = useState({});   // {textoPregunta: respuesta} acumuladas entre pasadas
   const [confMsg, setConfMsg] = useState('');           // feedback tras aplicar respuestas
@@ -715,6 +717,9 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
       setPreguntasIA((prev) => fusionarPreguntas(prev, incoming, confKeys, normPreg));
     }
     setPropuestaIA(p);        // guarda el despiece crudo para re-costear con las respuestas
+    // FASE 17: ¿se parece a un producto de LÍNEA? Si sí, convendría usar su precio documentado en vez
+    // de costear a la medida. SÓLO sugiere (precio de venta/lista, que esta pantalla ya puede ver); nunca selecciona.
+    try { const _sl = sugerirLineaParaCosteo(p); setSugerenciaLinea(_sl && _sl.esProbableLinea ? _sl : null); } catch (_e) { setSugerenciaLinea(null); }
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
     setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
@@ -1263,6 +1268,23 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                       <span style={{ color: 'var(--ok,#1a7f37)' }}>✓</span> {c.pregunta} → <strong>{c.respuesta}</strong>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {sugerenciaLinea && sugerenciaLinea.mejor && (
+            <div className="alerta" style={{ background: '#eef5f0', border: '1px solid #cfe3d6', borderLeft: '4px solid #1f6f54', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+              <div style={{ fontWeight: 700, color: '#1f6f54' }}>¿Es un producto de LÍNEA?</div>
+              <div className="texto" style={{ marginTop: 4 }}>
+                Esto se parece a <strong>{sugerenciaLinea.sku}</strong>
+                {Number.isFinite(sugerenciaLinea.precioLista) ? <> · precio de línea <strong>${Number(sugerenciaLinea.precioLista).toLocaleString('es-MX')}</strong></> : null}
+                {` (confianza ${sugerenciaLinea.confianza}). `}
+                Si es de línea, conviene usar su precio documentado en vez de costear a la medida. <em>Confírmalo con Dirección.</em>
+              </div>
+              {Array.isArray(sugerenciaLinea.alternativas) && sugerenciaLinea.alternativas.length > 1 && (
+                <div className="ayuda gris" style={{ marginTop: 4 }}>
+                  Alternativas por material/acabado: {sugerenciaLinea.alternativas.slice(0, 3).map((a) => `${a.codigo}${Number.isFinite(a.precioLista) ? ` $${Number(a.precioLista).toLocaleString('es-MX')}` : ''}`).join(' · ')}
                 </div>
               )}
             </div>
