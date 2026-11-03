@@ -2279,6 +2279,183 @@
   ]
  },
  {
+  "id": "MC-02",
+  "linea": "casa",
+  "nombre": "Mesa de Centro Guarida (rediseño)",
+  "medidas": "1100 × 590 × 400 mm",
+  "piezas": [
+   {
+    "nombre": "Cubierta Roble 28",
+    "q": 1,
+    "L": 1100,
+    "W": 590,
+    "mat": "mel28:roble"
+   },
+   {
+    "nombre": "Pata cascada Roble 28 (veta vertical)",
+    "q": 1,
+    "L": 372,
+    "W": 590,
+    "mat": "mel28:roble"
+   },
+   {
+    "nombre": "Costado de la caja",
+    "q": 1,
+    "L": 369,
+    "W": 470,
+    "mat": "mel16:negro"
+   },
+   {
+    "nombre": "Piso corrido (cueva + repisa)",
+    "q": 1,
+    "L": 996,
+    "W": 470,
+    "mat": "mel16:negro"
+   },
+   {
+    "nombre": "Divisor",
+    "q": 1,
+    "L": 353,
+    "W": 470,
+    "mat": "mel16:negro"
+   },
+   {
+    "nombre": "Frente de cueva con arco 240×250",
+    "q": 1,
+    "L": 528,
+    "W": 353,
+    "mat": "mel16:negro"
+   },
+   {
+    "nombre": "Fondo de cueva con salida Ø180",
+    "q": 1,
+    "L": 528,
+    "W": 353,
+    "mat": "mel16:negro"
+   }
+  ],
+  "costos": [
+   {
+    "acabado": "bitono",
+    "tableros": [
+     {
+      "mat": "mel28:roble",
+      "nombre": "Melamina 28 mm Roble Mérida TX (B806)",
+      "ref": "B806 · 2026-08-04",
+      "hojasLote": 4,
+      "hojasUnidad": 0.4,
+      "eficiencia": 75,
+      "costo": 456
+     },
+     {
+      "mat": "mel16:negro",
+      "nombre": "Melamina 16 mm Black (B721)",
+      "ref": "B721 · 2025-09-17",
+      "hojasLote": 5,
+      "hojasUnidad": 0.5,
+      "eficiencia": 81,
+      "costo": 288.36
+     }
+    ],
+    "cantos": [
+     {
+      "tipo": "Canto ABS 32×2 mm",
+      "metros": 5.18,
+      "costo": 82.9
+     },
+     {
+      "tipo": "Canto ABS 22×1 mm (flexible, curvas)",
+      "metros": 6.71,
+      "costo": 30.13
+     }
+    ],
+    "herrajes": [
+     {
+      "nombre": "Minifix (caja+perno+inserto) Häfele",
+      "cant": 10,
+      "costo": 42.2,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Escuadra metálica",
+      "cant": 2,
+      "costo": 20,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Deslizador de fieltro adherible",
+      "cant": 6,
+      "costo": 18,
+      "est": true,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 30,
+      "costo": 30,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 967.58,
+    "materialFab": 967.58,
+    "materialCv": 0,
+    "fab": 1741.65,
+    "maquila25": 2322.2,
+    "maquila35": 2679.46,
+    "maquila50": 3483.3,
+    "estimados": 68
+   }
+  ]
+ },
+ {
+  "id": "COJ-01",
+  "linea": "casa",
+  "nombre": "Cojín Guarida (accesorio)",
+  "medidas": "500 × 480 × 50 mm",
+  "piezas": [],
+  "costos": [
+   {
+    "acabado": "tela",
+    "tableros": [],
+    "cantos": [],
+    "herrajes": [
+     {
+      "nombre": "Espuma poliuretano 35 kg, 60 mm ($/m²)",
+      "cant": 0.245,
+      "costo": 143.57,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tela tapicería ($/m)",
+      "cant": 0.8,
+      "costo": 76,
+      "est": false,
+      "cv": false
+     },
+     {
+      "nombre": "Tornillería, pegamento, misceláneos",
+      "cant": 20,
+      "costo": 20,
+      "est": true,
+      "cv": false
+     }
+    ],
+    "material": 239.57,
+    "materialFab": 239.57,
+    "materialCv": 0,
+    "fab": 431.22,
+    "maquila25": 574.96,
+    "maquila35": 663.42,
+    "maquila50": 862.44,
+    "estimados": 20
+   }
+  ]
+ },
+ {
   "id": "TV-01",
   "linea": "casa",
   "nombre": "Mueble TV Arenero",

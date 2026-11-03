@@ -27,7 +27,8 @@ const TAB = {
   'mel19:negro': { n: 'Melamina 19 mm Black (B721)', p: 639.91, f: H4x8, veta: false, ref: 'B721 · 2026-07-02' },
   'mel28:negro': { n: 'Melamina 28 mm Black (B721)', p: 1026.9, f: H4x8, veta: false, ref: 'B721 · 2026-07-09' },
 };
-const CANTO = { c22: 11.0, c32: 16.0 }; // $/m ABS 2 mm (PEABS22 / PEABS32, ago-2026)
+const CANTO = { c22: 11.0, c32: 16.0, c22d: 4.49 }; // $/m ABS 22×2 / 32×2 / 22×1 mm (PEABS22, PEABS32, PEABS221 última compra 2026-08-10)
+const CANTO_N = { c22: 'Canto ABS 22×2 mm', c32: 'Canto ABS 32×2 mm', c22d: 'Canto ABS 22×1 mm (flexible, curvas)' };
 const MERMA_CANTO = 1.10;
 
 // Herrajes / compra (ERP salvo los marcados est:true)
@@ -54,6 +55,7 @@ const H = {
   espuma: { n: 'Espuma poliuretano 35 kg, 60 mm ($/m²)', p: 142.59 / (0.479 * 0.508) },
   tela: { n: 'Tela tapicería ($/m)', p: 95.0 },
   escuadra: { n: 'Escuadra metálica', p: 10.0, est: true },
+  fieltro: { n: 'Deslizador de fieltro adherible', p: 3.0, est: true },
   rascador: { n: 'Repuesto rascador de cartón (compra externa)', p: 120.0, cv: true, est: true },
   filtro: { n: 'Filtro de carbón para ventila (compra externa)', p: 80.0, cv: true, est: true },
   antivuelco: { n: 'Kit antivuelco a muro (compra externa)', p: 80.0, cv: true, est: true },
@@ -238,6 +240,26 @@ const PRODUCTOS = [
     herrajes: [X('espuma', 0.26), X('tela', 0.8), X('rascador', 1), X('minifix', 12), X('nivelador', 4), X('misc', 40)],
   },
   {
+    id: 'MC-02', linea: 'casa', nombre: 'Mesa de Centro Guarida (rediseño)', medidas: '1100 × 590 × 400 mm',
+    acabados: ['bitono'],
+    piezas: [
+      P('Cubierta Roble 28', 1, 1100, 590, 'mel28:roble', 3.38, 'c32'),
+      P('Pata cascada Roble 28 (veta vertical)', 1, 372, 590, 'mel28:roble', 1.33, 'c32'),
+      P('Costado de la caja', 1, 369, 470, 'mel16:negro', 1.68, 'c22d'),
+      P('Piso corrido (cueva + repisa)', 1, 996, 470, 'mel16:negro', 1.99, 'c22d'),
+      P('Divisor', 1, 353, 470, 'mel16:negro', 0.71, 'c22d'),
+      P('Frente de cueva con arco 240×250', 1, 528, 353, 'mel16:negro', 1.19, 'c22d'),
+      P('Fondo de cueva con salida Ø180', 1, 528, 353, 'mel16:negro', 0.53, 'c22d'),
+    ],
+    herrajes: [X('minifix', 10), X('escuadra', 2), X('fieltro', 6), X('misc', 30)],
+  },
+  {
+    id: 'COJ-01', linea: 'casa', nombre: 'Cojín Guarida (accesorio)', medidas: '500 × 480 × 50 mm',
+    acabados: ['tela'],
+    piezas: [],
+    herrajes: [X('espuma', 0.245), X('tela', 0.8), X('misc', 20)],
+  },
+  {
     id: 'TV-01', linea: 'casa', nombre: 'Mueble TV Arenero', medidas: '1800 × 480 × 610 mm',
     acabados: ['roble', 'negro'],
     piezas: [
@@ -282,7 +304,7 @@ function costear(prod, acb) {
   const cantoLin = Object.entries(cantos).filter(([, m]) => m > 0).map(([tc, m]) => {
     const c = m * MERMA_CANTO * CANTO[tc];
     cantoTot += c;
-    return { tipo: tc === 'c22' ? 'Canto ABS 22×2 mm' : 'Canto ABS 32×2 mm', metros: r2(m * MERMA_CANTO), costo: r2(c) };
+    return { tipo: CANTO_N[tc], metros: r2(m * MERMA_CANTO), costo: r2(c) };
   });
   matFab += cantoTot;
   const herr = prod.herrajes.map((h) => {

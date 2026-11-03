@@ -284,6 +284,65 @@ def dw_mesacentro_lado(acb='roble'):
     d.text(295, -70, 'costado: entrada en arco', 'dimt', size=0.8)
     return d
 
+
+# ---- Mesa de centro rediseñada (MC-02): cascada Roble + caja negra metida 60 mm
+K3 = (0.433, 0.25)
+def poly3(d, pts, c):
+    d.poly([(x + z * K3[0], y + z * K3[1]) for x, y, z in pts], c)
+
+def dw_mc2_axo():
+    d = D(1100 + 590 * K3[0], 400 + 590 * K3[1], pl=40, pr=60, pt=40, pb=60, fs=34)
+    # piso (cara superior en la repisa) y su canto frontal
+    poly3(d, [(76, 19, 60), (1072, 19, 60), (1072, 19, 530), (76, 19, 530)], 'f-negro2')
+    poly3(d, [(76, 3, 60), (1072, 3, 60), (1072, 19, 60), (76, 19, 60)], 'f-negro')
+    # fondo de la repisa (cara del divisor hacia la repisa)
+    poly3(d, [(620, 19, 60), (620, 19, 530), (620, 372, 530), (620, 372, 60)], 'f-negro2')
+    # frente de la caja con el arco
+    poly3(d, [(60, 3, 60), (620, 3, 60), (620, 372, 60), (60, 372, 60)], 'f-negro')
+    r = 120; cx = 340; y0 = 19; h = 250
+    pts = [(cx - r, y0, 60)]
+    for i in range(0, 181, 15):
+        a = math.radians(180 - i)
+        pts.append((cx + r * math.cos(a), y0 + h - r + r * math.sin(a), 60))
+    pts.append((cx + r, y0, 60))
+    poly3(d, pts, 'f-hueco-dark')
+    # cascada: cara derecha (pata + canto de cubierta) y frente (pata + cubierta)
+    poly3(d, [(1100, 0, 0), (1100, 0, 590), (1100, 400, 590), (1100, 400, 0)], 'f-roble')
+    poly3(d, [(1100, 0, 0), (1100, 0, 590), (1100, 400, 590), (1100, 400, 0)], 'f-shade')
+    poly3(d, [(1072, 0, 0), (1100, 0, 0), (1100, 372, 0), (1072, 372, 0)], 'f-roble')
+    poly3(d, [(0, 372, 0), (1100, 372, 0), (1100, 400, 0), (0, 400, 0)], 'f-roble')
+    poly3(d, [(0, 400, 0), (1100, 400, 0), (1100, 400, 590), (0, 400, 590)], 'f-roble')
+    poly3(d, [(0, 400, 0), (1100, 400, 0), (1100, 400, 590), (0, 400, 590)], 'f-shine')
+    return d
+
+def dw_mc2_frente():
+    d = D(1100, 400, pl=60, pr=170, pt=110, pb=250, fs=40)
+    d.rect(620, 19, 452, 353, 'f-hueco')
+    d.rect(60, 3, 16, 369, 'f-negro')
+    d.rect(76, 3, 996, 16, 'f-negro')
+    d.rect(76, 19, 528, 353, 'f-negro')
+    d.arch(220, 19, 240, 250, 'f-hueco-dark')
+    d.rect(604, 19, 16, 353, 'f-negro2')
+    d.rect(1072, 0, 28, 372, 'f-roble')
+    d.rect(0, 372, 1100, 28, 'f-roble')
+    for x in (66, 600, 1086):
+        d.rect(x - 6, 0, 12, 3, 'f-metal')
+    d.text(846, 190, 'repisa 452', 'lbl', size=0.8)
+    d.text(340, 300, 'cueva', 'lbl', size=0.8)
+    d.hdim(0, 1100, -70)
+    d.hdim(0, 60, 400 + 80, '60')
+    d.hdim(220, 460, -190, 'arco 240')
+    d.vdim(0, 400, 1100 + 60)
+    return d
+
+def dw_mc2_lado():
+    d = D(590, 400, pl=40, pr=40, pt=60, pb=140, fs=26)
+    d.rect(60, 3, 470, 369, 'f-negro')
+    d.rect(0, 372, 590, 28, 'f-roble')
+    d.hdim(60, 530, -60, 'caja 470')
+    d.text(295, -125, 'costado: la cubierta vuela 60 por lado', 'dimt', size=0.85)
+    return d
+
 # ---- Mueble TV
 def dw_tv(acb='negro'):
     body = 'f-negro' if acb == 'negro' else 'f-roble'
@@ -424,16 +483,17 @@ LIVING = [
                  'Repisa para gato junto al monitor: le das un lugar alto a tu lado y deja de acostarse en el teclado.',
                  'Canal de cables cerrado con tapa: los cables quedan fuera del alcance de los dientes.',
                  'Melamina TX (texturizada): esconde los rayones de uñas. La lisa o el brillo los marcan.']),
-    dict(id='MC-01', nombre='Mesa de Centro Guarida', med='1100 × 590 × 420 mm',
-         full=cost('MC-01', 'roble'),
+    dict(id='MC-02', nombre='Mesa de Centro Guarida', med='1100 × 590 × 400 mm · bitono Roble + Negro',
+         full=cost('MC-02'), antes=cost('MC-01', 'roble'), cojin=cost('COJ-01'),
          mercado=[('Liverpool', 'Mesa de centro armable melamina (Nuestro Nido)', 1499),
                   ('Liverpool', 'Mesa de centro armable melamina (Excelsior)', 4189)],
          objetivo=4900,
-         armado='5 minutos y 4 minifix. El cojín va aparte.',
-         puntos=['Cueva cerrada con entrada en arco por el costado y ventana ovalada al frente.',
-                 'Bolsillo para rascador de cartón estándar: lo venden en cualquier tienda de mascotas. El sisal se acaba y no se cambia.',
-                 'Repisa abierta para control y revistas. Esquinas R50.',
-                 'Es la pieza más barata de Living y la más fotografiable. La recomiendo como pieza héroe.']),
+         armado='10 minutos, 10 minifix y un desarmador. Llega en una sola caja plana de unos 1130 × 620 × 140 mm y 30 kg.',
+         puntos=['Cascada de Roble 28 mm: la cubierta y la pata derecha van cortadas con la veta seguida, así se lee como una sola pieza.',
+                 'La caja negra va metida 60 mm por cada lado y la cubierta flota. La sombra es el detalle premium y cuesta $0.',
+                 'Cueva interior de 528 × 470 × 353 con arco al frente y salida redonda atrás. Al gato le gusta tener por dónde escapar. Cabe una cama redonda estándar de 45 cm.',
+                 'Repisa abierta de 452 mm: control, revistas o un rascador horizontal de cartón.',
+                 'Calidad: buena en lo que se ve y se toca (28 mm, canto 2 mm) y OK en la caja (16 mm, canto 1 mm). Sin herrajes a la vista; fieltros en lugar de niveladores.']),
     dict(id='TV-01', nombre='Mueble TV Arenero', med='1800 × 480 × 610 mm',
          full=cost('TV-01', 'roble'),
          mercado=[('Liverpool', 'Mueble TV armable 180 cm MDP (Madesa)', 3589),
@@ -514,6 +574,54 @@ def card_living(p, svgs):
   </div>
 </article>'''
 
+
+def card_rediseno(p, svgs):
+    a, b, cj = p['antes'], p['full'], p['cojin']
+    tab = lambda c: sum(t['costo'] for t in c['tableros'])
+    can = lambda c: sum(x['costo'] for x in c['cantos'])
+    herr = lambda c, keys: sum(h['costo'] for h in c['herrajes'] if any(k in h['nombre'] for k in keys))
+    coj_a = herr(a, ['Espuma', 'Tela'])
+    ras_a = herr(a, ['rascador'])
+    otros = lambda c: sum(h['costo'] for h in c['herrajes']) - herr(c, ['Espuma', 'Tela', 'rascador'])
+    filas = [
+        ('Tableros', 'Dos costados Roble 28 + interior Roble 19 → una pata cascada Roble 28 + caja Negro 16 metida', tab(a), tab(b)),
+        ('Cantos', 'Menos metros; canto 1 mm en la caja negra', can(a), can(b)),
+        ('Cojín', 'Pasa a ser accesorio opcional', coj_a, 0),
+        ('Rascador', 'La repisa recibe uno horizontal que el cliente ya tenga', ras_a, 0),
+        ('Herrajes', 'Niveladores → fieltros; 12 → 10 minifix; 2 escuadras en la cascada', otros(a), otros(b)),
+    ]
+    trs = ''.join(f'<tr><th>{html.escape(n)}<span class="sub">{html.escape(d)}</span></th><td class="num">{m(x)}</td><td class="num">{m(y)}</td></tr>' for n, d, x, y in filas)
+    trs += f'<tr class="hl"><th>Material total</th><td class="num">{m(a["material"])}</td><td class="num">{m(b["material"])} <span class="sub">-{(1 - b["material"] / a["material"]) * 100:.0f}%</span></td></tr>'
+    directa = r100(b['maquila25'] * 2.0)
+    ml = r100(b['maquila25'] * LV_MULT)
+    antes_ml = r100(a['maquila25'] * LV_MULT)
+    cojin = r100(cj['maquila25'] * 2.0)
+    pts = ''.join(f'<li>{html.escape(t)}</li>' for t in p['puntos'])
+    return f"""
+<article class="sheet" id="{p['id'].lower()}">
+  <header class="sheet-h"><span class="code">{p['id']}</span><h3>{html.escape(p['nombre'])}</h3><span class="med">{html.escape(p['med'])}</span><span class="tag">rediseñada a $4,900</span></header>
+  <div class="sheet-b">
+    <div class="draw">{svgs}</div>
+    <div class="spec">
+      <ul class="pts">{pts}</ul>
+      <p class="armado"><b>Armado fácil.</b> {html.escape(p['armado'])}</p>
+      <table class="money three">
+        <thead><tr><th>Cómo se vende</th><th class="num">Material</th><th class="num">Precio público</th></tr></thead>
+        <tr><th>Versión anterior en ML (VH ×1.8, maquila 25%, canal ×2.5)</th><td class="num">{m(a['material'])}</td><td class="num">{m(antes_ml)}</td></tr>
+        <tr><th>Rediseño en ML / Amazon (mismo cálculo)</th><td class="num">{m(b['material'])}</td><td class="num">{m(ml)}</td></tr>
+        <tr class="hl"><th>Rediseño en venta directa (VH ×1.8, maquila 25%, ×2.0)</th><td class="num">{m(b['material'])}</td><td class="num">{m(directa)}</td></tr>
+      </table>
+      <p class="fine">Llega a $4,900 con la estructura de costos que VH tiene hoy, sin factor de línea, si se vende directo (Instagram, TikTok o web). En ML tendría que publicarse en {m(ml)}, o en $4,900 aceptando menos margen. A $4,900 directo, VH cobra {m(b['maquila25'])} de maquila y a la marca le quedan {m(4900 - b['maquila25'])} para envío, comisión de pago, anuncios, devoluciones y utilidad.</p>
+      <table class="money three">
+        <thead><tr><th>Qué cambió</th><th class="num">Antes</th><th class="num">Ahora</th></tr></thead>
+        {trs}
+      </table>
+      <p class="fine">Cojín Guarida opcional (espuma 35 kg y funda lavable de tapicería VH): {m(cojin)} con el mismo cálculo.</p>
+      <table class="mkt"><thead><tr><th>Lo parecido en ML / Amazon / retail</th><th class="num">Precio</th><th class="num">Nosotros</th></tr></thead>{mkt_rows(p['mercado'], 4900)}</table>
+    </div>
+  </div>
+</article>"""
+
 def fig(d, cap, cls=''):
     return f'<figure class="{cls}">{d.svg(cap)}<figcaption>{html.escape(cap)}</figcaption></figure>'
 
@@ -527,7 +635,7 @@ ev_svgs = {
 lv_svgs = {
     'TOC-01': fig(dw_tocador('negro'), 'Frente, acabado Negro'),
     'ESC-01': fig(dw_escritorio('roble'), 'Frente, acabado Roble', 'wide'),
-    'MC-01': fig(dw_mesacentro('roble'), 'Frente, acabado Roble', 'wide') + fig(dw_mesacentro_lado('roble'), 'Costado', 'side'),
+    'MC-02': fig(dw_mc2_axo(), 'Vista: cascada Roble sobre caja negra', 'wide') + fig(dw_mc2_frente(), 'Frente', 'wide') + fig(dw_mc2_lado(), 'Costado', 'side'),
     'TV-01': fig(dw_tv('negro'), 'Frente, acabado Negro', 'wide') + fig(dw_tv_lado('negro'), 'Costado', 'side'),
 }
 
@@ -543,7 +651,7 @@ for p in EVENTOS:
         pass
 ev_cards = ev_cards.replace('<article class="sheet" id="ped-59">',
     f'<section class="pieles"><h4>Pieles de la barra: el mismo cuerpo, otra cara</h4><div class="piel-row">{pieles}</div></section>\n<article class="sheet" id="ped-59">', 1)
-lv_cards = ''.join(card_living(p, lv_svgs[p['id']]) for p in LIVING)
+lv_cards = ''.join((card_rediseno if p.get('antes') else card_living)(p, lv_svgs[p['id']]) for p in LIVING)
 
 # tabla resumen
 def rng(precio, ref):
@@ -558,6 +666,11 @@ for p in EVENTOS:
     rows.append(f'<tr><td>Eventos</td><td>{html.escape(p["nombre"])}</td><td class="num">{m(p["mat"])}</td><td class="num">{m(p["fab"])}</td><td class="num">{m(precio)}</td><td class="num">{refs}</td><td class="num">{mult}</td></tr>')
 for p in LIVING:
     hoy = r100(p['full']['maquila25'] * LV_MULT)
+    if p.get('antes'):
+        d2 = r100(p['full']['maquila25'] * 2.0)
+        ref = [x for x in p['mercado'] if isinstance(x[2], (int, float))]
+        rows.append(f'<tr><td>Living</td><td>{html.escape(p["nombre"])} <span class="sub">rediseño</span></td><td class="num">{m(p["full"]["material"])}</td><td class="num">{m(p["full"]["fab"])}</td><td class="num">{m(d2)} <span class="sub">directa · en ML {m(hoy)}</span></td><td class="num">{", ".join(m(x[2]) for x in ref)}</td><td class="num">{rng(d2, ref)}</td></tr>')
+        continue
     ref = [x for x in p['mercado'] if isinstance(x[2], (int, float))]
     refs = ', '.join(m(x[2]) for x in ref)
     lo = min(x[2] for x in ref)
@@ -565,7 +678,7 @@ for p in LIVING:
 tabla = ''.join(rows)
 
 proto = 2 * cost('BAR-118')['maquila25'] + cost('PED-59')['maquila25'] + cost('PIEL-R')['maquila25'] + cost('PIEL-L')['maquila25'] + cost('PIEL-M')['maquila25'] + 2 * cost('PER-X')['maquila25']
-proto_living = cost('MC-01', 'roble')['maquila25'] * 2
+proto_living = cost('MC-02')['maquila25'] * 2
 
 tpl = open(os.path.join(HERE, 'plantilla.html'), encoding='utf-8').read()
 out = (tpl.replace('{{EVENTOS}}', ev_cards).replace('{{LIVING}}', lv_cards)
@@ -578,6 +691,7 @@ open(os.path.join(HERE, 'catalogo.html'), 'w', encoding='utf-8').write(out)
 print('ok', len(out), 'proto', round(proto), 'mass', round(MASS, 2))
 for p in LIVING:
     base = p.get('lite') or p['full']
+    if p.get('antes'): continue
     print(p['id'], 'mat', round(base['material']), 'permitido', round(p['objetivo'] / MASS), 'gap %.0f%%' % ((p['objetivo'] / MASS / base['material'] - 1) * 100))
 for p in EVENTOS:
     print(p['id'], 'precio', r100(p['maq'] * EV_MULT))
