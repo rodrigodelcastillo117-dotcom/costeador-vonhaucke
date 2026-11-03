@@ -23,13 +23,14 @@ UX 15 · Rendimiento/estabilidad 10 · E2E/regresión 10 = 100.
 | 10 | ARCHIVO/REABRIR | NO RE-VERIF R3 | — | guardar→reabrir→modificar→revisión en vivo |
 | 11 | **PDF/EMISIÓN** | **Medido (PDF en vivo)** | PDF de propuesta generado en navegador (jsPDF, 7 pág): 0 léxico de costo, solo precios de venta; borrador lleva marca de agua BORRADOR·NO REGISTRADO; gate `evaluar_emision_cotizacion` server-side (SEG-01). Ver `95_PDF_EMISION_NAVEGADOR.md` | emisión OFICIAL E2E (requiere autorizar emitir en prod) |
 | 12 | **SEGURIDAD** | **Medido (pentest vivo 14/14)** | pentest en vivo con cuenta rol vendedor: costos/precios/piso/cotizaciones ajenas/escritura/aprobaciones todo BLOQUEADO; VONI y costear devuelven precio, no costo | auditoría históricos qa-direccion (P0-03); rotar contraseña QA |
-| 13 | MOBILE | **SIN MEDIR** | — | tareas completas en móvil/tablet por los 3 roles (navegador) |
+| 13 | **MOBILE** | **Medido (smoke)** | iPhone 13 (390px) ambos roles: 0 overflow horizontal, 0 tap-targets <32px, Cotizar abre sin overflow, 0 errores de consola. Ver `95_MOBILE_SMOKE_NAVEGADOR.md` | E2E completo en móvil (subir foto/cámara, cotización completa + PDF) — necesita opus-5 + pasada dedicada |
 | 14 | **RELEASE/INFRA** | **Medido (alto)** | deploy prod en vivo `d19557d` verificado; manifiesto; rollback; 4008 tests; build verde | — (BLN-09 pendiente de su propio deploy) |
 
 ## Lectura honesta
 - **Fresco y fuerte en R3:** COSTEAR (perfil lineal/BLN-09), INSUMOS/ERP (frescura B6), RELEASE/INFRA, y
   parcialmente SEGURIDAD y PDF/EMISIÓN (gate server-side verificado).
-- **SIN MEDIR en R3 (requiere navegador):** MOBILE. No invento su calificación.
+- **MOBILE ya no está SIN MEDIR:** smoke en iPhone 13 (ambos roles) PASA; ver `95_MOBILE_SMOKE_NAVEGADOR.md`. Falta E2E
+  completo en móvil (foto/cámara + cotización + PDF), que necesita opus-5 + pasada dedicada.
 - **CERTIFICADO vivo en R3:** SEGURIDAD seller-safe — pentest con cuenta rol vendedor, 14/14 vectores bloqueados; ver `95_SEGURIDAD_EMISION_QA.md`. Asesor Supabase (16 SECURITY DEFINER + 8 RLS-sin-policy) = 0 vulns, `95_SEGURIDAD_SUPABASE_QA.md`.
 - **SELLER-SAFE EN UI (navegador R3):** Playwright vivo contra prod 2b78f57 — el vendedor no tiene ruta a Costear/Materiales/Dirección/ERP y su DOM no contiene léxico de costo (home + 3 pantallas de datos); diff de menú por rol. Ver `95_SELLERSAFE_UI_NAVEGADOR.md`. (Cierra el hueco "UI renderizada" que la cert por API no cubría.)
 - **RENDIMIENTO medido R3:** P0.COSTEO latencia p50 ~1.5 s, p95 <1.8 s en caliente, PLANA de 1→50 componentes, 0 errores/60 llamadas; SLO propuesto. Ver `95_P0COSTEO_LATENCIA.md`.
