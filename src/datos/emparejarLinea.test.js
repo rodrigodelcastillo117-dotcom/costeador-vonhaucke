@@ -1,7 +1,7 @@
 // FASE 17 · emparejarLinea: el despiece de la IA (de la FOTO real Eclipse Drift) debe
 // SUGERIR el SKU de línea correcto, por encima de distractores, y SIEMPRE pedir confirmación humana.
 import { describe, it, expect } from 'vitest';
-import { emparejarLinea, atributosDeIA, parsearNombreProducto, sugerirLineaParaCosteo, segmentarPorProducto, muebleDePieza } from './emparejarLinea.js';
+import { emparejarLinea, atributosDeIA, parsearNombreProducto, sugerirLineaParaCosteo, segmentarPorProducto, muebleDePieza, candidatosDePreciosLinea } from './emparejarLinea.js';
 
 // Salida REAL de analizar-mueble (opus-5 visión) sobre la foto del escritorio Eclipse Drift (2026-11-03).
 const PROPUESTA_FOTO = {
@@ -121,5 +121,35 @@ describe('sugerirLineaParaCosteo · foto → SKU → PRECIO DE LÍNEA real (COST
     expect(madera.precioLista - melamina.precioLista).toBe(14030); // ...con su precio, para que el humano vea la diferencia
     // y la de madera (que coincide con la foto) va primero.
     expect(r.alternativas[0].codigo).toBe('EDCZAE61P2CCH');
+  });
+});
+
+describe('confianza calibrada: ALTA exige señal de familia (no sobre-afirmar línea en un custom)', () => {
+  const POOL = candidatosDePreciosLinea(); // las 1715+ reales
+
+  it('config idéntica a un SKU pero SIN familia nombrada → NO ALTA (un custom no es "de línea, seguro")', () => {
+    // "a la medida" + 1 puerta/2 cajones/1800/melamina: coincide de forma con EDCZAE61P2CABS,
+    // pero el cliente lo pidió custom y la IA no leyó ninguna familia. Afirmarlo ALTA engañaría al vendedor.
+    const custom = {
+      producto: 'Mueble bajo a la medida con una puerta y dos cajones',
+      tipo: 'credenza', materiales: ['Melamina blanca'],
+      piezas: [{ nombre: 'Cubierta', semantic_role: 'cubierta', largoMM: 1800, anchoMM: 400, cantidad: 1 }],
+    };
+    const r = sugerirLineaParaCosteo(custom, POOL);
+    expect(r.confianza).not.toBe('ALTA');        // sin familia: a lo sumo MEDIA
+    expect(['MEDIA', 'BAJA']).toContain(r.confianza);
+    // Sigue mostrando el candidato y su precio (para que el humano decida), sólo que sin sobre-afirmar.
+    expect(r.esProbableLinea === false || r.sku != null).toBe(true);
+  });
+
+  it('MISMA config PERO con la familia nombrada (Eclipse Drift) → sí ALTA', () => {
+    const conFamilia = {
+      producto: 'Credenza Eclipse Drift con una puerta y dos cajones, cubierta en chapa de madera',
+      tipo: 'credenza', materiales: ['Chapa de madera'],
+      piezas: [{ nombre: 'Cubierta credenza', semantic_role: 'cubierta', largoMM: 1800, anchoMM: 400, cantidad: 1 }],
+    };
+    const r = sugerirLineaParaCosteo(conFamilia, POOL);
+    expect(r.confianza).toBe('ALTA');            // familia + config + dims + material → confianza plena
+    expect(r.sku).toBe('EDCZAE61P2CCH');
   });
 });

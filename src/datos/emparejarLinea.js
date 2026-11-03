@@ -126,8 +126,19 @@ export function emparejarLinea(propuesta, productos = []) {
     .map((prod) => { const r = puntuarLinea(ia, prod); return { producto: prod, score: r.score, razones: r.razones }; })
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score);
-  const conf = (s) => (s >= 70 ? 'ALTA' : s >= 45 ? 'MEDIA' : 'BAJA');
-  const sugerencias = rank.slice(0, 5).map((x) => ({ ...x, confianza: conf(x.score) }));
+  // Confianza calibrada: ALTA ("es este SKU, seguro") SÓLO si además coincide la FAMILIA.
+  // Un match por forma (config+dims+material) sin familia nombrada se queda en MEDIA: coincide con
+  // la silueta de un producto de línea, pero muchos custom comparten esa silueta → "podría ser, confírmalo".
+  // Evita que un mueble "a la medida" se afirme como un SKU de catálogo a precio de catálogo.
+  const conf = (s, famMatch) => {
+    if (s >= 70 && famMatch) return 'ALTA';
+    if (s >= 45) return 'MEDIA';
+    return 'BAJA';
+  };
+  const sugerencias = rank.slice(0, 5).map((x) => ({
+    ...x,
+    confianza: conf(x.score, x.razones.some((r) => String(r).startsWith('familia'))),
+  }));
   const mejor = sugerencias[0] || null;
   return {
     ia,

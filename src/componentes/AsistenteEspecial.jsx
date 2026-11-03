@@ -34,7 +34,7 @@ import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js
 import { buscarInsumosMotor } from '../nube.js';
 import { preciosAprobables, preciosNoAprobables } from '../datos/autoridadCosteoServidor.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
-import { sugerirLineaParaCosteo } from '../datos/emparejarLinea.js';
+import { sugerirLineaParaCosteo, segmentarPorProducto } from '../datos/emparejarLinea.js';
 import { respuestasPorReglaDeCasa, esSupuestoPreliminar } from '../datos/autoRespuestas.js';
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, patchPropuestaHermana, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
@@ -112,6 +112,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   const [preguntasIA, setPreguntasIA] = useState([]);
   const [propuestaIA, setPropuestaIA] = useState(null); // despiece crudo de la IA (para re-costear con respuestas)
   const [sugerenciaLinea, setSugerenciaLinea] = useState(null); // FASE 17: ¿el despiece se parece a un SKU de línea? (sugerencia, no auto-selección)
+  const [multiMueble, setMultiMueble] = useState(null); // FASE 17 #2: ¿la foto/texto trae varios muebles? (aviso informativo, no cambia el flujo)
   const [respuestas, setRespuestas] = useState({});     // {idx: texto} respuestas del usuario a las preguntas
   const [confirmadas, setConfirmadas] = useState({});   // {textoPregunta: respuesta} acumuladas entre pasadas
   const [confMsg, setConfMsg] = useState('');           // feedback tras aplicar respuestas
@@ -547,7 +548,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     const s = semillaCocrear;
     corrida.current++;
     setExpId(null); setEtiquetasTxt('cocrear'); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1);
-    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setAnalisis(null); setErrorIA('');
+    setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setAnalisis(null); setErrorIA('');
     setB((prev) => ({ ...prev, nombre: s.nombre || '', descripcionCliente: s.descripcion || '', piezas: 1, componentes: [], planos: [], materiales: [],
       imagen: s.imagen?.base64 ? `data:${s.imagen.mediaType || 'image/jpeg'};base64,${s.imagen.base64}` : null,
       dificultad: s.dificultad && s.dificultad !== 'normal' ? s.dificultad : undefined, analysisId: corrida.current }));
@@ -720,6 +721,9 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     // FASE 17: ¿se parece a un producto de LÍNEA? Si sí, convendría usar su precio documentado en vez
     // de costear a la medida. SÓLO sugiere (precio de venta/lista, que esta pantalla ya puede ver); nunca selecciona.
     try { const _sl = sugerirLineaParaCosteo(p); setSugerenciaLinea(_sl && _sl.esProbableLinea ? _sl : null); } catch (_e) { setSugerenciaLinea(null); }
+    // FASE 17 #2: ¿el despiece trae VARIOS muebles (p. ej. escritorio + credenza en una foto)? Avisa para
+    // costearlos por separado (más preciso). SÓLO informa: no parte ni recostea nada automáticamente.
+    try { const _seg = segmentarPorProducto(p); setMultiMueble(_seg && _seg.multiProducto ? _seg.segmentos.map((s) => s.mueble) : null); } catch (_e) { setMultiMueble(null); }
     setRespuestas({});        // limpia respuestas previas
     // El despiece cambió: el render viejo ya no corresponde → se limpia para forzar uno nuevo.
     setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
@@ -732,7 +736,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   // Devuelve el id de corrida para amarrar nombre/BOM/costo/render y descartar respuestas viejas.
   function nuevaCorrida() {
     const id = ++corrida.current;
-    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
+    setErrorIA(''); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setRespuestas({}); setConfirmadas({}); setConfMsg('');
     setAnalisis(null); setRenders({ aislado: null, ambiente: null }); setCostoEstado(null); setRenderMsg('');
     setExpId(null); setEtiquetasTxt(''); setExpMsg(''); setEstadoExp('borrador'); setCostoGuardado(null); setRenderHash(null); setRevActual(1); // nuevo producto = nuevo expediente
     setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); // producto nuevo = sin BOM canónico, vive en Alba
@@ -1287,6 +1291,16 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                   Alternativas por material/acabado: {sugerenciaLinea.alternativas.slice(0, 3).map((a) => `${a.codigo}${Number.isFinite(a.precioLista) ? ` $${Number(a.precioLista).toLocaleString('es-MX')}` : ''}`).join(' · ')}
                 </div>
               )}
+            </div>
+          )}
+
+          {Array.isArray(multiMueble) && multiMueble.length > 1 && (
+            <div className="alerta" style={{ background: '#fff7e6', border: '1px solid #f0dca8', borderLeft: '4px solid #b8860b', borderRadius: 10, padding: '10px 14px', margin: '10px 0' }}>
+              <div style={{ fontWeight: 700, color: '#8a6d1b' }}>Parece haber varios muebles en esta imagen</div>
+              <div className="texto" style={{ marginTop: 4 }}>
+                Detecté <strong>{multiMueble.length}</strong> muebles ({multiMueble.join(' + ')}). Para un costo más preciso,
+                conviene costear cada uno por separado (una foto o descripción por mueble). <em>Este es sólo un aviso; no cambié el despiece.</em>
+              </div>
             </div>
           )}
 
