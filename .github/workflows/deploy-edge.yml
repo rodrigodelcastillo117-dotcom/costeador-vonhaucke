@@ -42,6 +42,6 @@ jobs:
           set -euo pipefail
           for fn in ${{ github.event.inputs.funciones }}; do
             echo "== $fn"
-            supabase functions deploy "$fn" --project-ref "${{ github.event.inputs.ref_proyecto }}"
+            supabase functions deploy "$fn" --project-ref "${{ github.event.inputs.ref_proyecto }}" --yes
             echo "- \`$fn\` desplegada desde \`${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
           done
