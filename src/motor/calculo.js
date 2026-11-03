@@ -54,7 +54,13 @@ export function formulaDePieza(pieza = {}) {
 // aeropuerto: los multicontactos Bari no deben cargar MO). Electrico y guardas
 // ya armadas y paneles EcoAcustic entran; pintura/tela/tapiceria NO (esas si
 // llevan MO real). Ajustable aqui si cambia el criterio.
-export const SIN_MO_SECCIONES = new Set(['electrico', 'guardas', 'ecoacustic', 'graficos']);
+// HERRAJES (2026-11-03, autorizado por Rodrigo del Castillo, Direccion): las
+// jaladeras, bisagras, correderas, chapas y niveladores se COMPRAN ya hechos y
+// solo se instalan — no se fabrican. Pasan a compra-venta (MO 1% / GI 5% por la
+// formula de Alba) igual que el cristal y los modulos armados, y se restan de la
+// base de mano de obra del resto. La labor de instalacion real se recupera en el
+// renglon de proyecto "Maniobras" (3%) y, cuando hay orden con horas, en las horas.
+export const SIN_MO_SECCIONES = new Set(['electrico', 'guardas', 'ecoacustic', 'graficos', 'herrajes']);
 
 // -----------------------------------------------------------------------------
 //  Parametros de planta por defecto (master 5.6). Una sola configuracion global.
