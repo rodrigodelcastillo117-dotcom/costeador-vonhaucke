@@ -50,16 +50,19 @@ export function desgloseRealidad(componentes = [], insumos = {}, montoDe = () =>
   for (const c of (Array.isArray(componentes) ? componentes : [])) {
     if (!c || c.excluida) continue;
     const { clase, motivo } = realidadPieza(c, insumos);
+    const nombre = c.nombre || c.material_solicitado || '(pieza)';
+    const materialTexto = c.material_solicitado || c.nombre || '';
+    // `solicitable`: precio viejo o pieza sin precio → se le puede pedir precio a Compras (lever B).
     if (clase === 'pendiente') {
       pendientes += 1;
-      items.push({ nombre: c.nombre || c.material_solicitado || '(pieza)', monto: 0, clase, motivo });
+      items.push({ nombre, monto: 0, clase, motivo, insumoId: c.insumoId || null, materialTexto, solicitable: true });
       continue;
     }
     const ins = insumos[c.insumoId];
     let monto = Number(montoDe(c, ins));
     if (!Number.isFinite(monto) || monto < 0) monto = 0;
     if (clase === 'real') { realMonto += monto; piezasReales += 1; }
-    else { supuestoMonto += monto; piezasSupuesto += 1; items.push({ nombre: c.nombre || c.material_solicitado || '(pieza)', monto, clase, motivo }); }
+    else { supuestoMonto += monto; piezasSupuesto += 1; items.push({ nombre, monto, clase, motivo, insumoId: c.insumoId || null, materialTexto, solicitable: clase === 'precio_viejo' }); }
   }
   const totalConocido = realMonto + supuestoMonto;
   const pctReal = totalConocido > 0 ? Math.round((realMonto / totalConocido) * 100) : null;

@@ -9,7 +9,9 @@ import { pesos2 } from '../util.js';
 // ============================================================================
 const ETIQUETA = { por_confirmar: 'material por confirmar', precio_viejo: 'precio por actualizar', pendiente: 'falta material' };
 
-export default function RealidadMaterial({ realidad }) {
+const claveItem = (it) => String(it.insumoId || it.materialTexto || it.nombre || '');
+
+export default function RealidadMaterial({ realidad, onPedirPrecio = null, pedidas = null }) {
   if (!realidad || (realidad.totalConocido <= 0 && !realidad.hayPendiente)) return null;
   const { realMonto, supuestoMonto, pctReal, pendientes, items } = realidad;
   const palabra = pctReal == null ? '' : pctReal >= 80 ? 'sólido' : pctReal >= 50 ? 'parcial' : 'flojo';
@@ -33,13 +35,21 @@ export default function RealidadMaterial({ realidad }) {
             Ver {items.length === 1 ? 'la pieza que baja' : `las ${items.length} piezas que bajan`} la realidad del costo
           </summary>
           <ul className="ayuda" style={{ margin: '6px 0 0', paddingLeft: 18 }}>
-            {items.map((it, i) => (
-              <li key={i}>
-                <strong>{it.nombre}</strong> — {ETIQUETA[it.clase] || it.clase}
-                {it.monto > 0 ? ` (${pesos2(it.monto)})` : ''}
-                {it.motivo ? <span style={{ opacity: 0.8 }}> · {it.motivo}</span> : null}
-              </li>
-            ))}
+            {items.map((it, i) => {
+              const pedida = pedidas && pedidas.has(claveItem(it));
+              return (
+                <li key={i}>
+                  <strong>{it.nombre}</strong> — {ETIQUETA[it.clase] || it.clase}
+                  {it.monto > 0 ? ` (${pesos2(it.monto)})` : ''}
+                  {it.motivo ? <span style={{ opacity: 0.8 }}> · {it.motivo}</span> : null}
+                  {onPedirPrecio && it.solicitable && (
+                    pedida
+                      ? <span style={{ marginLeft: 6, color: '#1a7f37' }}>· pedido a Compras ✓</span>
+                      : <>{' '}<button type="button" className="chip" style={{ cursor: 'pointer' }} onClick={() => onPedirPrecio(it)}>Pedir precio a Compras</button></>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </details>
       )}

@@ -621,6 +621,48 @@ export async function retirarPuente(mapeoId) {
   return { ok: true };
 }
 
+// SOLICITUDES DE PRECIO A COMPRAS (lever B). Cuando una pieza tiene precio viejo o no tiene material con
+// precio, se encola un pedido para que Compras surta el precio real. El bot NUNCA pone precio: sólo encola.
+// RLS: crea/lee/resuelve dirección/diseño; un trigger sella quién pidió y el estado (no se puede falsear).
+export async function pedirPrecioCompras({ insumoId = null, materialTexto = '', mueble = '', motivo = '', nota = '' } = {}) {
+  const texto = String(materialTexto || '').trim();
+  if (!insumoId && !texto) return { ok: false, error: 'sin material que pedir' };
+  try {
+    // Dedup: no duplicar un pedido ABIERTO del mismo insumo/material.
+    let q = nube.from('solicitudes_precio').select('id').eq('estado', 'abierta');
+    q = insumoId ? q.eq('insumo_id', insumoId) : q.is('insumo_id', null).eq('material_texto', texto);
+    const { data: ya } = await q.limit(1);
+    if (ya && ya.length) return { ok: true, yaExistia: true };
+    const { error } = await nube.from('solicitudes_precio').insert({
+      insumo_id: insumoId || null, material_texto: texto || null,
+      mueble: String(mueble || '').slice(0, 200) || null, motivo: String(motivo || '').slice(0, 60) || null,
+      nota: String(nota || '').slice(0, 500) || null,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e?.message || 'error' }; }
+}
+
+// Pedidos de precio ABIERTOS (pantalla de Dirección/Compras). RLS: sólo dirección/diseño.
+export async function solicitudesPrecioAbiertas() {
+  const { data, error } = await nube.from('solicitudes_precio')
+    .select('id, insumo_id, material_texto, mueble, motivo, nota, solicitado_por, solicitado_en')
+    .eq('estado', 'abierta').order('solicitado_en', { ascending: true });
+  if (error) return { ok: false, error: error.message || 'No se pudieron leer las solicitudes.' };
+  return { ok: true, filas: data || [] };
+}
+
+// Resolver/descartar un pedido (Dirección/Compras). El trigger sella resuelto_por/en.
+export async function resolverSolicitudPrecio(id, estado = 'resuelta', nota = null) {
+  const n = Number(id);
+  if (!Number.isInteger(n) || n <= 0) return { ok: false, error: 'id inválido' };
+  if (!['resuelta', 'descartada'].includes(estado)) return { ok: false, error: 'estado inválido' };
+  const patch = { estado }; if (nota != null) patch.nota = String(nota).slice(0, 500);
+  const { error } = await nube.from('solicitudes_precio').update(patch).eq('id', n).eq('estado', 'abierta');
+  if (error) return { ok: false, error: error.message || 'No se pudo resolver la solicitud.' };
+  return { ok: true };
+}
+
 // MEMORIA DE MATERIAL (Parte B · "confirma una vez → se reusa"). Cuando un HUMANO (dirección/diseño) confirma que
 // un material pedido = un insumo, se graba como PUENTE PROPUESTO voni_material clave→insumo para reusarlo en el
 // próximo mueble. Mejor esfuerzo, sin bloquear el flujo: si el rol no puede escribir (RLS), ya existe o algo falla,

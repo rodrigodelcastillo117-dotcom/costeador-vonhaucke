@@ -17,7 +17,7 @@ import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
 import RealidadMaterial from './RealidadMaterial.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
-import { generarRender, analizarTexto, buscarProductosMaestroTexto, buscarInsumosMotor, resolverMapeosMaterial, proponerMapeoMaterial } from '../nube.js';
+import { generarRender, analizarTexto, buscarProductosMaestroTexto, buscarInsumosMotor, resolverMapeosMaterial, proponerMapeoMaterial, pedirPrecioCompras } from '../nube.js';
 import { amarrarPendientesERP } from '../datos/amarreERP.js';
 import { aplicarMemoriaMaterial, clavesParaMemoria } from '../datos/memoriaMaterial.js';
 import { pesos2, pct, pct1, colorMerma } from '../util.js';
@@ -106,6 +106,14 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const incompletoC = !emisionC.emitible;
   // Lever A: desglose real-vs-supuesto del material (costoPieza está hoisted). No cambia ningún costo.
   const realidadCosteo = useMemo(() => desgloseRealidad(costeo.componentes, insumos, (c, ins) => costoPieza(c, ins, costeo.piezas)), [costeo.componentes, insumos, costeo.piezas, par]);
+  // Lever B: encolar pedido de precio a Compras para una pieza vieja/sin precio. Optimista; revierte si falla.
+  const [pedidasPrecio, setPedidasPrecio] = useState(() => new Set());
+  const pedirPrecio = async (it) => {
+    const key = String(it.insumoId || it.materialTexto || it.nombre || '');
+    setPedidasPrecio((s) => new Set(s).add(key));
+    const r = await pedirPrecioCompras({ insumoId: it.insumoId || null, materialTexto: it.materialTexto || it.nombre, mueble: costeo.nombre || costeo.tipoMueble || '', motivo: it.clase });
+    if (!r.ok) setPedidasPrecio((s) => { const n = new Set(s); n.delete(key); return n; });
+  };
   const inteligenciaIndustrial = useMemo(
     () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
     [costeo.componentes, resultado],
@@ -670,7 +678,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           ))}
         </div>
 
-        <RealidadMaterial realidad={realidadCosteo} />
+        <RealidadMaterial realidad={realidadCosteo} onPedirPrecio={pedirPrecio} pedidas={pedidasPrecio} />
 
         {/* 4. Mano de obra */}
         <div className="tarjeta">
