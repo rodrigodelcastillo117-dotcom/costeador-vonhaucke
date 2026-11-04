@@ -33,6 +33,8 @@ import { mapIaComps as mapIaCompsCompartido } from '../datos/mapIaComps.js';
 import { amarrarPendientesERP, fusionarAmarreEnBom } from '../datos/amarreERP.js';
 import { aplicarMemoriaMaterial, clavesParaMemoria } from '../datos/memoriaMaterial.js';
 import { buscarInsumosMotor, resolverMapeosMaterial, proponerMapeoMaterial } from '../nube.js';
+import RealidadMaterial from './RealidadMaterial.jsx';
+import { desgloseRealidad } from '../datos/desgloseRealidad.js';
 import { preciosAprobables, preciosNoAprobables } from '../datos/autoridadCosteoServidor.js';
 import { resumenMotor } from '../datos/resumenMotor.js';
 import { sugerirLineaParaCosteo, segmentarPorProducto } from '../datos/emparejarLinea.js';
@@ -198,6 +200,8 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   const resultado = useMemo(() => calcular(b, b.piezas, insumos, par), [b, insumos, estado.parametros]);
   // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
   const precio = precioDesdeCosto(resultado.costoOficial, { par, margen: margenEfectivo });
+  // Lever A: desglose real-vs-supuesto del material (costoPieza está hoisted). No cambia ningún costo.
+  const realidadAsist = useMemo(() => desgloseRealidad(b.componentes, insumos, (c, ins) => costoPieza(c, ins)), [b.componentes, insumos, b.piezas, par]);
 
   // --- SHADOW (Fase 3): compara en paralelo el motor del servidor (JWT real, rol/costos
   // server-side) contra el resultado del cliente y lo registra. Fire-and-forget, debounced,
@@ -1722,6 +1726,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
                 : <div className="ayuda" data-testid="costear-motivo-bloqueo" style={{ color: '#b22a22', marginTop: 4 }}>No se calcula precio de lista hasta resolver: {(emision.pendientes || []).slice(0, 4).join(' · ') || 'un bloqueo del motor'}{(emision.pendientes || []).length > 4 ? '…' : ''}</div>}
             </>
           )}
+          <RealidadMaterial realidad={realidadAsist} />
           <div className="espacio" />
           {/* UX simple: el desglose y el método son "ingeniería" — se pliegan en modo simple (open={!simple}).
               En modo avanzado open=true + summary oculto ⇒ render idéntico a hoy. No cambia ninguna cifra ni lógica. */}

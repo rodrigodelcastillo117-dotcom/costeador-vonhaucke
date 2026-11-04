@@ -4,7 +4,7 @@
 // ============================================================================
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { patchMedidas } from '../datos/medidasMaterial.js';
-import { fuenteDeInsumo } from '../datos/senales.js';
+import { desgloseRealidad } from '../datos/desgloseRealidad.js';
 import { useMemo, useState, useEffect } from 'react';
 import { sugerenciaLote, sugerenciaMedida, costoNetoComponente, netoComponente, costeoEmitible, PARAMETROS_DEFAULT, SIN_MO_SECCIONES, precioUsable, unidadDeConsumo } from '../motor/calculo.js';
 import { calcularCosteoVivo, parametrosEfectivosCosteo } from '../motor/costeoVivo.js';
@@ -15,6 +15,7 @@ import { AREAS_LABEL } from '../datos/areas.js';
 import { recetaBench } from '../datos/bench.js';
 import HojaCosto from './HojaCosto.jsx';
 import FichaPDF from './FichaPDF.jsx';
+import RealidadMaterial from './RealidadMaterial.jsx';
 import MiniRender, { tipoDeMueble, dimsDeMueble } from './MiniRender.jsx';
 import { generarRender, analizarTexto, buscarProductosMaestroTexto, buscarInsumosMotor, resolverMapeosMaterial, proponerMapeoMaterial } from '../nube.js';
 import { amarrarPendientesERP } from '../datos/amarreERP.js';
@@ -103,6 +104,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const emisionC = bloqueosEstructuraC.length ? { ...emisionC0, emitible: false, pendientes: [...(emisionC0.pendientes || []), ...bloqueosEstructuraC.map((o) => `Estructura: ${o.mensaje}`)] } : emisionC0;
   const pendientesC = emisionC.pendientes || [];
   const incompletoC = !emisionC.emitible;
+  // Lever A: desglose real-vs-supuesto del material (costoPieza está hoisted). No cambia ningún costo.
+  const realidadCosteo = useMemo(() => desgloseRealidad(costeo.componentes, insumos, (c, ins) => costoPieza(c, ins, costeo.piezas)), [costeo.componentes, insumos, costeo.piezas, par]);
   const inteligenciaIndustrial = useMemo(
     () => analizarProductoIndustrial({ bom: costeo.componentes || [], costing: resultado }),
     [costeo.componentes, resultado],
@@ -667,7 +670,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
           ))}
         </div>
 
-        <ConfianzaCosteo resultado={resultado} insumos={insumos} />
+        <RealidadMaterial realidad={realidadCosteo} />
 
         {/* 4. Mano de obra */}
         <div className="tarjeta">
@@ -919,38 +922,6 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos2(resultado.costoUnitario)}</strong></span>
         {puedeVerComercial && <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>}
       </div>
-    </div>
-  );
-}
-
-// Puente entre horas y porcentaje (6.4)
-// Confianza del costeo (2026-09-24): qué parte del material se para sobre
-// precios con FUENTE verificada vs precios sin confirmar. La herramienta más
-// real no finge precisión: la revela. No cambia ningún costo, solo lo audita.
-function ConfianzaCosteo({ resultado, insumos }) {
-  const det = (resultado.detalleInsumos || []).filter((d) => (d.costo || 0) > 0);
-  const matTot = det.reduce((a, d) => a + d.costo, 0);
-  if (matTot <= 0) return null;
-  // VH-143: la fuente puede venir en `fuente` (semilla) o en `evidencia.fuente` (catalogo_motor).
-  const conFuente = det.filter((d) => fuenteDeInsumo(insumos[d.insumoId])).reduce((a, d) => a + d.costo, 0);
-  const pctV = Math.round((conFuente / matTot) * 100);
-  const sinFuente = det.filter((d) => !fuenteDeInsumo(insumos[d.insumoId]));
-  const palabra = pctV >= 80 ? 'sólido' : pctV >= 50 ? 'parcial' : 'flojo';
-  return (
-    <div className="tarjeta">
-      <h2>Confianza del costeo</h2>
-      <div className="ayuda">
-        <strong>{pctV}%</strong> del material viene de precios con fuente verificada — respaldo <strong>{palabra}</strong>.
-      </div>
-      {sinFuente.length > 0 && (
-        <div className="alerta ambar" style={{ marginTop: 8 }}>
-          <span className="texto">
-            {sinFuente.length} {sinFuente.length === 1 ? 'material usa precio' : 'materiales usan precio'} SIN
-            fuente confirmada: {sinFuente.map((d) => d.nombre).slice(0, 4).join(', ')}{sinFuente.length > 4 ? '…' : ''}.
-            Ese pedazo del costo no es 100% de fiar hasta calibrarlo contra una compra o un T.D.C. real.
-          </span>
-        </div>
-      )}
     </div>
   );
 }
