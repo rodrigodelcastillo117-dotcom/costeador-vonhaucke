@@ -569,11 +569,27 @@ export async function aprobarPreciosLote(precioIds, nota = null) {
 export async function puentesPropuestos() {
   const { data, error } = await nube
     .from('insumo_mapeos_externos')
-    .select('id, external_key, external_option, insumo_id, identity_status, confidence, source_document, source_record_id, vigente_desde, estado')
+    .select('id, source_system, external_key, external_option, insumo_id, identity_status, confidence, source_document, source_record_id, vigente_desde, estado')
     .eq('estado', 'propuesto')
     .order('source_document', { ascending: true });
   if (error) return { ok: false, error: error.message || 'No se pudieron leer los puentes.' };
-  return { ok: true, filas: data || [] };
+  const filas = data || [];
+  // Anota si la clave+opción YA tiene puente APROBADO activo (duplicado o conflicto): así la pantalla no
+  // deja chocar contra la restricción de no-solape sin explicar por qué.
+  const claves = [...new Set(filas.map((f) => f.external_key).filter(Boolean))];
+  if (claves.length) {
+    const { data: aprob } = await nube.from('insumo_mapeos_externos')
+      .select('id, source_system, external_key, external_option, insumo_id')
+      .eq('estado', 'aprobado').in('external_key', claves);
+    const llave = (f) => `${f.source_system}|${f.external_key}|${f.external_option || ''}`;
+    const mapa = new Map();
+    for (const a of (aprob || [])) mapa.set(llave(a), a);
+    for (const f of filas) {
+      const a = mapa.get(llave(f));
+      f.ya_aprobado = a ? { id: a.id, insumoId: a.insumo_id, mismo: a.insumo_id === f.insumo_id } : null;
+    }
+  }
+  return { ok: true, filas };
 }
 
 // Aprobar UN puente. Usa la RPC de producción `aprobar_mapeo_externo`, que exige `puede_certificar_costo()`
@@ -582,7 +598,26 @@ export async function aprobarPuente(mapeoId, nota = null) {
   const id = Number(mapeoId);
   if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'mapeo_id inválido' };
   const { error } = await nube.rpc('aprobar_mapeo_externo', { p_mapeo_id: id, p_nota: nota });
-  if (error) return { ok: false, error: error.message || 'No se pudo aprobar el puente.' };
+  if (error) {
+    const m = String(error.message || '');
+    // El error crudo de Postgres ("conflicting key value violates exclusion constraint …") no se entiende:
+    // significa que esa clave ya tiene puente aprobado activo (este es un duplicado).
+    if (/no_overlap_mapeo_aprobado|exclusion constraint/i.test(m)) {
+      return { ok: false, error: 'Esta clave ya tiene un puente aprobado activo: este es un duplicado. Retíralo en vez de aprobarlo.' };
+    }
+    return { ok: false, error: m || 'No se pudo aprobar el puente.' };
+  }
+  return { ok: true };
+}
+
+// Retirar UN puente propuesto (duplicado/conflicto o error): propuesto → retirado. Reversible por Dirección.
+// RLS: UPDATE exige puede_editar_config() (direccion/diseño). No toca economía; sólo saca el puente de la cola.
+export async function retirarPuente(mapeoId) {
+  const id = Number(mapeoId);
+  if (!Number.isInteger(id) || id <= 0) return { ok: false, error: 'mapeo_id inválido' };
+  const { error } = await nube.from('insumo_mapeos_externos')
+    .update({ estado: 'retirado' }).eq('id', id).eq('estado', 'propuesto');
+  if (error) return { ok: false, error: error.message || 'No se pudo retirar el puente.' };
   return { ok: true };
 }
 
