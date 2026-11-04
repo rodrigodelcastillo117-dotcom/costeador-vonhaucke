@@ -55,7 +55,13 @@ describe('desgloseRealidad', () => {
     // los items supuesto/pendiente traen motivo; el real NO se lista
     const nombres = d.items.map((x) => x.nombre).sort();
     expect(nombres).toEqual(['Bisagra', 'Costado', 'Tapa']);
-    expect(d.items.find((x) => x.nombre === 'Costado').clase).toBe('precio_viejo');
+    const costado = d.items.find((x) => x.nombre === 'Costado');
+    expect(costado.clase).toBe('precio_viejo');
+    // solicitable (lever B): precio viejo y sin precio SÍ; material por confirmar NO.
+    expect(costado.solicitable).toBe(true);
+    expect(costado.insumoId).toBe('mdf-viejo');
+    expect(d.items.find((x) => x.nombre === 'Tapa').solicitable).toBe(true);           // pendiente
+    expect(d.items.find((x) => x.nombre === 'Bisagra').solicitable).toBe(false);        // por_confirmar
   });
 
   it('todo real → sin supuestos, 100%', () => {
