@@ -511,7 +511,7 @@ Deno.serve(async (req) => {
   // A4 (VH-065a): la propuesta de la IA se revalida de forma DETERMINISTA en el servidor
   // (ids fuera de catálogo, números no finitos, EXACT sin id). No se inventa nada: se degrada a
   // NOT_AVAILABLE y se reporta en `validacion`.
-  const validacion = sanearPropuesta(propuesta, idsServidor, idsCliente);
+  let validacion = sanearPropuesta(propuesta, idsServidor, idsCliente);
   // VH-162 (servidor): salida JSON DEGENERADA — otras piezas metidas dentro de un texto con comillas simples
   // ("relacion_con":"','procedencia':'MEASURED',...{'nombre':'Piso inferior'}"). Parsea, pero el despiece real se perdió:
   // se rechaza como forma inválida para que el cliente reintente en vez de aceptar 1 pieza de 12.
@@ -524,6 +524,40 @@ Deno.serve(async (req) => {
   if (!validacion.ok) {
     await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "ok"), error_code: "INVALID_MODEL_SHAPE" });
     return json({ ok: false, code: "INVALID_MODEL_SHAPE", error: "La IA devolvió un despiece sin forma válida. Reintenta.", validacion, request_id: requestId }, 200);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AUTO-REINTENTO por COLAPSO (1ª pasada VISUAL). Caso distinto a la degeneración VH-162: aquí el
+  // JSON está LIMPIO y pasa validación, pero el modelo se detuvo tras 1-2 piezas (early-stop estocástico)
+  // y el despiece quedó truncado. Un plano/render de mueble real nunca tiene <3 piezas (cubierta +
+  // costados como mínimo). Antes de SERVIR esa lectura incompleta se RE-LEE UNA vez con una nota que
+  // exige el despiece COMPLETO, y se conserva la lectura con MÁS piezas. No cambia el contrato público
+  // ni hace reject (un mueble legítimamente diminuto no queda en bucle): sólo deja de servir "1 pieza"
+  // de un mueble de 27. El reintento sólo ocurre en el ~15% de lecturas que colapsan (que son rápidas
+  // porque se cortan temprano), así que no afecta el wall-clock del caso normal.
+  if (esVisualPrimera && Array.isArray(propuesta?.piezas) && propuesta.piezas.length < 3) {
+    const nPrev = propuesta.piezas.length;
+    const sysReintento = systemInicial +
+      `\n\nLA LECTURA ANTERIOR QUEDÓ INCOMPLETA: devolviste sólo ${nPrev} pieza(s). Un plano o render de ` +
+      `mueble SIEMPRE tiene varias piezas (cubierta/tapa, costados, fondos, entrepaños, cajones, herrajes…). ` +
+      `LEE TODA la tabla de despiece / todas las vistas y devuelve TODAS las piezas, una por renglón. NO te ` +
+      `detengas tras la primera.`;
+    let data2: any = null;
+    try { data2 = await pedir(schemaInicial, sysReintento, MAX_TOK, plan.effort, MODEL_PASADA); }
+    catch (_e) { data2 = null; }
+    if (data2 && data2.type !== "error" && data2.stop_reason !== "refusal") {
+      const texto2 = (data2?.content || []).find((b: any) => b.type === "text")?.text || "";
+      try {
+        const prop2 = JSON.parse(texto2);
+        normalizarPropuesta(prop2, { deferInforme: plan.deferInforme });
+        const val2 = sanearPropuesta(prop2, idsServidor, idsCliente);
+        const deg2 = (Array.isArray(prop2?.piezas) ? prop2.piezas : []).some((x: any) => x && Object.values(x).some((v: any) => typeof v === "string" && RE_INCRUSTADO.test(v)));
+        // Se conserva la relectura SÓLO si es válida, no degenerada y trae MÁS piezas que la 1ª.
+        if (val2.ok && !deg2 && Array.isArray(prop2?.piezas) && prop2.piezas.length > nPrev) {
+          propuesta = prop2; validacion = val2; data = data2;
+        }
+      } catch (_e) { /* relectura con JSON inválido: se conserva la 1ª lectura */ }
+    }
   }
 
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
