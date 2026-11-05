@@ -361,8 +361,10 @@ Deno.serve(async (req) => {
   const pedir = async (schema: any, sys: string, maxTok: number, effort: string, model: string) => {
     const ac = new AbortController();
     // VH-108 (evidencia ai_eventos 7 d): la REVISIÓN con 45 s abortaba 5 de 5 veces con Opus
-    // (p50 45.6 s = el límite); el resto de modos usa 75 s con 1 % de timeouts. Mismo límite.
-    const timer = setTimeout(() => ac.abort(), 75_000);
+    // (p50 45.6 s). Antes 75 s; subido a 120 s (autorizado) para dar aire a lecturas lentas de plano
+    // (Opus visual rondaba 58-75 s y pegaba el techo; Sonnet ~30 s queda holgado). 120 s < wall-clock
+    // de la plataforma (~150 s; generar-render ya usa 90 s sin problema).
+    const timer = setTimeout(() => ac.abort(), 120_000);
     const tFetch0 = Date.now();   // t0 de ESTE intento (telemetría; no altera comportamiento)
     // Métricas de ESTE intento — reset per-attempt para que un abort/error NO herede valores
     // del intento anterior. Se registran SIEMPRE en el finally (incl. abort/timeout/network).
@@ -535,10 +537,11 @@ Deno.serve(async (req) => {
   // ni hace reject (un mueble legítimamente diminuto no queda en bucle): sólo deja de servir "1 pieza"
   // de un mueble de 27. El reintento sólo ocurre en el ~15% de lecturas que colapsan (que son rápidas
   // porque se cortan temprano), así que no afecta el wall-clock del caso normal. GUARDA DE
-  // PRESUPUESTO: sólo re-lee si pasaron <45 s desde t0 (auth+catálogo+1ª lectura); si la 1ª lectura
+  // PRESUPUESTO: sólo re-lee si pasaron <20 s desde t0 (auth+catálogo+1ª lectura); si la 1ª lectura
   // fue LENTA (proveedor saturado), NO re-lee —serviría igual que hoy pero sin arriesgar que la 2ª
-  // lectura reviente el wall-clock de la función (cada `pedir` aborta a 75 s).
-  if (esVisualPrimera && Array.isArray(propuesta?.piezas) && propuesta.piezas.length < 3 && (Date.now() - t0) < 45000) {
+  // lectura reviente el wall-clock. Con `pedir` abortando a 120 s, el peor caso 20 s + 120 s ≈ 140 s
+  // queda bajo el límite de la plataforma (~150 s).
+  if (esVisualPrimera && Array.isArray(propuesta?.piezas) && propuesta.piezas.length < 3 && (Date.now() - t0) < 20000) {
     const nPrev = propuesta.piezas.length;
     const sysReintento = systemInicial +
       `\n\nLA LECTURA ANTERIOR QUEDÓ INCOMPLETA: devolviste sólo ${nPrev} pieza(s). Un plano o render de ` +
