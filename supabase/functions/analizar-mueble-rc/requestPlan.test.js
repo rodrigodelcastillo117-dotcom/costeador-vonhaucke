@@ -22,11 +22,11 @@ describe('P0.COSTEO · planPass: right-size por tipo de pasada', () => {
     expect(p.maxTok).toBe(8000);
   });
 
-  it('PDF/imagen 1ª pasada → SÍ difiere el informe (effort low, maxTok 8000): fix timeout/non-2xx', () => {
+  it('PDF/imagen 1ª pasada → SÍ difiere el informe (effort low, maxTok 12000): cabe la tabla de despiece COMPLETA', () => {
     const p = planPass({ soloTexto: false, esRevision: false, respCount: 0 });
     expect(p.deferInforme).toBe(true);
     expect(p.effort).toBe('low');      // low para caber bajo el wall-clock de la funcion
-    expect(p.maxTok).toBe(8000);
+    expect(p.maxTok).toBe(12000);      // subido de 8000: un despiece de 27 renglones no cabía y se truncaba
   });
 
   it('imagen con respuestas previas (pasada posterior) → NO difiere (effort medium, maxTok 10000)', () => {
