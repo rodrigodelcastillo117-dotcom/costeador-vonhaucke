@@ -276,6 +276,7 @@ Deno.serve(async (req) => {
     "  · Si existe un material de OTRA familia que PODRÍA servir como sustituto → insumoId='' y material_match='SUBSTITUTE_SUGGESTED', y explica en 'nota' cuál sugieres y por qué (lo confirmará un humano).\n" +
     "  ⛔ PROHIBIDO sustituir una familia por otra en silencio. Ejemplo real que NO debe repetirse: piden SUPERFICIE SÓLIDA (solid surface/Corian/Krion) y la cuelan como MDF+laminado HPL porque 'se parecen' — eso FALSEA el costo. Superficie sólida ≠ MDF ≠ melamina ≠ laminado ≠ piedra. Acero inoxidable ≠ lámina común. PET acústico ≠ MDF.\n" +
     "  · SELLADOR/ADHESIVO ≠ ACABADO DE MADERA: un sellador o adhesivo (Sikaflex, sellador elástico de poliuretano, silicón estructural, silicón, pegamento, cinta doble cara) es de la familia SILICÓN/ADHESIVO — NUNCA lo mapees a barniz/laca/pintura (esos son acabados líquidos de madera/metal). Si el catálogo tiene silicón/sellador/adhesivo, amárralo ahí; si no, pendiente. (Error real a evitar: 'Sikaflex sellador de poliuretano' amarrado a 'Barniz'.)\n" +
+    "  · UNA PALETA / TAPA / ANUNCIO / COPETE / FRENTE / CUERPO / SOPORTE de LÁMINA no es una cerradura ni un herraje: es LÁMINA/estructura (o acrílico si el renglón lo dice). NUNCA mapees 'paleta', 'paleta de torre', 'tapa', 'anuncio', 'copete' a 'cerradura'/'bisagra'/herraje. Sólo usa cerradura o bisagra si el renglón DICE cerradura/chapa/cerrojo o bisagra.\n" +
     "  Un material NOT_AVAILABLE se queda SIN precio (pendiente de precio real); es MEJOR marcarlo pendiente que inventarlo con otra familia.\n\n" +
     "TABLA / LISTA DE DESPIECE = AUTORIDAD (lo MAS importante cuando existe): muchos planos tecnicos traen una LISTA DE DESPIECE/MATERIALES/BOM en forma de TABLA (columnas tipo 'No. · Clave · Clave PDM · Descripcion · Cantidad', o 'PARTES', 'MATERIALES', 'ITEM / QTY'). Esa tabla SUELE ESTAR EN UNA HOJA DISTINTA a las vistas (p.ej. hoja 2 de 4). Si el documento trae varias hojas, REVISALAS TODAS y BUSCA esa tabla. Cuando exista, es el BOM OFICIAL y manda sobre lo que dedujiste de los dibujos:\n" +
     "  · CADA renglon de la tabla es UNA pieza del despiece: emitela en 'piezas'. Lee la tabla COMPLETA, renglon por renglon; no te saltes ninguno.\n" +
@@ -516,10 +517,56 @@ Deno.serve(async (req) => {
   // A4 (VH-065a): la propuesta de la IA se revalida de forma DETERMINISTA en el servidor
   // (ids fuera de catálogo, números no finitos, EXACT sin id). No se inventa nada: se degrada a
   // NOT_AVAILABLE y se reporta en `validacion`.
-  const validacion = sanearPropuesta(propuesta, idsServidor, idsCliente);
+  let validacion = sanearPropuesta(propuesta, idsServidor, idsCliente);
+  // VH-162 (servidor): salida JSON DEGENERADA — otras piezas metidas dentro de un texto con comillas simples
+  // ("relacion_con":"','procedencia':'MEASURED',...{'nombre':'Piso inferior'}"). Parsea, pero el despiece real se perdió:
+  // se rechaza como forma inválida para que el cliente reintente en vez de aceptar 1 pieza de 12.
+  const RE_INCRUSTADO = /['"]\s*,\s*['"]?(procedencia|evidencia|nombre|insumoId|forma)['"]?\s*:\s*['"]|\{\s*['"]nombre['"]\s*:/;
+  const degenerada = (Array.isArray(propuesta?.piezas) ? propuesta.piezas : []).some((x: any) => x && Object.values(x).some((v: any) => typeof v === "string" && RE_INCRUSTADO.test(v)));
+  if (degenerada) {
+    await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "ok"), error_code: "INVALID_MODEL_SHAPE" });
+    return json({ ok: false, code: "INVALID_MODEL_SHAPE", error: "La IA devolvió un despiece mal formado (piezas dentro de un texto). Reintenta.", request_id: requestId }, 200);
+  }
   if (!validacion.ok) {
     await cerrarTel("error", 200, { model_status: String(data?.stop_reason || "ok"), error_code: "INVALID_MODEL_SHAPE" });
     return json({ ok: false, code: "INVALID_MODEL_SHAPE", error: "La IA devolvió un despiece sin forma válida. Reintenta.", validacion, request_id: requestId }, 200);
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // AUTO-REINTENTO por COLAPSO (1ª pasada VISUAL). Caso distinto a la degeneración VH-162: aquí el
+  // JSON está LIMPIO y pasa validación, pero el modelo se detuvo tras 1-2 piezas (early-stop estocástico)
+  // y el despiece quedó truncado. Un plano/render de mueble real nunca tiene <3 piezas (cubierta +
+  // costados como mínimo). Antes de SERVIR esa lectura incompleta se RE-LEE UNA vez con una nota que
+  // exige el despiece COMPLETO, y se conserva la lectura con MÁS piezas. No cambia el contrato público
+  // ni hace reject (un mueble legítimamente diminuto no queda en bucle): sólo deja de servir "1 pieza"
+  // de un mueble de 27. El reintento sólo ocurre en el ~15% de lecturas que colapsan (que son rápidas
+  // porque se cortan temprano), así que no afecta el wall-clock del caso normal. GUARDA DE
+  // PRESUPUESTO: sólo re-lee si pasaron <45 s desde t0 (auth+catálogo+1ª lectura); si la 1ª lectura
+  // fue LENTA (proveedor saturado), NO re-lee —serviría igual que hoy pero sin arriesgar que la 2ª
+  // lectura reviente el wall-clock de la función (cada `pedir` aborta a 75 s).
+  if (esVisualPrimera && Array.isArray(propuesta?.piezas) && propuesta.piezas.length < 3 && (Date.now() - t0) < 45000) {
+    const nPrev = propuesta.piezas.length;
+    const sysReintento = systemInicial +
+      `\n\nLA LECTURA ANTERIOR QUEDÓ INCOMPLETA: devolviste sólo ${nPrev} pieza(s). Un plano o render de ` +
+      `mueble SIEMPRE tiene varias piezas (cubierta/tapa, costados, fondos, entrepaños, cajones, herrajes…). ` +
+      `LEE TODA la tabla de despiece / todas las vistas y devuelve TODAS las piezas, una por renglón. NO te ` +
+      `detengas tras la primera.`;
+    let data2: any = null;
+    try { data2 = await pedir(schemaInicial, sysReintento, MAX_TOK, plan.effort, MODEL_PASADA); }
+    catch (_e) { data2 = null; }
+    if (data2 && data2.type !== "error" && data2.stop_reason !== "refusal") {
+      const texto2 = (data2?.content || []).find((b: any) => b.type === "text")?.text || "";
+      try {
+        const prop2 = JSON.parse(texto2);
+        normalizarPropuesta(prop2, { deferInforme: plan.deferInforme });
+        const val2 = sanearPropuesta(prop2, idsServidor, idsCliente);
+        const deg2 = (Array.isArray(prop2?.piezas) ? prop2.piezas : []).some((x: any) => x && Object.values(x).some((v: any) => typeof v === "string" && RE_INCRUSTADO.test(v)));
+        // Se conserva la relectura SÓLO si es válida, no degenerada y trae MÁS piezas que la 1ª.
+        if (val2.ok && !deg2 && Array.isArray(prop2?.piezas) && prop2.piezas.length > nPrev) {
+          propuesta = prop2; validacion = val2; data = data2;
+        }
+      } catch (_e) { /* relectura con JSON inválido: se conserva la 1ª lectura */ }
+    }
   }
 
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
