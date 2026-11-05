@@ -51,7 +51,10 @@ export function planPass({ soloTexto = false, esRevision = false, respCount = 0 
     primeraPasadaTexto,
     deferInforme,
     effort: effortBajo ? 'low' : 'medium',
-    maxTok: esRevision ? 6000 : (deferInforme ? 8000 : 10000),
+    // La 1ª pasada VISUAL (plano/imagen) puede traer un BOM EXPLÍCITO grande (p.ej. tabla de despiece de
+    // 27 renglones). Con 8000 tok la salida se truncaba y devolvía 17-19 piezas (incompleto). 12000 da
+    // holgura para transcribir la tabla COMPLETA sin informe. El texto-inicial y la revisión no cambian.
+    maxTok: esRevision ? 6000 : (primeraPasadaVisual ? 12000 : (deferInforme ? 8000 : 10000)),
   };
 }
 

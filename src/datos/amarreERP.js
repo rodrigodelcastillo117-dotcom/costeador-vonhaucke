@@ -12,6 +12,10 @@ import { candidatosDeFamilia, familiaDeMaterial, severidadConflicto_, textoCambi
 import { conTramoPorPieza, precioUsable } from '../motor/calculo.js';
 
 const PENDIENTES = new Set([MATCH.NOT_AVAILABLE, 'PENDING_MATERIAL', 'PENDING_PRICE', 'PENDING_PURCHASING', '']);
+// Genéricos "juego/bolsa" que TIENEN precio pero que el motor infla cuando una pieza específica cae en ellos:
+// p.ej. 14 remaches × $45/juego de 'tornilleria' = $630 (lo real: remache ERP $0.26 × 14 = $3.64). Se re-buscan
+// en el ERP para bajarlos al artículo específico, aunque ya traigan precio (a diferencia de un bucket sin precio).
+const BUCKETS_GENERICOS = new Set(['tornilleria']);
 const STOP_Q = new Set(['para', 'con', 'del', 'los', 'las', 'una', 'uno', 'por', 'sin', 'cal', 'calibre', 'mm', 'negro', 'negra', 'blanco', 'blanca', 'gris', 'estructura', 'puerta', 'puertas', 'cajon', 'cajones', 'kit', 'juego', 'pza']);
 const sinAcentos = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 /** Consultas que SÍ encuentra la búsqueda por término: frase limpia y palabras significativas (máx. 3). */
@@ -42,8 +46,9 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
     // usable (p.ej. "tornillería"/"cerradura"): se re-busca el ESPECÍFICO con precio real del ERP.
     const clase = c.material_match || (c._match && c._match.clase) || '';
     const sinPrecioUtil = !!c.insumoId && !precioUsable(resuelto);
-    if (!((!c.insumoId && PENDIENTES.has(clase)) || sinPrecioUtil)) continue;
-    const idPrevio = String(c.insumoId || '');   // para no re-proponer el mismo bucket sin precio
+    const genericoReemplazable = !!c.insumoId && BUCKETS_GENERICOS.has(String(c.insumoId));
+    if (!((!c.insumoId && PENDIENTES.has(clase)) || sinPrecioUtil || genericoReemplazable)) continue;
+    const idPrevio = String(c.insumoId || '');   // para no re-proponer el mismo bucket (sin precio o genérico)
     const solicitado = String(c.material_solicitado || c.nombre || '').trim();
     // Familia del material pedido; si el texto suelto no la da (p.ej. "remache") pero la pieza ya
     // cayó en un bucket, usa la familia del bucket para no rendirse.
@@ -75,7 +80,7 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
     if (ambiguo || !mejor) { sinCandidato.push(c.nombre || solicitado); continue; }
     const fila = (filas || []).find((f) => f.id === mejor.id) || mejor;
     // No re-proponer el MISMO bucket genérico sin precio que ya traía la pieza.
-    if (fila.id === idPrevio && !precioUsable(resuelto)) { sinCandidato.push(c.nombre || solicitado); continue; }
+    if (fila.id === idPrevio && (!precioUsable(resuelto) || genericoReemplazable)) { sinCandidato.push(c.nombre || solicitado); continue; }
     // VH-155: las medidas explícitas del NOMBRE de la pieza ("Jaladeras rectas 300 mm") cuentan para el conflicto
     // aunque `material_solicitado` sólo diga "jaladera": antes un candidato de 128 mm entraba como propuesta
     // compatible y la confirmación en bloque lo daba por bueno.
