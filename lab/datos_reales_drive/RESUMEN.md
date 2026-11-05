@@ -71,3 +71,45 @@ $42,653.27 · VENTO MASTER materia prima $56,674.06).
 - **Sillas Pendientes 2023** (tracker) no reconstruida a disco (tool la devolvió inline); ~20 costeos
   legacy **RC-COSP** 2023 (Google Sheets) no procesados; `carta porte`, PDFs (planos/catálogos NOM) y
   notas de Gemini no procesados (no son costeo/precio en hoja). Todos listados en el MANIFIESTO §1C.
+
+---
+
+## TERCERA PASADA — costos reales nuevos del EEFF y de Coste APP LT (2026-11-05)
+
+### Costos reales NUEVOS que salieron del EEFF (`VON HAUCKE EEFF 06 26.xlsx`)
+Corrección del usuario aplicada: el EEFF **sí trae costo real**. Extraído literal con procedencia hoja+cuenta
+(`financiero/VONHAUCKE_EEFF_06_26/costos_reales_eeff.csv`, 343 renglones; análisis en `COSTOS_REALES_EEFF.md`):
+- **Costo de ventas real Ene–Jun 2026 = $52,919,977.82 = 70.8 % de la venta** (hoja `ER 06 26`). Composición:
+  materia prima directa **$33,730,560.93 (45.1 %)**, gastos de producción (MOD+GIF) **$16,977,963.20 (22.7 %)**,
+  distribución **$2,211,453.69 (3.0 %)**. Utilidad bruta $21,847,804.21 (29.2 %).
+- **Costo real por LÍNEA DE PRODUCTO** (balanza `06 26`, cuenta 5100): **COSTO MUEBLES $29,794,243.22** y
+  **COSTO SILLAS $3,936,317.73** → ~55–56 % de la venta de cada línea es materia prima.
+- Desglose de **mano de obra directa $7,648,647.76** (costo MOD $6,107,535.96) y **GIF $24,303,315.45** por subcuenta.
+- **Inventario de materia prima $28,428,009.21** al 30-jun-2026. Estructura anual (hojas ER/ER SF): costo de
+  ventas 12 meses $117.5 MDP (91.6 % de la venta).
+- **Nivel del dato:** empresa / línea (muebles, sillas), **no por artículo** → benchmark de costo real; **no
+  altera** `precios_vigentes_master.csv` (que es costo de MP por clave). Separado costo real vs precio de venta.
+
+### Costos reales NUEVOS que salieron de Coste APP LT (`Coste APP LT 20261002.xlsx`)
+- **Libro de compras real 2026 (4,378 renglones)** con Costo Unitario por transacción → integrado a
+  `precios_vigentes_master.csv`: **931 precios ahora provienen de aquí** (tipo `entrada_compra`, 2026), ganando
+  por fecha sobre el `cata_mp`. `precios_vigentes_master.csv` pasó de 8,951 a **9,009 artículos**.
+- **BOM de ingeniería del Módulo APP LT (TATO63612AB001):** 21 materiales con último costo real 2026
+  (MP $3,679.15 en pesos + 1 renglón en USD sin convertir), y **tiempos de MO ≈ 20.28 h** por área
+  (Procesos Metal 12.776, Carpintería 4.2204, Acabados 2.002, ENTRE 1.15, Pintura 0.1331). Mismo producto que
+  el Pedido 38247 (consumo real reportado $55,395.34). Ver `costeos_master.md` y `costeos/CosteAPPLT/`.
+
+### Otros costos reales nuevos (tercera pasada)
+- **C-CO-320R DATS TELCEL:** costeo con BOM de 126 renglones, **total MP $47,432.84** (costo última-compra + consumo).
+- **Sillas de importación (costo real):** cotizaciones FOB de proveedores chinos — Yueqiang (5 modelos, $38–$52 USD
+  FOB) y Furicco (7 modelos, $85–$306 USD FOB, con **costo puesto en bodega = FOB × 26** y precio de venta = FOB × 52).
+- **Melamina (MP):** precios de tablero por espesor/grupo/certificado 2021 (`precios_mp_referencia/`).
+- **Módulo 8U nuevo (TATO84812ABY01):** tiempos de MO (PM 16.994, Pintura 0.1892, Acabados 2.7862, Carpintería 5.6272).
+
+### Nota de completitud
+Los pendientes de la 1ª pasada (§1C) fueron resueltos en la 2ª; esta 3ª cerró los faltantes confirmados (Coste APP
+LT, EEFF) y barrió las 5 páginas más recientes de `list_recent_files`. La enumeración del Drive completo **no está
+agotada** (miles de archivos, mayormente fotos/renders/financieros/HR); el detalle honesto de lo procesado y lo
+enumerado-sin-volcar (18 archivos, con motivo) está en **MANIFIESTO §5**. Regla dura respetada: todo valor es
+literal del archivo; procedencia (archivo/hoja/celda/fecha) preservada; costo real separado de precio de venta;
+nada aplicado a producción.

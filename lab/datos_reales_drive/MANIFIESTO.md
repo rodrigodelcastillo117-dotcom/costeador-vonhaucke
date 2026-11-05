@@ -149,3 +149,85 @@ Todo lo listado arriba en §1C como "NO procesado" **ya fue procesado** en `segu
 - **PDFs**: 8 presupuestos de VENTA (→ `cotizaciones_venta_areas.csv`, `claves_producto_precio_venta.csv`; son precios de venta, NO costo MP), 6 Hojas de Manufactura con despiece (→ `pdf_texto/HDM/`), ~15 catálogos NOM de marketing (→ `pdf_texto/catalogos_NOM/`).
 - **~24 Google Docs / minutas** → `segunda_pasada/docs_texto/` (notas de reunión; **reglas reales de merma/tiempos** en `reglas_merma_aprovechamiento_tiempos.md`).
 - **Nada quedó imposible.** Los "OC PDF" resultaron ser presupuestos de venta, no órdenes de compra, por lo que no aportan costos de MP al `precios_vigentes_master.csv`.
+
+---
+
+## §5 CIERRE DE COMPLETITUD — TERCERA PASADA (2026-11-05)
+
+### 5.1 Faltantes confirmados: procesados
+- **Coste APP LT 20261002.xlsx** (id 16dlIf3OnYo-14ivaC_demHa0_onoQdwN) — **COSTEO REAL** del Módulo
+  Operativo APP LT (TATO63612AB001). 4 hojas volcadas (`costeos/CosteAPPLT/`). BOM de 21 materiales con
+  último costo real 2026, 33 sub-componentes con tiempos de MO, y **libro de compras real 2026 (4,378
+  renglones)** integrado a `precios_vigentes_master.csv` (931 precios ganados, tipo `entrada_compra`).
+  BOM MP $3,679.15 (pesos) + 1 renglón USD; MO ≈ 20.28 h. Ver `costeos_master.md`.
+- **VON HAUCKE EEFF 06 26.xlsx** (id 1xWCXKjwEMTbaHycIZQltshYvSj5HReXZ) — **TRAE COSTO REAL** (corrección del
+  usuario aplicada). 17 hojas volcadas (`financiero/VONHAUCKE_EEFF_06_26/`). 343 renglones de costo extraídos
+  con procedencia hoja+cuenta en `costos_reales_eeff.csv`; análisis en `COSTOS_REALES_EEFF.md`. Costo de
+  ventas real Ene-Jun 2026 = $52,919,977.82 (70.8% de la venta); costo por línea MUEBLES $29.79M / SILLAS $3.94M.
+
+### 5.2 Nuevos archivos cost-relevantes destapados por list_recent_files y PROCESADOS
+- **C-CO-320R DATS TELCEL DIV-MATERIALES 20261002.xlsx** — costeo (separación de materiales). BOM 126
+  renglones con costo última-compra + consumo, **total MP $47,432.84** (`costeos/CCO320R_DATS_TELCEL/`).
+- **Modulos de 6U Y 8U linea APP LT.xlsx** — tiempos de MO por área de TATO63612AB001 (6U) y **TATO84812ABY01
+  (8U, nuevo)** (`costeos/ModulosAPPLT_6U_8U/`).
+- **CATÁLOGO DE MOBILIARIO EN BODEGA** — inventario de PT con **P/U (precio de venta)**; 34 renglones con
+  precio volcados verbatim (`inventario_bodega/inventario_mobiliario_bodega_PT.csv`); el resto (84 renglones
+  sin precio) descrito en su README. xlsx >10 MB (imágenes) → no volcable como CSV completo.
+- **INVENTARIO MOBILIARIO VONHAUCKE.xlsx** — inventario interno (`inventario_bodega/inventario_mobiliario_vonhaucke_interno.csv`).
+- **Harman Studio Productos fabricados.xlsx** — productos export: claves+dims+cantidades (sin precio) (`harman_studio/`).
+- **LISTADORecortes.xlsx** — control de recortes a gastos indirectos ENE-2024, miles de pesos (`financiero/recortes_gastos/`).
+- **2023.2.10-chairs quotation -Yueqiang.xlsx** y **Furicco quotation to Vonhaucke.xlsx** — cotizaciones de
+  proveedores de **sillas** (FOB USD; Furicco además trae costo landed MXN factor 26 y venta factor 52)
+  (`costos_importacion_sillas/`). SILLAS es línea de costo propia en el EEFF.
+- **PRECIOS MELAMINAS PARA EXPORTACION.xlsx** — precios de MP tablero melamina por espesor/grupo/certificado
+  2021 (`precios_mp_referencia/`).
+- **Ordenes de Compra 27-31 Mayo 2024** (83 renglones; ya estaban en `ordenes_compra_consolidado_TODAS.csv`,
+  re-confirmado) y **Ordenes de Compra 1-26 Julio 2024** (hoja Detalle VACÍA; sólo Resumen agregado, volcado).
+
+### 5.3 Claves agregadas a los masters en esta pasada
+- `materiales_master.csv`: 13,534 → **13,612** (33 componentes/módulos APP LT + TATO84812ABY01 + 43 claves PT
+  de Mobiliario en Bodega y Harman Studio).
+- `precios_vigentes_master.csv`: 8,951 → **9,009** artículos (931 precios ahora de Coste APP LT, tipo entrada_compra 2026).
+- `claves_producto_precio_venta.csv`: +28 renglones (precio de venta PT del catálogo de bodega).
+
+### 5.4 Enumeración y archivos cost-relevantes NO volcados (honesto)
+**Enumeración por `list_recent_files` agotada: NO.** El Drive corporativo abarca miles de archivos (2000–2026),
+en su mayoría **no cost-relevantes** (fotos DSC_*.JPG de mobiliario, renders, logos .ai/.jpg, videos .mp4,
+organigramas, minutas, HR). Se recorrieron las **5 páginas más recientes (~500 archivos)**; `nextPageToken`
+seguía no-nulo (hay más páginas antiguas). Se procesó **todo spreadsheet/xlsx cost-relevante nuevo hallado en
+esas páginas**. Catálogo del universo de hojas de cálculo ya conocido: `scratchpad .../recent_catalog.tsv`.
+
+**Archivos cost-relevantes ENUMERADOS pero NO volcados a CSV en esta pasada (N = 18), con motivo:**
+1. `Updated STI42-01A-230726-87.xlsx` (y copia (1)) — código ambiguo; prioridad baja, no descargado.
+2. `COMPARATIVA PRECIOS EXPORTACION-NACIONAL.xlsx` (2 copias) — comparativo de **precio de venta** export/nacional.
+3. `comparativa Precios usa octubre 6.xlsx` — **precio de venta** USA.
+4. `LISTA Precios PISOS Oct 23.xlsx` — lista de **precio de venta** de pisos.
+5. `Eclipse_PL_2023_0323_030.xlsx` — price list (venta) línea Eclipse.
+6. `Accredo_Custom Storage_VH_2023_0630.xlsx` — cotización de proyecto (venta).
+7. `BASE 15032023 silleria.xlsx` y `matriz sillas final.xlsx` — material/matriz de sillería; no descargados (prioridad; ya hay 2 cotizaciones de costo de sillas volcadas).
+8. `Sillas Pendientes de entrada (OC ya con proveedor...).xlsx` — OC pendientes de sillas (compra); no descargado.
+9. `pagos semana 43 revisado 26-10-2023 COMPRAS.xlsm` — pagos a proveedores (tesorería/compras).
+10. `NOEL Office Chairs quotation ... 22.10.08` (Google Doc) — cotización proveedor sillas; no volcado.
+11. `Furicco quotation to Vonhaucke.xls` (2 ids, formato .xls viejo) — duplicado de la .xlsx ya volcada.
+12. `sillas venta rodrigo 210224.xlsx`, `SillasMARATTIfinal.xlsx` — **venta** de sillas.
+13. `VENTAS_OUTLET DE BODEGA_NOVIEMBRE 2022.xlsx` — ventas outlet (venta).
+14. `flujo de efectivo mensual 2024 VERSION DG FINAL`, `FLUJOunico23/23.2/JDCP2024` — flujo de efectivo (financiero, no costeo/MP).
+15. `REPORTE DE COBRANZA 2DA_ENERO_2023.xlsx` — cobranza (cuentas por cobrar, financiero).
+16. `COMPARATIVO.xlsx`, `COCREATIONprogramCORE.xlsx` — ambiguos / programa co-creación.
+17. `vonhaucke carta porte fasterrama.xlsx` — carta porte (logística; ya hay cartas porte en 2a pasada).
+18. `Silleria Usada.rar` — archivo .rar (sillería usada); no legible vía las herramientas de Drive.
+Los no volcados son, en su mayoría, **precio de venta / financiero / duplicados / formato no legible**, no costo
+de MP por clave. Un 4º barrido enfocado (sillería: BASE silleria, matriz sillas, Sillas Pendientes, NOEL) se
+puede hacer si el usuario lo pide.
+
+### 5.5 "TODO es real": catálogos NOM/marketing — qué dato numérico tiene cada uno
+Todos los catálogos se abrieron y se extrajo cualquier clave/dimensión/medida (ver `segunda_pasada/pdf_texto/catalogos_NOM/`
+y `tercera_pasada/catalogos_NOM/`):
+- **CON claves de producto + especificaciones:** Mox (8 claves gavetas/archiveros MOXGA*), Puertos Eléctricos
+  (12+ claves LUM-*/MDMECO* con specs eléctricas y dimensiones de pasacables).
+- **CON dimensiones (sin clave):** Arlequin (cubos 40x40x30/40/60; sofás Pac varias medidas), via (guardas
+  60/90/120/150x45x61; biombos), Gestelle (estantería 20–60 cm ancho, 44.5–144.5 cm largo, 1–3 m alto),
+  AppLT (acabados melamina Tx747/709/713/761/746/716/718), Eclipse/Río/Tetris (componentes nombrados).
+- **Sin dato numérico (prosa marketing):** App, EclipseDrift, Alba, Ergonova4, Rio (texto), Stella, Anteo,
+  Feather, Luna — se revisaron íntegros; sólo describen líneas/acabados/certificaciones (ISO 9001:2015, LEED),
+  sin precios ni costos. Documentado explícitamente en los .txt de cada carpeta.

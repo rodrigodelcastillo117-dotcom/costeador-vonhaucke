@@ -140,3 +140,26 @@ Hojas de Manufactura (6 PDF),texto,visible(2a pasada),6 archivos,si,despiece (cl
 Catalogos NOM (~15 PDF),texto,visible(2a pasada),~15 lineas,si,marketing; sin costos (Mox/Puertos con claves),segunda_pasada/pdf_texto/catalogos_NOM/
 Google Docs / minutas (24),texto,visible(2a pasada),24 archivos,si,notas de reunion; merma rules en comentarios_Rogelio_y_Alba.md,segunda_pasada/docs_texto/
 Resumen de Importacion,texto,visible(2a pasada),7x6,si,datos aduanales; sin costos,segunda_pasada/compras/Resumen_Importacion.md
+Coste APP LT 20261002.xlsx,ComponentesModulo,visible,11x3,si,"7 componentes del modulo TATO63612AB001 (21 pzas)",costeos/CosteAPPLT/ComponentesModulo.csv
+Coste APP LT 20261002.xlsx,Materiales,visible,22x13,si,"BOM 21 materiales con Ultimo Costo/fecha/proveedor/moneda/Entrada Compra reales 2026",costeos/CosteAPPLT/Materiales.csv
+Coste APP LT 20261002.xlsx,Fabricar componentes,visible,34x22,si,"tiempos de MO por area de 33 subcomponentes; totales PM 12.776/Pintura/Acabados/Carp/ENTRE",costeos/CosteAPPLT/Fabricar_componentes.csv
+Coste APP LT 20261002.xlsx,Compras,hidden,4379x20,si,"libro real de compras 2026 (4378 renglones) con Costo Unitario -> integrado a precios (entrada_compra)",costeos/CosteAPPLT/Compras.csv
+VON HAUCKE EEFF 06 26.xlsx,ER 06 26,visible,42x23,si,"Estado de Resultados Ene-Jun 2026 mensual: COSTO DE VENTAS real 52.9 MDP; MP/produccion/distribucion",financiero/VONHAUCKE_EEFF_06_26/ER_06_26.csv
+VON HAUCKE EEFF 06 26.xlsx,06 26,visible,811x9,si,"balanza acum 30-jun-2026: cuentas 5100 COSTO MUEBLES/SILLAS, 5110 MOD/GIF, 1106 inventario MP",financiero/VONHAUCKE_EEFF_06_26/06_26.csv
+VON HAUCKE EEFF 06 26.xlsx,ER,visible,35x6,si,"Estado Resultados 12 meses: costo de ventas 117.5 MDP (91.6%)",financiero/VONHAUCKE_EEFF_06_26/ER.csv
+VON HAUCKE EEFF 06 26.xlsx,ER SF,visible,36x6,si,"Estado Resultados 12 meses 2023 (con % por renglon; algunos #VALUE!/#REF!)",financiero/VONHAUCKE_EEFF_06_26/ER_SF.csv
+VON HAUCKE EEFF 06 26.xlsx,GASTOS 2026,visible,76x18,si,"Integracion de gastos operacion Ene-Jun 2026 (admon/venta/distribucion)",financiero/VONHAUCKE_EEFF_06_26/GASTOS_2026.csv
+VON HAUCKE EEFF 06 26.xlsx,"BG / BG 06 26 / BG SF / Balanza Ajustes / 01-05 26 / Hoja1 / Hoja2 / Polizas",visible/hidden,varios,si,"balance general y balanzas mensuales; volcadas todas",financiero/VONHAUCKE_EEFF_06_26/
+C-CO-320R DATS TELCEL DIV-MATERIALES 20261002.xlsx,explo_x_id,visible,271x27,si,"BOM 126 renglones con costo_ultima_compra+consumo; total MP 47432.84",costeos/CCO320R_DATS_TELCEL/explo_x_id_BOM.csv
+C-CO-320R DATS TELCEL DIV-MATERIALES 20261002.xlsx,"solicitud/tabla_de_comparacion/cuanti_mp/estimacion/info_t_d_c/cal_empa_emba",visible/hidden,varios,si,"hojas de separacion de materiales volcadas",costeos/CCO320R_DATS_TELCEL/
+C-CO-320R DATS TELCEL DIV-MATERIALES 20261002.xlsx,cata_mp,visible,15855x13,no,"catalogo MP 15.8k identico a snapshot; consolidado en masters; no se duplica (politica usuario)",
+Modulos de 6U Y 8U linea APP LT.xlsx,Hoja1,visible,-,si,"tiempos MO por area de modulos TATO63612AB001 (6U) y TATO84812ABY01 (8U)",costeos/ModulosAPPLT_6U_8U/tiempos_MO_modulos.csv
+CATALOGO DE MOBILIARIO EN BODEGA (8) MOD 14 FEB.xlsx,Hoja1,visible,160x10,parcial,"inventario PT con P/U (precio venta); 34 renglones con precio volcados verbatim (xlsx>10MB)",inventario_bodega/inventario_mobiliario_bodega_PT.csv
+INVENTARIO MOBILIARIO VONHAUCKE.xlsx,"Vonhaucke/Xalostoc/TOTALES",visible,varios,si,"inventario interno de mobiliario (unitario estimado)",inventario_bodega/inventario_mobiliario_vonhaucke_interno.csv
+Harman Studio Productos fabricados.xlsx,Hoja1,visible,-,si,"productos export Harman Studio: claves+dims+cantidades (sin precio)",harman_studio/harman_studio_productos_fabricados.csv
+LISTADORecortes.xlsx,Sheet1,visible,-,si,"control de recortes a gastos indirectos ENE2024 (miles de pesos)",financiero/recortes_gastos/control_recortes_gastos_ene2024.csv
+2023.2.10-chairs quotation -Yueqiang.xlsx,Quotation,visible,-,si,"cotizacion proveedor sillas FOB USD (5 modelos)",costos_importacion_sillas/cotizacion_sillas_Yueqiang_2023-02-10.csv
+Furicco quotation to Vonhaucke.xlsx,Hoja1,visible,-,si,"cotizacion proveedor sillas FOB USD + costo landed MXN + venta MXN (7 modelos)",costos_importacion_sillas/cotizacion_sillas_Furicco_2023-06-17.csv
+PRECIOS MELAMINAS PARA EXPORTACION.xlsx,"GRUPOS POR DISEÑOS / DISEÑOS EN ESPECIFICO",visible,-,si,"precios MP tablero melamina por espesor/grupo/certificado 2021",precios_mp_referencia/precios_melaminas_exportacion_2021.csv
+Ordenes de Compra del 27 al 31 de Mayo 2024.xlsx,Detalle,visible,102x19,si,"83 renglones OC reales (ya en consolidado/precios)",ordenes_compra/OC_detalle_may2024.csv
+Ordenes de Compra del 1 al 26 de Julio 2024.xlsx,Detalle+Resumen,visible,277x19,parcial,"Detalle VACIA; solo Resumen agregado (69 filas) volcado",ordenes_compra/OC_resumen_jul2024.csv

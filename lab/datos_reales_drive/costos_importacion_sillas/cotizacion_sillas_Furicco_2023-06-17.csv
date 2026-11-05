@@ -1,0 +1,8 @@
+proveedor,fecha,model_no,descripcion,fob_price_usd,cbm_set,costo_puesto_bodega_mxn_factor26,precio_venta_mxn_factor52,precio_venta_mxn_factor50,remark
+"GUANGDONG SHUNDE FURICCO FURNITURE CO., LTD (FOB Shenzhen)",2023-06-17,A1819,"1A Half Leather, high density foam, multifunctional mechanism, TUV Class 4 gaslift, aluminum base nylon",155.00,0.18,4030,8060,7750,"chair/mech/base 4pcs/ctn"
+"GUANGDONG SHUNDE FURICCO FURNITURE",2023-06-17,F2313,"EPU upholstery, high density foam, aluminum legs",85.00,0.15,2210,4420,4250,"body 4pcs/ctn, legs 1pc/ctn"
+"GUANGDONG SHUNDE FURICCO FURNITURE",2023-06-17,FK006-A,"3A Half Leather, molded foam, adjustable headrest/armrest/backrest, sliding seat, multifunctional mechanism, TUV-4 gaslift, aluminum base",306.00,0.38,7956,15912,15300,"1pc/2ctns"
+"GUANGDONG SHUNDE FURICCO FURNITURE",2023-06-17,FK006-B,"(variant of FK006)",273.00,0.35,7098,14196,13650,"1pc/2ctns"
+"GUANGDONG SHUNDE FURICCO FURNITURE",2023-06-17,FK007-B11,"EPU, black painted arms with arm pad, multifunctional mechanism, TUV-4 gaslift, black painted aluminum base",166.00,0.30,4316,8632,8300,"1pc/ctn"
+"GUANGDONG SHUNDE FURICCO FURNITURE",2023-06-17,A1908,"EPU & 3A Half Leather, molded foam, multifunctional mechanism, TUV-4 gaslift, aluminum base (EPU $162 / 3A Half Leather $195)",162.00,0.41,4212,8424,10140,"EPU price; 3A Half Leather $195; 1pc/ctn"
+"GUANGDONG SHUNDE FURICCO FURNITURE",2023-06-17,B1908,"EPU & 3A Half Leather, molded foam, multifunctional mechanism, TUV-4 gaslift, aluminum base (EPU $145 / 3A Half Leather $178)",145.00,0.34,3770,7540,9256,"EPU price; 3A Half Leather $178; 1pc/ctn"
