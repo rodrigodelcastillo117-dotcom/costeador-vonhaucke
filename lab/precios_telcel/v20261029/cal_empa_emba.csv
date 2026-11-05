@@ -1,0 +1,34 @@
+,,calculadora de empaque y embalaje por metro cubico de articulo,,,emp_jgo_1_unitario_basico,emp_jgo_2_unitario_en caja_de_carton,emp_jgo_3_fraccion_de_entarimado_basico,emp_jgo_4_fraccion_de_entariimado_unitario_en_caja_de_carton,emp_jgo_5_unitario_en_jaula_de_madera_empaque_basico,emp_jgo_6_unitario_en_caja_de_tablero_precompuesto_empaque_unitario,emb_kit_1_uso_en_exportacion_unitario_en caja_de_carton,emb_kit_2_uso_en_exportacion_fraccion_de_entarimado_basico,emb_kit_3_uso_en_exportacion_fraccion_de_entariimado_unitario_en_caja_de_carton,emb_kit_4_uso_en_exportacion_unitario_en_jaula_de_madera_empaque_basico,emb_kit_5_uso_en_exportacion_unitario_en_caja_de_tablero_precompuesto_empaque_unitario,,,,,,,,,,,,
+,,articulo,descripción,unidad,emq m3 1,emq m3 2,emq m3 3,emq m3 4,emq m3 5,emq m3 6,pkg m3 1,pkg m3 2,pkg m3 3,pkg m3 4,pkg m3 5,ultimo costo,emq jgo 1,emq jgo 2,emq jgo 3,emq jgo 4,emq jgo 5,emq jgo 6,pkg kit 1,pkg kit 2,pkg kit 3,pkg kit 4,pkg kit 5
+,,MIEEPP03110001,"PELICULA PALETIZADO CALIBRE 80 ANCHO 5""  EN ROLLO -- PELPA5 --",pieza,0.1,0,0.5,0,0,0,0,0.5,0,0,0,38,3.8,0,19,0,0,0,0,19,0,0,0
+,,MIEECC00010000,CARTON CORRUGADO  1.56 m   -- RC156CO --,Kg,3.85,0,15.38,0,3.85,0,0,15.38,0,3.85,0,30,115.5,0,461.4,0,115.5,0,0,461.4,0,115.5,0
+,,MEKPTA18210001,TAPA PROTECTOR ESQUINERO PARA ESPESOR DE 28 mm (CODIGO AMI-100) PLASTICO -- TAPEQ100,pieza,0,4,16,0,4,0,4,16,0,4,0,6.8,0,27.2,108.8,0,27.2,0,27.2,108.8,0,27.2,0
+,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",rollo,0.03,0,0.06,0,0.03,0,0,0.06,0,0.03,0,1030,30.9,0,61.8,0,30.9,0,0,61.8,0,30.9,0
+,,MIEEMA00010100,ROLLO DE CINTA MASKING TAPE  ANCHO 12 mm MARCA TUCK  -- MASQ12T --,pza,0.1,0,0.25,0,0,0,0,0.25,0,0,0,15.5,1.55,0,3.88,0,0,0,0,3.88,0,0,0
+,,MIEECI00140600,ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 m LINEALES EN POLIPROPILENO COLOR TRANSPARENTE  -- CT48 --,pieza,0.1,0.05,0.25,0.1,0.05,0,0.05,0.25,0.1,0.05,0,22,2.2,1.1,5.5,2.2,1.1,0,1.1,5.5,2.2,1.1,0
+,,MIMCSQCR010000,"ESQUINERO DE CARTON EN PAPEL KRAFT DE 2"" X 2"" X 4mm DE ESPESOR, (160 puntos) CON LONGITUD DE 180.0 cm   -- EQCAK224180",pieza,5,0,4,4,4,0,0,4,4,4,0,16,80,0,64,64,64,0,0,64,64,64,0
+,,MIEEPP03050001,"PELICULA PALETIZADO CALIBRE 80 ANCHO 20""  EN ROLLO -- PELPA20 --",pieza,0,0,0.25,0.1,0.1,0,0,0.25,0.1,0.1,0,158,0,0,39.5,15.8,15.8,0,0,39.5,15.8,15.8,0
+,,MIEEMA00010100,ROLLO DE CINTA MASKING TAPE  ANCHO 12 mm MARCA TUCK  -- MASQ12T --,pza,0,0,0,0,0,0,0,0,0,0,0,15.5,0,0,0,0,0,0,0,0,0,0,0
+,,MIEECI00140600,ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 m LINEALES EN POLIPROPILENO COLOR TRANSPARENTE  -- CT48 --,pieza,0,0,0,0,0,0,0,0,0,0,0,22,0,0,0,0,0,0,0,0,0,0,0
+,,MLEUCL42500078,"CLAVO EN ROLLO 2""  PARA CLAVADORA  NEUMATICA  - ""CLENR2CA""",caja,0,0,0,0,0.1,0.05,0,0,0,0.1,0.05,590,0,0,0,0,59,29.5,0,0,0,59,29.5
+,,MIMCCVRL010001,"CLAVO EN ROLLO DE 1 1/2""  (CAJA CON 9000 PIEZAS) -- CLRO112 --",pieza,0,0,0,0,0.1,0.05,0,0,0,0.1,0.05,690,0,0,0,0,69,34.5,0,0,0,69,34.5
+,,MVLUPI03482101,"PIJA CABEZA PLANA PHILLIPS 8 X 1/2"" PARA TABLAROCA PAVONADO - """"PITR12""""",pieza,0,0,0,0,0,25,0,0,0,0,25,0.18,0,0,0,0,0,4.5,0,0,0,0,4.5
+,,MVLUPI03492101,"PIJA CABEZA PLANA PHILLIPS 8 X 3/4"" PARA TABLAROCA PAVONADO - """"PITR34""""""",pieza,0,0,0,0,0,25,0,0,0,0,25,0.19,0,0,0,0,0,4.75,0,0,0,0,4.75
+,,MVLUPI03472101,"PIJA CABEZA PLANA PHILLIPS 8 X 1"" PARA TABLAROCA PAVONADO - """"PITR1""""",pieza,0,0,0,0,0,25,0,0,0,0,25,0.21,0,0,0,0,0,5.25,0,0,0,0,5.25
+,,MVLUPI03452101,"PIJA CABEZA PLANA PHILLIPS 8 X 1 1/4"" PARA TABLAROCA PAVONADO - ""PITR114""",pieza,0,0,0,0,0,25,0,0,0,0,25,0.29,0,0,0,0,0,7.25,0,0,0,0,7.25
+,,MIMCFLPL010001,"FLEJE DE PLASTICO DE 1/2""  (EN ROLLO) -- FL1/2PL --",m,0,0,0.03,0.03,0.03,0.03,0,0.03,0.03,0.03,0.03,149.5,0,0,4.49,4.49,4.49,4.49,0,4.49,4.49,4.49,4.49
+,,MIMCGRPF030000,"GRAPA PARA FLEJE DE 12"" (19 X 50 mm)   -- GRFL121950 --",pieza,0,0,8,8,8,8,0,8,8,8,8,0.16,0,0,1.28,1.28,1.28,1.28,0,1.28,1.28,1.28,1.28
+,,MVLABA100000T1,"ESQUINERO DE POLIFOAM VERDE DENSO ½ DE 2” X 2” X 2 m - ""ESPVD""",pieza,0,0,0,0,4,4,0,0,0,4,4,38,0,0,0,0,152,152,0,0,0,152,152
+,,MVLAQT010000L0,PAQUETE DE ETIQUETA ADH 21.6X27.9CM -1085165101-SV 25 HOJAS TAMAÑO CARTA AUTOADHERIBLES -- ETQADH,pieza,0,0.04,0,0.04,0.04,0.04,0.04,0,0.04,0.04,0.04,109.7,0,4.39,0,4.39,4.39,4.39,4.39,0,4.39,4.39,4.39
+,,MLEMTM01040000,"TIRA DE MADERA DE PINO DE SEGUNDA DE  5 CMS. DE ANCHO  X  3/4""  (1.9 CMS) DE ESPESOR,  POR 250 CMS. DE LARGO   - ""TMP534250""",pieza,0,0,0,0,10,0,0,0,0,10,0,47.43,0,0,0,0,474.3,0,0,0,0,474.3,0
+,,MLEMTM01050000,"TIRA DE MADERA DE PINO DE SEGUNDA DE  10 CMS DE ANCHO X 1 1/4""  (3.2 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - ""TMP10114250""",pieza,0,0,0,0,5,0,0,0,0,5,0,189.75,0,0,0,0,948.75,0,0,0,0,948.75,0
+,,MLEMTM01060000,"TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X  3/4"" (1.9 CMS) DE ESPESOR, POR 250 CMS. DE LARGO   - ""TMP1034250""",pieza,0,0,0,0,5,8,0,0,0,5,8,94.87,0,0,0,0,474.35,758.96,0,0,0,474.35,758.96
+,,MVLMMR050000E2,"MADERA PARA EMBALAJE DE 3/4"" (19 mm.) DE ESPESOR, 100 mm. (10 cms.) DE ANCHO Y 2500 mm. (2.50 mts.) DE LARGO, CON CERTIFICADO PARA EXPORTAR - ""ME2510EX""",pieza,0,0,0,0,0,0,0,0,0,0,0,87,0,0,0,0,0,0,0,0,0,0,0
+,,MVLMMR050000E4,"MADERA PARA EMBALAJE DE 3/4"" (19 mm.) DE ESPESOR, 80 mm. (8 cms.) DE ANCHO Y 5000 mm. (5.00 mts.) DE LARGO, CON CERTIFICADO PARA EXPORTAR - ""ME508EX""",pieza,0,0,0,0,0,0,0,0,0,0,0,231.25,0,0,0,0,0,0,0,0,0,0,0
+,,MVLMMD02280400,"MDF NATURAL HOJA 4 X 8 ESPESOR 12 mm  - """"MDF12""""""",Hoja,0,0,0,0,0,2,0,0,0,0,2,253,0,0,0,0,0,506,0,0,0,0,506
+,,USO NACIONAL,"TARIMA DE MADERA TRATADA CON CALOR - 40 X 40""",pieza,0,0,1,1,0,1,0,0,0,0,0,750,0,0,750,750,0,750,0,0,0,0,0
+,,USO NACIONAL,"40 X 40 X 40"" CAJA DE CORRUGADO TRIPLE DE PRUEBA A 1,100 LB CON TAPA - 102 X 102 X 102 CM - 5/ATADO",pieza,0,1,0,1,0,0,1,0,1,0,0,500,0,500,0,500,0,0,500,0,500,0,0
+,,USO NACIONAL,"42 X 42 X 72"" CUBIERTAS TRANSPARENTES PARA TARIMAS - GROSOR 2 MIL",pieza,0,1,0,1,0,1,1,0,1,0,1,50,0,50,0,50,0,50,50,0,50,0,50
+,,USO EN EXPORTACION,"TARIMA DE MADERA TRATADA CON CALOR - 40 X 40""",pieza,0,0,0,0,0,0,0,0,1,0,1,2000,0,0,0,0,0,0,0,0,2000,0,2000
+,,,,,,,,,,,,,,,,Total,233.95,582.69,1519.65,1392.16,2442.06,2312.87,582.69,769.65,2642.16,2442.06,3562.87
+,,,,,,,,,,,,,,,,,emp_jgo_1_unitario_basico,emp_jgo_2_unitario_en caja_de_carton,emp_jgo_3_fraccion_de_entarimado_basico,emp_jgo_4_fraccion_de_entariimado_unitario_en_caja_de_carton,emp_jgo_5_unitario_en_jaula_de_madera_empaque_basico,emp_jgo_6_unitario_en_caja_de_tablero_precompuesto_empaque_unitario,emb_kit_1_uso_en_exportacion_unitario_en caja_de_carton,emb_kit_2_uso_en_exportacion_fraccion_de_entarimado_basico,emb_kit_3_uso_en_exportacion_fraccion_de_entariimado_unitario_en_caja_de_carton,emb_kit_4_uso_en_exportacion_unitario_en_jaula_de_madera_empaque_basico,emb_kit_5_uso_en_exportacion_unitario_en_caja_de_tablero_precompuesto_empaque_unitario
