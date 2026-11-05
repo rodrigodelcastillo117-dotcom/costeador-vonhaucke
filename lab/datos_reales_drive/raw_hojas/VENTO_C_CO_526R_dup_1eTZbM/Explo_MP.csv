@@ -1,0 +1,245 @@
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,standard_line_mueble_fabricado,standard_line_costo_de_producto,standard_line_costo_de_gasto_indirecto,0,0,0,0,#REF!,#REF!,#REF!,,,id_01_01_01,,,,,,,,,,,
+,,,standard_line_componente_fabricado,#REF!,3,0,0,0,0,#REF!,#REF!,#REF!,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,standard_line_mueble_compra_venta,#REF!,3,0,0,0,0,#REF!,#REF!,#REF!,,,,,,METAL,"EXHIBIDOR VITRINA MODULAR PARA REFACCIONES DE 2100 X 922 X 732 mm MODELO CO-CREACION, CON GROMET REDONDO Y PORTA PRECIOS, ESTRUCTURA METALICA COLOR NEGRO MATE, BASE Y CUBIERTA; EN MELAMINA CON CANTOS ABS COLOR NEGRO CON PORTAMONITOR",,,,,,,
+,,,,,,,,,,,,,,,,,,MVLSLA05260502,LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310,-,Sin Opc.,Hoja,2025-12-09T00:00:00,449.06,1.55,696.04
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",a550,COLOR METAL NEGRO MATE 8 VITRACOAT ,Kg,2025-12-10T00:00:00,120.68,0.986,118.99
+,,,,,,,,,,,,,,,,,,MVLSTU01080401,"TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 18 PIEZA DE 6000 mm - TC181",-,Sin Opc.,pieza,2026-04-09T00:00:00,122.41,2.356,288.4
+,,,,,,,,,,,,,,,,,,MVLSTU01060401,"TUBULAR INDUSTRIAL CUADRADO 3/4"""" CALIBRE 18 PIEZA DE 6000 mm - """"TC1834""""""",-,Sin Opc.,pieza,2025-12-29T00:00:00,89.54,1.011,90.52
+,,,,,,,,,,,,,,,,,,MVLSLA05260402,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - """"LN18310""""""",-,Sin Opc.,Hoja,2026-01-26T00:00:00,597.88,0.42,251.11
+,,,,,,,,,,,,,,,,,,MVLMAG01280600,AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 19 mm -- AME1948,b721,ACABADO MADERA BLACK ,Hoja,2026-03-02T00:00:00,639.91,0.333,213.09
+,,,,,,,,,,,,,,,,,,MVLPPC00491505,"PERFIL DE CANTO  ANCHO 22 mm ESPESOR 2 mm EN ABS - """"PEABS22""""""",c721,COLOR DE PLASTICO BLACK ,m,2025-08-25T00:00:00,8.17,3.705,30.27
+,,,,,,,,,,,,,,,,,,MVLSLA05260602,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 22 ACERO 1008 - """"LN22310""""""",-,Sin Opc.,Hoja,2026-01-26T00:00:00,326.59,0.001,0.33
+,,,,,,,,,,,,,,,,,,MVLSLA05260502,LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310,-,Sin Opc.,Hoja,2025-12-09T00:00:00,449.06,1.567,703.68
+,,,,,,,,,,,,,,,,,,MVLSTU01080401,"TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 18 PIEZA DE 6000 mm - TC181",-,Sin Opc.,pieza,2026-04-09T00:00:00,122.41,2.356,288.4
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",a550,COLOR METAL NEGRO MATE 8 VITRACOAT ,Kg,2025-12-10T00:00:00,120.68,0.796,96.06
+,,,,,,,,,,,,,,,,,,MVLSTU01060401,"TUBULAR INDUSTRIAL CUADRADO 3/4"""" CALIBRE 18 PIEZA DE 6000 mm - """"TC1834""""""",-,Sin Opc.,pieza,2025-12-29T00:00:00,89.54,1.011,90.52
+,,,,,,,,,,,,,,,,,,MVLMAG01280600,AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 19 mm -- AME1948,b721,ACABADO MADERA BLACK ,Hoja,2026-03-02T00:00:00,639.91,0.333,213.09
+,,,,,,,,,,,,,,,,,,MVLPPC00491505,"PERFIL DE CANTO  ANCHO 22 mm ESPESOR 2 mm EN ABS - """"PEABS22""""""",c721,COLOR DE PLASTICO BLACK ,m,2025-08-25T00:00:00,8.17,3.705,30.27
+,,,,,,,,,,,,,,,,,,MVLSLA05260402,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - """"LN18310""""""",-,Sin Opc.,Hoja,2026-01-26T00:00:00,597.88,0.42,251.11
+,,,,,,,,,,,,,,,,,,MVLSLA05260602,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 22 ACERO 1008 - """"LN22310""""""",-,Sin Opc.,Hoja,2026-01-26T00:00:00,326.59,0.001,0.33
+,,,,,,,,,,,,,,,,,,MVLMAG01280600,AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 19 mm -- AME1948,b721,ACABADO MADERA BLACK ,Hoja,2026-03-02T00:00:00,639.91,0.556,355.79
+,,,,,,,,,,,,,,,,,,MPMTPE01010001,"PERFIL MOLDURA DE 6.4 X 28.6 X 3660 mm  DE ALUMINIO NATURAL, N° 2803 CATALOGO METALES DIAZ  -- PEMOAL3660",-,Sin Opc.,pieza,2026-01-07T00:00:00,80.25,2.333,187.22
+,,,,,,,,,,,,,,,,,,MVLPPC00491505,"PERFIL DE CANTO  ANCHO 22 mm ESPESOR 2 mm EN ABS - """"PEABS22""""""",c721,COLOR DE PLASTICO BLACK ,m,2025-08-25T00:00:00,8.17,10.589,86.51
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_01_01_01,id_01_01_01 costo_total:,3991.73
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,id_01_01_02,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,HERRAJES,"EXHIBIDOR VITRINA MODULAR PARA REFACCIONES DE 2100 X 922 X 732 mm MODELO CO-CREACION, CON GROMET REDONDO Y PORTA PRECIOS, ESTRUCTURA METALICA COLOR NEGRO MATE, BASE Y CUBIERTA; EN MELAMINA CON CANTOS ABS COLOR NEGRO CON PORTAMONITOR",,,,,,,
+,,,,,,,,,,,,,,,,,,MDCRCR00460101,"CRISTAL  DE 987 X 752 mm ESPESOR 6 mm TEMPLADO, CANTOS PULIDOS  --  COVEVTRM210PM-CR",-,Sin Opc.,pieza,2025-12-15T00:00:00,478.92,1,478.92
+,,,,,,,,,,,,,,,,,,MDCRCR00440101,"CRISTAL  DE 1006 X 510 mm ESPESOR 6 mm TEMPLADO, CANTOS PULIDOS, CON REDONDEOS SEGUN PLANO  --  COVEVTRM210PM-CR2",-,Sin Opc.,pieza,2026-01-26T00:00:00,345.77,1,345.77
+,,,,,,,,,,,,,,,,,,MLEACE10020005,CERRADURA PARA PUERTA CORREDIZA MODELO 170 PHILLIPS  ACABADO CROMO -- CEPH170,-,Sin Opc.,pieza,2026-01-29T00:00:00,66.66,1,66.66
+,,,,,,,,,,,,,,,,,,MVLREC00140300,"ESPUMA MICROCELULAR  DE 3/16"""" X 3/8"""" ROLLO DE 10 m  - """"EM10X5""""""",-,Sin Opc.,pieza,2026-03-05T00:00:00,85,0.056,4.76
+,,,,,,,,,,,,,,,,,,MVLUPI03B42101,"PIJA CABEZA PLANA PHILLIPS 8"" X 5/8"" PARA TABLAROCA PAVONADO - ""PITR58""",-,Sin Opc.,pieza,2024-04-15T00:00:00,0.32,32,10.24
+,,,,,,,,,,,,,,,,,,MVLUPI19080042,"PIJA CABEZA FIJADORA PHILLIPS DE 8 X 1/2""  PUNTA DE BROCA CON ARANDELA INTEGRADA GALVANIZADA - ""PI812PBA""",-,Sin Opc.,pieza,2026-03-23T00:00:00,0.25,14,3.5
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-,Sin Opc.,rollo,2026-04-09T00:00:00,7.5,4.5,33.75
+,,,,,,,,,,,,,,,,,,MIEECC00010000,CARTON CORRUGADO  1.56 m   -- RC156CO --,-,Sin Opc.,Kg,2026-03-12T00:00:00,30,1.5,45
+,,,,,,,,,,,,,,,,,,MVLPTN04030048,"TAPON TIPO TOPE Ø 10 X 3 mm CON PERNO DE Ø 3 X 6 mm  EN PVC TRANSPARENTE - ""TPT38P18"" , ""Gomabase1-8""",-,Sin Opc.,pieza,2026-03-25T00:00:00,0.4,16,6.4
+,,,,,,,,,,,,,,,,,,MDACPA01010000,PORTA PRECIOS DE 75 x 50 mm  EN ACRILICO CRISTAL TRANSPARENTE ESPESOR 3 mm  --  PPA7550E3,-,Sin Opc.,pieza,2026-04-09T00:00:00,20,12,240
+,,,,,,,,,,,,,,,,,,MVLUTO15175209,"TORNILLO NIVELADOR Ø 3/8"" X 1"" PLATAFORMA CONICA DE Ø 1 1/2"" X 5/8"" CROMADO - ""TO381CNIC""",-,Sin Opc.,pieza,2026-01-23T00:00:00,14.77,4,59.08
+,,,,,,,,,,,,,,,,,,MVLURE28003425,REMACHE POP AM-42 ALUMINIO NATURAL CON CABEZA PAVONADA -- REPO42P,-,Sin Opc.,pieza,2025-08-13T00:00:00,0.4,6,2.4
+,,,,,,,,,,,,,,,,,,MDMEKT01000006,"KIT DE ILUMINACION   2 LAMP 950MM, PERFIL ALUM, ESQ COVER FROSTED ILUMIN LED 3600K 120LEDS X METRO, UNIDAS X 15CM ARNES NEGRO CAL.22 CONECT. PLUG/JACK P/ALIMENT. C/TAPAS Y GRAPAS. FUE D PODER D 24V 2 AMP -- COVEVTRM210-KLED",-,Sin Opc.,pieza,2026-04-10T00:00:00,1454,1,1454
+,,,,,,,,,,,,,,,,,,MDCRCR00460101,"CRISTAL  DE 987 X 752 mm ESPESOR 6 mm TEMPLADO, CANTOS PULIDOS  --  COVEVTRM210PM-CR",-,Sin Opc.,pieza,2025-12-15T00:00:00,478.92,1,478.92
+,,,,,,,,,,,,,,,,,,MDCRCR00440101,"CRISTAL  DE 1006 X 510 mm ESPESOR 6 mm TEMPLADO, CANTOS PULIDOS, CON REDONDEOS SEGUN PLANO  --  COVEVTRM210PM-CR2",-,Sin Opc.,pieza,2026-01-26T00:00:00,345.77,1,345.77
+,,,,,,,,,,,,,,,,,,MLEACE10020005,CERRADURA PARA PUERTA CORREDIZA MODELO 170 PHILLIPS  ACABADO CROMO -- CEPH170,-,Sin Opc.,pieza,2026-01-29T00:00:00,66.66,1,66.66
+,,,,,,,,,,,,,,,,,,MVLUTU22520002,"TUERCA HEXAGONAL Ø1/4"" GALVANIZADO -- TU14HE",-,Sin Opc.,pieza,2026-01-20T00:00:00,0.22,4,0.88
+,,,,,,,,,,,,,,,,,,MVLREC00140300,"ESPUMA MICROCELULAR  DE 3/16"""" X 3/8"""" ROLLO DE 10 m  - """"EM10X5""""""",-,Sin Opc.,pieza,2026-03-05T00:00:00,85,0.056,4.76
+,,,,,,,,,,,,,,,,,,MVLEPL06060000,"PLACA PARA REGISTRO DE VOZ Y DATOS, PARA JACK RJ45 CATEGORIA 5E Y 6 MARCA STEREN CODIGO 310-202WH COLOR BLANCO   - ""PRVDSTB""",-,Sin Opc.,pieza,2026-01-21T00:00:00,21.55,1,21.55
+,,,,,,,,,,,,,,,,,,MVLPTN04030048,"TAPON TIPO TOPE Ø 10 X 3 mm CON PERNO DE Ø 3 X 6 mm  EN PVC TRANSPARENTE - ""TPT38P18"" , ""Gomabase1-8""",-,Sin Opc.,pieza,2026-03-25T00:00:00,0.4,16,6.4
+,,,,,,,,,,,,,,,,,,MLEPTA26000009,"TAPA PARA CONTACTO COLOR BLANCO - ""TAPBL""",-,Sin Opc.,pieza,2021-08-19T00:00:00,10.12,2,20.24
+,,,,,,,,,,,,,,,,,,MVLURE28003425,REMACHE POP AM-42 ALUMINIO NATURAL CON CABEZA PAVONADA -- REPO42P,-,Sin Opc.,pieza,2025-08-13T00:00:00,0.4,6,2.4
+,,,,,,,,,,,,,,,,,,MVLUPI19080042,"PIJA CABEZA FIJADORA PHILLIPS DE 8 X 1/2""  PUNTA DE BROCA CON ARANDELA INTEGRADA GALVANIZADA - ""PI812PBA""",-,Sin Opc.,pieza,2026-03-23T00:00:00,0.25,16,4
+,,,,,,,,,,,,,,,,,,MVLUTO12110041,"TORNILLO CABEZA BOTON ALLEN Ø 1/4"" X 1/2""  COLOR NEGRO - ""TOA1412CBN""",-,Sin Opc.,pieza,2025-12-17T00:00:00,0.6,4,2.4
+,,,,,,,,,,,,,,,,,,MVLECO07350016,"CONTACTO DOBLE POLARIZADO MARCA ARROW HART  COLOR BLANCO - """"CPDB""""""",-,Sin Opc.,pieza,2020-12-08T00:00:00,44.99,2,89.98
+,,,,,,,,,,,,,,,,,,MVLUTU22540041,"TUERCA HEXAGONAL Ø3/8"" COLOR NEGRO -- TU38HEN",-,Sin Opc.,pieza,2025-12-15T00:00:00,0.68,4,2.72
+,,,,,,,,,,,,,,,,,,MVLURO26543041,"RONDANA PLANA Ø 3/8"" Ø 1"" EXTERIOR CALIBRE 12 COLOR NEGRO -- RP381EN",-,Sin Opc.,pieza,2025-12-15T00:00:00,0.85,8,6.8
+,,,,,,,,,,,,,,,,,,MLEUTO12670001,"TORNILLO CABEZA BOTON ALLEN Ø 3/8"" X 3""  PAVONADO - ""TOA383CBP""",-,Sin Opc.,pieza,2026-01-08T00:00:00,9.74,4,38.96
+,,,,,,,,,,,,,,,,,,MVLUTO15175209,"TORNILLO NIVELADOR Ø 3/8"" X 1"" PLATAFORMA CONICA DE Ø 1 1/2"" X 5/8"" CROMADO - ""TO381CNIC""",-,Sin Opc.,pieza,2026-01-23T00:00:00,14.77,4,59.08
+,,,,,,,,,,,,,,,,,,MVLUPI03B42101,"PIJA CABEZA PLANA PHILLIPS 8"" X 5/8"" PARA TABLAROCA PAVONADO - ""PITR58""",-,Sin Opc.,pieza,2024-04-15T00:00:00,0.32,32,10.24
+,,,,,,,,,,,,,,,,,,MVLPGP22600001,"GROMET PASACABLES REDONDO Ø 2""""  PLASTICO - """"GR2""""""",q1,COLOR DE GROMET NEGRO ,pieza,2025-12-09T00:00:00,6.3,1,6.3
+,,,,,,,,,,,,,,,,,,MDACPA01010000,PORTA PRECIOS DE 75 x 50 mm  EN ACRILICO CRISTAL TRANSPARENTE ESPESOR 3 mm  --  PPA7550E3,-,Sin Opc.,pieza,2026-04-09T00:00:00,20,12,240
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-,Sin Opc.,rollo,2026-04-09T00:00:00,7.5,4.5,33.75
+,,,,,,,,,,,,,,,,,,MIEECC00010000,CARTON CORRUGADO  1.56 m   -- RC156CO --,-,Sin Opc.,Kg,2026-03-12T00:00:00,30,1.5,45
+,,,,,,,,,,,,,,,,,,MDACRL01010001,"RIEL SIMPLE EMBUTIDO CX LONGITUD 2.00 m  EN ALUMINIO ""RISIECX2""  --  RISIECX2",-,Sin Opc.,pieza,2026-01-27T00:00:00,69.6,2,139.2
+,,,,,,,,,,,,,,,,,,MVLAHP00602800,"HULE PASILLO ANCHO 1000 mm ESPESOR 3 mm  - """"HUPA50""""""",-,Sin Opc.,m,2026-02-05T00:00:00,385,2.093,805.81
+,,,,,,,,,,,,,,,,,,MVLUTA00083810,"TAQUETE  Ø 8 X 30 mm ACANALADA MADERA - """"TAMA516""""""",-,Sin Opc.,pieza,2026-02-10T00:00:00,0.35,6,2.1
+,,,,,,,,,,,,,,,,,,MLEUPI03880024,"PIJA CABEZA PLANA PHILLIPS DE 8 X 1""  ACERO INOXIDABLE - ""PI81AI""",-,Sin Opc.,pieza,2025-12-17T00:00:00,0.74,20,14.8
+,,,,,,,,,,,,,,,,,,MVLUPI03462101,"PIJA CABEZA PLANA PHILLIPS 8 X 1 1/2"" PARA TABLAROCA PAVONADO - """"PITR112""""""",-,Sin Opc.,pieza,2026-01-20T00:00:00,0.28,8,2.24
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-,Sin Opc.,rollo,2026-04-09T00:00:00,7.5,2.1,15.75
+,,,,,,,,,,,,,,,,,,MVLPGP22600001,"GROMET PASACABLES REDONDO Ø 2""""  PLASTICO - """"GR2""""""",q1,COLOR DE GROMET NEGRO ,pieza,2025-12-09T00:00:00,6.3,1,6.3
+,,,,,,,,,,,,,,,,,,MIEECC00010000,CARTON CORRUGADO  1.56 m   -- RC156CO --,-,Sin Opc.,Kg,2026-03-12T00:00:00,30,0.6,18
+,,,,,,,,,,,,,,,,,,MVLQSB01000000,"SELLADOR DE POLIURETANO MARCA COMEX COLOR NEGRO, PRESENTACION CARTUCHO DE 372g    - ""SEPCOMEXN""",-,Sin Opc.,pieza,2026-04-07T00:00:00,243.62,0.33,80.39
+,,,,,,,,,,,,,,,,,,MVLAP1050500F7,"PORTA MONITOR ARTICULADO DE 10"" HASTA 27"" EN ALUMINIO, CON CAPACIDAD DE CARGA DE 2-9 KGS -- D7A",-,Sin Opc.,pieza,2025-10-03T00:00:00,642.65,1,642.65
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_01_01_02,id_01_01_02 costo_total:,5964.53
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,id_01_02_01,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,METAL,"EXHIBIDOR PARA ACCESORIOS DE 1200 X 2400 X 480 mm MODELO CO-CREACION, CON PANEL, 1 CAJON, FRENTE EN MELAMINA CON CANTOS ABS COLOR NEGRO, JALADERA Y CERRADURA; METALICO COLOR NEGRO MATE -- ",,,,,,,
+,,,,,,,,,,,,,,,,,,MVLSLA05260502,LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310,-,Sin Opc.,Hoja,2025-12-09T00:00:00,449.06,1.414,634.97
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A550,COLOR METAL NEGRO MATE 8 VITRACOAT ,Kg,2025-12-10T00:00:00,120.68,1.206,145.54
+,,,,,,,,,,,,,,,,,,MVLSLA05260202,LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310,-,Sin Opc.,Hoja,2026-01-26T00:00:00,849.5,0.001,0.85
+,,,,,,,,,,,,,,,,,,MVLSTU01080401,"TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 18 PIEZA DE 6000 mm - TC181",-,Sin Opc.,pieza,2026-04-09T00:00:00,122.41,4.074,498.7
+,,,,,,,,,,,,,,,,,,MVLSLA05260602,"LAMINA NEGRA HOJA 3 X 10 CALIBRE 22 ACERO 1008 - """"LN22310""""""",-,Sin Opc.,Hoja,2026-01-26T00:00:00,326.59,4.173,1362.86
+,,,,,,,,,,,,,,,,,,MVLPAC00551600,ACRILICO CRISTAL 4 X 8 ESPESOR 3 mm -- ACCR348,-,Sin Opc., , ,1018.5,0.125,127.31
+,,,,,,,,,,,,,,,,,,MVLPAO00821600,ACRILICO OPALINO HOJA DE 6 X 8 ESPESOR 3 mm,-,Sin Opc., , ,1995,0.208,414.96
+,,,,,,,,,,,,,,,,,,MLEMPR040117M5,"PANEL RANURADO HORIZONTAL CON UNA CARA EN MELAMINA NEGRA HOJA 4' X 8' ESPESOR 18 mm CON RIEL DE ALUMINIO - ""PRHZ4818NG""",-,Sin Opc.,Hoja,2025-12-11T00:00:00,2512.8,0.75,1884.6
+,,,,,,,,,,,,,,,,,,MVLMAG01280600,AGLOMERADO MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 19 mm -- AME1948,B721,ACABADO MADERA BLACK ,Hoja,2026-03-02T00:00:00,639.91,0.167,106.86
+,,,,,,,,,,,,,,,,,,MVLPPC00491505,"PERFIL DE CANTO  ANCHO 22 mm ESPESOR 2 mm EN ABS - """"PEABS22""""""",C721,COLOR DE PLASTICO BLACK ,m,2025-08-25T00:00:00,8.17,3.395,27.74
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_01_02_01,id_01_02_01 costo_total:,5204.39
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,id_01_02_02,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,HERRAJES,"EXHIBIDOR PARA ACCESORIOS DE 1200 X 2400 X 480 mm MODELO CO-CREACION, CON PANEL, 1 CAJON, FRENTE EN MELAMINA CON CANTOS ABS COLOR NEGRO, JALADERA Y CERRADURA; METALICO COLOR NEGRO MATE -- ",,,,,,,
+,,,,,,,,,,,,,,,,,,MDMEKT01000004,"KIT DE ILUMINACION   3 TIRAS DE LED DE 1100 mm de 250 mm de separacion  2835/120 4100K C/CERT UL; APAGADOR NEGRO DE BOTON, FUENTE 12 V 8.5 AMP C/CERT. UL CABLE DE 3X16 DE 2.5 mts Y CLAVIJA  --  COVEHEXV48-KIT",-,Sin Opc.,pieza,2026-04-10T00:00:00,1356.6,1,1356.6
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-,Sin Opc.,rollo,2026-04-09T00:00:00,7.5,5,37.5
+,,,,,,,,,,,,,,,,,,MIEECC00010000,CARTON CORRUGADO  1.56 m   -- RC156CO --,-,Sin Opc.,Kg,2026-03-12T00:00:00,27.5,1,27.5
+,,,,,,,,,,,,,,,,,,MVLUPI10350001,"PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm  PAVONADO - """"PI1015""""""",-,Sin Opc.,pieza,2025-08-15T00:00:00,0.31,10,3.1
+,,,,,,,,,,,,,,,,,,MVLANC0076B900,NUCLEO CERRADURA  CILIN.SYMO 3000 NIQ.SH0 (210.40.600) MARCA HAFELE CON 2 LLAVES  -CEHCL100,-,Sin Opc.,pieza,2025-12-18T00:00:00,40.54,1,40.54
+,,,,,,,,,,,,,,,,,,MVLACE00K7C100,CERRADURA  MARCA HAFELE (No REF 235.88.200)  CON CAÑON DE 28 mm CON PALETA RECTA  - CEHCLN,-,Sin Opc.,pieza,2025-12-18T00:00:00,44.15,1,44.15
+,,,,,,,,,,,,,,,,,,MVLUTA53520033,"TAQUETE ALFA PLUS Ø 1/4""  EN PLASTICO - ""TA14APP""",-,Sin Opc.,pieza,2026-01-08T00:00:00,0.35,2,0.7
+,,,,,,,,,,,,,,,,,,MVLUTO15188109,"TORNILLO NIVELADOR Ø 3/8"" X 1 1/2"" PLATAFORMA CONICA DE Ø 2"" X 5/8"" CROMADO - ""TO38112CNIC/TO382CNIC""",-,Sin Opc.,pieza,2026-03-11T00:00:00,17.73,4,70.92
+,,,,,,,,,,,,,,,,,,MVLACO04041284,"CORREDERA DE PRECISION DE EXTENSION TOTAL PARA MUEBLE METALICO LONGITUD 16"" ACABADO NIQUELADO - ""COEME16N""",-,Sin Opc.,jgo,2026-03-18T00:00:00,69,1,69
+,,,,,,,,,,,,,,,,,,MVLUTA00523702,"TAQUETE  Ø 1/4"" TIPO EXPANSIVO GALVANIZADO-TAEX14",-,Sin Opc.,pieza,2025-08-13T00:00:00,4.34,2,8.68
+,,,,,,,,,,,,,,,,,,MVLUPI19080042,"PIJA CABEZA FIJADORA PHILLIPS DE 8 X 1/2""  PUNTA DE BROCA CON ARANDELA INTEGRADA GALVANIZADA - ""PI812PBA""",-,Sin Opc.,pieza,2026-03-23T00:00:00,0.25,6,1.5
+,,,,,,,,,,,,,,,,,,MVLUPI10590002,"PIJA CABEZA FIJADORA RANURADA 12 X 50 mm  GALVANIZADO - ""PI1250""",-,Sin Opc.,pieza,2025-10-16T00:00:00,0.65,2,1.3
+,,,,,,,,,,,,,,,,,,MVLUPI03B42101,"PIJA CABEZA PLANA PHILLIPS 8"" X 5/8"" PARA TABLAROCA PAVONADO - ""PITR58""",-,Sin Opc.,pieza,2024-04-15T00:00:00,0.32,18,5.76
+,,,,,,,,,,,,,,,,,,MDACJA00020002,JALADERA  DE 143 X 23 mm  CON DISTANCIA ENTRE CENTROS DE 128 mm MARCA HERRASA CLAVE 79-294 ACABADO ALUMINIO  --  JA12825AC,-,Sin Opc.,pieza,2026-03-10T00:00:00,30.94,1,30.94
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,id_01_02_02,id_01_02_02 costo_total:,1698.19
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,id_03_01_01,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,METAL,"EXHIBIDOR PARA CASCOS DE 1744 X 1904 X 580 mm MODELO CO-CREACION INCLUYE ESPEJOS, CHICOTES Y CANDADOS DE SEGURIDAD, RODANTE; METALICO COLOR NEGRO",,,,,,,
+,,,,,,,,,,,,,,,,,,MVLSTU01080401,"TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 18 PIEZA DE 6000 mm - TC181",-,Sin Opc.,pieza,2026-04-09T00:00:00,122.41,4.67,571.65
+,,,,,,,,,,,,,,,,,,MVLQPP00000000,"PINTURA EN POLVO     - """"PPH""""""",A550,COLOR METAL NEGRO MATE 8 VITRACOAT ,Kg,2025-12-10T00:00:00,120.68,0.751,90.63
+,,,,,,,,,,,,,,,,,,MVLSLA05260502,LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310,-,Sin Opc.,Hoja,2025-12-09T00:00:00,449.06,1.34,601.74
+,,,,,,,,,,,,,,,,,,MVLSLA05260202,LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310,-,Sin Opc.,Hoja,2026-01-26T00:00:00,849.5,0.038,32.28
+,,,,,,,,,,,,,,,,,,MVLSPU02030001,"PULIDO REDONDO 1/4""""  PIEZA DE 6000 mm - """"TRE14PU""""""",-,Sin Opc.,pieza,2025-07-30T00:00:00,30.25,0.108,3.27
+,,,,,,,,,,,,,,,,,,MLEAVA0022002E,"VARILLA  DE 347 mm DE LARGO  EN ACERO PULIDO REDONDO DE  Ø1/4"" CON CUERDA ESTANDAR DE 1/4"" EN UN EXTREMO CONFORME A PLANO - ""ITGANPRE-LG""",-,Sin Opc.,pieza,2025-12-10T00:00:00,34.5,12,414
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,-,Sin Opc., , ,id_03_01_01,id_03_01_01 costo_total:,1713.57
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,    ,,,,,, ,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,id_03_01_02,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,HERRAJES,"EXHIBIDOR PARA CASCOS DE 1744 X 1904 X 580 mm MODELO CO-CREACION INCLUYE ESPEJOS, CHICOTES Y CANDADOS DE SEGURIDAD, RODANTE; METALICO COLOR NEGRO",,,,,,,
+,,,,,,,,,,,,,,,10,,,,ESPEJO  DE 1793 X 366 mm ESPESOR 4 mm CANTOS PULIDOS  ,-,Sin Opc., , ,485,2,970
+,,,,,,,,,,,,,,,,,,MLEPPR4687A700,"PRECIADOR TIPO COLGANTE DE PET TRANSPARENTE 140 X 112 mm CALIBRE 40  - ""PRECOPET141240""",-,Sin Opc.,pieza,2026-01-09T00:00:00,25,12,300
+,,,,,,,,,,,,,,,,,,MLEALK00L2002G,"CANDADO  25 mm  COLOR PLATA, GANCHO LARGO DE HIERRO, MARCA FANAL CODIGO FH25-S-GL EN SETS DE 12 UNIDADES CON LA MISMA COMBINACION - ""CAN25PFA12""",-,Sin Opc.,pieza,2025-12-17T00:00:00,960,1,960
+,,,,,,,,,,,,,,,,,,MLEQSC00000000,SILICON TRANSPARENTE PRESENTACION DE 300 ml DOW CORNING MARCA SISTA BUILDING 781 -- AD-0008,-,Sin Opc.,pieza,2026-04-09T00:00:00,139.2,1,139.2
+,,,,,,,,,,,,,,,,,,MLEACC08H2002H,"CABLE FLEXIBLE DE ACERO Ø 1/8""  DE 7 X 19 HILOS  RECUBIERTO DE PVC CON MEDIDA FINAL APROXIMADA DE Ø 3/16"" - ""CAFPVC18719""",-,Sin Opc.,m,2026-01-20T00:00:00,11,10.461,115.07
+,,,,,,,,,,,,,,,,,,MVLREC00140300,"ESPUMA MICROCELULAR  DE 3/16"""" X 3/8"""" ROLLO DE 10 m  - """"EM10X5""""""",-,Sin Opc.,pieza,2026-03-05T00:00:00,85,0.143,12.16
+,,,,,,,,,,,,,,,,,,MVLREC02010300,"ESPUMA MICROCELULAR CON ADHESIVO DE 1/8"" X 1 1/2"" ROLLO DE 10 m  - ""EM18112RCA""",-,Sin Opc.,pieza,2025-09-22T00:00:00,208,0.096,19.97
+,,,,,,,,,,,,,,,,,,MLEACA0150002K,"CASQUILLO TOPE DE 3/16""  DE ALUMINIO PARA CABLE DE ACERO - ""CASQT18""",-,Sin Opc.,pieza,2025-12-23T00:00:00,1.38,12,16.56
+,,,,,,,,,,,,,,,,,,MVLREF00634532,"ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR 1/8""  POLIFOAM DE POLIURETANO - ""ESPR210518""",-,Sin Opc.,rollo,2026-04-09T00:00:00,7.5,4.5,33.75
+,,,,,,,,,,,,,,,,,,MIEECC00010000,CARTON CORRUGADO  1.56 m   -- RC156CO --,-,Sin Opc.,Kg,2026-03-12T00:00:00,30,1.5,45
+,,,,,,,,,,,,,,,,,,MLEACA0050002K,"CASQUILLO  DE 3/16""  DE ALUMINIO PARA CABLE DE ACERO - ""CASQ18""",-,Sin Opc.,pieza,2025-12-23T00:00:00,2.79,12,33.48
+,,,,,,,,,,,,,,,,,,MDMUTO02030007,"TORNILLO CABEZA BOTON ALLEN DE Ø 3/8"" X 2""  COLOR NEGRO  --  TOA382CBG",-,Sin Opc.,pieza,2025-12-17T00:00:00,11.5,9,103.5
+,,,,,,,,,,,,,,,,,,MVLUTO12110041,"TORNILLO CABEZA BOTON ALLEN Ø 1/4"" X 1/2""  COLOR NEGRO - ""TOA1412CBN""",-,Sin Opc.,pieza,2025-12-17T00:00:00,0.6,6,3.6
+,,,,,,,,,,,,,,,,,,MDACRO05040003,"RODAJA CON FRENO TIPO SPEEDY 60/20  CON TAPAS , CUERPO EN COLOR GRIS Y PLACA DE MONTAJE INCLUIDA  --  ROSPCFTGPM",-,Sin Opc.,pieza,2025-12-10T00:00:00,19.35,4,
+,,,,,,,,,,,,,,,,,,MVLURO27540002,"RONDANA PRESION Ø 3/8""""  GALVANIZADO - """"RO38""""""",-,Sin Opc.,pieza,2025-12-17T00:00:00,0.43,9,3.87
+,,,,,,,,,,,,,,,,,,,,,,,,id_03_01_02,id_03_01_02 costo_total:,2752.29
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,#REF!,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,#REF!,,,,,,,
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,#REF!,#REF!,0
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,#REF!,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,#REF!,,,,,,,
+,,,,,,,,,,,,,,,30,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,#REF!,#REF!,0
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,#REF!,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,#REF!,,,,,,,
+,,,,,,,,,,,,,,,30,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,#REF!,#REF!,0
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,#REF!,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,familia_de_operación,articulo,descripción,opción,opción_descripción,unidad,fecha_última_compra,costo_última_compra,consumo_unitaruio,costo_unitario
+,,,,,,,,,,,,,,,,,,,#REF!,,,,,,,
+,,,,,,,,,,,,,,,90,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,, ,-,Sin Opc., , ,$                               0,,0
+,,,,,,,,,,,,,,,,,,,,,,,,#REF!,#REF!,0

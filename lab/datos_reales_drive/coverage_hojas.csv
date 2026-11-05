@@ -1,0 +1,51 @@
+archivo,hoja,estado,filas_x_cols,volcada_csv,nota,csv_path
+Ordenes de Compra del 4 al 8 de Abril 2022.xlsx,O.C. Detalle 4 al 8 de Abril ,visible,130x17,si,,raw_hojas/OC_abril2022/O_C_Detalle_4_al_8_de_Abril.csv
+Ordenes de Compra del 4 al 8 de Abril 2022.xlsx,Resumen,visible,113x12,si,,raw_hojas/OC_abril2022/Resumen.csv
+Ordenes de Compra del 27 al 31 de Mayo 2024.xlsx,Deatalle OC de 27 al 31 de Mayo,visible,84x19,si,,raw_hojas/OC_mayo2024/Deatalle_OC_de_27_al_31_de_Mayo.csv
+Ordenes de Compra del 27 al 31 de Mayo 2024.xlsx,Resumen,visible,37x12,si,,raw_hojas/OC_mayo2024/Resumen.csv
+Ordenes de Compra del 1 al 26 de Julio 2024.xlsx,Detalle OC del 1 al 26 Julio,visible,0x0,si,VACIA,raw_hojas/OC_julio2024/Detalle_OC_del_1_al_26_Julio.csv
+Ordenes de Compra del 1 al 26 de Julio 2024.xlsx,Resumen,visible,69x12,si,,raw_hojas/OC_julio2024/Resumen.csv
+Costos de Materia Prima Ultima Compra al 10082026.xlsx,Hoja1,visible,16548x16,si,,raw_hojas/CostosMP_10082026/Hoja1.csv
+Costos de Materia Prima Ultima Compra al 10082026.xlsx,Hoja2,visible,0x0,si,VACIA,raw_hojas/CostosMP_10082026/Hoja2.csv
+Costos de Materia Prima Ultima Compra al 10082026.xlsx,Hoja3,visible,0x0,si,VACIA,raw_hojas/CostosMP_10082026/Hoja3.csv
+Ejemplo 01 - Modulo en Pedido 38247 - TATO63612AB001 REV20261007.xlsx,Pedido,visible,23x15,si,,raw_hojas/Modulo38247/Pedido.csv
+Ejemplo 01 - Modulo en Pedido 38247 - TATO63612AB001 REV20261007.xlsx,MaterialSolicitado,visible,117x27,si,,raw_hojas/Modulo38247/MaterialSolicitado.csv
+Ejemplo 01 - Modulo en Pedido 38247 - TATO63612AB001 REV20261007.xlsx,EntradaProd.para obtener tiempo,visible,38x24,si,,raw_hojas/Modulo38247/EntradaProd_para_obtener_tiempo.csv
+Ejemplo 01 - Modulo en Pedido 38247 - TATO63612AB001 REV20261007.xlsx,Fabricado Tiempo,visible,110x71,si,,raw_hojas/Modulo38247/Fabricado_Tiempo.csv
+Ejemplo 01 - Modulo en Pedido 38247 - TATO63612AB001 REV20261007.xlsx,PPyPTiempo,visible,37x26,si,,raw_hojas/Modulo38247/PPyPTiempo.csv
+Ejemplo 01 - Modulo en Pedido 38247 - TATO63612AB001 REV20261007.xlsx,VH Detalle Costo Real Materia P,hidden,45x11,si,,raw_hojas/Modulo38247/VH_Detalle_Costo_Real_Materia_P.csv
+ejercicio repisa (1) (3).xlsx,REG-DCC-IDP-032 (t_d_p),hidden,225x200,si,,raw_hojas/ejercicio_repisa/REG_DCC_IDP_032_t_d_p.csv
+ejercicio repisa (1) (3).xlsx,REG-DCC-IDP-031 (T_d_C) ,visible,38x24,si,,raw_hojas/ejercicio_repisa/REG_DCC_IDP_031_T_d_C.csv
+ejercicio repisa (1) (3).xlsx, (Explo_MP),visible,156x27,si,,raw_hojas/ejercicio_repisa/Explo_MP.csv
+ejercicio repisa (1) (3).xlsx,(cata_mp),hidden,16405x13,no,catalogo MP 16k identico a snapshot VENTO committed; consolidado en precios/materiales; no se duplica (politica usuario),
+ejercicio repisa (1) (3).xlsx, (cuanti_mp),hidden,73x38,si,,raw_hojas/ejercicio_repisa/cuanti_mp.csv
+ejercicio repisa (1) (3).xlsx,(info_t_d_c),hidden,199x199,si,,raw_hojas/ejercicio_repisa/info_t_d_c.csv
+ejercicio repisa (1) (3).xlsx,(cal_empa_emba),hidden,34x28,si,,raw_hojas/ejercicio_repisa/cal_empa_emba.csv
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx,REG-DCC-IDP-032 (t_d_p),hidden,225x200,si,,raw_hojas/CCO517R_Exhibidor/REG_DCC_IDP_032_t_d_p.csv
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx,REG-DCC-IDP-031 (T_d_C) ,visible,38x24,si,,raw_hojas/CCO517R_Exhibidor/REG_DCC_IDP_031_T_d_C.csv
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx, (Explo_MP),visible,171x27,si,,raw_hojas/CCO517R_Exhibidor/Explo_MP.csv
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx,Hoja1,hidden,3x11,si,,raw_hojas/CCO517R_Exhibidor/Hoja1.csv
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx,(cata_mp),hidden,16405x13,no,catalogo MP 16k identico a snapshot VENTO committed; consolidado en precios/materiales; no se duplica (politica usuario),
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx, (cuanti_mp),hidden,73x38,si,,raw_hojas/CCO517R_Exhibidor/cuanti_mp.csv
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx,(info_t_d_c),hidden,199x199,si,,raw_hojas/CCO517R_Exhibidor/info_t_d_c.csv
+C-CO-517R Exhibidor ENTCBCALP (1).xlsx,(cal_empa_emba),hidden,34x28,si,,raw_hojas/CCO517R_Exhibidor/cal_empa_emba.csv
+TELSVH120 (2).xlsx,Hoja1,visible,111x22,si,,raw_hojas/TELSVH120/Hoja1.csv
+Escritorios Alba   Precios.xlsx,Hoja1,visible,784x4,si,,raw_hojas/EscritoriosAlba_oct2026/Hoja1.csv
+Escritorios Alba   Precios.xlsx,Hoja2,visible,0x0,si,VACIA,raw_hojas/EscritoriosAlba_oct2026/Hoja2.csv
+Escritorios Alba   Precios.xlsx,Hoja3,visible,0x0,si,VACIA,raw_hojas/EscritoriosAlba_oct2026/Hoja3.csv
+Escritorios Alba   Precios.xlsx,Hoja1,visible,784x4,si,,raw_hojas/EscritoriosAlba_ago2026/Hoja1.csv
+Escritorios Alba   Precios.xlsx,Hoja2,visible,0x0,si,VACIA,raw_hojas/EscritoriosAlba_ago2026/Hoja2.csv
+Escritorios Alba   Precios.xlsx,Hoja3,visible,0x0,si,VACIA,raw_hojas/EscritoriosAlba_ago2026/Hoja3.csv
+CONTROL IMPORTACIONES REG-DGO-COM-009.xlsx,STOCKS SILLERIA,visible,467x309,si,,raw_hojas/CONTROL_IMPORTACIONES/STOCKS_SILLERIA.csv
+CONTROL IMPORTACIONES REG-DGO-COM-009.xlsx,Hoja28,visible,1x2,si,,raw_hojas/CONTROL_IMPORTACIONES/Hoja28.csv
+CONTROL IMPORTACIONES REG-DGO-COM-009.xlsx,2022,visible,135x34,si,,raw_hojas/CONTROL_IMPORTACIONES/2022.csv
+CONTROL IMPORTACIONES REG-DGO-COM-009.xlsx,2021,visible,80x34,si,,raw_hojas/CONTROL_IMPORTACIONES/2021.csv
+CONTROL IMPORTACIONES REG-DGO-COM-009.xlsx,2020,visible,94x34,si,,raw_hojas/CONTROL_IMPORTACIONES/2020.csv
+C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx,REG-DCC-IDP-032 (t_d_p),hidden,225x200,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/REG_DCC_IDP_032_t_d_p.csv
+C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx,REG-DCC-IDP-031 (T_d_C) ,visible,37x24,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/REG_DCC_IDP_031_T_d_C.csv
+C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx, (Explo_MP),visible,216x27,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/Explo_MP.csv
+C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx,(cata_mp),hidden,16405x13,no,catalogo MP 16k identico a snapshot VENTO committed; consolidado en precios/materiales; no se duplica (politica usuario),
+C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx, (cuanti_mp),hidden,73x38,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/cuanti_mp.csv
+C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx,(info_t_d_c),hidden,199x199,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/info_t_d_c.csv
+C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx,(cal_empa_emba),hidden,34x28,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/cal_empa_emba.csv
+MASTER VENTO  12 OCT.xlsx,Tabla original,visible,16x21,si,,raw_hojas/MASTER_VENTO_dup_130Uho/Tabla_original.csv
