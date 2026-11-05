@@ -36,7 +36,11 @@ test('catálogo central caído: el Modo avanzado avisa "no cotices en firme"', a
 test('catálogo canónico: sin aviso', async ({ browser }) => {
   const nube = crearNubeFalsa({ usuarios: USUARIOS });
   const { context, page } = await abrirModoAvanzado(browser, nube);
-  await expect(page.getByText(/Cubierta/).first()).toBeVisible({ timeout: 15000 });
+  // VH: el despiece ya no muestra el nombre de pieza en un <strong> visible (Lever A reemplazó
+  // ConfianzaCosteo por RealidadMaterial; los <strong>Cubierta</strong> quedaron en detalles ocultos).
+  // La pieza visible es el renglón editable del despiece: su textbox trae el nombre. Se verifica ESO
+  // (misma intención: el análisis produjo un despiece con "Cubierta"), no un <strong> interno oculto.
+  await expect(page.getByRole('textbox', { name: /Nombre de la pieza/ }).first()).toHaveValue(/Cubierta/, { timeout: 15000 });
   await expect(page.getByTestId('catalogo-fallback')).toHaveCount(0);
   await context.close();
 });
@@ -46,7 +50,7 @@ test('catálogo canónico: sin aviso', async ({ browser }) => {
 test('render con IA: la URL de Storage que devuelve la edge se guarda como imagen del costeo', async ({ browser }) => {
   const nube = crearNubeFalsa({ usuarios: USUARIOS });
   const { context, page } = await abrirModoAvanzado(browser, nube);
-  await expect(page.getByText(/Cubierta/).first()).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('textbox', { name: /Nombre de la pieza/ }).first()).toHaveValue(/Cubierta/, { timeout: 15000 });
   await page.getByRole('button', { name: /Generar render con IA/ }).click();
   const img = page.locator('img.ficha-foto');
   await expect(img).toBeVisible({ timeout: 15000 });

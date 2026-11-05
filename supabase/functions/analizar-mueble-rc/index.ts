@@ -534,8 +534,11 @@ Deno.serve(async (req) => {
   // exige el despiece COMPLETO, y se conserva la lectura con MÁS piezas. No cambia el contrato público
   // ni hace reject (un mueble legítimamente diminuto no queda en bucle): sólo deja de servir "1 pieza"
   // de un mueble de 27. El reintento sólo ocurre en el ~15% de lecturas que colapsan (que son rápidas
-  // porque se cortan temprano), así que no afecta el wall-clock del caso normal.
-  if (esVisualPrimera && Array.isArray(propuesta?.piezas) && propuesta.piezas.length < 3) {
+  // porque se cortan temprano), así que no afecta el wall-clock del caso normal. GUARDA DE
+  // PRESUPUESTO: sólo re-lee si pasaron <45 s desde t0 (auth+catálogo+1ª lectura); si la 1ª lectura
+  // fue LENTA (proveedor saturado), NO re-lee —serviría igual que hoy pero sin arriesgar que la 2ª
+  // lectura reviente el wall-clock de la función (cada `pedir` aborta a 75 s).
+  if (esVisualPrimera && Array.isArray(propuesta?.piezas) && propuesta.piezas.length < 3 && (Date.now() - t0) < 45000) {
     const nPrev = propuesta.piezas.length;
     const sysReintento = systemInicial +
       `\n\nLA LECTURA ANTERIOR QUEDÓ INCOMPLETA: devolviste sólo ${nPrev} pieza(s). Un plano o render de ` +
