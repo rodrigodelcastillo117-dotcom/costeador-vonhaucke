@@ -1,0 +1,2 @@
+# Minuta REG-DEX-DEX_Exportación 03/07/2023 (docx 1pLiGXH...). Reunión semanal de exportaciones. (Sin datos de costeo/MP estructurados.)
+Puntos: Smart Element Group (Pedido 35146/PO1247 exportado OK). Harman Studio (PO01 ExWorks, Pedido 35278, término 4-ago). Accredo: OC 32691, 144 archiveros dobles bajo/ruedas+fijos, prototipo 8-jul, monto total $58,785 USD. Sherwin Williams, Inmobiliaria Rancho Sierra (sin novedad). Eclipse descripciones enviadas. Existen 2 minutas más (05-06-2023 doc 1ugjiH4, 29-05-2023 doc 1TlkvPj0) del mismo tipo.

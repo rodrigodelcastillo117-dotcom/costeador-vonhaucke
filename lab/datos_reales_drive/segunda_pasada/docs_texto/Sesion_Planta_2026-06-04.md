@@ -1,0 +1,2 @@
+# Sesión Planta 2026/06/04 (doc 150nDkfT...) — Notas de Gemini. Reunión operativa (sin costeo estructurado).
+Resumen: control de calidad (fallas estructurales en paneles/exhibidores, protocolos de prueba documentados), estandarización de ficha técnica y cuarentena, enfoque co-creación vs línea. Menciones: mesa juntas Trooper subió $8,300->$10,300 (+20%, por cambio costo de materia prima); dobladora nueva $5M (intercambio $1M; alternativa china $3M); mantenimiento ~$2M; góndola Walmart 80 kg.

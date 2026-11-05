@@ -1,0 +1,11 @@
+Catálogos comerciales NOM (marketing de producto terminado). SIN precios ni costos de MP. Capturados vía read_file_content.
+Existen 2 juegos casi idénticos en Drive: "Copia de Catalogo_X NOM.pdf" (carpeta 140tw, versión anterior) y "Catalogo_X NOM 2026_3010.pdf" (carpeta 1lzoZ26, michelle.ruiz, versión 30/10/2026). Contenido equivalente; se procesa una vez por línea.
+
+- Anteo (1wQ3j19 / 1XXdoii4): colección dirección, cubierta cantiléver sobre pata central de acero; mármoles, chapas, ecopieles, cerraduras electrónicas. (copyright 2013)
+- Feather (1yHMrpky / 1rLYIcE4): bench/mesas/escritorios ligeros, forma en "L". (2021)
+- Arlequin (1YUIy5gs / 1oM71bdl): asientos casuales cubos/cilindros tapizados. Dimensiones: cubos 40x40x30/40/60, con ruedas; sofás Pac 40x60x65, 60x60x70, 40x100x65, 120x60x70, 180x60x70. (2013)
+- Luna (1ZdKbAp8 / 1DbuV62c): dirección, acero inox + maderas/ecopieles/cristales; mesas de consejo ébano Amat; sofás Aero, sillón Stella. (2013)
+- AppLT (1furB6vJ / 1rugGUS7 "AppTL"): bench doble/sencillo, forma "L", mesas de junta. Acabados melamina: Antracite Oak Tx747, Walnut 709, Antracite Oak 713, Antracita Light TX761, White Ash Tx746/Tx716, Soft Grey 718.
+- Eclipse (1ACnaKh5): alta dirección; escritorios Cantiléver/Quadrat, mesa de consejo modular (elipse trunca), sillas/sofá Stella; accesorios eléctricos, cerradura electrónica, lámpara retráctil USB/LAN. Componentes: Credenza, Faldón pedestal, Cubierta, Conducto pasacables, Botonera cerradura, Caja eléctrica, Lámpara. (2013)
+- via (1NDddm0t): sistema de área abierta sobre columna central de archivo. Dimensiones de guardas: Librero/Archivero sencillo/doble 60/90/120/150 x45x61; biombos 61x0.6x43, 148x0.6x24, 118x0.6x45. Patas combinables 4x4, Río, Alba, Apps. (2013)
+Nota: componentes citados son NOMBRES/dimensiones, no claves de artículo con costo.

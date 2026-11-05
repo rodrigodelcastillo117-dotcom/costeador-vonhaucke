@@ -1,0 +1,2 @@
+# Sesión Planta 2026/05/28 (doc 1OPb3_-...) — Notas de Gemini. Reunión operativa (sin costeo estructurado).
+Resumen: flujo financiero (pagos a proveedores tras cobros; facturar Azur ~$2M, meta $10-12M abr-jun), reparación de exhibidores (paneles desprendidos: ficha indica 27 kg pero prueba falla a 13-14 kg), protocolo de recepción de sillería importada (archivo maestro con fotos/claves), manejo de desviaciones por opción (no duplicar claves). Terminal 4 refresh (14 estaciones, turnos nocturnos). Walmart PTR cal 14 2x1. Sillas Zaragoza ~$30-35.

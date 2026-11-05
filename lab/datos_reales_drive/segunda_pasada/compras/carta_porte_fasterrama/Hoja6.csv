@@ -1,0 +1,473 @@
+Clave unidad,Nombre
+Tu,Contenedor externo
+X1A,Tambor de acero
+X1B,Tambor de aluminio
+X1D,Tambor contrachapado
+X1F,Contenedor flexible
+X1G,Tambor de fibra
+X1w,Tambor de madera
+X2C,Barril de madera
+X3A,Bidón de acero
+X3H,Bidón de plástico
+X43,Bolsa de gran tamaño
+X44,Bolsa de plástico
+X4A,Caja de acero
+X4B,Caja de aluminio
+X4C,Caja de  madera natural
+X4D,Caja de contrachapado
+X4F,Caja de madera reconstituida
+X4G,Caja de cartón
+X4H,Caja de plástico
+X5H,Bolsa de plástico tejido
+X5L,Bolsa textil
+X5M,Bolsa de papel
+X6H,"Recipiente de plástico, Contenedor compuesto."
+X6P,"Recipiente de vidrio, Contenedor compuesto."
+X7A,Estuche para carro
+X7B,Estuche de madera
+X8A,Pallet de madera
+X8B,Cajón de madera
+X8C,Madera flejada
+XAA,Contenedor intermedio  para gráneles de plástico rígido
+XAB,Contenedor de fibra
+XAC,Contenedor de papel
+XAD,Contenedor de madera
+XAE,Aerosol
+XAF,"Pallet modular con collares,  80cms * 60cms"
+XAG,Pallet o empaquetado
+XAH,"Pallet, 100cms X 110cms"
+XAI,Contenedor tipo concha
+XAJ,Cono
+XAL,Esfera
+XAM,Ampolleta no protegida
+XAP,Ampolleta protegida
+XAT,Atomizador
+XAV,Cápsula
+XB4,Cinturón
+XBA,Barril
+XBB,Bobina
+XBC,Cajón para botellas / Estante para botellas
+XBD,Tablero
+XBE,Flejado
+XBF,Globo no protegido
+XBG,Bolso
+XBH,Manojo
+XBI,Compartimiento
+XBJ,Cubeta
+XBK,Cesta
+XBL,Paca comprimida
+XBM,Cuenco
+XBN,Paca no comprimida
+XBO,Botella no-protegida y cilíndrica
+XBP,Globo protegido
+XBQ,Botella cilíndrica protegida
+XBR,Barra
+XBS,"Botella, no-protegida en forma de bulbo"
+XBT,Rollo de tela
+XBU,Butt
+XBV,Botella de bulbo protegido
+XBW,Caja para líquidos
+XBX,Caja
+XBY,"Tablero, con fleje/ agrupados/ armados"
+XBZ,"Barras, con fleje/ agrupados/ armados"
+XCA,Lata rectangular
+XCB,Cajón para cerveza
+XCC,Mantequera
+XCD,Lata con mango y boquilla
+XCE,Cesto tejido
+XCF,Cofre
+XCG,Contenedor tipo Jaula
+XCH,Cajonera
+XCI,Frasco
+XCJ,Ataúd
+XCK,Barrica
+XCL,Espiral
+XCM,Paquete de tarjetas
+XCN,"Contenedor, no especificado como equipo de transporte"
+XCO,Garrafón no protegido
+XCP,Garrafón protegido
+XCQ,Cartucho
+XCR,Cajón
+XCS,Estuche
+XCT,Cartón
+XCU,Vaso
+XCV,Cubierta
+XCW,Jaula estilo rodillo
+XCX,Lata cilíndrica
+XCY,Cilindro
+XCZ,Lona
+XDA,Cajón multicapa de plástico
+XDB,Cajón de varias capas de madera
+XDC,Cajón multicapa de cartón
+XDG,"Jaula, Según la clasificación de la compañía (Commonwealth Handling Equipment Pool (CHEP))"
+XDH,"Caja, Según la clasificación de la compañía (CHEP), Eurobox"
+XDI,Tambor de hierro
+XDJ,"damajuana o garrafa, no protegido"
+XDK,"Cajón a granel, cartón"
+XDL,Cajas de plástico
+XDM,Cajones a granel de madera
+XDN,Dispensador
+XDP,"damajuana o garrafa, protegido"
+XDR,Tambor
+XDS,Bandeja de una capa sin cubierta y de plástico
+XDT,Bandeja de una capa sin cubierta y de madera
+XDU,Bandeja de una capa sin cubierta y  poliestireno
+XDV,Bandeja de una capa sin cubierta y de cartón
+XDW,Bandeja de dos capas sin tapa y con bandeja de plástico
+XDX,Bandeja de dos capas sin cubierta y de madera
+XDY,Bandeja de dos capas sin cubierta y de cartón
+XEC,Bolsa de plástico
+XED,"Estuche, con pallet de base"
+XEE,"Estuche, con pallet base de madera"
+XEF,"Estuche, con pallet base de cartón"
+XEG,"Estuche, con pallet base de plástico"
+XEH,"Estuche, con pallet base de metal"
+XEI,Estuche isotérmico
+XEN,Sobre
+XFB,Bolsa flexible
+XFC,Cajón para fruta
+XFD,Cajón enmarcado
+XFE,Tanque flexible
+XFI,Firkin
+XFL,Matraz
+XFO,Cajón para zapatos
+XFP,Caja auxiliar para película fotográfica
+XFR,Marco
+XFT,Contenedor para alimentos
+XFW,Carro de cama plana
+XFX,Bolsa flexible tipo contenedor
+XGB,Botella para gas
+XGI,Viga
+XGL,Contenedor tipo galón
+XGR,Recipiente de vidrio
+XGU,Bandeja contenedor para apilar horizontalmente objetos planos
+XGY,Costal de Yute
+XGZ,Vigas con correas o agrupadas
+XHA,Cesta con mango y de plástico
+XHB,Cesta con mango y de madera
+XHC,Cesta  con asa y de  cartón
+XHG,Hogshead
+XHN,Gancho
+XHR,Cesto
+XIA,Paquete con pantalla y de madera
+XIB,Paquete  con pantalla y de cartón
+XIC,Paquete con pantalla y de plástico
+XID,Paquete con pantalla y de metal
+XIE,Paquete de mostrador.
+XIF,Envase para alimentos
+XIG,Paquete envuelto en papel
+XIH,Tambor de plástico
+XIK,Paquete de cartón con los agujeros para botellas
+XIL,Bandeja rígida con tapa y apilable (CEN TS 14482: 2002)
+XIN,Lingote
+XIZ,Lingotes  con correas/ agrupados
+XJB,Bolsa jumbo
+XJC,Bidón rectangular
+XJG,Jarra
+XJR,Tarro
+XJT,Bolsa de yute
+XJY,"Bidón, cilíndrico"
+XKG,Barrilete
+XKI,Kit (Conjunto de piezas)
+XLE,Valijas
+XLG,Bitácora
+XLT,Lote
+XLU,Caja de arrastre
+XLV,Contenedor pequeño
+XLZ,Registros  con fleje/ agrupados/ armados
+XMA,Cajón metálico
+XMB,Múltiplo de bolsas
+XMC,Cajón para leche
+XME,Contenedor de metal
+XMR,Recipiente de metal
+XMS,Saco milti-pared
+XMT,Tapete
+XMW,Contenedor envuelto en plástico
+XMX,Caja pequeña de cerillos
+XNA,No disponible
+XNE,Sin empaque o no empaquetado
+XNF,"Sin empaque o no empaquetado, unidad simple"
+XNG,"Sin empaque o no empaquetado, unidades múltiples"
+XNS,Caja nido
+XNT,Red
+XNU,Red de plástico con tubo
+XNV,Red textil con tubo
+XOA,"Pallet, Según la clasificación de la compañía (Commonwealth Handling Equipment Pool (CHEP) 40 cm x 60 cm"
+XOB,"Pallet, Según la clasificación de la compañía (Commonwealth Handling Equipment Pool (CHEP) 80 cm x 120 cm"
+XOC,"Pallet, Según la clasificación de la compañía (Commonwealth Handling Equipment Pool (CHEP) 100 cm x 120 cm"
+XOD,"Pallet, AS 4068-1993"
+XOE,"Pallet, ISO T11"
+XOF,"Plataforma, peso o dimensión no especificada"
+XOK,Bloque
+XOT,Octabin
+XP2,Charola
+XPA,Cajetilla
+XPB,"Pallet, Caja combinada y abierta con caja y pallet."
+XPC,Paquete postal
+XPD,Pallet modular con collares (80cms * 100cms)
+XPE,Pallet modular con collares (80cms * 120cms)
+XPF,Corral
+XPG,Placa
+XPH,Cantaro
+XPI,Pleca
+XPJ,Canastilla
+XPK,Paquete
+XPL,Balde
+XPN,Tablón
+XPO,Bolsa pequeña
+XPR,Contenedor de plástico
+XPT,Maceta
+XPU,Cacerola
+XPV,"Tubos, con fleje/ agrupados/ armados"
+XPX,Pallet
+XPY,Placas con fleje/ agrupados/ armados
+XPZ,Tablones con fleje/ agrupados/ armados
+XQA,Tambor de acero con cabeza no desmontable
+XQB,Tambor de  acero con cabeza extraíble
+XQC,Tambor de aluminio con cabeza no extraíble
+XQD,Tambor de aluminio con cabeza extraíble
+XQF,"Tambor, plástico con cabeza no desmontable"
+XQG,"Tambor, plástico, cabeza extraíble"
+XQH,Barril de madera con tapón
+XQJ,Barril de madera con cabeza desprendible
+XQK,Bidón de acero con cabeza no desmontable
+XQL,Bidón de acero con cabeza desmontable
+XQM,Bidón de plástico con cabeza no desmontable
+XQN,Bidón de plástico con cabeza extraíble
+XQP,Caja de madera natural estándar
+XQQ,Caja de madera natural con muros a prueba de filtraciones
+XQR,Caja de plástico expandida
+XQS,Caja de plástico sólida
+XRD,Rod
+XRG,Anillo
+XRJ,"Estante, Perchero para ropa"
+XRK,Estante
+XRL,Carrete
+XRO,Rollo
+XRT,Red Roja
+XRZ,Varillas  con fleje/ agrupados/ armados
+XSA,Saco
+XSB,Losa
+XSC,Cajón poco profundo
+XSD,Huso
+XSE,Baúl
+XSH,Bolsa pequeña hermética
+XSI,Patín
+XSK,Carcasa esqueleto
+XSL,Hoja de deslizamiento
+XSM,Hoja de metal
+XSO,Carrete pequeño
+XSP,Hoja de empaque de plástico
+XSS,Cajón de acero
+XSU,Maleta
+XSV,Sobre de acero
+XSW,Envoltorio
+XSY,Manga
+XSZ,Hojas  con fleje/ agrupados/ armados
+XT1,Tableta
+XTB,Tina
+XTC,Caja para té
+XTD,Tubo plegable
+XTG,Contenedor de tanque genérico
+XTI,Tierce
+XTK,Tanque rectangular
+XTL,Tina con tapa
+XTN,Hojalata
+XTO,Tonel
+XTR,Maletero
+XTS,Estructura
+XTT,Bolsa de mano
+XTU,Tubo
+XTV,Tubo con boquilla
+XTW,Pallet tricapa
+XTY,Tanque cilíndrico
+XTZ,Tubos  con fleje/ agrupados/ armados
+XUC,Sin empaque
+XUN,Unidad
+XVA,Tanque
+XVG,"Tanque de gas (a 1,031 mbar y 15° C)"
+XVI,Frasco pequeño
+XVK,Paquete transportable
+XVL,Contenedor para líquidos a granel
+XVN,Vehículo
+XVO,"Contenedor para sólido de partículas grandes a granel (""nódulos"")"
+XVP,Envasado al vacío
+XVQ,Tanque para Gas licuado (a temperatura / presión anormal)
+XVR,Contenedor para sólidos de partículas granulares a granel (Granos)
+XVS,Contenedor de chatarra a granel
+XVY,"Contenedor para sólido de partículas finas a granel (""polvos"")"
+XWA,Contenedor de granel intermedio
+XWB,Botella de mimbre
+XWC,Contenedor intermedio para gráneles y de acero
+XWD,Contenedor intermedio para gráneles y de aluminio
+XWF,Contenedor intermedio para gráneles y de metal
+XWG,Contenedor intermedio para gráneles y de acero presurizado menor a 10 kpa
+XWH,"Contenedor intermedio para gráneles y de aluminio, presurizado menor a 10 kpa"
+XWJ,Contenedor intermedio para gráneles y de metal con una presión de 10 kpa
+XWK,Contenedor intermedio para gráneles y de acero para líquido
+XWL,Contenedor intermedio para gráneles y de aluminio para líquido
+XWM,Contenedor intermedio para gráneles y de metal para líquido
+XWN,Contenedor intermedio para gráneles con tejido plástico sin capa con revestimiento
+XWP,Contenedor intermedio para gráneles con tejido plástico y recubierto
+XWQ,Contenedor intermedio para gráneles con tejido plástico con revestimiento
+XWR,"Contenedor intermedio para gráneles con tejido plástico, revestido y con forro"
+XWS,Contenedor intermedio para gráneles con película de plástico
+XWT,Contenedor intermedio para gráneles textil sin capa / forro
+XWU,Contenedor intermedio para gráneles de madera natural con forro interior
+XWV,Contenedor intermedio para gráneles textil recubierto
+XWW,Contenedor intermedio para gráneles textil con revestimiento
+XWX,Contenedor intermedio para gráneles textil recubierto y con forro
+XWY,Contenedor intermedio para gráneles contrachapado con revestimiento interior
+XWZ,Contenedor intermedio para gráneles de madera reconstituida con revestimiento interior
+XXA,"Bolsa de tejido plástico, sin abrigo interior ni forro"
+XXB,Bolsa de tejido plástico a prueba de filtraciones
+XXC,Bolsa de tejido plástico resistente al agua
+XXD,Bolsa con película de plástico
+XXF,Bolsa textil sin capa ni forro interior
+XXG,Bolsa textil a prueba de filtraciones
+XXH,Bolsa textil resistente al agua
+XXJ,Bolsa de papel multi-pared
+XXK,"Bolsa de papel multi-pared, resistente al agua"
+XYA,"Empaque compuesto, recipiente de plástico en tambor de acero"
+XYB,"Empaque compuesto, recipiente de plástico en cajas de acero"
+XYC,"Empaque compuesto, recipiente de plástico en tambor de aluminio"
+XYD,"Empaque compuesto, recipiente de plástico en cajón de aluminio"
+XYF,"Empaque compuesto, recipiente de plástico en caja de madera"
+XYG,"Empaque compuesto, recipiente de plástico en tambor de madera contrachapada"
+XYH,"Empaque compuesto, recipiente de plástico en caja de madera contrachapada"
+XYJ,"Empaque compuesto, recipiente de plástico en tambor de fibra"
+XYK,"Empaque compuesto, recipiente de plástico en caja de cartón"
+XYL,"Empaque compuesto, recipiente de plástico en el tambor de plástico"
+XYM,"Empaque compuesto, recipiente de plástico en caja de plástico sólido"
+XYN,"Empaque compuesto, receptáculo de vidrio en tambor de acero"
+XYP,"Empaque compuesto, receptáculo de vidrio en caja de cajas de acero"
+XYQ,"Empaque compuesto, recipiente de vidrio en tambor de aluminio"
+XYR,"Empaque compuesto, receptáculo de vidrio en caja de aluminio"
+XYS,"Empaque compuesto, recipiente de vidrio en caja de madera"
+XYT,"Empaque compuesto, recipiente de vidrio en tambor de madera contrachapada"
+Xyv,"Empaque compuesto, recipiente de vidrio en el cesto de mimbre"
+XYW,"Empaque compuesto, recipiente de vidrio en tambor de fibra"
+XYX,"Empaque compuesto, recipiente de vidrio en caja de cartón"
+XYY,"Empaque compuesto, recipiente de vidrio en paquete de plástico expandible"
+XYZ,"Empaque compuesto, recipiente de vidrio en paquete de plástico sólido"
+XZA,"Contenedor de granel intermedio, papel, multi-pared"
+XZB,Bolsa grande
+XZC,"Contenedor intermedio para gráneles de papel, multi-pared y resistente al agua"
+XZD,"Contenedor intermedio para gráneles de plástico rígido, con equipo estructural para sólidos"
+XZF,"Contenedor intermedio para gráneles de plástico rígido, autoportante para sólidos"
+XZG,"Contenedor intermedio para gráneles de plástico rígido, con equipo estructural, presurizado"
+XZH,"Contenedor intermedio para gráneles de plástico rígido, autoportante y presurizado"
+XZJ,"Contenedor intermedio para gráneles de plástico rígido, con equipo estructural para líquidos"
+XZK,"Contenedor intermedio para gráneles de plástico rígido, autoportante, líquidos"
+XZL,"Contenedor intermedio para gráneles, compuesto y de plástico rígido, sólidos"
+XZM,"Contenedor intermedio para gráneles, compuesto y de plástico flexible, sólidos"
+XZN,"Contenedor intermedio para gráneles, compuesto y de plástico rígido, presurizado"
+XZP,"Contenedor intermedio para gráneles, compuesto y de plástico flexible, presurizado"
+XZQ,"Contenedor intermedio para gráneles, compuesto y de plástico rígido, líquidos"
+XZR,"Contenedor intermedio para gráneles, compuesto y de plástico flexible para líquidos"
+XZS,"Contenedor intermedio para gráneles, compuesto"
+XZT,Contenedor intermedio para gráneles con tablero de fibras
+XZU,Contenedor intermedio para gráneles flexible
+XZV,"Contenedor intermedio para gráneles de metal, distinto del acero"
+XZW,"Contenedor intermedio para gráneles, de madera natural"
+XZX,"Contenedor intermedio para gráneles, de contrachapado"
+XZY,"Contenedor intermedio para gráneles, de madera reconstituida"
+KGM,Kilogramo
+MC,Microgramo
+DJ,Decagramo
+DG,Decigramo
+GRM,Gramo
+CGM,Centigramo
+TNE,Tonelada (tonelada métrica)
+DTN,Decitonelada métrica
+MGM,Miligramo
+HGM,Hectogramo
+KTN,Kilotonelada Métrica
+2U,Megagramo
+LBR,Libra
+GRN,Grano
+ONZ,Onza (avoirdupois)
+CWI,Hundredweight
+CWA,Hundred pound
+LTN,Tonelada (UK) o tonelada larga (estados unidos)
+STI,Estone (UK)
+STN,Tonelada (estados unidos) o tonelada corta (UK y estados unidos)
+APZ,Onza troy u onza farmacéutica 
+F13,Slug
+K64,Libra (avoirdupois) por grado fahrenheit
+L69,Tonelada por kelvin
+L87,Tonelada corta por grado fahrenheit
+M85,"Tonelada, ensayo"
+M86,Libra Alemana
+J33,Microgramo por kilogramo
+L32,Nanogramo por kilogramo
+NA,Miligramo por kilogramo
+M29,Kilogramo por kilogramo
+M91,Libra por libra
+Q29,Microgramo por hectogramo
+MTQ,Metro cúbico
+MAL,Megalitro
+LTR,Litro
+MMQ,Milímetro cúbico
+CMQ,Centímetro cúbico
+DMQ,Decímetro cúbico
+MLT,Mililitro
+HLT,Hectolitro
+CLT,Centilitro
+DMA,Decámetro cúbico
+H19,Hectómetro cúbico
+H20,Kilómetro cúbico
+M71,Metro cúbico por pascal (joules)
+DLT,Decilitro
+4G,Microlitro
+K6,Kilolitro
+A44,Decalitro
+G94,Centímetro cúbico por bar
+G95,Litro por bar
+G96,Metro cúbico por bar
+G97,Mililitro por bar 
+5I,Pies cúbicos estándar
+INQ,Pulgada cúbica
+FTQ,Pie cúbico
+YDQ,Yarda cúbica
+GLI,Galón (UK)
+GLL,Galón (EUA)
+PT,Pinta (US)
+PTI,Pint (uk)
+QTI,Cuarto (UK)
+PTL,Pinta líquida (estados unidos)
+QTL,Cuarto de líquido (estadis unidos)
+PTD,Pinta seca (estados unidos)
+OZI,Onza líquida (UK)
+QT,Cuarto (EUA)
+J57,Barril (uk petróleo)
+K21,Pie cúbico por grado fahrenheit
+K23,Pie cúbico por psi (libra por pulgada cuadrada)
+L43,Peck (UK)
+L61,Pinta (US seco)
+L62,Cuarto de galón (seco de los EUA)
+L84,Tonelada (flota UK)
+L86,Tonelada (flota estados unidos)
+M11,Yarda cúbica por grado fahrenheit
+M14,Yarda cúbica por psi (libra por pulgada cuadrada)
+OZA,Onza líquida (estados unidos)
+BUI,Bushel (UK)
+BUA,Bushel (EUA)
+BLL,Barril (EUA)
+BLD,Barril seco (EUA)
+GLD,Galón seco (EUA)
+QTD,Cuarto seco (estados unidos)
+G26,Estere
+G21,Taza (unidad de volumen)
+G24,Cucharada (estados unidos)
+G25,Cucharilla (estados unidos)
+G23,Peck
+M67,Acre-pie
+M68,Cordón
+M69,Milla cúbica (reino unido)
+M70,Unidad tradicional de capacidad de carga
+Q32,Femtolitro
+Q33,Picolitro
+Q34,Nanolitro
+NM3,Metro cúbico normalizado
+SM3,Metro cúbico estándar

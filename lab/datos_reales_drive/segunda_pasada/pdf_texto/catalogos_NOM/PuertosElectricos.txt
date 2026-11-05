@@ -1,0 +1,14 @@
+Copia de Puertos Eléctricos NOM (PDF 1JukaiEJ...). Catálogo de producto terminado: cajas/multicontactos eléctricos. SIN precios; SÍ claves de producto + especificaciones:
+LUM-IBI (LUM-IBI-N/B/gris) | caja apertura manual, 2 contactos 127VAC/15A, 1 USB carga, cable 1m
+LUM-LIS (LUM-LIS-N/B/gris) | apertura manual, 2 contactos, 1 USB carga, 1 RJ45 voz/datos, cable 1m 3x18AWG
+LUM-VEN (LUM-VEN-N/B/gris) | push-up, 2 contactos 127VAC/15A, 1 USB carga 5VDC/1A, cable 1m 3x18AWG
+LUM-DUBG (LUM-DUBG / -B) | empotrado libre, 3 contactos 127V, 1 USB-A carga, 1 USB-C carga, cable 1.5m
+LUMATESOF (gris/-N/-B) | libre superficie, 2 contactos, cable 1.5m 3x18AWG
+LUMBARIG (-N/gris) | libre superficie
+MDMECO05000005 | libre, 3 contactos 127VAC/15A, 1 USB datos (no carga), 2 RJ45 voz/datos, cable 1m 3x14AWG
+LUMSPLIT2C / MDMECO06000006 (LUMSPLIT2C-N/gris) | 2 contactos, cable 1m 3x18AWG
+LUMNAP5C / MDMECO07000007 (negro) | sobreponer, 5 contactos 127VAC/15A, 1 fusible térmico, cable 1m 3x14AWG
+LUMMON / LUMMONG / MDMEPB01000001 | pasacables con cepillo cubrepolvo (varios acabados)
+LUMSPLITG A+C (-N negro / -INX acero inox) | multicontacto 1 corriente 127V + 1 USB carga, cable 1.5m
+LUM-MAR (negro) | libre superficie, 2 contactos 127V, 1 USB-A, 1 USB-C, cable 1.5m
+Pasacables metálicos: 15.4x11.1cm (int 11.6x8, orificio 126x83mm) y 30x11.1cm (int 26.2x8.3, orificio 272x86mm).

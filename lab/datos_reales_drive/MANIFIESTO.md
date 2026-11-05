@@ -137,3 +137,15 @@ Donde un dato faltaba se dejó vacío. La elección de "precio vigente" usa prec
 | MASTER VENTO  12 OCT.xlsx | `Tabla original` | visible | 16x21 | si | ver raw_hojas/MASTER_VENTO_dup_130Uho/Tabla_original.csv |
 
 **Total: 50 hojas revisadas** (incluye ocultas/`hidden` y vacías). Las 3 filas con `volcada=no` son copias del catálogo MP de 16k renglones, idénticas al snapshot VENTO ya commiteado — consolidadas en `materiales_master.csv` y `precios_vigentes_master.csv`; no se duplican por política del usuario.
+
+---
+
+## ACTUALIZACIÓN — §1C RESUELTO en SEGUNDA PASADA (2026-11-05)
+
+Todo lo listado arriba en §1C como "NO procesado" **ya fue procesado** en `segunda_pasada/`. Ver `segunda_pasada/MANIFIESTO_segunda_pasada.md`. Resumen:
+- **20 costeos RC-COSP** (Google Sheets 2023) → `segunda_pasada/costeos_RC-COSP/` (todas las hojas a CSV).
+- **Sillas Pendientes 2023** → `segunda_pasada/compras/Sillas_pendientes_2023.csv` (recuperada vía read_file_content).
+- **carta porte** y **Resumen de Importación** → `segunda_pasada/compras/`.
+- **PDFs**: 8 presupuestos de VENTA (→ `cotizaciones_venta_areas.csv`, `claves_producto_precio_venta.csv`; son precios de venta, NO costo MP), 6 Hojas de Manufactura con despiece (→ `pdf_texto/HDM/`), ~15 catálogos NOM de marketing (→ `pdf_texto/catalogos_NOM/`).
+- **~24 Google Docs / minutas** → `segunda_pasada/docs_texto/` (notas de reunión; **reglas reales de merma/tiempos** en `reglas_merma_aprovechamiento_tiempos.md`).
+- **Nada quedó imposible.** Los "OC PDF" resultaron ser presupuestos de venta, no órdenes de compra, por lo que no aportan costos de MP al `precios_vigentes_master.csv`.

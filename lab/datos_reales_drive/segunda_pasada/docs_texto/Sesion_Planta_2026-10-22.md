@@ -1,0 +1,2 @@
+# Sesión Planta 2026/10/22 (doc 1ofBaQA7...) — Notas de Gemini. Reunión operativa (sin costeo estructurado).
+Resumen: ajustes de fabricación/planos (barrenos, recortes), archiveros grises temporales vs blancos nuevos, pedido extraordinario para tornillería de mesas, retapizado de sillas por error de color. Decisiones: prohibición de pedidos personales; análisis obligatorio de fallas con consecuencias económicas. Mesa cubierta medida libre 142 cm.

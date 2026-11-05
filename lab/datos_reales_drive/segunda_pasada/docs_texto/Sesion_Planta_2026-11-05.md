@@ -1,0 +1,3 @@
+# Sesión Planta 2026/11/05 (doc 1descsa9...) — Notas de Gemini. Nota de reunión operativa (sin datos de costeo/precio/material estructurados).
+Resumen: entregas pendientes, pagos y ajustes administrativos. Compromiso de entrega 11-dic; análisis de pérdida en sillas Trooper (modelo Requiez $15,000 vs alternativa $6,000). Adeudo $328,000 bloquea liberación de sillas especiales. Evaluar transporte de 127 cajas de sillas a Cancún. Adeudo $1,000,000 con Plastiglas. Ruido >90 dB en maquinado/láser.
+Próximos pasos (Jade Gomez): reposiciones Trooper, pagar deuda IDI, verificar existencia sillas, enviar cubierta a Eduardo Cuadras, validar muestras comedor, programar archivo móvil, reporte técnico de máquina, atender ruido con Claudio, evaluar transporte 127 cajas.

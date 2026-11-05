@@ -49,3 +49,94 @@ C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx, (cuanti_mp),hidden,73x38,
 C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx,(info_t_d_c),hidden,199x199,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/info_t_d_c.csv
 C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx,(cal_empa_emba),hidden,34x28,si,,raw_hojas/VENTO_C_CO_526R_dup_1eTZbM/cal_empa_emba.csv
 MASTER VENTO  12 OCT.xlsx,Tabla original,visible,16x21,si,,raw_hojas/MASTER_VENTO_dup_130Uho/Tabla_original.csv
+compras,Sillas_pendientes_2023,visible(2a pasada),39x13,si,,segunda_pasada/compras/Sillas_pendientes_2023.csv
+compras,Hoja1,visible(2a pasada),26x12,si,,segunda_pasada/compras/carta_porte_fasterrama/Hoja1.csv
+compras,Hoja2,visible(2a pasada),2284x26,si,,segunda_pasada/compras/carta_porte_fasterrama/Hoja2.csv
+compras,Hoja3,visible(2a pasada),60x2,si,,segunda_pasada/compras/carta_porte_fasterrama/Hoja3.csv
+compras,Hoja4,visible(2a pasada),0x0,si,,segunda_pasada/compras/carta_porte_fasterrama/Hoja4.csv
+compras,Hoja5,visible(2a pasada),23x26,si,,segunda_pasada/compras/carta_porte_fasterrama/Hoja5.csv
+compras,Hoja6,visible(2a pasada),473x2,si,,segunda_pasada/compras/carta_porte_fasterrama/Hoja6.csv
+compras,Hoja7,visible(2a pasada),28695x3,si,,segunda_pasada/compras/carta_porte_fasterrama/Hoja7.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),36x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-01_STEREN/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-01_STEREN/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-01_STEREN/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-02/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),36x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-02/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-02/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-02/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-03/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),36x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-03/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-03/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-03/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-04/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),38x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-04/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-04/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-04/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-05/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),30x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-05/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-05/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-05/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-06/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),30x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-06/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-06/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-06/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-07_cancelado/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),30x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-07_cancelado/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-07_cancelado/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-07_cancelado/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-08/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),26x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-08/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-08/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-08/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-09/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),27x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-09/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-09/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-09/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-10/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),26x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-10/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-10/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-10/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-12/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),26x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-12/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-12/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-12/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-13/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),26x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-13/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-13/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-13/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-14/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),27x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-14/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-14/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-14/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-15/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),27x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-15/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-15/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-15/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-16/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),27x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-16/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-16/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-16/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_5a_rodaja/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),25x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_5a_rodaja/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_5a_rodaja/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_5a_rodaja/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_plafon/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),27x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_plafon/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_plafon/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-17_plafon/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),29x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-18_ELEKTRA/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-18_ELEKTRA/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-18_ELEKTRA/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-19/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),27x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-19/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-19/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-19/INSTRUCTIVO_RS_H1.csv
+costeos_RC-COSP,Copia_de_FORMATO_DE_SOLICITUD_P,visible(2a pasada),33x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-20_RACK/Copia_de_FORMATO_DE_SOLICITUD_P.csv
+costeos_RC-COSP,FORMATO_DE_SOLICITUD_P_1de2,visible(2a pasada),27x43,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-20_RACK/FORMATO_DE_SOLICITUD_P_1de2.csv
+costeos_RC-COSP,Historial_de_Revisión,visible(2a pasada),10x14,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-20_RACK/Historial_de_Revisión.csv
+costeos_RC-COSP,INSTRUCTIVO_RS_H1,visible(2a pasada),57x32,si,,segunda_pasada/costeos_RC-COSP/RC-COSP-20_RACK/INSTRUCTIVO_RS_H1.csv
+Presupuestos de venta (8 PDF),texto,visible(2a pasada),8 archivos,si,precio de VENTA (no costo MP); -> cotizaciones_venta_areas.csv,segunda_pasada/pdf_texto/presupuestos_venta/
+Hojas de Manufactura (6 PDF),texto,visible(2a pasada),6 archivos,si,despiece (claves+dims+cant),segunda_pasada/pdf_texto/HDM/
+Catalogos NOM (~15 PDF),texto,visible(2a pasada),~15 lineas,si,marketing; sin costos (Mox/Puertos con claves),segunda_pasada/pdf_texto/catalogos_NOM/
+Google Docs / minutas (24),texto,visible(2a pasada),24 archivos,si,notas de reunion; merma rules en comentarios_Rogelio_y_Alba.md,segunda_pasada/docs_texto/
+Resumen de Importacion,texto,visible(2a pasada),7x6,si,datos aduanales; sin costos,segunda_pasada/compras/Resumen_Importacion.md

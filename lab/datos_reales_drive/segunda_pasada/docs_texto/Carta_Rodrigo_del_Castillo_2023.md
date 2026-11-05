@@ -1,0 +1,1 @@
+# Carta RODRIGO DEL CASTILLO RUEDA (docx 1iU-1HjR...). Carta a CI Banco (05/04/2023) sobre reembolso de capital (acciones Comercializadora Grupo Esmeralda del Sureste, art. 78 LISR). Documento PERSONAL/financiero, NO relacionado con costeo/precios/materiales. No se procesa como dato de costeo.

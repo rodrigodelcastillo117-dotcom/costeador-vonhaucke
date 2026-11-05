@@ -1,0 +1,2 @@
+# Minuta REG-DEX-DEX_Exportación 29/05/2023 (docx 1TlkvPj0...). Reunión semanal de exportaciones. (Sin costeo/MP estructurado.)
+Smart Element (Pedidos 34902, 34913; Pedido 35146 término 22-jun). Harman Studio PO01 ExWorks (textiles NUA Basic). Accredo: pagó total; 4 muros dobles remate + 137 archiveros dobles; ANSI-BIFMA sección 9, 450 kg/m3, prueba 9.3; prototipo marco con folders colgantes. Eclipse Kits -> precios escalados + Mesas de Consejo (Pedro).
