@@ -113,3 +113,37 @@ agotada** (miles de archivos, mayormente fotos/renders/financieros/HR); el detal
 enumerado-sin-volcar (18 archivos, con motivo) está en **MANIFIESTO §5**. Regla dura respetada: todo valor es
 literal del archivo; procedencia (archivo/hoja/celda/fecha) preservada; costo real separado de precio de venta;
 nada aplicado a producción.
+
+---
+
+## CUARTA PASADA — cierre de sillería y de los 18 cost-relevantes (2026-11-05)
+
+### Sillería que entró, con sus COSTOS reales (`costeos/SILLAS/`)
+- **Proformas/cotizaciones reales de proveedor (costo FOB de importación de sillas terminadas):**
+  Motostuhl proforma 2025 (30 modelos, total **$48,580.15 USD**), Motostuhl proforma 2023 (**$20,034 USD**),
+  Furicco 2023 (7 modelos $85-$306 USD + costo landed MXN = FOB×26), NOEL 2022 (8 modelos $24.9-$63.3),
+  Yueqiang 2023 (5 modelos $38-$52), matriz 2019 (53 modelos de 12 proveedores con COSTO USD + COSTO MEXICO),
+  COMPARATIVO OFFIDAE/OFFIHO.
+- **Costo real por clave interna, integrado a `precios_vigentes_master.csv`:** Sillas Pendientes 2023 (34
+  renglones, Importe Pendiente/cantidad → orden_compra) y Costo Promedio 2024 (7 claves → ultimo_costo).
+  precios ahora: **9,009 artículos** (cata_mp 7,822 / entrada_compra 931 / orden_compra 249 / ultimo_costo 7).
+- **Venta sillería (separado):** BASE silleria, 856 productos → `claves_producto_precio_venta.csv`.
+- materiales_master: 13,611 → **14,542 claves** (sillería + Eclipse + export + bodega).
+
+### De los 18 de §5.4
+**Quedaron 0 cost-relevantes sin procesar.** Resumen: 11 PROCESADOS/VOLCADOS como costo o venta (sillería,
+Eclipse PL, pisos, comparativas, Accredo, pagos COMPRAS); 4 flujos de efectivo + 1 cobranza **NO volcados**
+(financieros de empresa / datos de terceros, fuera de alcance de costeo); 2 Furicco.xls + 1 STI42(1)
+**duplicados** del .xlsx ya volcado; 1 .rar **ilegible**; COCREATION/carta porte **no-costeo**. Detalle con
+motivo en MANIFIESTO §5.6 y `otros_cost_relevantes/CONSTANCIA_resto_ventas_financiero.md`.
+
+### Paginación
+4 páginas más de list_recent_files (6-9), filtrando sólo spreadsheets con nombre de costo/precio/material/
+compra/silla/módulo e ignorando fotos/renders/videos/.ai/.psd/RH/nómina: **0 cost-relevantes nuevos** → se
+declara cubierto el universo de hojas de cálculo cost-relevantes. Long-tail no-costeo del Drive (fotos, videos,
+renders, carpetas, minutas, nómina) no barrido por diseño.
+
+### Regla dura
+Sólo valores literales; costo real separado de precio de venta; datos personales (nómina, nombres de empleados
+en ventas outlet) y bancarios (cuentas de proveedores/clientes, CLABE/SWIFT) EXCLUIDOS del commit; nada aplicado
+a producción.

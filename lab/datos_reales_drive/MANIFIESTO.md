@@ -231,3 +231,53 @@ y `tercera_pasada/catalogos_NOM/`):
 - **Sin dato numérico (prosa marketing):** App, EclipseDrift, Alba, Ergonova4, Rio (texto), Stella, Anteo,
   Feather, Luna — se revisaron íntegros; sólo describen líneas/acabados/certificaciones (ISO 9001:2015, LEED),
   sin precios ni costos. Documentado explícitamente en los .txt de cada carpeta.
+
+---
+
+## §5.6 CUARTA PASADA — cierre de sillería y de los 18 cost-relevantes (2026-11-05)
+
+### Sillería (prioridad): COSTO REAL consolidado en `costeos/SILLAS/` (ver `_README.md`)
+10 fuentes de costo de sillas:
+- Cotizaciones/proformas de proveedor (COSTO FOB importación): Yueqiang 2023 (5 mod), Furicco 2023 (7 mod,
+  + landed MXN x26 + venta x52), NOEL 2022 (8 mod), **Motostuhl proforma STI42 2023 ($20,034) y 2025 ($48,580.15)**,
+  matriz 2019 (53 modelos, 12 proveedores, COSTO USD + COSTO MEXICO landed), COMPARATIVO (OFFIDAE vs OFFIHO).
+- **Integrado a `precios_vigentes_master.csv`:** Sillas Pendientes 2023 (34 OC/req, Importe Pendiente → orden_compra;
+  3 claves ganaron) y Costo Promedio 2024 (7 claves → ultimo_costo). precios: 9,009 artículos
+  (cata_mp 7,822 / entrada_compra 931 / orden_compra 249 / ultimo_costo 7).
+- BASE silleria: 856 productos de sillería con precio de VENTA → claves a materiales_master y precios de venta a
+  claves_producto_precio_venta (separado de costo).
+
+### Estado final de los 18 archivos que §5.4 dejó sin volcar
+1. `Updated STI42-01A-230726-87.xlsx` → **PROCESADO** (proforma Motostuhl 2023, costo FOB) `costeos/SILLAS/proforma_Motostuhl_STI42_2023-07-26.csv`.
+2. `COMPARATIVA PRECIOS EXPORTACION-NACIONAL.xlsx` (2) → **VOLCADO** (venta export/nacional) `otros_cost_relevantes/comparativa_precios_exportacion_nacional.csv`.
+3. `comparativa Precios usa octubre 6.xlsx` → **VOLCADO** (venta, comparativo Clear Design) `.../comparativa_precios_usa_2021.csv`.
+4. `LISTA Precios PISOS Oct 23.xlsx` → **VOLCADO** (reventa pisos, constancia) `.../lista_precios_pisos_oct2023_constancia.md`.
+5. `Eclipse_PL_2023_0323_030.xlsx` → **VOLCADO** (venta, 84 claves EXEC*) `.../eclipse_price_list_2023_venta.csv` + a masters.
+6. `Accredo_Custom Storage_VH_2023_0630.xlsx` → **VOLCADO** (venta export; datos bancarios/contacto EXCLUIDOS) `.../accredo_custom_storage_venta_export_2023.csv`.
+7. `BASE 15032023 silleria.xlsx` → **PROCESADO** (venta sillería 856 prod) `costeos/SILLAS/BASE_silleria_precios_venta.csv`.
+8. `matriz sillas final.xlsx` → **PROCESADO** (COSTO real sillas 2019, 53 modelos) `costeos/SILLAS/matriz_sillas_costos_2019.csv`.
+9. `Sillas Pendientes de entrada (...).xlsx` → **PROCESADO** (COSTO real 2023, integrado a precios) `costeos/SILLAS/sillas_pendientes_entrada_2023.csv`.
+10. `pagos semana 43 revisado COMPRAS.xlsm` → **VOLCADO** (CxP/pagos, sin columnas bancarias) `.../pagos_semana43_COMPRAS_2023_sin_bancos.csv`.
+11. `NOEL Office Chairs quotation` (Google Doc) → **PROCESADO** (costo FOB sillas) `costeos/SILLAS/cotizacion_sillas_NOEL_2022-10-08.csv`.
+12. `sillas venta rodrigo 210224.xlsx` → **PROCESADO** (trae Costo Promedio real → integrado a precios) `costeos/SILLAS/sillas_costo_promedio_rodrigo_2024-02-21.csv`.
+13. `SillasMARATTIfinal.xlsx` → **PROCESADO** (proforma Motostuhl 2025, costo FOB, 30 modelos) `costeos/SILLAS/proforma_Motostuhl_STI42_2025-11-11.csv`.
+14. `VENTAS_OUTLET DE BODEGA NOVIEMBRE 2022.xlsx` → **VOLCADO parcial** (agregado por producto; nombres de empleados EXCLUIDOS) `.../ventas_outlet_bodega_nov2022_agregado.csv`.
+15. `COMPARATIVO.xlsx` → **PROCESADO** (COSTO sillas comparativo) `costeos/SILLAS/comparativo_costo_sillas_proveedores.csv`.
+16. `flujo de efectivo mensual 2024`, `FLUJOunico23.2/23/JDCP2024` (4) → **NO volcado** (financieros: flujo de efectivo de empresa; fuera de alcance de costeo; posibles datos de terceros). Documentado en `otros_cost_relevantes/CONSTANCIA_resto_ventas_financiero.md`.
+17. `REPORTE DE COBRANZA 2DA_ENERO_2023.xlsx` → **NO volcado** (cuentas por cobrar a clientes; financiero/datos de terceros).
+18. `vonhaucke carta porte fasterrama.xlsx` + `COCREATIONprogramCORE.xlsx` → **NO volcado** (carta porte logística / programa co-creación; no costeo). `Furicco .xls` (2) y `Updated STI42 (1)` → **DUPLICADOS** del .xlsx ya volcado. `Silleria Usada.rar` → **ILEGIBLE** (.rar no decodificable por las herramientas).
+
+### Paginación adicional (tarea 3)
+Se paginó `list_recent_files` 4 páginas más (6-9), filtrando SOLO spreadsheets/xlsx con nombre de
+costeo/precio/material/compra/importación/silla/módulo e ignorando fotos (DSC_/.JPG/.PNG), renders, videos
+(.mp4), .ai/.psd, RH/nómina y minutas. **Resultado: 0 cost-relevantes nuevos** en las páginas 6-9 (sólo
+reaparece ESP-DNC-CDI-001 ya procesado; el resto son carpetas, PNG, docs). **Se declara:** tras 4 páginas
+adicionales no aparecen cost-relevantes nuevos.
+
+### Línea honesta de cierre
+**Cost-relevantes sin procesar tras 4ª pasada: 0** (los 18 de §5.4 quedaron procesados/volcados o anotados como
+financiero-fuera-de-alcance / duplicado / .rar ilegible, todos listados arriba con su motivo). **Long-tail
+no-costeo del Drive: no barrido por diseño** (miles de fotos .JPG/.PNG, renders, videos .mp4, .ai/.psd, carpetas,
+minutas, nómina — no son costeo/precio/material/compra). Regla dura intacta: sólo valores literales; costo real
+≠ precio de venta; datos personales (nómina, nombres de empleados en ventas outlet) y bancarios (cuentas de
+proveedores/clientes, CLABE/SWIFT) excluidos del commit.

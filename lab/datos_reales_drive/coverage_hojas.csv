@@ -163,3 +163,19 @@ Furicco quotation to Vonhaucke.xlsx,Hoja1,visible,-,si,"cotizacion proveedor sil
 PRECIOS MELAMINAS PARA EXPORTACION.xlsx,"GRUPOS POR DISEÑOS / DISEÑOS EN ESPECIFICO",visible,-,si,"precios MP tablero melamina por espesor/grupo/certificado 2021",precios_mp_referencia/precios_melaminas_exportacion_2021.csv
 Ordenes de Compra del 27 al 31 de Mayo 2024.xlsx,Detalle,visible,102x19,si,"83 renglones OC reales (ya en consolidado/precios)",ordenes_compra/OC_detalle_may2024.csv
 Ordenes de Compra del 1 al 26 de Julio 2024.xlsx,Detalle+Resumen,visible,277x19,parcial,"Detalle VACIA; solo Resumen agregado (69 filas) volcado",ordenes_compra/OC_resumen_jul2024.csv
+BASE 15032023 silleria.xlsx,Hoja3,visible,856x10,si,"catalogo silleria: clave comercial/articulo + Precio Lista/Minimo/2 (VENTA)",costeos/SILLAS/BASE_silleria_precios_venta.csv
+Sillas Pendientes de entrada (...).xlsx,Hoja1,visible,39x13,si,"OC/requisiciones sillas 2023 con Importe Pendiente (costo real); integrado a precios orden_compra",costeos/SILLAS/sillas_pendientes_entrada_2023.csv
+matriz sillas final.xlsx,"escala Fotos / matriz / lounge",visible,varios,si,"costo USD FOB + costo Mexico landed de 53 modelos de sillas (2019)",costeos/SILLAS/matriz_sillas_costos_2019.csv
+SillasMARATTIfinal.xlsx,Proforma,visible,-,si,"proforma Motostuhl STI42 nov-2025: 30 modelos FOB USD total 48580.15",costeos/SILLAS/proforma_Motostuhl_STI42_2025-11-11.csv
+Updated STI42-01A-230726-87.xlsx,Proforma,visible,-,si,"proforma Motostuhl jul-2023: 4 modelos FOB USD total 20034",costeos/SILLAS/proforma_Motostuhl_STI42_2023-07-26.csv
+NOEL Office Chairs quotation (Google Doc),-,-,-,si,"cotizacion NOEL FOB 40HQ 8 modelos USD",costeos/SILLAS/cotizacion_sillas_NOEL_2022-10-08.csv
+COMPARATIVO.xlsx,Sheet1,visible,-,si,"comparativo COSTO sillas OFFIDAE vs OFFIHO",costeos/SILLAS/comparativo_costo_sillas_proveedores.csv
+pagos semana 43 COMPRAS.xlsm,completo,visible,70x39,si,"Control de Pagos/CxP 64 renglones (sin columnas bancarias)",otros_cost_relevantes/pagos_semana43_COMPRAS_2023_sin_bancos.csv
+Eclipse_PL_2023_0323_030.xlsx,"8 hojas (desks/credenzas/tables/storage)",visible,-,si,"price list Eclipse 84 claves EXEC* USD venta",otros_cost_relevantes/eclipse_price_list_2023_venta.csv
+COMPARATIVA PRECIOS EXPORTACION-NACIONAL.xlsx,MODULOS,visible,95x20,si,"precio export USD vs nacional MXN por componente/modulo APP-Cirque (venta)",otros_cost_relevantes/comparativa_precios_exportacion_nacional.csv
+comparativa Precios usa octubre 6.xlsx,Hoja1,visible,39x13,si,"comparativo VH vs Clear Design 2021 (venta)",otros_cost_relevantes/comparativa_precios_usa_2021.csv
+LISTA Precios PISOS Oct 23.xlsx,varias,visible,-,si,"listas de proveedores de piso (reventa) - constancia",otros_cost_relevantes/lista_precios_pisos_oct2023_constancia.md
+Accredo_Custom Storage_VH_2023_0630.xlsx,Acknowledgment,visible,72x11,si,"venta export (3 claves EXA2AC18*); datos bancarios/contacto excluidos",otros_cost_relevantes/accredo_custom_storage_venta_export_2023.csv
+VENTAS_OUTLET DE BODEGA NOVIEMBRE 2022.xlsx,NOVIEMBRE,visible,37x13,parcial,"ventas outlet nov-2022 total 31450; agregado por producto (nombres de empleados excluidos)",otros_cost_relevantes/ventas_outlet_bodega_nov2022_agregado.csv
+"flujo efectivo 2024 / FLUJOunico (x4) / REPORTE COBRANZA",-,-,-,no,"financieros (flujo/CxC) fuera de alcance de costeo; no volcado (datos de terceros)",
+"Furicco .xls (x2) / STI42 (1) / Silleria Usada.rar / COCREATION / carta porte fasterrama",-,-,-,no,"duplicados / rar ilegible / no-costeo; ver otros_cost_relevantes/CONSTANCIA_resto_ventas_financiero.md",

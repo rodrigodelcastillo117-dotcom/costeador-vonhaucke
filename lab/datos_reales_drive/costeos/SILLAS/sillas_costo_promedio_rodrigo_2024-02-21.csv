@@ -1,0 +1,8 @@
+articulo,nombre_corto,descripcion,categoria,almacen,existencias,costo_promedio_unitario,costo_promedio_total,fecha_ultimo_costo,precio_lista
+MBLXSA1295R600,SKATE-RBEBRMTMEM,"SILLA operativo, asiento/respaldo mesh gris, marco blanco, brazos ajustables, soporte lumbar, base rodaja PP negro (RM-9025)",SILLERIA,MPSILL,73,3573.63,260874.63,2023-10-24,0.00
+MBLXSN1205D856,BEDAMBMPEM,"SILLON Berlin director, respaldo aluminio, brazo ajuste multiple, mecanismo multimodal, base 5 pts aluminio pulido, piel negra",SILLON,MPSILL,1,5820.17,5820.17,2021-07-06,0.00
+MBLXSN1205E158,BEDAMMBMBEM,"SILLON Berlin director con cabecera, respaldo aluminio, base 5 pts aluminio, tela mesh blanca",SILLON,MPSILL,4,7375.88,29503.50,2022-03-31,0.00
+MBLXSN1206E458,BEVBMBREM,"SILLON Berlin visitas, asiento/respaldo blanco, brazos negro, 4 pts blanco con rodajas, tela mesh blanca",SILLON,MPSILL,367,1928.29,707681.47,2023-10-04,0.00
+MCNXSN1222L100,CONTESSAPEM,"SILLON Contessa ejecutivo (103-60000-01), asiento piel negra, respaldo mesh negro, mecanismo synchro, brazo deslizable, base rodaja",SILLON,MPSILL,2,18992.42,37984.85,2019-03-25,44220.00
+MTHXSA12B5V500,SANFORDEM,"SILLA Sandford, asiento tela negra, respaldo mesh negro, mecanismo reclinable, ajuste altura, monocasco PP negro, brazos, rodante",SILLERIA,MPSILL,78,678.94,52957.22,2023-05-02,0.00
+MZAXBC06060000,ZAUBER-TOOLEM,"BANCO plasticos negros, ajuste altura, base elastomero, asiento tapizado tela",BANCO,MPSILL,126,891.73,112358.49,2021-03-23,0.00

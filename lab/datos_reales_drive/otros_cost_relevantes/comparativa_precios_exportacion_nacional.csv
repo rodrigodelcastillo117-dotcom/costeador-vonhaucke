@@ -1,0 +1,31 @@
+tipo,clave,descripcion,precio_export_usd_unit,precio_nacional_mxn_unit
+componente,EXCIACCLIG,"APP METAL LEG cable conduit 17x28",220,6180
+componente,EXCICUB52ABSTM,"CIRQUE plastic laminate worksurface 59x23 top metal",135,3715
+componente,EXCIDUBD5,"CIRQUE metal duct 23x23 for double bench",51,1645
+componente,EXCIDUT5,"CIRQUE metal duct 23x2 for double bench",21,680
+componente,EXCIOMCU10,"CIRQUE metal omega 39x9",30,755
+componente,EXCIPUBD720,"APP metal leg 48x28 type U",160,4485
+componente,EXCIRICO5,"CIRQUE metal rail 58x1 for panel",70,1860
+componente,EXQCIPLAUES,"CIRQUE metal plaque 21/32",0,0
+componente,EXCICOCR,"CIRQUE metal connector 15x11",2,30
+componente,EXCISMO5CRT,"CIRQUE 59x17 glass divider transparent",108,3065
+componente,EXCICUB575TFTM,"APP foil worksurface 59x29 metal lid",325,9230
+componente,EXCIJREXACO75,"CIRQUE metal rail set X for worksurface 29",60,1580
+componente,EXCIPUBD30720,"CIRQUE metal leg 60x28 type U",170,4740
+componente,EXCICE575ABSOPG,"CIRQUE plastic laminate worksurface 59x29 OPG",165,4665
+componente,EXCICUL1052ABSOPG,"CIRQUE plastic laminate worksurface OPG",80,2200
+componente,EXCIOMCU60,"APP metal omega 23x9",30,840
+componente,EXCIPUCBD720,"APP metal leg 23x28 type U",140,3910
+componente,EXE4PU720ES,"ERGONOVA 4 metal leg 5x28",45,1170
+componente,EXCICE575CHOPG,"CIRQUE veneer worksurface 59x29 OPG",510,14445
+componente,EXCICUL1052CHOPG,"CIRQUE veneer worksurface 41x23 OPG",435,12290
+componente,EXCICE52ABSOPG,"CIRQUE plastic laminate worksurface 59x23 OPG",125,3530
+componente,EXCICE52CHOPG,"CIRQUE veneer worksurface 59x23 OPG",575,16370
+componente,EXCUMATS54ABS,"CUBIERTA rectangular 1500x1200 Cirque melamina ABS",320,9075
+modulo,EXAPMOD104UABS,"APP 118x50x29 bench laminate top steel legs pedestal (export total)",1925,
+modulo,EXAPMOD1064TF,"APP 188x62x29 bench foil top steel legs pedestal (export total)",2542,71710
+modulo,EXAPPMODL5525315ABS,"APP 59x70 L-shape desk laminate top steel legs (export total #REF en archivo)",,
+modulo,EXAPPMODL5525315CH,"APP 59x70 L-shape desk veneer top steel legs (export total)",1470,41230
+modulo,EXAPMODU55355ABS,"APP 59x88 workstation with return laminate top steel legs (export total)",1231,29590
+modulo,EXAPMODU55355CH,"APP 59x88 workstation with return veneer top steel legs (export total #REF)",,65360
+modulo,EXAPMODMES10ABS,"APP 120x48x29 table laminate top steel legs (export total #REF)",,

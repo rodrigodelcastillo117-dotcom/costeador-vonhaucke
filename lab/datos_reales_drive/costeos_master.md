@@ -86,3 +86,14 @@ producción MOD+GIF $16,977,963.20 (22.7 %), distribución $2,211,453.69. **Cost
 MUEBLES $29,794,243.22 · SILLAS $3,936,317.73. Detalle literal con procedencia hoja+cuenta en
 `financiero/VONHAUCKE_EEFF_06_26/costos_reales_eeff.csv` (343 renglones) y `COSTOS_REALES_EEFF.md`. Es costo
 a nivel empresa/línea (no por artículo) → benchmark de costo real; no altera `precios_vigentes_master.csv`.
+
+### Línea SILLAS — `costeos/SILLAS/` (4a pasada)
+Costo real de sillería consolidado (SILLAS = línea de costo propia en EEFF, $3.94M H1-2026). Fuentes:
+- **Costo FOB de importación (proveedores):** Yueqiang 2023, Furicco 2023 (+ landed MXN factor 26 + venta 52),
+  NOEL 2022, Motostuhl proforma STI42 2023 ($20,034) y 2025 ($48,580.15, 30 modelos), matriz 2019 (53 modelos
+  de 12 proveedores con COSTO USD + COSTO MEXICO landed), COMPARATIVO (OFFIDAE vs OFFIHO).
+- **Costo real por clave interna → integrado a `precios_vigentes_master.csv`:** Sillas Pendientes 2023 (34
+  OC/req, Importe Pendiente, orden_compra) + Costo Promedio 2024 (7 claves, ultimo_costo).
+- **Precio de venta:** BASE silleria (856 productos) en `claves_producto_precio_venta.csv` (separado del costo).
+Nota: los códigos de proveedor (3188MB, F1819, GAMMA, 05CC-*, etc.) no son claves MVL internas → no entran a
+precios_vigentes_master; quedan como referencia de costo de importación de sillas terminadas.
