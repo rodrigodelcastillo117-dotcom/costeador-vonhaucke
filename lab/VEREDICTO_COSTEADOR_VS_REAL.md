@@ -39,5 +39,14 @@ La parte de TELCEL la inflan items **descontinuados 2018–2020** (la activació
 - **No hay nada que "arreglar" para acercarnos al workbook viejo** — sería acercarnos a un dato peor. Las compras semanales mantienen el catálogo al día con el ERP.
 - Lo único accionable real: si el kit LED `MDMEKT01000004` de verdad costó $1,356 y no $1,925, es un dato del maestro ERP a revisar con Compras (no del motor). Los items 2018–2020 se re-cotizan si reviven.
 
+## ADDENDUM 2026-11-06 — ¿los workbooks traen precios más nuevos? NO.
+Se comparó la última compra de los **110 artículos** de VENTO+TELCEL (`lab/scripts_lab/precios_workbook.mjs`) contra nuestro catálogo, artículo por artículo:
+- **0 artículos** donde el workbook tenga fecha MÁS NUEVA que la nuestra. En los 110 estamos **igual o más actualizados**. No hay nada que "ponernos al día".
+- Las únicas diferencias son **20 conflictos de misma fecha** (misma compra, precio distinto):
+  - **~16 items viejos (2011–2022):** el workbook = nuestro precio **× 1.20–1.30** casi exacto (mediana 1.254). Que tantos items distintos difieran por exactamente 20% o 30% prueba que el workbook trae un **costo CARGADO (con markup)**, no el precio de compra crudo. El nuestro es el crudo del ERP — el correcto para el motor (que suma indirectos aparte). **Reescribir con el workbook metería el markup dos veces → NO se hace.**
+  - **2–3 kits LED** sin patrón (MDMEKT $1,925 vs $1,356; MVLEKT $6,600 vs $2,535): discrepancia real de dato en ensambles → la resuelve Compras con la OC.
+
+**Conclusión:** no se reescribió ningún precio. No porque no se pueda, sino porque los datos muestran que **no estamos atrás** (somos ≥ actuales en todo), y los precios del workbook en los items viejos son costos cargados que ensuciarían el crudo. La carga semanal del ERP mantiene el crudo al día.
+
 ## Deploy
 Todo lo de esta ronda es **cambio de DATOS (catálogo/precios): ya está en vivo** — las RPC `catalogo_motor`/`buscar_insumos_motor`/`catalogo_vigente` leen en vivo, no requieren desplegar código. El puente ERP del cliente ya está en la rama de producción. No se promovió el puente redundante de `analizar-mueble-rc`.
