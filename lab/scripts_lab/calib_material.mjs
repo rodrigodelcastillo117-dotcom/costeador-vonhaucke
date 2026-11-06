@@ -73,7 +73,7 @@ function piezaDeBOM(bom) {
 const COSTEOS = [
   ['C-CO-517R Exhibidor', 'lab/datos_reales_drive/costeos/CCO517R_Exhibidor/Explo_MP_BOM.csv', 12089.66],
   ['Ejercicio repisa',    'lab/datos_reales_drive/costeos/ejercicio_repisa/Explo_MP_BOM.csv',    156.98],
-  ['VENTO C-CO-526R',     'lab/precios_vento/C-CO-526R__Explo_MP.csv',                           42653.27],
+  ['VENTO C-CO-526R (3 exhibidores, subconjunto)', 'lab/precios_vento/C-CO-526R__Explo_MP.csv',    20358.57],
   ['TELCEL explo_x_id',   'lab/datos_reales_drive/costeos/CCO320R_DATS_TELCEL/explo_x_id_BOM.csv', 47432.84],
 ];
 

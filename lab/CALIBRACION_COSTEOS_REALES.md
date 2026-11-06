@@ -12,7 +12,7 @@ El motor reproduce el costo de material real a partir de (consumo × precio) con
 | C-CO-517R Exhibidor | 28 | $12,089.66 | $12,089.65 | **−$0.01** (redondeo) |
 | Ejercicio repisa | 6 | $156.98 | $156.98 | **$0.00** |
 | Módulo APP LT (TATO63612AB001) | 21 | $3,802.89 | $3,802.89 | **$0.00** (incluye 1 renglón USD convertido a 17.5) |
-| VENTO C-CO-526R (copia 1eTZbM) | 107 | $20,358.57 | $20,435.98 | +$77.41 (+0.4%, redondeo del workbook) |
+| VENTO C-CO-526R (3 exhibidores, subconjunto) | 107 | $20,358.57 | $20,435.98 | +$77.41 (+0.4%, redondeo del workbook) |
 
 TELCEL CCO320R ya está cubierto por su golden propio ($47,432, 5 pruebas verdes).
 **Los 4 de arriba están encodeados como golden permanente** (`src/motor/costeosReales.golden.test.js`,
@@ -62,9 +62,13 @@ hallazgo de Paso A v3: los precios ya son reales y el motor los usa bien.
 
 ## 5. Pendiente que NO es del motor (decisión de Compras)
 
-- **VENTO: dos extracciones divergentes** ($20,358.57 vs $42,653.27 del mismo workbook). El golden fija la
-  copia commiteada ($20,358.57) y el motor la reproduce; **cuál copia es la autoritativa lo decide Compras**.
-  Cuando lo confirmen, se actualiza el total PINNED del golden (una línea).
+- **VENTO: NO era una divergencia — son dos alcances distintos.** En Drive hay DOS archivos con el mismo
+  nombre "C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx", en carpetas distintas:
+  `1eTZbM` (2.07 MB, en disco) = **3 exhibidores co-creación** (refacciones/accesorios/cascos), módulos
+  id_01+id_03, $20,358.57; y `16HcbMYq` (1.83 MB, **sin extraer**) = **más muebles** (185 renglones,
+  $42,653.27). El golden fija el subconjunto en disco y el motor lo reproduce exacto. Pendiente: extraer
+  `16HcbMYq`, enumerar sus muebles y añadirlo como caso aparte (no reemplaza al de 3 exhibidores).
+  *(Corrección 2026-11-06: antes lo describí mal como "dos extracciones divergentes del mismo workbook".)*
 - **Archivo `CosteAPPLT_Compras`**: los eléctricos "BE52…" traen unidad equivocada (pieza vs caja, ratio
   0.05605) — ver `PASO_A_V3_HALLAZGOS.md`. El BOM de APP LT de este golden NO usa esos renglones (son
   tablero/metal/pintura, todos sanos), pero el archivo de origen hay que corregirlo en Intelisis.

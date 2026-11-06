@@ -73,10 +73,11 @@ const CASOS = [
   // APP LT: incluye 1 renglón en USD (pintura en polvo) convertido a tipoCambio 17.5 (Rodrigo 2026-08-16,
   // el workbook no trae tipo de cambio). pesos $3,679.15 + USD 1.135×6.23×17.5 = $123.74 = $3,802.89.
   ['Módulo APP LT (TATO63612AB001)', leerAPPLT, 'lab/datos_reales_drive/costeos/CosteAPPLT/BOM_costeo_APPLT.csv', 21, 3802.89, 0.02],
-  // VENTO C-CO-526R: copia commiteada. El motor reproduce el BOM; el delta (~0.4%) es redondeo del
-  // workbook (cada costo_linea a 2 decimales). ⚠️ Existe una 2ª extracción divergente ($42,653) — cuál
-  // copia es la autoritativa es decisión de Compras (ver lab/CALIBRACION_COSTEOS_REALES.md §3).
-  ['VENTO C-CO-526R',     leerExplo, 'lab/precios_vento/C-CO-526R__Explo_MP.csv',                           107, 20358.57, 85],
+  // VENTO C-CO-526R (SUBCONJUNTO: 3 exhibidores co-creación — refacciones/accesorios/cascos; módulos
+  // id_01 + id_03, sin id_02). El motor reproduce el BOM; el delta (~0.4%) es redondeo del workbook.
+  // ⚠️ En Drive hay OTRO archivo con el MISMO nombre (id 16HcbMYq, ~1.8 MB) que cubre MÁS muebles
+  // ($42,653 / 185 renglones). NO es una copia divergente de éste: es otro alcance. Sin extraer aún.
+  ['VENTO C-CO-526R (3 exhibidores)', leerExplo, 'lab/precios_vento/C-CO-526R__Explo_MP.csv',               107, 20358.57, 85],
 ];
 
 describe('GOLDEN costeos reales de Compras · capa material (motor reproduce consumo×precio)', () => {
