@@ -1,0 +1,361 @@
+{
+ "acrilico": {
+  "id": "acrilico",
+  "nombre": "Acrilico",
+  "seccion": "mamparas",
+  "unidad": "m2",
+  "formato": null
+ },
+ "acrilico-6": {
+  "id": "acrilico-6",
+  "nombre": "Acrilico 6 mm",
+  "seccion": "mamparas",
+  "unidad": "m2",
+  "formato": null
+ },
+ "acrilico-cristal-3": {
+  "id": "acrilico-cristal-3",
+  "nombre": "Acrilico cristal 3 mm (hoja 4x6)",
+  "seccion": "mamparas",
+  "unidad": "hoja",
+  "formato": null
+ },
+ "acrilico-traslucido-3": {
+  "id": "acrilico-traslucido-3",
+  "nombre": "Acrilico traslucido 3 mm (hoja 4x8)",
+  "seccion": "mamparas",
+  "unidad": "hoja",
+  "formato": null
+ },
+ "bisagra": {
+  "id": "bisagra",
+  "nombre": "Bisagra",
+  "seccion": "herrajes",
+  "unidad": "pza",
+  "formato": null
+ },
+ "cerradura": {
+  "id": "cerradura",
+  "nombre": "Cerradura",
+  "seccion": "herrajes",
+  "unidad": "pza",
+  "formato": null
+ },
+ "charola": {
+  "id": "charola",
+  "nombre": "Charola",
+  "seccion": "electrico",
+  "unidad": "m",
+  "formato": null
+ },
+ "contacto": {
+  "id": "contacto",
+  "nombre": "Contacto",
+  "seccion": "electrico",
+  "unidad": "pza",
+  "formato": null
+ },
+ "corredera": {
+  "id": "corredera",
+  "nombre": "Corredera 16\"",
+  "seccion": "herrajes",
+  "unidad": "juego",
+  "formato": null
+ },
+ "cristal-templado-6": {
+  "id": "cristal-templado-6",
+  "nombre": "Cristal templado claro 6 mm",
+  "seccion": "mamparas",
+  "unidad": "m2",
+  "formato": null
+ },
+ "escuadra": {
+  "id": "escuadra",
+  "nombre": "Escuadra",
+  "seccion": "herrajes",
+  "unidad": "pza",
+  "formato": null
+ },
+ "impresion-estireno-ch": {
+  "id": "impresion-estireno-ch",
+  "nombre": "Impresion en estireno cal 20 con arte (chica)",
+  "seccion": "graficos",
+  "unidad": "pza",
+  "formato": null
+ },
+ "impresion-estireno-g": {
+  "id": "impresion-estireno-g",
+  "nombre": "Impresion en estireno cal 20 con arte (grande)",
+  "seccion": "graficos",
+  "unidad": "pza",
+  "formato": null
+ },
+ "inoxidable": {
+  "id": "inoxidable",
+  "nombre": "Acero inoxidable 304 cal. 20",
+  "seccion": "metal",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "lamina",
+   "corto": "lamina",
+   "medida": 21.3,
+   "nombre": "lamina 1.22 x 2.44"
+  }
+ },
+ "jaladera": {
+  "id": "jaladera",
+  "nombre": "Jaladera",
+  "seccion": "herrajes",
+  "unidad": "pza",
+  "formato": null
+ },
+ "kit-led-5000k": {
+  "id": "kit-led-5000k",
+  "nombre": "Kit iluminacion LED 5000 K (tiras + fuente + arnes)",
+  "seccion": "graficos",
+  "unidad": "pza",
+  "formato": null
+ },
+ "lamina-14": {
+  "id": "lamina-14",
+  "nombre": "Lamina de acero cal. 14",
+  "seccion": "metal",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "lamina",
+   "corto": "lamina",
+   "medida": 44.4,
+   "nombre": "lamina 1.22 x 2.44"
+  }
+ },
+ "lamina-18": {
+  "id": "lamina-18",
+  "nombre": "Lamina de acero cal. 18",
+  "seccion": "metal",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "lamina",
+   "corto": "lamina",
+   "medida": 28.4,
+   "nombre": "lamina 1.22 x 2.44"
+  }
+ },
+ "lamina-20": {
+  "id": "lamina-20",
+  "nombre": "Lamina de acero cal. 20",
+  "seccion": "metal",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "lamina",
+   "corto": "lamina",
+   "medida": 21.3,
+   "nombre": "lamina 1.22 x 2.44"
+  }
+ },
+ "logo-acrilico-iluminado": {
+  "id": "logo-acrilico-iluminado",
+  "nombre": "Logotipo acrilico iluminado con perfil de aluminio",
+  "seccion": "graficos",
+  "unidad": "pza",
+  "formato": null
+ },
+ "mdf-16-walnut": {
+  "id": "mdf-16-walnut",
+  "nombre": "MDF melamina 2 caras 16 mm Walnut (nogal)",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "melamina-16-black": {
+  "id": "melamina-16-black",
+  "nombre": "Melamina 16 mm, Black",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "melamina-16-roble-merida-tx": {
+  "id": "melamina-16-roble-merida-tx",
+  "nombre": "Melamina 16 mm, Roble Merida TX",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "melamina-19": {
+  "id": "melamina-19",
+  "nombre": "Melamina BLANCA / EcoLegno 19 mm",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "melamina-19-antracita-light-tx": {
+  "id": "melamina-19-antracita-light-tx",
+  "nombre": "Melamina 19 mm, Antracita Light TX",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "melamina-19-roble-merida-tx": {
+  "id": "melamina-19-roble-merida-tx",
+  "nombre": "Melamina 19 mm, Roble Merida TX",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "melamina-28-nogal-neo-tx": {
+  "id": "melamina-28-nogal-neo-tx",
+  "nombre": "Melamina 28 mm, Nogal Neo TX",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "melamina-28-roble-merida-tx": {
+  "id": "melamina-28-roble-merida-tx",
+  "nombre": "Melamina 28 mm, Roble Merida TX",
+  "seccion": "cubiertas",
+  "unidad": "hoja",
+  "formato": {
+   "tipo": "tablero",
+   "corto": "tablero",
+   "medida": 2.9768,
+   "nombre": "tablero 1.22 x 2.44",
+   "anchoMM": 1220,
+   "largoMM": 2440
+  }
+ },
+ "nivelador": {
+  "id": "nivelador",
+  "nombre": "Nivelador conico cromado 3/8",
+  "seccion": "herrajes",
+  "unidad": "pza",
+  "formato": null
+ },
+ "nivelador-plataforma": {
+  "id": "nivelador-plataforma",
+  "nombre": "Tornillo nivelador 3/8 plataforma 1 1/2\" cromado",
+  "seccion": "herrajes",
+  "unidad": "pza",
+  "formato": null
+ },
+ "pasacables": {
+  "id": "pasacables",
+  "nombre": "Pasacables / grommet",
+  "seccion": "electrico",
+  "unidad": "pza",
+  "formato": null
+ },
+ "pintura-polvo": {
+  "id": "pintura-polvo",
+  "nombre": "Pintura en polvo A101 basic white",
+  "seccion": "acabados",
+  "unidad": "kg",
+  "formato": null
+ },
+ "pintura-polvo-blanco-ral-9016-009-13120": {
+  "id": "pintura-polvo-blanco-ral-9016-009-13120",
+  "nombre": "Pintura en polvo, Blanco RAL 9016 009/13120",
+  "seccion": "acabados",
+  "unidad": "kg",
+  "formato": null
+ },
+ "pintura-polvo-gris-light-gray": {
+  "id": "pintura-polvo-gris-light-gray",
+  "nombre": "Pintura en polvo, Gris Light Gray",
+  "seccion": "acabados",
+  "unidad": "kg",
+  "formato": null
+ },
+ "pintura-polvo-negro": {
+  "id": "pintura-polvo-negro",
+  "nombre": "Pintura en polvo negro mate 8 (Vitracoat)",
+  "seccion": "acabados",
+  "unidad": "kg",
+  "formato": null
+ },
+ "ptr-14": {
+  "id": "ptr-14",
+  "nombre": "Tubo / PTR cal. 14",
+  "seccion": "metal",
+  "unidad": "m",
+  "formato": {
+   "tipo": "tramo",
+   "corto": "tramo",
+   "medida": 6,
+   "nombre": "tramo de 6 m"
+  }
+ },
+ "silicon": {
+  "id": "silicon",
+  "nombre": "Silicon",
+  "seccion": "mamparas",
+  "unidad": "pza",
+  "formato": null
+ },
+ "tapacanto": {
+  "id": "tapacanto",
+  "nombre": "Tapacanto PVC",
+  "seccion": "cubiertas",
+  "unidad": "m",
+  "formato": {
+   "tipo": "rollo",
+   "corto": "rollo",
+   "medida": 50,
+   "nombre": "rollo de 50 m"
+  }
+ },
+ "tornilleria": {
+  "id": "tornilleria",
+  "nombre": "Tornilleria",
+  "seccion": "herrajes",
+  "unidad": "juego",
+  "formato": null
+ }
+}
