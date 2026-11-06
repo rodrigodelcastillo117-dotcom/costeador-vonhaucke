@@ -5,7 +5,7 @@
 // (pintura/aglomerado) con el precio promedio real del artículo. Solo lectura + cómputo.
 import { readFileSync } from 'node:fs';
 
-const CAT = "/root/.claude/projects/-home-user-costeador-vonhaucke/4ebe1775-de26-5cdd-8f53-1edeaa08f67a/tool-results/mcp-Supabase-execute_sql-1793948927403.txt";
+const CAT = "/root/.claude/projects/-home-user-costeador-vonhaucke/4ebe1775-de26-5cdd-8f53-1edeaa08f67a/tool-results/mcp-Supabase-execute_sql-1793950073915.txt";
 const norm = (s) => (s == null ? "" : String(s).trim().toUpperCase());
 const num = (s) => { const n = Number(String(s ?? "").replace(/,/g, "").trim()); return Number.isFinite(n) ? n : null; };
 const fecha = (s) => String(s ?? "").trim().split(" ")[0].split("T")[0] || null;

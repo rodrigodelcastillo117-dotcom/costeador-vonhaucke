@@ -4,7 +4,7 @@
 import { calcular, PARAMETROS_DEFAULT } from '../../src/motor/calculo.js';
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
 
-const CAT = "/root/.claude/projects/-home-user-costeador-vonhaucke/4ebe1775-de26-5cdd-8f53-1edeaa08f67a/tool-results/mcp-Supabase-execute_sql-1793948450756.txt";
+const CAT = "/root/.claude/projects/-home-user-costeador-vonhaucke/4ebe1775-de26-5cdd-8f53-1edeaa08f67a/tool-results/mcp-Supabase-execute_sql-1793950073915.txt";
 const OUT = "/home/user/costeador-vonhaucke/lab/datos_reales_drive/recost_post";
 mkdirSync(OUT, { recursive: true });
 

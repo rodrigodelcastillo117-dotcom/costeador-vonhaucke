@@ -49,3 +49,12 @@
 --              ('pulido-redondo-14','MVLSPU02030001','TRE14PU')) m(id,art,clave)
 -- where insumos_catalogo.id = m.id;
 -- REVERT: quitar la clave 'articulo' del objeto erp de esos 3 ids.
+
+-- ============================================================================
+-- (4) 2026-11-06 · Precios de los workbooks VENTO/TELCEL cargados por instrucción
+--     de Dirección (los 20 conflictos de misma-fecha). Vía cargar_erp_ultima_compra
+--     (20 aprobados, 0 errores). Supersede por ranking (fila nueva gana).
+--     Resultado E2E: VENTO +2.0%, TELCEL +0.8% vs costeo real.
+--     Nota Dirección: en items viejos el workbook traía ~1.3× el crudo ERP; se cargó
+--     por decisión de Dirección. Reversible (las filas ERP previas siguen como historia).
+-- ============================================================================

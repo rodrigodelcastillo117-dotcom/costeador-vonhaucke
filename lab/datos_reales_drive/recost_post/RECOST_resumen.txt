@@ -1,51 +1,51 @@
 # Re-costeo por el MOTOR vs resultado real — BOM completo, pieza por pieza, catálogo con octubre
 
 ## VENTO C-CO-526R (3 exhibidores)
-  renglones BOM: 107  ·  con precio en catálogo: 92  ·  SIN precio (huecos): 15 (= 4012.88 del total real)
+  renglones BOM: 107  ·  con precio en catálogo: 99  ·  SIN precio (huecos): 8 (= 1340.05 del total real)
   renglones cuyo precio ya es de OCTUBRE: 7
   --- crudo (catálogo tal cual) ---
-  MATERIAL real workbook: 20358.57   motor: 17154.78   delta -3203.79 (-15.7%)
+  MATERIAL real workbook: 20358.57   motor: 19226.32   delta -1132.25 (-5.6%)
   --- defectos de datos que distorsionan ---
   OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 0 renglones, 0 artículos () · impacto +0.00
-  HUECOS (BOM sin precio en catálogo): 15 renglones = 4012.88 que el motor NO cuenta
+  HUECOS (BOM sin precio en catálogo): 8 renglones = 1340.05 que el motor NO cuenta
   --- limpio (solo renglones con precio y sin outlier) ---
-  MATERIAL workbook: 16345.69   motor: 17154.77   delta +809.08 (4.9%)  ← acuerdo real motor vs real
-  MOTOR costeo completo (crudo): material 17154.78 + MO(Alba) 2229.40 + indirecto 6809.31 = fabricación 26193.50
+  MATERIAL workbook: 19018.52   motor: 19226.31   delta +207.79 (1.1%)  ← acuerdo real motor vs real
+  MOTOR costeo completo (crudo): material 19226.32 + MO(Alba) 2749.77 + indirecto 8359.25 = fabricación 30335.34
   mayores diferencias precio catálogo vs workbook:
     -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
     -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
     -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
     +43.3%  MVLUTO12110041  wb 0.6 -> cat 0.86 (2026-10-20) [OCT]  TORNILLO CABEZA BOTON ALLEN Ø 1/4" X 1/2"  CO
     +43.3%  MVLUTO12110041  wb 0.6 -> cat 0.86 (2026-10-20) [OCT]  TORNILLO CABEZA BOTON ALLEN Ø 1/4" X 1/2"  CO
-    +41.9%  MDMEKT01000004  wb 1356.6 -> cat 1925 (2026-04-10)  KIT DE ILUMINACION   3 TIRAS DE LED DE 1100 m
     +32.9%  MVLSTU01060401  wb 89.54 -> cat 119.01 (2026-09-17)  TUBULAR INDUSTRIAL CUADRADO 3/4"" CALIBRE 18 
     +32.9%  MVLSTU01060401  wb 89.54 -> cat 119.01 (2026-09-17)  TUBULAR INDUSTRIAL CUADRADO 3/4"" CALIBRE 18 
     -32.1%  MVLUPI03462101  wb 0.28 -> cat 0.19 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8 X 1 1/2" PARA TA
     -30.8%  MDACJA00020002  wb 30.94 -> cat 21.41 (2026-07-31)  JALADERA  DE 143 X 23 mm  CON DISTANCIA ENTRE
     -23.5%  MVLURO26543041  wb 0.85 -> cat 0.65 (2026-08-19)  RONDANA PLANA Ø 3/8" Ø 1" EXTERIOR CALIBRE 12
     -16.5%  MVLEPL06060000  wb 21.55 -> cat 18 (2026-10-01) [OCT]  PLACA PARA REGISTRO DE VOZ Y DATOS, PARA JACK
+    -15.9%  MVLREC02010300  wb 208 -> cat 175 (2026-08-12)  ESPUMA MICROCELULAR CON ADHESIVO DE 1/8" X 1 
 
 ## TELCEL C-CO-320R DAT'S R5
-  renglones BOM: 89  ·  con precio en catálogo: 80  ·  SIN precio (huecos): 9 (= 2197.94 del total real)
+  renglones BOM: 89  ·  con precio en catálogo: 82  ·  SIN precio (huecos): 7 (= 1688.46 del total real)
   renglones cuyo precio ya es de OCTUBRE: 10
   --- crudo (catálogo tal cual) ---
-  MATERIAL real workbook: 30210.33   motor: 29306.42   delta -903.91 (-3.0%)
+  MATERIAL real workbook: 30210.33   motor: 29077.63   delta -1132.70 (-3.7%)
   --- defectos de datos que distorsionan ---
   OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 0 renglones, 0 artículos () · impacto +0.00
-  HUECOS (BOM sin precio en catálogo): 9 renglones = 2197.94 que el motor NO cuenta
+  HUECOS (BOM sin precio en catálogo): 7 renglones = 1688.46 que el motor NO cuenta
   --- limpio (solo renglones con precio y sin outlier) ---
-  MATERIAL workbook: 28012.39   motor: 29306.42   delta +1294.03 (4.6%)  ← acuerdo real motor vs real
-  MOTOR costeo completo (crudo): material 29306.42 + MO(Alba) 3144.74 + indirecto 9716.56 = fabricación 42167.72
+  MATERIAL workbook: 28521.87   motor: 29077.64   delta +555.77 (1.9%)  ← acuerdo real motor vs real
+  MOTOR costeo completo (crudo): material 29077.63 + MO(Alba) 3380.34 + indirecto 10393.20 = fabricación 42851.16
   mayores diferencias precio catálogo vs workbook:
-    +160.4%  MVLEKT03000086  wb 2535 -> cat 6600 (2020-02-28)  KIT DE ILUMIN: 2 LUMIN. LINEAL 2100MM C/CONEC
-    -40.5%  MVLEKT030000A4  wb 2500 -> cat 1488.68 (2019-08-15)  KIT DE ILUMIN P/TORRE TELCEL: 2M DE TIRA LED 
     -38%  MVLUPI10350001  wb 0.5 -> cat 0.31 (2025-08-15)  PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm  PAV
     -37.1%  MVLUTU22540002  wb 0.62 -> cat 0.39 (2026-08-11)  TUERCA HEXAGONAL Ø 3/8""  GALVANIZADO - ""TU3
     -37.1%  MVLUTU22540002  wb 0.62 -> cat 0.39 (2026-08-11)  TUERCA HEXAGONAL Ø 3/8""  GALVANIZADO - ""TU3
     -37.1%  MVLUTU22540002  wb 0.62 -> cat 0.39 (2026-08-11)  TUERCA HEXAGONAL Ø 3/8""  GALVANIZADO - ""TU3
     +36.1%  MVLSTU01080501  wb 96.71 -> cat 131.64 (2026-10-29) [OCT]  TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 20 PI
+    +29.9%  MLEAPV63005524  wb 450.43 -> cat 585 (2018-10-08)  PIVOTE PARA VITRINA RECTANGULAR  (YBJ - F50 B
     +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
     +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
     +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
     -25.9%  MVLUTU22520002  wb 0.3 -> cat 0.2222 (2026-07-30)  TUERCA HEXAGONAL Ø1/4" GALVANIZADO -- TU14HE
-    -24.9%  MLEPRV000700E5  wb 27.3 -> cat 20.5 (2018-10-12)  RECORTE DE VINIL  DE 425 X 100 mm  COLOR AZUL
+    +22.1%  MVLUTO15175209  wb 12.1 -> cat 14.77 (2026-01-23)  TORNILLO NIVELADOR Ø 3/8" X 1" PLATAFORMA CON
+    +21.1%  MIEEPP03110001  wb 38 -> cat 46 (2026-10-02) [OCT]  PELICULA PALETIZADO CALIBRE 80 ANCHO 5"  EN R
