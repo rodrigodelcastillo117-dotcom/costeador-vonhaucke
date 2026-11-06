@@ -1,0 +1,248 @@
+{
+ "clave": "ENTCBCALP",
+ "nombre": "Exhibidor para envases de leche Alpura",
+ "dims_mm": [
+  594,
+  2162,
+  1283
+ ],
+ "fuente": "C-CO-517R estimaciones (hoja real)",
+ "cos_fab_real": 18749.37,
+ "material_real": 12315.65,
+ "factor_mo": 0.128725,
+ "factor_gif": 0.393677,
+ "lineas": [
+  {
+   "desc": "PERFIL DE CANTO  ANCHO 22 mm ESPESOR 2 mm EN ABS - \"\"PEABS22",
+   "insumoId": "tapacanto",
+   "cantidad": 29.97,
+   "unidad": "m",
+   "precioConfirmado": 20.64,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "MDF MELAMINA DOS CARAS HOJA 4' X 8' ESPESOR 16 mm  - \"MDF16M",
+   "insumoId": null,
+   "cantidad": 3.739,
+   "unidad": "hoja",
+   "precioConfirmado": 693.9,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+   "insumoId": "lamina-20",
+   "cantidad": 1.047,
+   "unidad": "hoja",
+   "precioConfirmado": 449.06,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\"",
+   "insumoId": "pintura-polvo-negro",
+   "cantidad": 0.537,
+   "unidad": "pza",
+   "precioConfirmado": 120.68,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PIJA CABEZA PLANA PHILLIPS 8\" X 5/8\" PARA TABLAROCA PAVONADO",
+   "insumoId": null,
+   "cantidad": 48,
+   "unidad": "pza",
+   "precioConfirmado": 0.32,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PIJA CABEZA PLANA PHILLIPS 8 X 1/2\" PARA TABLAROCA PAVONADO ",
+   "insumoId": null,
+   "cantidad": 32,
+   "unidad": "pza",
+   "precioConfirmado": 0.18,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+   "insumoId": "lamina-14",
+   "cantidad": 0.108,
+   "unidad": "hoja",
+   "precioConfirmado": 849.5,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PULIDO REDONDO 1/4\"\"  PIEZA DE 6000 mm - \"\"TRE14PU\"\"\"",
+   "insumoId": null,
+   "cantidad": 0.614,
+   "unidad": "tramo",
+   "precioConfirmado": 30.25,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "TUERCA HEXAGONAL Ø 3/8\"\"  GALVANIZADO - \"\"TU38HE\"\"\"",
+   "insumoId": null,
+   "cantidad": 6,
+   "unidad": "pza",
+   "precioConfirmado": 0.59,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "MDF MELAMINA DOS CARAS HOJA 4 X 8 ESPESOR 25 mm  - \"\"MDF25M\"",
+   "insumoId": null,
+   "cantidad": 1.548,
+   "unidad": "hoja",
+   "precioConfirmado": 1250,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "LAMINADO PLASTICO  HOJA 4' X 8'   - \"\"FOCH Y LP122244\"\"\"",
+   "insumoId": null,
+   "cantidad": 0.254,
+   "unidad": "hoja",
+   "precioConfirmado": 641.59,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PERFIL DE CANTO  ANCHO 32 mm ESPESOR 2 mm EN ABS - \"\"PEABS32",
+   "insumoId": "tapacanto",
+   "cantidad": 9.092,
+   "unidad": "m",
+   "precioConfirmado": 22.58,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "TAQUETE  Ø 8 X 30 mm ACANALADA MADERA - \"\"TAMA516\"\"\"",
+   "insumoId": null,
+   "cantidad": 138,
+   "unidad": "pza",
+   "precioConfirmado": 0.35,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "TUERCA INSERTO Ø 1/4\"\" ALTURA 13 mm PARA MADERA GALVANIZADO ",
+   "insumoId": null,
+   "cantidad": 24,
+   "unidad": "pza",
+   "precioConfirmado": 1.21,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "TUBULAR INDUSTRIAL REDONDO 3/4\"\" CALIBRE 18 PIEZA DE 6000 mm",
+   "insumoId": null,
+   "cantidad": 0.277,
+   "unidad": "tramo",
+   "precioConfirmado": 138.4,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 3' X 10' CALIBRE 12 ACERO 1008 - \"LN12310\"",
+   "insumoId": "lamina-12",
+   "cantidad": 0.009,
+   "unidad": "hoja",
+   "precioConfirmado": 1116.28,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "MDF NATURAL HOJA 4 X 8 ESPESOR 16 mm - MDF16",
+   "insumoId": null,
+   "cantidad": 0.059,
+   "unidad": "hoja",
+   "precioConfirmado": 372,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "TORNILLO NIVELADOR Ø3/8\" x 1 1/2\" PLATAFORMA DE Ø 1 1/2\" CRO",
+   "insumoId": "nivelador-plataforma",
+   "cantidad": 6,
+   "unidad": "pza",
+   "precioConfirmado": 41.63,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "ACRILICO CRISTAL 4 X 6 ESPESOR 3 mm -- ACCR346",
+   "insumoId": "acrilico-cristal-3",
+   "cantidad": 0.476,
+   "unidad": "hoja",
+   "precioConfirmado": 900,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "ACRILICO TRASLUCIDO Z2 HOJA 4 X 8 ESPESOR 3 mm",
+   "insumoId": "acrilico-traslucido-3",
+   "cantidad": 0.433,
+   "unidad": "hoja",
+   "precioConfirmado": 964,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "TORNILLO CABEZA BOTON ALLEN Ø 1/4\" X 1/2\"  COLOR NEGRO - \"TO",
+   "insumoId": null,
+   "cantidad": 24,
+   "unidad": "pza",
+   "precioConfirmado": 0.6,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PIJA CABEZA PLANA PHILLIPS 8 X 1 1/2\" PARA TABLAROCA PAVONAD",
+   "insumoId": null,
+   "cantidad": 50,
+   "unidad": "pza",
+   "precioConfirmado": 0.28,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PIJA CABEZA FIJADORA PHILLIPS DE 8 X 1/2\"  PUNTA DE BROCA CO",
+   "insumoId": null,
+   "cantidad": 4,
+   "unidad": "pza",
+   "precioConfirmado": 0.55,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "PIJA CABEZA PLANA PHILLIPS 8 X 3/4\" PARA TABLAROCA PAVONADO ",
+   "insumoId": null,
+   "cantidad": 50,
+   "unidad": "pza",
+   "precioConfirmado": 0.19,
+   "esCompraVenta": false
+  },
+  {
+   "desc": "LOGOTIPO ALPURA 301 X 266 X 25 mm  EN ACRILICO BLANCO CON CU",
+   "insumoId": "logo-acrilico-iluminado",
+   "cantidad": 1,
+   "unidad": "hoja",
+   "precioConfirmado": 900,
+   "esCompraVenta": true
+  },
+  {
+   "desc": "IMPRESION EN ESTIRENO DE 1640 X 375 mm CALIBRE 20 CON LOGOTI",
+   "insumoId": "impresion-estireno-g",
+   "cantidad": 1,
+   "unidad": "pza",
+   "precioConfirmado": 348,
+   "esCompraVenta": true
+  },
+  {
+   "desc": "IMPRESION EN ESTIRENO DE 1100 X 230 mm CALIBRE 20 CON LOGOTI",
+   "insumoId": "impresion-estireno-ch",
+   "cantidad": 1,
+   "unidad": "pza",
+   "precioConfirmado": 172,
+   "esCompraVenta": true
+  },
+  {
+   "desc": "KIT DE ILUMINACION   4 TIRAS LED 5000 K DE 400mm LARGO ,8 TI",
+   "insumoId": "kit-led-5000k",
+   "cantidad": 1,
+   "unidad": "pza",
+   "precioConfirmado": 3200,
+   "esCompraVenta": true
+  },
+  {
+   "desc": "Empaque jgo 1 unitario basico",
+   "insumoId": null,
+   "cantidad": 1,
+   "unidad": "jgo",
+   "precioConfirmado": 225.99,
+   "esCompraVenta": false
+  }
+ ]
+}

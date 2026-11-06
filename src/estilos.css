@@ -2356,6 +2356,21 @@ body::after {
   color: #1E1B1A;
 }
 .ficha-pdf, .hoja, .cot-cliente.activa { background: #FFFFFF; }
+/* Los banners de alerta llevan color semántico HARDCODEADO del tema oscuro
+   (.alerta.roja→#f3a6a2, .alerta.ambar→#e8c98a, más abajo con !important) que NO
+   respeta los tokens claros de este bloque: sobre el papel blanco del documento
+   quedaban en 1.6:1 (ilegibles, matriz de vista 2026-11-06, "Costo NO EMITIBLE").
+   Dentro de los documentos claros se re-fijan al tratamiento claro legible (≥4.5:1). */
+.ficha-pdf .alerta.roja, .hoja .alerta.roja, .cot-cliente .alerta.roja {
+  background: #fbeceb !important; border-color: var(--rojo) !important; color: var(--rojo-osc) !important;
+}
+.ficha-pdf .alerta.roja .texto, .ficha-pdf .alerta.roja strong,
+.hoja .alerta.roja .texto, .hoja .alerta.roja strong,
+.cot-cliente .alerta.roja .texto, .cot-cliente .alerta.roja strong { color: var(--rojo-osc) !important; }
+.ficha-pdf .alerta.ambar, .hoja .alerta.ambar, .cot-cliente .alerta.ambar {
+  background: #f7f0dd !important; border-color: var(--ambar) !important; color: #7a5f1f !important;
+}
+.ficha-pdf .alerta.ambar .texto, .hoja .alerta.ambar .texto, .cot-cliente .alerta.ambar .texto { color: #7a5f1f !important; }
 @media print {
   :root {
     --papel: #FFFFFF; --panel: #FFFFFF; --oscuro: #1E1B1A;

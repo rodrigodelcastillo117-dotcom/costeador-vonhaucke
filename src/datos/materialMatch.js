@@ -216,7 +216,9 @@ const FAMILIAS = [
   // "Acabado cromado de la base", "EcoCrom"); "tubular 3/4 cromado" sigue siendo el tubo.
   ['acabado_metal',     /^\s*(?:acabado\s+)?(?:cromad[oa]|eco\s*crom[e]?|niquelad[oa]|cromo)\b|^\s*eco\s*crom/i],
   ['iluminacion',       /\bled\b|luminaria|iluminaci[oó]n|tira\s*led/i],
-  ['electrico',         /contacto|multicontacto|caja\s+el[eé]ctrica|\busb\b|byrne/i],
+  // Corpus 2026-11-06: accesorios eléctricos reales que quedaban sin familia (charola/apagador/clavija/pasacables/
+  // canalización/grommet) → el insumo existía (id=charola/contacto) pero no auto-costeaba. Se amplía la familia.
+  ['electrico',         /contacto|multicontacto|caja\s+el[eé]ctrica|\busb\b|byrne|charola|pasacabl|canaleta|canalizaci[oó]n|apagador|clavija|grommet|regleta/i],
   ['adhesivo',          /adhesivo|pegamento|resistol|silic[oó]n/i],
   // VH-176: «atornillada/atornillado» describe cómo se fija una pieza, no es tornillería (\b antes de tornill).
   ['tornilleria',       /\btornill|\bpija|taquete|rondana|tuerca|remaches?|\bclavos?\b|\bpernos?\b|\bgrapas?\b/i],
@@ -238,6 +240,13 @@ const FAMILIAS = [
   ['chapa_madera',      /chapa|veneer|enchap/i],
   ['madera_solida',     /madera\s+s[oó]lida|solid\s*wood|duela|tzalam|encino macizo|roble macizo/i],
   ['metal_lamina',      /l[aá]mina|lamina|acero|steel|ptr|tubular|tubo|fierro|hierro|metal/i],
+  // GRÁFICOS (E2E plano P-01, 2026-11-06): la impresión/rótulo/vinil gráfico es familia propia. El insumo real es
+  // "Impresión en estireno con arte"; sin esta familia, "Gráfico textos" y el insumo caían ambos en '' y la pieza no
+  // auto-costeaba (y "vinil" la mandaba a tapicería → AMBIGUOUS). Acento-tolerante (familiaDeMaterial NO normaliza).
+  // Va ANTES de tapicería para que "impresión en vinil" sea gráfico, no tela. NO incluye 'serigrafía' (es acabado en cristal).
+  // Corpus 2026-11-06: los "recorte de vinil + logo/logotipo Telcel" son GRÁFICOS, no tela. \blogo\b evita
+  // falso positivo con "catálogo" (ahí 'logo' no está en frontera de palabra). 'vinil' suelto sigue siendo tapicería.
+  ['graficos',          /impresi[oó]n|estireno|r[oó]tulo|gr[aá]fic|\blogos?\b|\blogotipos?\b/i],
   ['tapiceria',         /tapiz|tela|vinil|piel|cuero|textil|upholster/i],
 ];
 

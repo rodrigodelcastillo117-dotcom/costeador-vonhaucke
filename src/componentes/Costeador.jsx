@@ -28,6 +28,9 @@ import { mapIaComps as mapIaCompsCompartido, propuestaConPiezas } from '../datos
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
+import CosteoPorClave from './CosteoPorClave.jsx';
+import { listarBenchmarks } from '../datos/productoMaestroCarga.js';
+import { revisarDraftVsAnalogia } from '../datos/estimacionAnaloga.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
@@ -118,6 +121,19 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   );
   const { piezaVirtual, parBase, par, esIntelisis, resultado } = vivo;
   const margen = costeo.margen ?? margenObjetivoDe(estado.parametros);
+  // MEJORA DEL PLANO CRUDO: benchmark por analogía con los BOMs guardados. El draft de VONI es ruidoso
+  // (subcuenta ~40%); si el costo de fabricación queda muy por debajo de muebles similares, se avisa.
+  const [benchmarks, setBenchmarks] = useState([]);
+  useEffect(() => { let vivo = true; listarBenchmarks().then((b) => { if (vivo) setBenchmarks(b || []); }).catch(() => {}); return () => { vivo = false; }; }, []);
+  const dimsMueble = useMemo(() => {
+    const t = `${costeo.nombre || ''} ${costeo.descripcionCliente || ''} ${costeo.tipoMueble || ''}`;
+    const m = t.match(/(\d{2,4})\s*[xX×]\s*(\d{2,4})\s*[xX×]\s*(\d{2,4})/);
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+  }, [costeo.nombre, costeo.descripcionCliente, costeo.tipoMueble]);
+  const avisoBenchmark = useMemo(
+    () => revisarDraftVsAnalogia(resultado?.politicaVH?.costoFabricacion, dimsMueble, costeo.nombre || costeo.tipoMueble || '', benchmarks),
+    [resultado?.politicaVH?.costoFabricacion, dimsMueble, costeo.nombre, costeo.tipoMueble, benchmarks],
+  );
   // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
   const precio = precioDesdeCosto(resultado.costoOficial, { par, esIntelisis, margen });
   const bajoMinimo = margen < estado.parametros.margenMinimo;
@@ -415,6 +431,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       <div>
         {/* N3 — análisis estructural (read-only, no toca el BOM certificado) */}
         {flagActivo('costing_ai_v2') && <AnalisisEstructural costeo={costeo} />}
+        {/* Costear por clave (Producto Maestro): mueble de catálogo con BOM confirmado → ±1% sin VONI. */}
+        <CosteoPorClave insumos={insumos} />
         {/* 1. Que estas costeando */}
         <div className="tarjeta">
           <label className="etiqueta" htmlFor="nom-pieza">Que estas costeando</label>
@@ -848,6 +866,22 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <div><div className="ayuda">Preparación + empaque</div><strong>{pesos2((explicacionCosteo.matematicas.preparacion||0)+(explicacionCosteo.matematicas.empaque||0))}</strong></div>
             <div><div className="ayuda">Costo unitario</div><strong>{pesos2(explicacionCosteo.matematicas.costo_unitario||0)}</strong></div>
           </div>
+          {resultado.politicaVH && resultado.politicaVH.material > 0 && (
+            <div className="tarjeta" data-testid="costo-politica-vh" style={{ marginTop: 10, background:'#f6f3ee', padding:10, borderRadius:8 }}>
+              <div style={{ fontWeight:800, marginBottom:4 }}>Costo de fabricación · política estimaciones (VH)</div>
+              <div className="ayuda" style={{ marginBottom:6 }}>Lente del depto de estimaciones: fabricado ×1.8 (MO 20% + GIF 50%), compra-venta ×1.06. Depende de que el material esté completo.</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:6}}>
+                <div><div className="ayuda">Material fabricado</div><strong>{pesos2(resultado.politicaVH.materialFabricado)}</strong></div>
+                <div><div className="ayuda">Material compra-venta</div><strong>{pesos2(resultado.politicaVH.materialCompraVenta)}</strong></div>
+                <div><div className="ayuda">Mano de obra (20%/1%)</div><strong>{pesos2(resultado.politicaVH.manoObra)}</strong></div>
+                <div><div className="ayuda">Gasto indirecto (50%/5%)</div><strong>{pesos2(resultado.politicaVH.gif)}</strong></div>
+                <div style={{gridColumn:'1 / -1'}}><div className="ayuda">Costo de fabricación (estimaciones)</div><strong className="dinero">{pesos2(resultado.politicaVH.costoFabricacion)}</strong></div>
+              </div>
+              {avisoBenchmark && avisoBenchmark.aviso && (
+                <div className="alerta ambar" style={{ marginTop: 8 }} data-testid="aviso-benchmark"><span className="texto">⚠ Benchmark: {avisoBenchmark.aviso}</span></div>
+              )}
+            </div>
+          )}
           <div className="ayuda" style={{marginTop:8}}>
             Fórmula: <b>{explicacionCosteo.formula}</b>
             {explicacionCosteo.modelo ? <><span> · modelo </span><b>{explicacionCosteo.modelo}</b></> : null}
@@ -936,7 +970,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
               <span className="valor">{margen}%</span>
             </div>
-            <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
+            <div className="precio-grande" style={incompletoC ? { color: 'var(--rojo)' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
             <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
             {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
             {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
@@ -968,7 +1002,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       {/* Barra fija inferior para pantallas angostas */}
       <div className="barra-fija no-imprimir">
         <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos2(resultado.costoUnitario)}</strong></span>
-        {puedeVerComercial && <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>}
+        {puedeVerComercial && <span className="precio-grande" style={(incompletoC || simulando) ? { color: 'var(--rojo)' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>}
       </div>
     </div>
   );

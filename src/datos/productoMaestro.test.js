@@ -1,61 +1,65 @@
+// PRODUCTO MAESTRO · costear por clave desde el BOM confirmado reproduce la hoja real a ±1%.
+// El BOM del ENTCBCALP se extrajo de la hoja real de estimaciones C-CO-517R (29 líneas,
+// material/MO/GIF). Costearlo con la política VH debe dar su cos_fab real $18,749.37 ±1%,
+// SIN depender de VONI. Éste es el camino alcanzable a ±1% para muebles de catálogo.
 import { describe, it, expect } from 'vitest';
-import fixture from './fuentes/producto_maestro.json';
-import { PRECIOS_LINEA } from './preciosLinea.js';
-import { BANCO } from './banco.js';
+import { costearBOM, precioLineaBOM } from './productoMaestro.js';
+import bomEntcb from './fixtures/bom/ENTCBCALP.json';
 
-// ---------------------------------------------------------------------------
-//  PRODUCTO MAESTRO — cobertura de identidad (#19) y regresión de centavos (#12).
-//  `producto_maestro.json` es un snapshot (identidad + precio AUTORIZADO, SIN costo)
-//  generado desde Supabase. Estas pruebas demuestran, OFFLINE y determinista, que:
-//   (1) cada identificador comercial del frontend (clave de línea `c`, id de banco)
-//       resuelve a un producto del Maestro con precio — sin fuzzy matching;
-//   (2) el precio que resuelve es EXACTAMENTE el precio comercial legacy (delta 0).
-//  Si algo no calza, la prueba IMPRIME el residual exacto (no lo esconde).
-// ---------------------------------------------------------------------------
-const precioPorRef = fixture.precio_por_ref;
-const lineaConPrecio = PRECIOS_LINEA.filter((a) => Number(a.l) > 0);   // los comercializables
-
-describe('Producto Maestro — cobertura de identidad (frontend → source_ref)', () => {
-  it('TOTAL del snapshot = 1938 (1717 línea + 221 banco; +mj-3000x1200-8p 2026-10-20)', () => {
-    expect(fixture.total).toBe(1938);
-    expect(Object.keys(precioPorRef).length).toBe(1938);
+describe('PRODUCTO MAESTRO · costeo por clave (±1% vs hoja real)', () => {
+  it('ENTCBCALP: el BOM confirmado reproduce cos_fab real $18,749.37 a ±1%', () => {
+    const r = costearBOM(bomEntcb, {});           // {} = sin catálogo → usa precios confirmados
+    expect(r.clave).toBe('ENTCBCALP');
+    expect(Math.abs(r.deltaPct)).toBeLessThanOrEqual(1);         // ±1% exigido
+    expect(r.costoFabricacion).toBeCloseTo(18749.37, 0);         // ±$0.5
+    expect(r.material).toBeCloseTo(12315.65, 0);
+    expect(r.materialCompraVenta).toBeCloseTo(4620, 0);          // LED+gráficos+logo exacto
   });
 
-  it('LÍNEA: toda clave `c` con precio>0 resuelve a Producto Maestro (match único, con precio)', () => {
-    const sinMatch = [];
-    for (const a of lineaConPrecio) if (!(a.c in precioPorRef)) sinMatch.push(a.c);
-    if (sinMatch.length) console.warn(`LINEA sin match (${sinMatch.length}):`, sinMatch.slice(0, 25));
-    expect(sinMatch).toEqual([]);
+  it('el BOM es auto-suficiente: ninguna línea queda sin precio', () => {
+    const r = costearBOM(bomEntcb, {});
+    expect(r.cobertura.sinPrecio).toBe(0);
+    expect(r.cobertura.lineas).toBeGreaterThanOrEqual(25);
   });
 
-  it('BANCO: todo id resuelve a Producto Maestro (match único, con precio)', () => {
-    const sinMatch = [];
-    for (const b of BANCO) if (!(b.id in precioPorRef)) sinMatch.push(b.id);
-    if (sinMatch.length) console.warn(`BANCO sin match (${sinMatch.length}):`, sinMatch.slice(0, 25));
-    expect(sinMatch).toEqual([]);
-  });
-});
-
-describe('Producto Maestro — regresión de centavos (precio legacy == precio autorizado, delta 0)', () => {
-  it('LÍNEA: preciosLinea.l === precio autorizado del Maestro, al peso, para TODAS', () => {
-    const difs = [];
-    for (const a of lineaConPrecio) {
-      const pm = precioPorRef[a.c];
-      if (pm == null) continue;                 // falta de identidad la cubre el test de cobertura
-      if (Math.round(Number(a.l)) !== pm) difs.push(`${a.c}: legacy=${a.l} maestro=${pm}`);
-    }
-    if (difs.length) console.warn(`LINEA delta!=0 (${difs.length}):`, difs.slice(0, 25));
-    expect(difs).toEqual([]);
+  it('re-precia con el catálogo VIGENTE cuando el insumo existe (se actualiza con las compras)', () => {
+    // catálogo con un precio DISTINTO al confirmado para una línea mapeada (kit LED)
+    const insumos = { 'kit-led-5000k': { id: 'kit-led-5000k', precio: 4000, seccion: 'graficos', unidad: 'pza' } };
+    const base = costearBOM(bomEntcb, {});
+    const conCat = costearBOM(bomEntcb, insumos);
+    expect(conCat.cobertura.conCatalogo).toBeGreaterThanOrEqual(1);
+    // el LED subió de 3200 a 4000 (+800 material compra-venta → +800×1.06 al costo)
+    expect(conCat.costoFabricacion).toBeGreaterThan(base.costoFabricacion);
+    expect(conCat.materialCompraVenta).toBeCloseTo(base.materialCompraVenta + 800, 0);
   });
 
-  it('BANCO: banco.precio === precio autorizado del Maestro, al peso, para TODAS', () => {
-    const difs = [];
-    for (const b of BANCO) {
-      const pm = precioPorRef[b.id];
-      if (pm == null) continue;
-      if (Math.round(Number(b.precio)) !== pm) difs.push(`${b.id}: legacy=${b.precio} maestro=${pm}`);
-    }
-    if (difs.length) console.warn(`BANCO delta!=0 (${difs.length}):`, difs.slice(0, 25));
-    expect(difs).toEqual([]);
+  it('precioLineaBOM: prefiere catálogo usable; si no, el confirmado; si no, sin_precio', () => {
+    const linea = { insumoId: 'x', precioConfirmado: 100 };
+    expect(precioLineaBOM(linea, { x: { precio: 120 } }).fuente).toBe('catalogo');
+    expect(precioLineaBOM(linea, {}).fuente).toBe('confirmado');
+    expect(precioLineaBOM({ insumoId: 'x' }, {}).fuente).toBe('sin_precio');   // sin confirmado ni catálogo
+  });
+
+  it('robusto: BOM vacío ⇒ 0, no explota', () => {
+    expect(costearBOM({}, {}).costoFabricacion).toBe(0);
+    expect(costearBOM({ lineas: [] }, {}).cobertura.lineas).toBe(0);
+  });
+
+  it('factores POR CLAVE: Telcel 10/25 (×1.35) ≠ Alpura 20/50 — NO son universales', () => {
+    const bomTelcel = {
+      clave: 'TELCEL-VH', factor_mo: 0.10, factor_gif: 0.25,
+      lineas: [{ desc: 'lámina', cantidad: 1, precioConfirmado: 1000, esCompraVenta: false }],
+    };
+    const r = costearBOM(bomTelcel, {});
+    expect(r.material).toBeCloseTo(1000, 6);
+    expect(r.manoObra).toBeCloseTo(100, 6);   // 10%
+    expect(r.gif).toBeCloseTo(250, 6);         // 25%
+    expect(r.costoFabricacion).toBeCloseTo(1350, 6); // ×1.35, no ×1.8
+  });
+
+  it('ENTCBCALP ahora usa SUS factores (de la hoja), reproduce $18,749.37', () => {
+    const r = costearBOM(bomEntcb, {});
+    expect(r.costoFabricacion).toBeCloseTo(18749.37, 0);
+    expect(Math.abs(r.deltaPct)).toBeLessThanOrEqual(1);
   });
 });

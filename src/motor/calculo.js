@@ -63,6 +63,48 @@ export function formulaDePieza(pieza = {}) {
 export const SIN_MO_SECCIONES = new Set(['electrico', 'guardas', 'ecoacustic', 'graficos', 'herrajes']);
 
 // -----------------------------------------------------------------------------
+//  POLÍTICA DE COSTO DE FABRICACIÓN VON HAUCKE (confirmada por Dirección 2026-11-06
+//  contra las hojas reales del depto de estimaciones C-CO-517R ENTCBCALP y
+//  C-CO-516R copete). El costo de fabricación es FORMULAICO sobre el material:
+//   · Componente FABRICADO (se corta/suelda/arma en taller): MO = 20% del material,
+//     GIF = 50% de (material+MO)  ⇒  costo_fab = material × 1.8
+//   · Componente de COMPRA-VENTA (se compra terminado — iluminación LED, gráficos/
+//     impresión, logo): MO = 1% del material, GIF = 5% del material ⇒ × 1.06 (manejo).
+//  Reproduce la hoja de estimaciones AL CENTAVO cuando el material está completo
+//  (verificado: real $18,749.37 y $829.01). NO sustituye el modelo Alba/Intelisis del
+//  motor: es la lente de costo-fabricación del depto de estimaciones, calculada sobre
+//  el MISMO detalleInsumos (material por sección) que el motor ya produce. El hueco que
+//  queda es completitud del BOM de material (lectura de VONI), no el modelo de costo.
+export const CV_SECCIONES = new Set(['graficos', 'iluminacion']);
+export const POLITICA_VH = Object.freeze({ moFab: 0.20, gifFab: 0.50, moCV: 0.01, gifCV: 0.05 });
+
+export function esCompraVenta(seccion) { return CV_SECCIONES.has(seccion); }
+
+export function costoFabricacionVH(detalleInsumos = [], par = POLITICA_VH) {
+  let fabMat = 0, cvMat = 0;
+  for (const d of detalleInsumos) {
+    const costo = Number(d && d.costo);
+    if (!Number.isFinite(costo) || costo <= 0) continue;
+    if (esCompraVenta(d.seccion)) cvMat += costo; else fabMat += costo;
+  }
+  const moFab = fabMat * par.moFab;
+  const gifFab = (fabMat + moFab) * par.gifFab;
+  const moCV = cvMat * par.moCV;
+  const gifCV = cvMat * par.gifCV;
+  const material = fabMat + cvMat;
+  const manoObra = moFab + moCV;
+  const gif = gifFab + gifCV;
+  return {
+    materialFabricado: fabMat,
+    materialCompraVenta: cvMat,
+    material,
+    manoObra,
+    gif,
+    costoFabricacion: material + manoObra + gif,
+  };
+}
+
+// -----------------------------------------------------------------------------
 //  Parametros de planta por defecto (master 5.6). Una sola configuracion global.
 //  Los "valores supuestos" (eficiencia, aprovechamiento) se marcan aparte en la
 //  interfaz; aqui viven solo los numeros.
@@ -906,6 +948,9 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     costoLoteConMerma,
     costoUnitario,
     detalleInsumos,
+    // Lente de costo de fabricación del depto de estimaciones (política VH 1.8/1.06). Aditivo:
+    // NO cambia costoFabricacion/costoUnitario/costoOficial del modelo Alba ni el gate de emisión.
+    politicaVH: costoFabricacionVH(detalleInsumos),
     componentesIgnorados,
     componentesExcluidos,
     materialesPorConfirmar,
@@ -950,7 +995,11 @@ export function costeoEmitible(resultado) {
   const porConfirmar = [...((resultado && resultado.materialesPorConfirmar) || [])];
   const costoRaw = resultado?.costoUnitario;
   const costo = costoRaw == null || costoRaw === '' ? NaN : Number(costoRaw);
-  const costoCorrupto = !Number.isFinite(costo) || costo < 0;
+  // Fail-closed (auditoría adversarial VH-A05, 2026-11-06): un costo CERO no es emitible.
+  // Un costo total 0 significa que nada se costeó (ningún material con precio), no un producto
+  // gratis. Alinea el gate compartido con el servidor (autoridadCosteoServidor ya rechaza 0).
+  // Las piezas EXCLUIDAS individuales siguen siendo $0 por decisión; esto es sobre el TOTAL.
+  const costoCorrupto = !Number.isFinite(costo) || costo <= 0;
 
   const pendientes = [
     ...faltantes,
@@ -958,7 +1007,7 @@ export function costeoEmitible(resultado) {
     ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`),
     ...porConfirmar.map((x) => `Material por confirmar: ${x}`),
   ];
-  if (costoCorrupto) pendientes.push('Costo unitario inválido/no finito');
+  if (costoCorrupto) pendientes.push('Costo unitario inválido, no finito o en cero');
 
   const emitible = pendientes.length === 0;
   return {
