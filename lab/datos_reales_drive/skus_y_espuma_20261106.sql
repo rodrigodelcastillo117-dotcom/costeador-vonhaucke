@@ -1,0 +1,40 @@
+-- ============================================================================
+-- 2026-11-06 · Autorizado por Dirección (Rodrigo). Aplicado en prod vía RPC canónica.
+-- (1) Crear/precios de SKUs que el recost marcaba como huecos de VENTO/TELCEL.
+-- (2) Corregir la unidad de la espuma MVLREF00634532 (bug 100×).
+-- Camino: cargar_erp_ultima_compra (crea insumo + precio propuesto + aprobar_precio),
+-- con el claim de Dirección fijado en la transacción (puede_certificar_costo).
+-- ============================================================================
+
+-- (1) SKUs — resultado real: 1 insumo NUEVO (erp-plasevh, placa aluminio $45),
+--     3 "faltantes" ya existían como curados (lamina-3x10-14/20, pulido-redondo-14)
+--     y sólo les faltaba el amarre por artículo ERP / un precio reciente. Se añadió
+--     el precio real del workbook (cal.20 $449.06, cal.14 $849.50, pulido $30.25).
+-- Precios y evidencia: Explosión MP VENTO C-CO-526R y TELCEL C-CO-320R.
+-- (Ejecutado con cargar_erp_ultima_compra; ver conversación para el payload exacto.)
+
+-- (2) ESPUMA erp-espr210518 (MVLREF00634532): rollo 2.0×105 m.
+--   ANTES: unidad_costeo='rollo', precio $750  → el motor hacía consumo(m) × $750 (bug 100×).
+--   AHORA: unidad_costeo='m', precio $7.1429/m (= $750 ÷ 105 m del rollo). precio_compra $750/rollo intacto.
+--   Respaldo del estado previo: public._backup_espuma_20261106 (precio_id 11534).
+--
+-- Reproducción (dentro de una transacción con el claim de Dirección):
+--   select set_config('request.jwt.claims','{"email":"rodrigo.delcastillo@vonhaucke.mx","role":"authenticated"}',true);
+--   update insumos_catalogo set unidad_costeo='m',
+--     atributos=jsonb_set(coalesce(atributos,'{}'::jsonb),'{unidad}','"m"') where id='erp-espr210518';
+--   insert into insumo_precios (insumo_id, precio, unidad_compra, precio_compra, factor_conversion,
+--     fuente, evidencia, vigente_desde, estado, confidence, evidence_status, requiere_validacion_compras,
+--     contract_status, source_price, source_currency, source_unit, source_units_per_cost_unit, fx_rate,
+--     cost_unit, source_system, source_document, source_record_id, source_hash, creado_por)
+--     values ('erp-espr210518', round(750.0/105,4), 'rollo', 750, 105, 'Compras · correccion de unidad',
+--       'Rollo $750 / 105 m = $7.1429/m', current_date, 'propuesto', 'alta', 'documentada', false,
+--       'DATA_TRUTH_V1', 750, 'MXN', 'rollo', round(1.0/105,6), 1, 'm', 'erp_intelisis',
+--       'Correccion unidad espuma MVLREF00634532 2026-11-06', 'MVLREF00634532|CORR-UNIDAD-20261106',
+--       md5('espuma-MVLREF00634532-corr-unidad-20261106'), 'correccion-direccion:rodrigo.delcastillo@vonhaucke.mx');
+--   select public.aprobar_precio((select id from insumo_precios
+--     where source_record_id='MVLREF00634532|CORR-UNIDAD-20261106' order by id desc limit 1), 'Correccion unidad espuma');
+
+-- REVERT espuma (cierra la fila corregida y reactiva la vieja $750 no aplica por append-only;
+--   lo correcto es: volver unidad_costeo a 'rollo' y cerrar la fila corregida con la RPC de vigencia.
+--   El respaldo _backup_espuma_20261106 guarda el estado previo para reconstruirlo.)
+-- update insumos_catalogo set unidad_costeo='rollo' where id='erp-espr210518';

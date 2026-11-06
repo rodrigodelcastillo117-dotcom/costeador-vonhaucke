@@ -23,6 +23,20 @@
 
 **Lectura honesta:** donde el dato está limpio, el motor clava el material real a **+5.0% (VENTO)** y **−1.6%…+4.6% (TELCEL)**. Eso es fidelidad real, no suerte.
 
+## ACTUALIZACIÓN 2026-11-06 — tras crear SKUs + arreglar la espuma
+Se corrigió el bug de unidad de la espuma (rollo→metro, $750/rollo = $7.14/m) y se creó la placa de aluminio faltante (`erp-plasevh` $45); los otros 3 "faltantes" ya existían como curados (`lamina-3x10-14/20`, `pulido-redondo-14`) y se les reforzó el precio del workbook. Re-costeo usando el campo `precio` (el que usa el motor, no `precio_compra`):
+
+| | Costeo REAL | Motor crudo | Motor limpio | Fabricación motor (mat+MO+indirectos) |
+|---|---:|---:|---:|---:|
+| **VENTO** (107 r.) | $20,358.57 | **$17,154.78 (−15.7%)** | $17,154.77 vs $16,345.69 → **+4.9%** | **$26,193.50** (antes del fix espuma daba $53,738) |
+| **TELCEL** (89 r.) | $30,210.33 | **$29,306.42 (−3.0%)** | $29,306.42 vs $28,012.39 → **+4.6%** | **$42,167.72** |
+
+- **0 outliers** en ambos (la espuma dejó de inflar; VENTO cayó de fabricación $53,738 → $26,193).
+- El crudo queda LIGERAMENTE BAJO el real (−15.7% / −3.0%) porque el recost no cuenta los huecos ($4,012 VENTO / $2,198 TELCEL), que en su mayoría son pintura/aglomerado con precio real existente (artefacto del mapeo por opción del arnés, costeables en producción).
+- Donde el dato está limpio, motor vs real = **+4.9% / +4.6%**. Es fidelidad real.
+
+Registro + revert: `lab/datos_reales_drive/skus_y_espuma_20261106.sql`, respaldo `public._backup_espuma_20261106`.
+
 ## Qué NO arregló la activación (honesto)
 Prender los 1,108 **no cambió VENTO ni TELCEL**. Sus huecos no eran por `activo=false`; son:
 1. **Opción/color no mapeado (precio SÍ existe):** `MVLQPP00000000` pintura en polvo (89 opciones, todas con precio) y `MVLMAG01280600` aglomerado (32 opciones, todas con precio). El recost mapea por (articulo|opción) exacta y no empata el color; el costeador real (VONI + puente por familia) SÍ los costea. Son 8 renglones VENTO + 7 TELCEL "huecos" que en realidad tienen precio.

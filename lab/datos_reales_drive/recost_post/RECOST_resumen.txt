@@ -4,19 +4,14 @@
   renglones BOM: 107  ·  con precio en catálogo: 92  ·  SIN precio (huecos): 15 (= 4012.88 del total real)
   renglones cuyo precio ya es de OCTUBRE: 7
   --- crudo (catálogo tal cual) ---
-  MATERIAL real workbook: 20358.57   motor: 32457.64   delta +12099.07 (59.4%)
+  MATERIAL real workbook: 20358.57   motor: 17154.78   delta -3203.79 (-15.7%)
   --- defectos de datos que distorsionan ---
-  OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 5 renglones, 1 artículos (MVLREF00634532) · impacto +15295.50
+  OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 0 renglones, 0 artículos () · impacto +0.00
   HUECOS (BOM sin precio en catálogo): 15 renglones = 4012.88 que el motor NO cuenta
   --- limpio (solo renglones con precio y sin outlier) ---
-  MATERIAL workbook: 16191.19   motor: 17007.64   delta +816.45 (5.0%)  ← acuerdo real motor vs real
-  MOTOR costeo completo (crudo): material 32457.64 + MO(Alba) 5289.98 + indirecto 15991.02 = fabricación 53738.64
+  MATERIAL workbook: 16345.69   motor: 17154.77   delta +809.08 (4.9%)  ← acuerdo real motor vs real
+  MOTOR costeo completo (crudo): material 17154.78 + MO(Alba) 2229.40 + indirecto 6809.31 = fabricación 26193.50
   mayores diferencias precio catálogo vs workbook:
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
     -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
     -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
     -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
@@ -24,22 +19,24 @@
     +43.3%  MVLUTO12110041  wb 0.6 -> cat 0.86 (2026-10-20) [OCT]  TORNILLO CABEZA BOTON ALLEN Ø 1/4" X 1/2"  CO
     +41.9%  MDMEKT01000004  wb 1356.6 -> cat 1925 (2026-04-10)  KIT DE ILUMINACION   3 TIRAS DE LED DE 1100 m
     +32.9%  MVLSTU01060401  wb 89.54 -> cat 119.01 (2026-09-17)  TUBULAR INDUSTRIAL CUADRADO 3/4"" CALIBRE 18 
+    +32.9%  MVLSTU01060401  wb 89.54 -> cat 119.01 (2026-09-17)  TUBULAR INDUSTRIAL CUADRADO 3/4"" CALIBRE 18 
+    -32.1%  MVLUPI03462101  wb 0.28 -> cat 0.19 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8 X 1 1/2" PARA TA
+    -30.8%  MDACJA00020002  wb 30.94 -> cat 21.41 (2026-07-31)  JALADERA  DE 143 X 23 mm  CON DISTANCIA ENTRE
+    -23.5%  MVLURO26543041  wb 0.85 -> cat 0.65 (2026-08-19)  RONDANA PLANA Ø 3/8" Ø 1" EXTERIOR CALIBRE 12
+    -16.5%  MVLEPL06060000  wb 21.55 -> cat 18 (2026-10-01) [OCT]  PLACA PARA REGISTRO DE VOZ Y DATOS, PARA JACK
 
 ## TELCEL C-CO-320R DAT'S R5
-  renglones BOM: 89  ·  con precio en catálogo: 79  ·  SIN precio (huecos): 10 (= 2242.94 del total real)
+  renglones BOM: 89  ·  con precio en catálogo: 80  ·  SIN precio (huecos): 9 (= 2197.94 del total real)
   renglones cuyo precio ya es de OCTUBRE: 10
   --- crudo (catálogo tal cual) ---
-  MATERIAL real workbook: 30210.33   motor: 29721.99   delta -488.34 (-1.6%)
+  MATERIAL real workbook: 30210.33   motor: 29306.42   delta -903.91 (-3.0%)
   --- defectos de datos que distorsionan ---
-  OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 3 renglones, 1 artículos (MVLREF00634532) · impacto +460.35
-  HUECOS (BOM sin precio en catálogo): 10 renglones = 2242.94 que el motor NO cuenta
+  OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 0 renglones, 0 artículos () · impacto +0.00
+  HUECOS (BOM sin precio en catálogo): 9 renglones = 2197.94 que el motor NO cuenta
   --- limpio (solo renglones con precio y sin outlier) ---
-  MATERIAL workbook: 27962.74   motor: 29256.99   delta +1294.25 (4.6%)  ← acuerdo real motor vs real
-  MOTOR costeo completo (crudo): material 29721.99 + MO(Alba) 3227.86 + indirecto 9965.90 = fabricación 42915.75
+  MATERIAL workbook: 28012.39   motor: 29306.42   delta +1294.03 (4.6%)  ← acuerdo real motor vs real
+  MOTOR costeo completo (crudo): material 29306.42 + MO(Alba) 3144.74 + indirecto 9716.56 = fabricación 42167.72
   mayores diferencias precio catálogo vs workbook:
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
-    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
     +160.4%  MVLEKT03000086  wb 2535 -> cat 6600 (2020-02-28)  KIT DE ILUMIN: 2 LUMIN. LINEAL 2100MM C/CONEC
     -40.5%  MVLEKT030000A4  wb 2500 -> cat 1488.68 (2019-08-15)  KIT DE ILUMIN P/TORRE TELCEL: 2M DE TIRA LED 
     -38%  MVLUPI10350001  wb 0.5 -> cat 0.31 (2025-08-15)  PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm  PAV
@@ -49,3 +46,6 @@
     +36.1%  MVLSTU01080501  wb 96.71 -> cat 131.64 (2026-10-29) [OCT]  TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 20 PI
     +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
     +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
+    +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
+    -25.9%  MVLUTU22520002  wb 0.3 -> cat 0.2222 (2026-07-30)  TUERCA HEXAGONAL Ø1/4" GALVANIZADO -- TU14HE
+    -24.9%  MLEPRV000700E5  wb 27.3 -> cat 20.5 (2018-10-12)  RECORTE DE VINIL  DE 425 X 100 mm  COLOR AZUL
