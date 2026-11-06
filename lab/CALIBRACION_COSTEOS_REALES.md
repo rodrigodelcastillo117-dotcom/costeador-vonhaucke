@@ -11,9 +11,13 @@ El motor reproduce el costo de material real a partir de (consumo × precio) con
 |---|---:|---:|---:|---:|
 | C-CO-517R Exhibidor | 28 | $12,089.66 | $12,089.65 | **−$0.01** (redondeo) |
 | Ejercicio repisa | 6 | $156.98 | $156.98 | **$0.00** |
+| Módulo APP LT (TATO63612AB001) | 21 | $3,802.89 | $3,802.89 | **$0.00** (incluye 1 renglón USD convertido a 17.5) |
 | VENTO C-CO-526R (copia 1eTZbM) | 107 | $20,358.57 | $20,435.98 | +$77.41 (+0.4%, redondeo del workbook) |
 
 TELCEL CCO320R ya está cubierto por su golden propio ($47,432, 5 pruebas verdes).
+**Los 4 de arriba están encodeados como golden permanente** (`src/motor/costeosReales.golden.test.js`,
+4/4 verdes) y corren en **CI en cada push/PR** (`.github/workflows/ci.yml` → `npx vitest run`): si la
+aritmética de material o la conversión de divisa se rompe, CI lo bloquea antes de desplegar.
 **Conclusión:** la aritmética de material del motor (precio×fracción + merma A14/D2) es exacta. Confirma el
 hallazgo de Paso A v3: los precios ya son reales y el motor los usa bien.
 
@@ -51,7 +55,16 @@ hallazgo de Paso A v3: los precios ya son reales y el motor los usa bien.
 
 | Capa | Estado | Acción |
 |---|---|---|
-| Material | ✅ exacto al centavo | encodear 517R + repisa como golden permanente en CI (Bloque M) |
-| Fabricación (uplift agregado) | ✅ cuadra con EEFF | documentado; golden de estructura |
-| Split MO/indirecto | ⚠️ depende del método | **decisión de Dirección** (Alba vs clásico vs VENTO); no se inventa |
-| MO por operación | ⛔ techo de datos | Producción debe dar tiempos por operación; hoy 30 s/op es demasiado grueso |
+| Material | ✅ exacto al centavo · **golden en CI** | 517R + repisa + APP LT (con USD) + VENTO encodeados y corriendo en cada push |
+| Fabricación (uplift agregado) | ✅ cuadra con EEFF | motor ~50.3% = EEFF 50.3% |
+| Split MO/indirecto | ✅ **decidido: Alba (12/38)** | Dirección 2026-11-06; ya era el default — sin cambio de fórmula |
+| MO por operación | ⛔ techo de datos | Producción debe dar tiempos por operación; hoy 30 s/op es demasiado grueso (fuera del control del motor) |
+
+## 5. Pendiente que NO es del motor (decisión de Compras)
+
+- **VENTO: dos extracciones divergentes** ($20,358.57 vs $42,653.27 del mismo workbook). El golden fija la
+  copia commiteada ($20,358.57) y el motor la reproduce; **cuál copia es la autoritativa lo decide Compras**.
+  Cuando lo confirmen, se actualiza el total PINNED del golden (una línea).
+- **Archivo `CosteAPPLT_Compras`**: los eléctricos "BE52…" traen unidad equivocada (pieza vs caja, ratio
+  0.05605) — ver `PASO_A_V3_HALLAZGOS.md`. El BOM de APP LT de este golden NO usa esos renglones (son
+  tablero/metal/pintura, todos sanos), pero el archivo de origen hay que corregirlo en Intelisis.
