@@ -87,7 +87,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   // real contra lo pedido, y observados por la IA): UNA decisión en vez de una por pieza. Las
   // diferencias reales (otro calibre/perfil) y las piezas que la IA infirió/supuso NO entran al bloque
   // y se confirman fila por fila (VH-158 / VONI Ingeniería). Espejo de AsistenteEspecial.confirmarPropuestos.
-  const noObservadaCost = (c) => c && (c.procedencia === 'INFERIDO' || c.procedencia === 'SUPUESTO');
+  // No entra al bloque: material inferido/supuesto por la IA, NI confianza 'baja' (esas las ve
+  // la persona una por una; es lo que VONI adivinó). Usa la señal real que trae cada pieza.
+  const noObservadaCost = (c) => c && (c.procedencia === 'INFERIDO' || c.procedencia === 'SUPUESTO' || c.confianza === 'baja');
   const propuestosPorRegla = (costeo.componentes || []).filter((c) => {
     if (!c.insumoId) return false;
     const e = estadoMaterialUI(c, insumos);
