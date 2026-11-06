@@ -44,4 +44,22 @@ describe('PRODUCTO MAESTRO · costeo por clave (±1% vs hoja real)', () => {
     expect(costearBOM({}, {}).costoFabricacion).toBe(0);
     expect(costearBOM({ lineas: [] }, {}).cobertura.lineas).toBe(0);
   });
+
+  it('factores POR CLAVE: Telcel 10/25 (×1.35) ≠ Alpura 20/50 — NO son universales', () => {
+    const bomTelcel = {
+      clave: 'TELCEL-VH', factor_mo: 0.10, factor_gif: 0.25,
+      lineas: [{ desc: 'lámina', cantidad: 1, precioConfirmado: 1000, esCompraVenta: false }],
+    };
+    const r = costearBOM(bomTelcel, {});
+    expect(r.material).toBeCloseTo(1000, 6);
+    expect(r.manoObra).toBeCloseTo(100, 6);   // 10%
+    expect(r.gif).toBeCloseTo(250, 6);         // 25%
+    expect(r.costoFabricacion).toBeCloseTo(1350, 6); // ×1.35, no ×1.8
+  });
+
+  it('ENTCBCALP ahora usa SUS factores (de la hoja), reproduce $18,749.37', () => {
+    const r = costearBOM(bomEntcb, {});
+    expect(r.costoFabricacion).toBeCloseTo(18749.37, 0);
+    expect(Math.abs(r.deltaPct)).toBeLessThanOrEqual(1);
+  });
 });

@@ -49,7 +49,19 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
     detalle.push({ seccion: L.esCompraVenta ? 'graficos' : 'metal', costo });
     reporte.push({ desc: L.desc, cantidad: cant, precio: p.precio, costo, fuente: p.fuente, esCompraVenta: !!L.esCompraVenta });
   }
-  const vh = costoFabricacionVH(detalle, factores || undefined);
+  // Factores POR CLAVE (de la hoja de estimaciones): NO son universales (Alpura 20/50, Telcel 10/25).
+  // Si la clave los trae, se usan (reproduce su hoja exacto). Si no, se cae a la política por sección.
+  const fm = Number(bom.factor_mo), fg = Number(bom.factor_gif);
+  let vh;
+  if (Number.isFinite(fm) && Number.isFinite(fg)) {
+    let fabMat = 0, cvMat = 0;
+    for (const d of detalle) { if (d.seccion === 'graficos' || d.seccion === 'iluminacion') cvMat += d.costo; else fabMat += d.costo; }
+    const material = fabMat + cvMat;
+    const manoObra = material * fm, gif = material * fg;
+    vh = { materialFabricado: fabMat, materialCompraVenta: cvMat, material, manoObra, gif, costoFabricacion: material + manoObra + gif, factoresPorClave: { factor_mo: fm, factor_gif: fg } };
+  } else {
+    vh = costoFabricacionVH(detalle, factores || undefined);
+  }
   const cosFabReal = bom.cos_fab_real != null && Number.isFinite(Number(bom.cos_fab_real)) ? Number(bom.cos_fab_real) : null;
   const deltaPct = cosFabReal ? (vh.costoFabricacion - cosFabReal) / cosFabReal * 100 : null;
   return {

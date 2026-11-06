@@ -8,6 +8,9 @@
  ],
  "fuente": "C-CO-517R estimaciones (hoja real)",
  "cos_fab_real": 18749.37,
+ "material_real": 12315.65,
+ "factor_mo": 0.128725,
+ "factor_gif": 0.393677,
  "lineas": [
   {
    "desc": "PERFIL DE CANTO  ANCHO 22 mm ESPESOR 2 mm EN ABS - \"\"PEABS22",
