@@ -21,12 +21,23 @@ Es precio **por rollo** guardado como si fuera por m²/consumo → sobre-costea 
 Afectaría a CUALQUIER mueble que use esa espuma. **Hay que corregir su unidad en el catálogo** (decisión de
 Compras sobre la unidad correcta; no lo toco a ciegas). Lo detectó el re-costeo, no estaba a la vista.
 
-### Defecto 2 — huecos de precio (cobertura)
-VENTO **15** renglones sin precio ($4,013 = 20% del total real); TELCEL **17** ($10,164 = 34%).
-Son sobre todo **genéricos con opción** (pintura en polvo `MVLQPP00000000`, aglomerado melamina
-`MVLMAG012806*`, láminas cal.14/20) donde el empate articulo+opción no pegó — mezcla de (a) match a nivel
-opción pendiente de afinar y (b) insumos con precio PENDING en catálogo. El motor los **omite en silencio**,
-subcosteando (por eso TELCEL crudo sale −21%). **Es el hueco de pilotaje más importante.**
+### Defecto 2 — "huecos" de precio: NO es que falte el precio, está ESCONDIDO (corregido 2026-11-06)
+Verificado tras el reto de Dirección ("¿de verdad no tenemos esos precios?"). De los 11 "huecos":
+- **5 SÍ tienen precio CERTIFICADO** pero su insumo está **`activo=false`** → el view `catalogo_vigente`
+  los esconde y el motor no los ve (cerradura cam lock $320, jaladera $79, pivote $450, kit ilum, cristal).
+  **No faltaba el precio: el insumo estaba apagado.** (El re-costeo lo marcó "sin precio" = imprecisión mía.)
+- **2 genéricos** (aglomerado `MVLMAG01280600`: 32 opciones $677–718; pintura `MVLQPP00000000`: 89 opciones)
+  — la familia está totalmente costeada; sólo faltaba la OPCIÓN de color exacta (B721 / A550). Precio base conocido.
+- **3 sí faltan como SKU** (lámina cal.14 `MVLSLA05260202`, cal.20 `MVLSLA05260502`, placa alum `MVLEPL0408C8A6`)
+  — pero su precio está en el workbook ($849.50, $449.06…) y en las fuentes crudas. Falta CREARLOS como insumo.
+
+**Escala del problema (catálogo completo): 1,108 insumos ERP con precio CERTIFICADO están `activo=false`**
+→ invisibles para el motor. PERO matiz honesto: **935 (84%) no se compran desde antes de 2020** (descontinuados
+de verdad; surfacear su precio de hace 6+ años sería peor que el hueco). Sólo ~9 tienen compra 2025-26 y ~18
+desde 2024. **El fix NO es reactivar 1,108 — es quirúrgico:** reactivar los que aparecen en BOMs reales actuales
+/ compras recientes, crear los 2-3 SKU faltantes, y (opción de motor) usar un precio certificado-pero-inactivo con
+bandera "revisar" en vez de omitirlo en silencio. Esto conecta con P0-01 (parte de las "partidas sin costo" es
+visibilidad, no dato faltante).
 
 ## Veredicto honesto
 - **El motor costea bien:** en los renglones con precio bueno, clava el real a **+5.0% (VENTO)**. TELCEL da
