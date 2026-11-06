@@ -87,7 +87,8 @@ for k, o in best.items():
     elif d >= 60: bucket = "HUMANO_MAGNITUD_ALTA"
     else: bucket = "CARGAR_OC_OCT"
     diff.append({**o, "precio_catalogo":round(pc,4), "fecha_catalogo":vdesde.isoformat() if vdesde else "",
-                 "delta_pct":round(delta,1), "bucket":bucket, "insumo_id":c["insumo_id"]})
+                 "delta_pct":round(delta,1), "bucket":bucket, "insumo_id":c["insumo_id"],
+                 "unidad_costeo":c.get("unidad_costeo")})
 
 cols = ["bucket","delta_pct","articulo","opcion","insumo_id","unidad","precio_catalogo","fecha_catalogo","costo_unitario","fecha","proveedor","movimiento","descripcion"]
 with open(f"{OUT}/DIFF_OC_octubre2026.csv","w",newline="",encoding="utf-8") as f:
@@ -101,10 +102,11 @@ cargar = [r for r in diff if r["bucket"] == "CARGAR_OC_OCT"]
 precios = []
 for r in cargar:
     rec = f'{r["articulo"]}|{r["opcion"]}'
+    u = r.get("unidad_costeo") or r["unidad"]   # cost_unit DEBE ser la unidad_costeo exacta del insumo
     precios.append({
         "source_record_id": rec, "insumo_id": r["insumo_id"],
-        "source_price": r["costo_unitario"], "source_unit": r["unidad"] or "pieza",
-        "cost_unit": r["unidad"] or "pieza", "vigente_desde": r["fecha"],
+        "source_price": r["costo_unitario"], "source_unit": u,
+        "cost_unit": u, "vigente_desde": r["fecha"],
         "estado": "propuesto_validado",
         "evidencia": f'OC octubre 2026 · {r["movimiento"]} · {r["proveedor"]} · cat {r["precio_catalogo"]}({r["fecha_catalogo"]}) -> {r["costo_unitario"]} ({r["delta_pct"]:+}%)',
     })
@@ -121,7 +123,7 @@ sql.append("begin;")
 sql.append("select public.cargar_erp_ultima_compra(")
 sql.append("  'ERP Intelisis · Órdenes de Compra octubre 2026 (migración B PRELIMINAR)',")
 sql.append("  '[]'::jsonb,")
-sql.append("  $precios$" + json.dumps(precios, ensure_ascii=False, indent=1) + "$precios$::jsonb")
+sql.append("  $precios$" + json.dumps(precios, ensure_ascii=False) + "$precios$::jsonb")
 sql.append(") as resultado;")
 sql.append("-- Revisa resultado: precios_nuevos=%d, duplicados=0, errores=[]. Re-corrida: idempotente." % len(precios))
 sql.append("rollback;  -- cambiar por 'commit;' SÓLO con autorización explícita de Dirección.")
