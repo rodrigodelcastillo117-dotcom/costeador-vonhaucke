@@ -25,7 +25,7 @@ import AnalisisEstructural from './AnalisisEstructural.jsx';
 import { graphFromPropuesta } from '../datos/structuralGraph.js';
 import { conAcompanantes } from '../datos/autoInsumos.js';
 import { mapIaComps as mapIaCompsCompartido, propuestaConPiezas } from '../datos/mapIaComps.js';
-import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial } from '../datos/materialMatch.js';
+import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
@@ -65,6 +65,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   const [errIA, setErrIA] = useState('');
   const [validandoCosto, setValidandoCosto] = useState(false);
   const [errAutoridad, setErrAutoridad] = useState('');
+  const [confMsg, setConfMsg] = useState('');   // aviso tras confirmar materiales en bloque
   const [catalogoFuente, setCatalogoFuente] = useState(null);   // VH-066: 'canonico' | 'cliente-fallback'
   const [estructuraVoni, setEstructuraVoni] = useState(null);
   // RENDER STALE (Gate 6): si el despiece cambió desde que se generó la imagen, el
@@ -82,6 +83,31 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     () => recomendarCatalogoVonHaucke(costeo.descripcionCliente || costeo.nombre || '', 5),
     [costeo.descripcionCliente, costeo.nombre],
   );
+  // Confirmar EN BLOQUE los materiales propuestos que son compatibles (misma familia, sin diferencia
+  // real contra lo pedido, y observados por la IA): UNA decisión en vez de una por pieza. Las
+  // diferencias reales (otro calibre/perfil) y las piezas que la IA infirió/supuso NO entran al bloque
+  // y se confirman fila por fila (VH-158 / VONI Ingeniería). Espejo de AsistenteEspecial.confirmarPropuestos.
+  const noObservadaCost = (c) => c && (c.procedencia === 'INFERIDO' || c.procedencia === 'SUPUESTO');
+  const propuestosPorRegla = (costeo.componentes || []).filter((c) => {
+    if (!c.insumoId) return false;
+    const e = estadoMaterialUI(c, insumos);
+    return e.badgeTipo === 'confirmar' && !difiereDeLoPedido(e.cambio) && !noObservadaCost(c);
+  });
+  function confirmarPropuestos() {
+    const comps = (costeo.componentes || []).map((c) => {
+      const e = c.insumoId ? estadoMaterialUI(c, insumos) : null;
+      return (e && e.badgeTipo === 'confirmar' && !difiereDeLoPedido(e.cambio) && !noObservadaCost(c))
+        ? { ...c, ...patchConfirmacionUI(c.insumoId) } : c;
+    });
+    set({ componentes: conAcompanantes(comps, insumos) });
+    // APRENDER: cada confirmación se graba como puente propuesto (voni_material) para no re-preguntar.
+    for (const c of propuestosPorRegla) {
+      const pedido = c.material_solicitado || c.nombre || '';
+      if (pedido && c.insumoId) proponerMapeoMaterial(pedido, c.insumoId, { pedidoCrudo: c.nombre || '' }).catch(() => {});
+    }
+    const resto = (costeo.componentes || []).filter((c) => c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar').length - propuestosPorRegla.length;
+    setConfMsg(`✓ Confirmaste ${propuestosPorRegla.length} material(es) compatibles.${resto > 0 ? ` Quedan ${resto} con diferencia o inferidos: revísalos uno por uno.` : ''}`);
+  }
 
   // ÚNICO camino de preparación/cálculo: la misma función alimenta a VONI.
   const vivo = useMemo(
@@ -492,6 +518,18 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
         <div className="tarjeta">
           <h2>De qué está hecho — pieza por pieza</h2>
           <p className="ayuda columna-texto">Agrega cada pieza: ponle nombre, escoge de qué es y su medida. Las medidas van NETAS (de la pieza terminada); la app calcula el área, la fracción de hoja y la merma sola.</p>
+
+          {/* Confirmar en bloque los materiales compatibles (1 clic) — deja las diferencias reales y las
+              piezas inferidas para revisar fila por fila. Confirma = también se recuerda para la próxima. */}
+          {propuestosPorRegla.length > 0 && (
+            <div style={{ margin: '4px 0 10px' }}>
+              <button type="button" className="boton primario" data-testid="confirmar-propuestos" style={{ cursor: 'pointer' }} onClick={confirmarPropuestos}>
+                Confirmar los {propuestosPorRegla.length} materiales compatibles
+              </button>
+              {confMsg && <span className="ayuda" style={{ marginLeft: 10, color: '#2a7a4a' }}>{confMsg}</span>}
+            </div>
+          )}
+          {!propuestosPorRegla.length && confMsg && <p className="ayuda" style={{ color: '#2a7a4a' }}>{confMsg}</p>}
 
           {costeo.componentes.map((c, i) => {
             const ins = insumos[c.insumoId];
