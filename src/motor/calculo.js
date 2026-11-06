@@ -950,7 +950,11 @@ export function costeoEmitible(resultado) {
   const porConfirmar = [...((resultado && resultado.materialesPorConfirmar) || [])];
   const costoRaw = resultado?.costoUnitario;
   const costo = costoRaw == null || costoRaw === '' ? NaN : Number(costoRaw);
-  const costoCorrupto = !Number.isFinite(costo) || costo < 0;
+  // Fail-closed (auditoría adversarial VH-A05, 2026-11-06): un costo CERO no es emitible.
+  // Un costo total 0 significa que nada se costeó (ningún material con precio), no un producto
+  // gratis. Alinea el gate compartido con el servidor (autoridadCosteoServidor ya rechaza 0).
+  // Las piezas EXCLUIDAS individuales siguen siendo $0 por decisión; esto es sobre el TOTAL.
+  const costoCorrupto = !Number.isFinite(costo) || costo <= 0;
 
   const pendientes = [
     ...faltantes,
@@ -958,7 +962,7 @@ export function costeoEmitible(resultado) {
     ...tarifasFaltantes.map((x) => `Tarifa Intelisis faltante: ${x}`),
     ...porConfirmar.map((x) => `Material por confirmar: ${x}`),
   ];
-  if (costoCorrupto) pendientes.push('Costo unitario inválido/no finito');
+  if (costoCorrupto) pendientes.push('Costo unitario inválido, no finito o en cero');
 
   const emitible = pendientes.length === 0;
   return {
