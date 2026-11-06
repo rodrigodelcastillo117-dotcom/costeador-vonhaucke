@@ -705,9 +705,14 @@ async function resolverMaterialesERP(propuesta: any, url: string, srv: string): 
     if (!id) return;
     for (const z of zs) {
       z.insumoId = id;
-      z.material_match = "SUBSTITUTE_SUGGESTED";        // servidor propone; humano confirma (costea provisional, no emite)
+      // SAME_FAMILY_COMPATIBLE_PROPOSED: clase REAL del motor (materialMatch.js) que SÍ costea
+      // provisional (MATCH_AUTOCOSTEABLE) Y bloquea emisión hasta confirmación humana
+      // (REQUIERE_CONFIRMACION). El servidor (reconciliarMaterialServidor) reclasifica de forma
+      // autoritativa desde material_solicitado: si el candidato difiere en calibre/perfil/espesor
+      // crítico lo degrada a CRÍTICO y NO lo costea. Aquí sólo dejamos el amarre + un estado seguro.
+      z.material_match = "SAME_FAMILY_COMPATIBLE_PROPOSED";
       z.resuelto_por = "PUENTE_ERP_SERVIDOR";
-      z.nota = `${z.nota ? z.nota + " " : ""}[servidor: amarrado a «${String(best.nombre || "").slice(0, 50)}» ($${best.precio ?? best.precio_compra}) por material_solicitado; por confirmar]`;
+      z.nota = `${z.nota ? z.nota + " " : ""}[servidor: amarrado a «${String(best.nombre || "").slice(0, 50)}» ($${best.precio ?? best.precio_compra}) por material_solicitado; PROVISIONAL, por confirmar]`;
       resueltas++;
     }
   }));
