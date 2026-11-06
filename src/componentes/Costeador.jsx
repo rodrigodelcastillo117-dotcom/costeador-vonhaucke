@@ -29,6 +29,8 @@ import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaM
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import CosteoPorClave from './CosteoPorClave.jsx';
+import { listarBenchmarks } from '../datos/productoMaestroCarga.js';
+import { revisarDraftVsAnalogia } from '../datos/estimacionAnaloga.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
@@ -119,6 +121,19 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
   );
   const { piezaVirtual, parBase, par, esIntelisis, resultado } = vivo;
   const margen = costeo.margen ?? margenObjetivoDe(estado.parametros);
+  // MEJORA DEL PLANO CRUDO: benchmark por analogía con los BOMs guardados. El draft de VONI es ruidoso
+  // (subcuenta ~40%); si el costo de fabricación queda muy por debajo de muebles similares, se avisa.
+  const [benchmarks, setBenchmarks] = useState([]);
+  useEffect(() => { let vivo = true; listarBenchmarks().then((b) => { if (vivo) setBenchmarks(b || []); }).catch(() => {}); return () => { vivo = false; }; }, []);
+  const dimsMueble = useMemo(() => {
+    const t = `${costeo.nombre || ''} ${costeo.descripcionCliente || ''} ${costeo.tipoMueble || ''}`;
+    const m = t.match(/(\d{2,4})\s*[xX×]\s*(\d{2,4})\s*[xX×]\s*(\d{2,4})/);
+    return m ? [Number(m[1]), Number(m[2]), Number(m[3])] : null;
+  }, [costeo.nombre, costeo.descripcionCliente, costeo.tipoMueble]);
+  const avisoBenchmark = useMemo(
+    () => revisarDraftVsAnalogia(resultado?.politicaVH?.costoFabricacion, dimsMueble, costeo.nombre || costeo.tipoMueble || '', benchmarks),
+    [resultado?.politicaVH?.costoFabricacion, dimsMueble, costeo.nombre, costeo.tipoMueble, benchmarks],
+  );
   // Una sola regla costo → precio, sobre el costo OFICIAL: incompleto ⇒ null (nunca $0).
   const precio = precioDesdeCosto(resultado.costoOficial, { par, esIntelisis, margen });
   const bajoMinimo = margen < estado.parametros.margenMinimo;
@@ -862,6 +877,9 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 <div><div className="ayuda">Gasto indirecto (50%/5%)</div><strong>{pesos2(resultado.politicaVH.gif)}</strong></div>
                 <div style={{gridColumn:'1 / -1'}}><div className="ayuda">Costo de fabricación (estimaciones)</div><strong className="dinero">{pesos2(resultado.politicaVH.costoFabricacion)}</strong></div>
               </div>
+              {avisoBenchmark && avisoBenchmark.aviso && (
+                <div className="alerta ambar" style={{ marginTop: 8 }} data-testid="aviso-benchmark"><span className="texto">⚠ Benchmark: {avisoBenchmark.aviso}</span></div>
+              )}
             </div>
           )}
           <div className="ayuda" style={{marginTop:8}}>

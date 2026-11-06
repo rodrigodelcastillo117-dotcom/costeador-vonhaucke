@@ -33,3 +33,15 @@ export async function listarClaves(limite = 50) {
     return Array.isArray(data) ? data : [];
   } catch { return []; }
 }
+
+/** Cabeceras de BOM (clave, nombre, dims, cos_fab_real) para el benchmark por analogía del plano crudo. */
+export async function listarBenchmarks(limite = 500) {
+  try {
+    const { data, error } = await nube
+      .from('producto_maestro')
+      .select('clave,nombre,dims_mm,cos_fab_real')
+      .limit(Math.max(1, Math.min(2000, limite)));
+    if (error) return [];
+    return Array.isArray(data) ? data : [];
+  } catch { return []; }
+}
