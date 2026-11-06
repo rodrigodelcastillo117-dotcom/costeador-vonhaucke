@@ -28,6 +28,7 @@ import { mapIaComps as mapIaCompsCompartido, propuestaConPiezas } from '../datos
 import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaMaterial, difiereDeLoPedido } from '../datos/materialMatch.js';
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
+import CosteoPorClave from './CosteoPorClave.jsx';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
 import { flagActivo } from '../datos/flags.js';
 import { analizarProductoIndustrial } from '../datos/analisisIndustrial.js';
@@ -415,6 +416,8 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       <div>
         {/* N3 — análisis estructural (read-only, no toca el BOM certificado) */}
         {flagActivo('costing_ai_v2') && <AnalisisEstructural costeo={costeo} />}
+        {/* Costear por clave (Producto Maestro): mueble de catálogo con BOM confirmado → ±1% sin VONI. */}
+        <CosteoPorClave insumos={insumos} />
         {/* 1. Que estas costeando */}
         <div className="tarjeta">
           <label className="etiqueta" htmlFor="nom-pieza">Que estas costeando</label>
