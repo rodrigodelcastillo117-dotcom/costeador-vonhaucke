@@ -970,7 +970,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
                 onChange={(e) => set({ margen: parseInt(e.target.value) })} style={{ flex: 1 }} />
               <span className="valor">{margen}%</span>
             </div>
-            <div className="precio-grande" style={incompletoC ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
+            <div className="precio-grande" style={incompletoC ? { color: 'var(--rojo)' } : undefined}>{incompletoC ? 'Pendiente' : pesos2(precio)}</div>
             <div className="ayuda">{incompletoC ? 'Sin precio oficial: existe al menos un bloqueo técnico/económico de costeo.' : `Precio por pieza con ${margen}% de margen.`}</div>
             {incompletoC && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">⚠ Costo NO EMITIBLE — {pendientesC.length} bloqueo(s): {pendientesC.slice(0, 6).join(' · ')}{pendientesC.length > 6 ? '…' : ''}. No se puede cotizar ni emitir hasta resolverlos.</span></div>}
             {!incompletoC && bajoMinimo && <div className="alerta roja" style={{ marginTop: 10 }}><span className="texto">Debajo del minimo de {estado.parametros.margenMinimo}%.</span></div>}
@@ -1002,7 +1002,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
       {/* Barra fija inferior para pantallas angostas */}
       <div className="barra-fija no-imprimir">
         <span>{simulando ? 'Simulación' : incompletoC ? 'Subtotal conocido' : 'Cuesta hacer 1 pieza'} <strong className="mono">{pesos2(resultado.costoUnitario)}</strong></span>
-        {puedeVerComercial && <span className="precio-grande" style={(incompletoC || simulando) ? { color: '#b22a22' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>}
+        {puedeVerComercial && <span className="precio-grande" style={(incompletoC || simulando) ? { color: 'var(--rojo)' } : undefined}>{incompletoC ? 'Pendiente' : simulando ? 'No oficial' : pesos2(precio)}</span>}
       </div>
     </div>
   );
