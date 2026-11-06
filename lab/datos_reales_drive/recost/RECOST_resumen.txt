@@ -1,0 +1,51 @@
+# Re-costeo por el MOTOR vs resultado real — BOM completo, pieza por pieza, catálogo con octubre
+
+## VENTO C-CO-526R (3 exhibidores)
+  renglones BOM: 107  ·  con precio en catálogo: 92  ·  SIN precio (huecos): 15 (= 4012.88 del total real)
+  renglones cuyo precio ya es de OCTUBRE: 7
+  --- crudo (catálogo tal cual) ---
+  MATERIAL real workbook: 20358.57   motor: 32457.64   delta +12099.07 (59.4%)
+  --- defectos de datos que distorsionan ---
+  OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 5 renglones, 1 artículos (MVLREF00634532) · impacto +15295.50
+  HUECOS (BOM sin precio en catálogo): 15 renglones = 4012.88 que el motor NO cuenta
+  --- limpio (solo renglones con precio y sin outlier) ---
+  MATERIAL workbook: 16191.19   motor: 17007.64   delta +816.45 (5.0%)  ← acuerdo real motor vs real
+  MOTOR costeo completo (crudo): material 32457.64 + MO(Alba) 5289.98 + indirecto 15991.02 = fabricación 53738.64
+  mayores diferencias precio catálogo vs workbook:
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
+    -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
+    -56.2%  MVLUPI03B42101  wb 0.32 -> cat 0.14 (2026-09-10)  PIJA CABEZA PLANA PHILLIPS 8" X 5/8" PARA TAB
+    +43.3%  MVLUTO12110041  wb 0.6 -> cat 0.86 (2026-10-20) [OCT]  TORNILLO CABEZA BOTON ALLEN Ø 1/4" X 1/2"  CO
+    +43.3%  MVLUTO12110041  wb 0.6 -> cat 0.86 (2026-10-20) [OCT]  TORNILLO CABEZA BOTON ALLEN Ø 1/4" X 1/2"  CO
+    +41.9%  MDMEKT01000004  wb 1356.6 -> cat 1925 (2026-04-10)  KIT DE ILUMINACION   3 TIRAS DE LED DE 1100 m
+    +32.9%  MVLSTU01060401  wb 89.54 -> cat 119.01 (2026-09-17)  TUBULAR INDUSTRIAL CUADRADO 3/4"" CALIBRE 18 
+
+## TELCEL C-CO-320R DAT'S R5
+  renglones BOM: 89  ·  con precio en catálogo: 72  ·  SIN precio (huecos): 17 (= 10163.61 del total real)
+  renglones cuyo precio ya es de OCTUBRE: 10
+  --- crudo (catálogo tal cual) ---
+  MATERIAL real workbook: 30210.33   motor: 23940.96   delta -6269.37 (-20.8%)
+  --- defectos de datos que distorsionan ---
+  OUTLIERS de catálogo (|Δ|>500%, casi seguro error de unidad): 3 renglones, 1 artículos (MVLREF00634532) · impacto +460.35
+  HUECOS (BOM sin precio en catálogo): 17 renglones = 10163.61 que el motor NO cuenta
+  --- limpio (solo renglones con precio y sin outlier) ---
+  MATERIAL workbook: 20042.07   motor: 23475.97   delta +3433.90 (17.1%)  ← acuerdo real motor vs real
+  MOTOR costeo completo (crudo): material 23940.96 + MO(Alba) 2998.88 + indirecto 9181.37 = fabricación 36121.22
+  mayores diferencias precio catálogo vs workbook:
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    +9900%  MVLREF00634532  wb 7.5 -> cat 750 (2026-09-24)  ESPUMA FLEXIBLE  ROLLO DE 2.0 X 105 m ESPESOR
+    +160.4%  MVLEKT03000086  wb 2535 -> cat 6600 (2020-02-28)  KIT DE ILUMIN: 2 LUMIN. LINEAL 2100MM C/CONEC
+    -38%  MVLUPI10350001  wb 0.5 -> cat 0.31 (2025-08-15)  PIJA CABEZA FIJADORA PHILLIPS 10 X 15 mm  PAV
+    -37.1%  MVLUTU22540002  wb 0.62 -> cat 0.39 (2026-08-11)  TUERCA HEXAGONAL Ø 3/8""  GALVANIZADO - ""TU3
+    -37.1%  MVLUTU22540002  wb 0.62 -> cat 0.39 (2026-08-11)  TUERCA HEXAGONAL Ø 3/8""  GALVANIZADO - ""TU3
+    -37.1%  MVLUTU22540002  wb 0.62 -> cat 0.39 (2026-08-11)  TUERCA HEXAGONAL Ø 3/8""  GALVANIZADO - ""TU3
+    +36.1%  MVLSTU01080501  wb 96.71 -> cat 131.64 (2026-10-29) [OCT]  TUBULAR INDUSTRIAL CUADRADO 1"" CALIBRE 20 PI
+    +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
+    +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
+    +27.3%  MIEECI00140600  wb 22 -> cat 28 (2026-08-26)  ROLLO DE CINTA ADHESIVA  ANCHO 48 mm X 150.0 
