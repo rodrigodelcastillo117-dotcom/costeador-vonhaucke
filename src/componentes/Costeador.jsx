@@ -848,6 +848,19 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             <div><div className="ayuda">Preparación + empaque</div><strong>{pesos2((explicacionCosteo.matematicas.preparacion||0)+(explicacionCosteo.matematicas.empaque||0))}</strong></div>
             <div><div className="ayuda">Costo unitario</div><strong>{pesos2(explicacionCosteo.matematicas.costo_unitario||0)}</strong></div>
           </div>
+          {resultado.politicaVH && resultado.politicaVH.material > 0 && (
+            <div className="tarjeta" data-testid="costo-politica-vh" style={{ marginTop: 10, background:'#f6f3ee', padding:10, borderRadius:8 }}>
+              <div style={{ fontWeight:800, marginBottom:4 }}>Costo de fabricación · política estimaciones (VH)</div>
+              <div className="ayuda" style={{ marginBottom:6 }}>Lente del depto de estimaciones: fabricado ×1.8 (MO 20% + GIF 50%), compra-venta ×1.06. Depende de que el material esté completo.</div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(2,minmax(0,1fr))',gap:6}}>
+                <div><div className="ayuda">Material fabricado</div><strong>{pesos2(resultado.politicaVH.materialFabricado)}</strong></div>
+                <div><div className="ayuda">Material compra-venta</div><strong>{pesos2(resultado.politicaVH.materialCompraVenta)}</strong></div>
+                <div><div className="ayuda">Mano de obra (20%/1%)</div><strong>{pesos2(resultado.politicaVH.manoObra)}</strong></div>
+                <div><div className="ayuda">Gasto indirecto (50%/5%)</div><strong>{pesos2(resultado.politicaVH.gif)}</strong></div>
+                <div style={{gridColumn:'1 / -1'}}><div className="ayuda">Costo de fabricación (estimaciones)</div><strong className="dinero">{pesos2(resultado.politicaVH.costoFabricacion)}</strong></div>
+              </div>
+            </div>
+          )}
           <div className="ayuda" style={{marginTop:8}}>
             Fórmula: <b>{explicacionCosteo.formula}</b>
             {explicacionCosteo.modelo ? <><span> · modelo </span><b>{explicacionCosteo.modelo}</b></> : null}
