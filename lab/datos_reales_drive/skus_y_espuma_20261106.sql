@@ -38,3 +38,14 @@
 --   lo correcto es: volver unidad_costeo a 'rollo' y cerrar la fila corregida con la RPC de vigencia.
 --   El respaldo _backup_espuma_20261106 guarda el estado previo para reconstruirlo.)
 -- update insumos_catalogo set unidad_costeo='rollo' where id='erp-espr210518';
+
+-- ============================================================================
+-- (3) 2026-11-06 · Enlace de láminas/pulido curados a su artículo ERP (cierra huecos
+--     del recost; ayuda al matcher por artículo). No son precios → sin append-only.
+-- update insumos_catalogo set atributos = jsonb_set(coalesce(atributos,'{}'::jsonb),'{erp}',
+--   coalesce(atributos->'erp','{}'::jsonb) || jsonb_build_object('articulo',art,'clave',clave), true)
+-- from (values ('lamina-3x10-20','MVLSLA05260502','LN20310'),
+--              ('lamina-3x10-14','MVLSLA05260202','LN14310'),
+--              ('pulido-redondo-14','MVLSPU02030001','TRE14PU')) m(id,art,clave)
+-- where insumos_catalogo.id = m.id;
+-- REVERT: quitar la clave 'articulo' del objeto erp de esos 3 ids.
