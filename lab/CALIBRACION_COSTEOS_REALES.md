@@ -62,13 +62,14 @@ hallazgo de Paso A v3: los precios ya son reales y el motor los usa bien.
 
 ## 5. Pendiente que NO es del motor (decisión de Compras)
 
-- **VENTO: NO era una divergencia — son dos alcances distintos.** En Drive hay DOS archivos con el mismo
-  nombre "C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx", en carpetas distintas:
-  `1eTZbM` (2.07 MB, en disco) = **3 exhibidores co-creación** (refacciones/accesorios/cascos), módulos
-  id_01+id_03, $20,358.57; y `16HcbMYq` (1.83 MB, **sin extraer**) = **más muebles** (185 renglones,
-  $42,653.27). El golden fija el subconjunto en disco y el motor lo reproduce exacto. Pendiente: extraer
-  `16HcbMYq`, enumerar sus muebles y añadirlo como caso aparte (no reemplaza al de 3 exhibidores).
-  *(Corrección 2026-11-06: antes lo describí mal como "dos extracciones divergentes del mismo workbook".)*
+- **VENTO C-CO-526R: resuelto — solo existe un contenido real (3 exhibidores, $20,358.57).** En Drive hay
+  dos archivos homónimos "C-CO-526R Vento separacion materiales (1) 20 OCT.xlsx" (`1eTZbM` y `16HcbMYq`);
+  AMBOS se extrajeron y verificaron **idénticos**: mismos 3 exhibidores co-creación (refacciones/accesorios/
+  cascos), módulos id_01+id_03 (sin id_02), 107 renglones, Σcosto_linea $20,358.57 / Σconsumo×costo $20,435.98.
+  El "$42,653 / 185 renglones" de notas viejas (RESUMEN.md, MANIFIESTO.md) era una **extracción ERRÓNEA**;
+  NO existe un VENTO C-CO-526R con más muebles. El golden ($20,358.57) es correcto y no necesita un 2º caso.
+  CSV del 16HcbMYq (idéntico, para corroborar): `lab/datos_reales_drive/costeos/VENTO_526R_16HcbMYq/Explo_MP_BOM.csv`.
+  *(Doble corrección 2026-11-06: ni "divergencia del mismo workbook" ni "dos alcances distintos" — son iguales.)*
 - **Archivo `CosteAPPLT_Compras`**: los eléctricos "BE52…" traen unidad equivocada (pieza vs caja, ratio
   0.05605) — ver `PASO_A_V3_HALLAZGOS.md`. El BOM de APP LT de este golden NO usa esos renglones (son
   tablero/metal/pintura, todos sanos), pero el archivo de origen hay que corregirlo en Intelisis.

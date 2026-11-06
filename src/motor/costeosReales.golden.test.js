@@ -75,8 +75,9 @@ const CASOS = [
   ['Módulo APP LT (TATO63612AB001)', leerAPPLT, 'lab/datos_reales_drive/costeos/CosteAPPLT/BOM_costeo_APPLT.csv', 21, 3802.89, 0.02],
   // VENTO C-CO-526R (SUBCONJUNTO: 3 exhibidores co-creación — refacciones/accesorios/cascos; módulos
   // id_01 + id_03, sin id_02). El motor reproduce el BOM; el delta (~0.4%) es redondeo del workbook.
-  // ⚠️ En Drive hay OTRO archivo con el MISMO nombre (id 16HcbMYq, ~1.8 MB) que cubre MÁS muebles
-  // ($42,653 / 185 renglones). NO es una copia divergente de éste: es otro alcance. Sin extraer aún.
+  // Nota: en Drive hay OTRO archivo homónimo (id 16HcbMYq) — VERIFICADO idéntico a éste (mismos 3
+  // exhibidores, mismos 107 renglones, $20,358.57 / $20,435.98). El "$42,653 / 185 renglones" de notas
+  // viejas era una extracción ERRÓNEA; NO existe un VENTO C-CO-526R con más muebles.
   ['VENTO C-CO-526R (3 exhibidores)', leerExplo, 'lab/precios_vento/C-CO-526R__Explo_MP.csv',               107, 20358.57, 85],
 ];
 
