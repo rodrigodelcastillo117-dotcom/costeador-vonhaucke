@@ -566,10 +566,19 @@ Deno.serve(async (req) => {
     }
   }
 
+  // PUENTE MATERIAL→ERP (RC): amarra al catálogo COMPLETO lo que VONI detectó pero no ligó
+  // (el insumo real estaba entre los ERP que la IA no ve). Fail-open: si falla, se sirve lo que hay.
+  let puente: any = null;
+  try {
+    const u = Deno.env.get("SUPABASE_URL");
+    const srvKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (u && srvKey && canonicoOk) puente = await resolverMaterialesERP(propuesta, u, srvKey);
+  } catch (_e) { puente = null; }
+
   await cerrarTel("ok", 200, { model_status: String(data?.stop_reason || "ok") });
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
   // estuvo disponible y se usaron pistas locales: la UI debe avisar (no cotizar en firme).
-  return json({ ok: true, propuesta, catalogoFuente: canonicoOk ? "canonico" : "cliente-fallback", validacion, uso: data?.usage || null, request_id: requestId });
+  return json({ ok: true, propuesta, catalogoFuente: canonicoOk ? "canonico" : "cliente-fallback", validacion, puente, uso: data?.usage || null, request_id: requestId });
 });
 
 function json(obj: unknown, status = 200) {
@@ -611,6 +620,98 @@ function sanearPropuesta(propuesta: any, idsServidor: Set<string>, idsCliente: S
     if (z.material_match === "EXACT" && !z.insumoId) { ajustes.push({ pieza: i, field: "material_match", code: "EXACT_SIN_ID" }); z.material_match = "NOT_AVAILABLE"; }
   });
   return { ok: true, ajustes, piezas: propuesta.piezas.length, autoridad: "SERVER_CATALOG" };
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// PUENTE MATERIAL → ERP (RC, 2026-11-06). Causa raíz: a la IA sólo se le muestra el
+// catálogo CURADO (neq.erp) → detecta el material pero deja insumoId='' porque el insumo
+// real está entre los ~9,927 ERP que NO ve, y se costea en $0. Aquí, DESPUÉS de sanear,
+// para cada pieza SIN amarrar pero con material nombrado, se busca en el catálogo COMPLETO
+// (buscar_insumos_motor, que ya incluye ERP + precio) y se amarra el mejor candidato de la
+// MISMA FAMILIA. Se marca SUBSTITUTE_SUGGESTED (propuesta del servidor, la confirma un humano:
+// costea provisional pero NO emite en firme). NUNCA cruza familia, NUNCA inventa: sólo liga
+// insumos reales con precio>0. El motor pone merma/MO/fracción como siempre.
+const _FAMILIAS: [string, RegExp][] = [
+  ["superficie_solida", /superficie solida|corian|staron/], ["mdf_melamina", /mdf melamina|melamina dos caras|melamina una cara/],
+  ["aglomerado", /aglomerado/], ["mdf", /\bmdf\b/], ["melamina", /melamina/], ["laminado", /laminado/],
+  ["chapa_madera", /chapa de madera|chapacinta|chapa /], ["canto", /perfil de canto|\bcanto\b|peabs/],
+  ["lamina_inox", /acero inoxidable|inoxidable|\binox\b/], ["lamina", /lamina negra|lamina /],
+  ["tubular", /tubular|\bptr\b|tubo /], ["solera", /solera/], ["pintura", /pintura en polvo|pintura/],
+  ["acrilico", /acrilico/], ["cristal", /cristal|vidrio|templado/], ["espuma", /espuma/], ["tela", /\btela\b/], ["piel", /\bpiel\b/],
+  ["jaladera", /jaladera/], ["bisagra", /bisagra/], ["corredera", /corredera/], ["cerradura", /cerradura|cam lock/],
+  ["nivelador", /nivelador/], ["pija", /\bpija\b/], ["tornillo", /tornillo/], ["tuerca", /tuerca/], ["rondana", /rondana/],
+  ["perno", /\bperno\b|minifix/], ["taquete", /taquete|\btaco\b/], ["led", /kit de ilumin|tira led|\bled\b/],
+];
+function _normMat(s: string): string {
+  return String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/[^a-z0-9\s./x"-]/g, " ").replace(/\s+/g, " ").trim();
+}
+function _familiaMat(t: string): string { for (const [f, re] of _FAMILIAS) if (re.test(t)) return f; return "otros"; }
+function _numsMat(t: string): string[] { return (t.match(/\d+(?:\.\d+)?/g) || []).filter((n) => n.length <= 4); }
+function _scoreMat(solN: string, nombreCand: string): number {
+  const tt = new Set(solN.split(" ").filter((w) => w.length >= 3));
+  const tn = new Set(_numsMat(solN));
+  const cn = _normMat(nombreCand);
+  const ct = new Set(cn.split(" ").filter((w) => w.length >= 3));
+  const cnum = new Set(_numsMat(cn));
+  let ov = 0; for (const w of tt) if (ct.has(w)) ov++;
+  let nov = 0; for (const n of tn) if (cnum.has(n)) nov++;
+  return ov + nov * 3;
+}
+async function _buscarInsumos(url: string, h: any, q: string): Promise<any[]> {
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/buscar_insumos_motor`, {
+      method: "POST", headers: { ...h, "content-type": "application/json" },
+      body: JSON.stringify({ p_q: q, p_limite: 30 }),
+    });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return Array.isArray(j) ? j : [];
+  } catch { return []; }
+}
+async function resolverMaterialesERP(propuesta: any, url: string, srv: string): Promise<{ resueltas: number; intentos: number }> {
+  if (!propuesta || !Array.isArray(propuesta.piezas)) return { resueltas: 0, intentos: 0 };
+  const h = { apikey: srv, authorization: `Bearer ${srv}` };
+  const pend = propuesta.piezas.filter((z: any) =>
+    z && !z.insumoId && String(z.material_solicitado || z.nombre || "").trim().length >= 3);
+  if (!pend.length) return { resueltas: 0, intentos: 0 };
+  // dedupe por texto de material (muchas piezas comparten material)
+  const porTexto = new Map<string, any[]>();
+  for (const z of pend) {
+    const t = String(z.material_solicitado || z.nombre || "").trim();
+    if (!porTexto.has(t)) porTexto.set(t, []);
+    porTexto.get(t)!.push(z);
+  }
+  let resueltas = 0;
+  await Promise.all([...porTexto.entries()].map(async ([txt, zs]) => {
+    const solN = _normMat(txt);
+    const fam = _familiaMat(solN);
+    if (fam === "otros") return;                       // sin familia clara → no arriesgar
+    let cands = await _buscarInsumos(url, h, txt);
+    if (!cands.length) {                               // AND-LIKE muy estricto → reintenta con 2 tokens clave
+      const sig = solN.split(" ").filter((w) => w.length >= 3).sort((a, b) => b.length - a.length).slice(0, 2).join(" ");
+      if (sig) cands = await _buscarInsumos(url, h, sig);
+    }
+    const mismos = cands.filter((c: any) =>
+      _familiaMat(_normMat(c?.nombre || "")) === fam && Number(c?.precio ?? c?.precio_compra ?? 0) > 0);
+    if (!mismos.length) return;
+    let best: any = null, bestSc = -1, second = -1;
+    for (const c of mismos) {
+      const sc = _scoreMat(solN, c.nombre || "");
+      if (sc > bestSc) { second = bestSc; bestSc = sc; best = c; } else if (sc > second) second = sc;
+    }
+    if (!best || bestSc <= 0) return;
+    const id = best.id || best.insumo_id;
+    if (!id) return;
+    for (const z of zs) {
+      z.insumoId = id;
+      z.material_match = "SUBSTITUTE_SUGGESTED";        // servidor propone; humano confirma (costea provisional, no emite)
+      z.resuelto_por = "PUENTE_ERP_SERVIDOR";
+      z.nota = `${z.nota ? z.nota + " " : ""}[servidor: amarrado a «${String(best.nombre || "").slice(0, 50)}» ($${best.precio ?? best.precio_compra}) por material_solicitado; por confirmar]`;
+      resueltas++;
+    }
+  }));
+  return { resueltas, intentos: porTexto.size };
 }
 
 async function construirCatalogo(clienteCat: any): Promise<{ texto: string; canonicoOk: boolean; count: number; idsServidor: Set<string>; idsCliente: Set<string> }> {
