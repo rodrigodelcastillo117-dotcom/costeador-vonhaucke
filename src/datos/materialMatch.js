@@ -238,6 +238,11 @@ const FAMILIAS = [
   ['chapa_madera',      /chapa|veneer|enchap/i],
   ['madera_solida',     /madera\s+s[oó]lida|solid\s*wood|duela|tzalam|encino macizo|roble macizo/i],
   ['metal_lamina',      /l[aá]mina|lamina|acero|steel|ptr|tubular|tubo|fierro|hierro|metal/i],
+  // GRÁFICOS (E2E plano P-01, 2026-11-06): la impresión/rótulo/vinil gráfico es familia propia. El insumo real es
+  // "Impresión en estireno con arte"; sin esta familia, "Gráfico textos" y el insumo caían ambos en '' y la pieza no
+  // auto-costeaba (y "vinil" la mandaba a tapicería → AMBIGUOUS). Acento-tolerante (familiaDeMaterial NO normaliza).
+  // Va ANTES de tapicería para que "impresión en vinil" sea gráfico, no tela. NO incluye 'serigrafía' (es acabado en cristal).
+  ['graficos',          /impresi[oó]n|estireno|r[oó]tulo|gr[aá]fic/i],
   ['tapiceria',         /tapiz|tela|vinil|piel|cuero|textil|upholster/i],
 ];
 
