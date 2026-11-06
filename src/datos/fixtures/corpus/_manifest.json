@@ -1,0 +1,37 @@
+[
+ {
+  "archivo": "recepcion_corporativa.json",
+  "desc": "Recepción corporativa en L",
+  "piezas": 19
+ },
+ {
+  "archivo": "pet_collection.json",
+  "desc": "Colección PET (NEXUS/MUSE/NEST/HAVEN)",
+  "piezas": 27
+ },
+ {
+  "archivo": "TELSVH120.json",
+  "desc": "Vitrina Telcel TELSVH120",
+  "piezas": 22
+ },
+ {
+  "archivo": "TEVHSU.json",
+  "desc": "Vitrina Telcel TEVHSU",
+  "piezas": 27
+ },
+ {
+  "archivo": "TEVTSU_2.json",
+  "desc": "Vitrina vertical Telcel TEVTSU",
+  "piezas": 29
+ },
+ {
+  "archivo": "TVCAC_1.json",
+  "desc": "Vitrina Telcel CAC",
+  "piezas": 16
+ },
+ {
+  "archivo": "ENTCBCALP.json",
+  "desc": "Exhibidor Alpura",
+  "piezas": 34
+ }
+]

@@ -50,7 +50,9 @@ describe('OP9.5-04 · estado del servidor: incompleto sólo si falta un dato, y 
   it('costo $0 (o negativo cero) con todo lo demás en orden ⇒ INCOMPLETO con motivo, nunca certificado (P1-04)', () => {
     const s0 = estadoBaseServidor({ emision: emision({ costoUnitario: 0 }), usados: ['m16'], noCertificados: [], costoUnitario: 0 });
     expect(s0.estado).toBe('incompleto');
-    expect(s0.warnings[0]).toMatch(/\$0/);
+    // VH-A05 (2026-11-06): costeoEmitible ahora marca costo 0 como costo_invalido (alinea cliente/servidor),
+    // así que el motivo lo surfacea el gate ("inválido o no finito") antes que el genérico "$0". Ambos valen.
+    expect(s0.warnings[0]).toMatch(/\$0|inválido|no finito/i);
     expect(estadoBaseServidor({ emision: emision({}), usados: ['m16'], noCertificados: [], costoUnitario: 1000 }).estado).toBe('certificado');
   });
 
