@@ -79,6 +79,25 @@ describe('CONTRATO DE LÍNEA · ningún costo incompleto es oficial', () => {
     expect(clasificarLineaBOM({ cantidad: 1, excluido: true }, {}).estado).toBe('cero_real');
   });
 
+  it('AGREGADO_HISTORICO nunca es certificable, aunque tenga un número (orden #2)', () => {
+    const bom = { clave: 'T', tipo_bom: 'AGREGADO_HISTORICO', factor_mo: 0.1, factor_gif: 0.25,
+      lineas: [{ desc: 'Material total (agregado de estimaciones)', cantidad: 1, precioConfirmado: 1000 }] };
+    const r = costearBOM(bom, {});
+    expect(r.emitible).toBe(true);          // hay un número orientativo
+    expect(r.tipoBom).toBe('AGREGADO_HISTORICO');
+    expect(r.certificable).toBe(false);     // pero un agregado NO se certifica por materiales
+  });
+
+  it('BOM_DETALLADO_VERIFICADO con precios VIGENTES sí es certificable', () => {
+    const insumos = { a: { id: 'a', precio: 10, unidad: 'pza' }, b: { id: 'b', precio: 20, unidad: 'pza' } };
+    const bom = { clave: 'T', tipo_bom: 'BOM_DETALLADO_VERIFICADO',
+      lineas: [{ desc: 'x', insumoId: 'a', cantidad: 1 }, { desc: 'y', insumoId: 'b', cantidad: 1 }] };
+    const r = costearBOM(bom, insumos);
+    expect(r.emitible).toBe(true);
+    expect(r.orientativo).toBe(false);      // todo precio vigente
+    expect(r.certificable).toBe(true);
+  });
+
   it('back-compat: fuente y cobertura siguen existiendo para la UI', () => {
     const bom = { clave: 'T', lineas: [{ desc: 'lámina', cantidad: 1, precioConfirmado: 100 }] };
     const r = costearBOM(bom, {});
