@@ -1,0 +1,332 @@
+{
+ "TELCEL-VH-HORIZONTAL": {
+  "material_real": 4483.13,
+  "reconcilia": true,
+  "lineas": [
+   {
+    "articulo": "MVLSLA05260402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 3.04,
+    "costo_ultima": 571.54,
+    "total": 1737.48,
+    "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "MVLSLA05270402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.88,
+    "costo_ultima": 751.14,
+    "total": 661,
+    "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "MVLSLA05270402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.53,
+    "costo_ultima": 751.14,
+    "total": 398.1,
+    "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "MVLSLA05270202",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.04,
+    "costo_ultima": 1190.49,
+    "total": 47.62,
+    "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 14 ACER"
+   },
+   {
+    "articulo": "MVLQPP00000000",
+    "opcion": "A529",
+    "unidad": "Kg",
+    "consumo": 2.11,
+    "costo_ultima": 171.01,
+    "total": 360.83,
+    "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\""
+   },
+   {
+    "articulo": "MVLQPP00000000",
+    "opcion": "A10",
+    "unidad": "Kg",
+    "consumo": 0.21,
+    "costo_ultima": 249.58,
+    "total": 52.41,
+    "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\""
+   },
+   {
+    "articulo": "MLEMTM01040000",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 6.4,
+    "costo_ultima": 47.43,
+    "total": 303.55,
+    "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE  5 "
+   },
+   {
+    "articulo": "MLEMTM01050000",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 0.76,
+    "costo_ultima": 189.75,
+    "total": 144.21,
+    "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE  10"
+   },
+   {
+    "articulo": "MLEMTM01060000",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 8.2,
+    "costo_ultima": 94.87,
+    "total": 777.93,
+    "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 "
+   }
+  ]
+ },
+ "TELCEL-VH-TORRE": {
+  "material_real": 2966.15,
+  "reconcilia": true,
+  "lineas": [
+   {
+    "articulo": "MVLSLA05260502",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 1.08,
+    "costo_ultima": 428.65,
+    "total": 462.94,
+    "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACER"
+   },
+   {
+    "articulo": "MVLSLA05260402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 2.564,
+    "costo_ultima": 571.54,
+    "total": 1465.43,
+    "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "MVLSLA05260202",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.057,
+    "costo_ultima": 816.48,
+    "total": 46.54,
+    "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACER"
+   },
+   {
+    "articulo": "MVLSTU01080501",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 0.166,
+    "costo_ultima": 96.71,
+    "total": 16.05,
+    "desc": "TUBULAR INDUSTRIAL CUADRADO 1\"\" CALIBRE "
+   },
+   {
+    "articulo": "MVLSLA05270502",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.166,
+    "costo_ultima": 571.52,
+    "total": 94.87,
+    "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACER"
+   },
+   {
+    "articulo": "MVLMMR050000E7",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 8,
+    "costo_ultima": 26.5,
+    "total": 212,
+    "desc": "MADERA PARA EMBALAJE DE 1/2\" (13 mm.) DE"
+   },
+   {
+    "articulo": "MVLQPP00000000",
+    "opcion": "A10",
+    "unidad": "Kg",
+    "consumo": 0.65,
+    "costo_ultima": 249.58,
+    "total": 162.23,
+    "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\""
+   },
+   {
+    "articulo": "MVLQPP00000000",
+    "opcion": "",
+    "unidad": "Kg",
+    "consumo": 1.127,
+    "costo_ultima": 449.06,
+    "total": 506.09,
+    "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\""
+   }
+  ]
+ },
+ "TELCEL-VH-ISLA": {
+  "material_real": 3297.84,
+  "reconcilia": true,
+  "lineas": [
+   {
+    "articulo": "MVLSLA05280402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.6,
+    "costo_ultima": 585.51,
+    "total": 351.31,
+    "desc": "LAMINA NEGRA HOJA 4' X 8' CALIBRE 18 ACE"
+   },
+   {
+    "articulo": "MVLSLA05260402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.13,
+    "costo_ultima": 571.54,
+    "total": 74.3,
+    "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "MVLSTU01080401",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 2.75,
+    "costo_ultima": 132.5,
+    "total": 364.38,
+    "desc": "TUBULAR INDUSTRIAL CUADRADO 1\" CALIBRE 1"
+   },
+   {
+    "articulo": "MPMTLA01030601",
+    "opcion": "",
+    "unidad": "",
+    "consumo": 0.02,
+    "costo_ultima": 900.38,
+    "total": 18.01,
+    "desc": "LAMINA NEGRA HOJA 4' X 8' CALIBRE 14 ACE"
+   },
+   {
+    "articulo": "LN1838",
+    "opcion": "",
+    "unidad": "",
+    "consumo": 0.5,
+    "costo_ultima": 722.46,
+    "total": 361.23,
+    "desc": "LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO"
+   },
+   {
+    "articulo": "MVLSLA05270402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.09,
+    "costo_ultima": 751.14,
+    "total": 67.6,
+    "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "LN2038",
+    "opcion": "",
+    "unidad": "",
+    "consumo": 0.25,
+    "costo_ultima": 541.86,
+    "total": 135.47,
+    "desc": "LAMINA NEGRA HOJA 3 X 8 CALIBRE 20 ACERO"
+   },
+   {
+    "articulo": "MVLQPP00000000",
+    "opcion": "A529",
+    "unidad": "Kg",
+    "consumo": 1.18,
+    "costo_ultima": 171.01,
+    "total": 201.79,
+    "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\""
+   },
+   {
+    "articulo": "MLEMTM01040000",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 9,
+    "costo_ultima": 47.43,
+    "total": 426.87,
+    "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE  5 "
+   },
+   {
+    "articulo": "MLEMTM01050000",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 1.07,
+    "costo_ultima": 189.75,
+    "total": 203.03,
+    "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE  10"
+   },
+   {
+    "articulo": "MLEMTM01060000",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 11.53,
+    "costo_ultima": 94.87,
+    "total": 1093.85,
+    "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 "
+   }
+  ]
+ },
+ "TELCEL-MOD-ALMACEN": {
+  "material_real": 3596.14,
+  "reconcilia": false,
+  "lineas": [
+   {
+    "articulo": "MVLSLA05260402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 1.62,
+    "costo_ultima": 571.54,
+    "total": 925.89,
+    "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "MVLSLA05280402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 0.49,
+    "costo_ultima": 585.51,
+    "total": 286.9,
+    "desc": "LAMINA NEGRA HOJA 4' X 8' CALIBRE 18 ACE"
+   },
+   {
+    "articulo": "MVLSLA05270402",
+    "opcion": "",
+    "unidad": "Hoja",
+    "consumo": 1,
+    "costo_ultima": 751.14,
+    "total": 751.14,
+    "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACER"
+   },
+   {
+    "articulo": "MVLQPP00000000",
+    "opcion": "A529",
+    "unidad": "Kg",
+    "consumo": 2.15,
+    "costo_ultima": 171.01,
+    "total": 367.67,
+    "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\""
+   },
+   {
+    "articulo": "MVLQPP00000000",
+    "opcion": "A10",
+    "unidad": "Kg",
+    "consumo": 0.15,
+    "costo_ultima": 249.58,
+    "total": 37.44,
+    "desc": "PINTURA EN POLVO     - \"\"PPH\"\"\""
+   },
+   {
+    "articulo": "MVLABI19000000",
+    "opcion": "",
+    "unidad": "pieza",
+    "consumo": 4,
+    "costo_ultima": 13.66,
+    "total": 54.64,
+    "desc": "BISAGRA BIDIMENSIONAL, MONTAJE SOBREPUES"
+   }
+  ]
+ }
+}
