@@ -1,102 +1,114 @@
 {
-  "clave": "TELCEL-VH-HORIZONTAL",
-  "nombre": "Vitrina horizontal metal (Telcel C-CO-320R)",
-  "fuente": "reconstruido de explo_x_id 3949cec4_C_CO_320R_DATS_TELCEL_DIV_MATER__explo_x_id.csv (id=id_01)",
-  "tipo_bom": "BOM_DETALLADO_VERIFICADO",
-  "cos_fab_real": 6052.23,
-  "material_real": 4483.13,
-  "factor_mo": 0.1,
-  "factor_gif": 0.25,
-  "lineas": [
-    {
-      "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
-      "articulo": "MVLSLA05260402",
-      "opcion": "-",
-      "unidad": "Hoja",
-      "cantidad": 1,
-      "precioConfirmado": 1737.48,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
-      "articulo": "MVLSLA05270402",
-      "opcion": "-",
-      "unidad": "Hoja",
-      "cantidad": 1,
-      "precioConfirmado": 661.0,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
-      "articulo": "MVLSLA05270402",
-      "opcion": "-",
-      "unidad": "Hoja",
-      "cantidad": 1,
-      "precioConfirmado": 398.1,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 14 ACERO 1008 - \"\"LN14410\"\"\"",
-      "articulo": "MVLSLA05270202",
-      "opcion": "-",
-      "unidad": "Hoja",
-      "cantidad": 1,
-      "precioConfirmado": 47.62,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
-      "articulo": "MVLQPP00000000",
-      "opcion": "A529",
-      "unidad": "Kg",
-      "cantidad": 1,
-      "precioConfirmado": 360.83,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
-      "articulo": "MVLQPP00000000",
-      "opcion": "A10",
-      "unidad": "Kg",
-      "cantidad": 1,
-      "precioConfirmado": 52.41,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 5 CMS. DE ANCHO X 3/4\" (1.9 CMS) DE ESPESOR",
-      "articulo": "MLEMTM01040000",
-      "opcion": "-",
-      "unidad": "pieza",
-      "cantidad": 1,
-      "precioConfirmado": 303.55,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS DE ANCHO X 1 1/4\" (3.2 CMS) DE ESPES",
-      "articulo": "MLEMTM01050000",
-      "opcion": "-",
-      "unidad": "pieza",
-      "cantidad": 1,
-      "precioConfirmado": 144.21,
-      "insumoId": null,
-      "esCompraVenta": false
-    },
-    {
-      "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X 3/4\" (1.9 CMS) DE ESPESO",
-      "articulo": "MLEMTM01060000",
-      "opcion": "-",
-      "unidad": "pieza",
-      "cantidad": 1,
-      "precioConfirmado": 777.93,
-      "insumoId": null,
-      "esCompraVenta": false
-    }
-  ]
+ "clave": "TELCEL-VH-HORIZONTAL",
+ "nombre": "Vitrina horizontal metal (Telcel C-CO-320R)",
+ "fuente": "reconstruido de explo_x_id C-CO-320R (id_01)",
+ "tipo_bom": "BOM_DETALLADO_VERIFICADO",
+ "material_real": 4483.13,
+ "factor_mo": 0.1,
+ "factor_gif": 0.25,
+ "cos_fab_real": 6052.23,
+ "reconcilia": true,
+ "cobertura_identidad_pct": 100.0,
+ "pendiente_identidad": 0,
+ "lineas": [
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+   "articulo": "MVLSLA05260402",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 1737.48,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+   "articulo": "MVLSLA05270402",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 661.0,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+   "articulo": "MVLSLA05270402",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 398.1,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 14 ACERO 1008 - \"\"LN14410\"\"\"",
+   "articulo": "MVLSLA05270202",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 47.62,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+   "articulo": "MVLQPP00000000",
+   "opcion": "A529",
+   "unidad": "Kg",
+   "cantidad": 1,
+   "precioConfirmado": 360.83,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+   "articulo": "MVLQPP00000000",
+   "opcion": "A10",
+   "unidad": "Kg",
+   "cantidad": 1,
+   "precioConfirmado": 52.41,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 5 CMS. DE ANCHO X 3/4\" (1.9 CMS) DE ESPESOR",
+   "articulo": "MLEMTM01040000",
+   "opcion": "-",
+   "unidad": "pieza",
+   "cantidad": 1,
+   "precioConfirmado": 303.55,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS DE ANCHO X 1 1/4\" (3.2 CMS) DE ESPES",
+   "articulo": "MLEMTM01050000",
+   "opcion": "-",
+   "unidad": "pieza",
+   "cantidad": 1,
+   "precioConfirmado": 144.21,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "TIRA DE MADERA DE PINO DE SEGUNDA DE 10 CMS. DE ANCHO X 3/4\" (1.9 CMS) DE ESPESO",
+   "articulo": "MLEMTM01060000",
+   "opcion": "-",
+   "unidad": "pieza",
+   "cantidad": 1,
+   "precioConfirmado": 777.93,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  }
+ ]
 }

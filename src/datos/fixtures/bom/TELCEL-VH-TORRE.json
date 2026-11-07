@@ -1,0 +1,103 @@
+{
+ "clave": "TELCEL-VH-TORRE",
+ "nombre": "Vitrina torre metal (Telcel C-CO-320R)",
+ "fuente": "reconstruido de explo_x_id C-CO-320R (id_02)",
+ "tipo_bom": "BOM_DETALLADO_VERIFICADO",
+ "material_real": 2966.15,
+ "factor_mo": 0.1,
+ "factor_gif": 0.25,
+ "cos_fab_real": 4004.3,
+ "reconcilia": true,
+ "cobertura_identidad_pct": 100.0,
+ "pendiente_identidad": 0,
+ "lineas": [
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 20 ACERO 1008 - LN20310",
+   "articulo": "MVLSLA05260502",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 462.94,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+   "articulo": "MVLSLA05260402",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 1465.43,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 14 ACERO 1008 - LN14310",
+   "articulo": "MVLSLA05260202",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 46.54,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "TUBULAR INDUSTRIAL CUADRADO 1\"\" CALIBRE 20 PIEZA DE 6000 mm - \"\"TC201\"\"\"",
+   "articulo": "MVLSTU01080501",
+   "opcion": "-",
+   "unidad": "pieza",
+   "cantidad": 1,
+   "precioConfirmado": 16.05,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 20 ACERO 1008 -- LN20410",
+   "articulo": "MVLSLA05270502",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 94.87,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "MADERA PARA EMBALAJE DE 1/2\" (13 mm.) DE ESPESOR, 80 mm. (8 cms.) DE ANCHO Y 250",
+   "articulo": "MVLMMR050000E7",
+   "opcion": "-",
+   "unidad": "pieza",
+   "cantidad": 1,
+   "precioConfirmado": 212.0,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+   "articulo": "MVLQPP00000000",
+   "opcion": "A10",
+   "unidad": "Kg",
+   "cantidad": 1,
+   "precioConfirmado": 162.23,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+   "articulo": "MVLQPP00000000",
+   "opcion": "-",
+   "unidad": "Kg",
+   "cantidad": 1,
+   "precioConfirmado": 506.09,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  }
+ ]
+}

@@ -1,0 +1,103 @@
+{
+ "clave": "TELCEL-MOD-ALMACEN",
+ "nombre": "Módulo de almacenamiento metal (Telcel C-CO-320R)",
+ "fuente": "reconstruido de explo_x_id C-CO-320R (id_04)",
+ "tipo_bom": "BOM_DETALLADO_VERIFICADO",
+ "material_real": 3596.14,
+ "factor_mo": 0.1,
+ "factor_gif": 0.25,
+ "cos_fab_real": 4854.79,
+ "reconcilia": true,
+ "cobertura_identidad_pct": 67.4,
+ "pendiente_identidad": 1172.46,
+ "lineas": [
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 8 CALIBRE 18 ACERO 1008 - \"\"LN1838\"\"\"",
+   "articulo": null,
+   "opcion": "-",
+   "unidad": null,
+   "cantidad": 1,
+   "precioConfirmado": 722.46,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": true
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 3 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18310\"\"\"",
+   "articulo": "MVLSLA05260402",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 925.89,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 4' X 8' CALIBRE 18 ACERO 1008 - \"LN1848\"",
+   "articulo": "MVLSLA05280402",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 286.9,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "LAMINA NEGRA HOJA 4 X 10 CALIBRE 18 ACERO 1008 - \"\"LN18410\"\"\"",
+   "articulo": "MVLSLA05270402",
+   "opcion": "-",
+   "unidad": "Hoja",
+   "cantidad": 1,
+   "precioConfirmado": 751.14,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+   "articulo": "MVLQPP00000000",
+   "opcion": "A529",
+   "unidad": "Kg",
+   "cantidad": 1,
+   "precioConfirmado": 367.67,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "PINTURA EN POLVO - \"\"PPH\"\"\"",
+   "articulo": "MVLQPP00000000",
+   "opcion": "A10",
+   "unidad": "Kg",
+   "cantidad": 1,
+   "precioConfirmado": 37.44,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "BISAGRA BIDIMENSIONAL, MONTAJE SOBREPUESTO, ANGULO DE 110° - \"\"BIBI\"\"\"",
+   "articulo": "MVLABI19000000",
+   "opcion": "-",
+   "unidad": "pieza",
+   "cantidad": 1,
+   "precioConfirmado": 54.64,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": false
+  },
+  {
+   "desc": "Superficie de trabajo, cubierta MDF 12mm una cara laminado blanco con una cara p",
+   "articulo": null,
+   "opcion": "-",
+   "unidad": null,
+   "cantidad": 1,
+   "precioConfirmado": 450.0,
+   "insumoId": null,
+   "esCompraVenta": false,
+   "necesita_humano": true
+  }
+ ]
+}
