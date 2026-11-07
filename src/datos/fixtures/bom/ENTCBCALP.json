@@ -1,5 +1,6 @@
 {
  "clave": "ENTCBCALP",
+ "tipo_bom": "BOM_DETALLADO_VERIFICADO",
  "nombre": "Exhibidor para envases de leche Alpura",
  "dims_mm": [
   594,

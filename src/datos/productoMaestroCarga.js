@@ -10,7 +10,7 @@ export async function cargarBOMporClave(clave) {
   try {
     const { data, error } = await nube
       .from('producto_maestro')
-      .select('clave,nombre,dims_mm,fuente,cos_fab_real,lineas,actualizado_en')
+      .select('clave,nombre,dims_mm,fuente,cos_fab_real,lineas,actualizado_en,factor_mo,factor_gif,material_real,tipo_bom')
       .eq('clave', c)
       .maybeSingle();
     if (error) return { ok: false, error: error.message || 'No se pudo leer el BOM.' };

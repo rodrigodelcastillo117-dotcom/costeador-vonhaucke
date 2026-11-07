@@ -20,12 +20,50 @@
 // ============================================================================
 import { costoFabricacionVH, precioUsable } from '../motor/calculo.js';
 
-/** Precio de una línea de BOM: catálogo vigente si existe y es usable; si no, el confirmado. */
+/** Precio de una línea de BOM: catálogo vigente (precio > 0) si existe; si no, el confirmado. */
 export function precioLineaBOM(linea = {}, insumos = {}) {
   const ins = linea.insumoId ? insumos[linea.insumoId] : null;
-  if (ins && precioUsable(ins)) return { precio: Number(ins.precio), fuente: 'catalogo' };
+  if (ins && precioUsable(ins) && Number(ins.precio) > 0) return { precio: Number(ins.precio), fuente: 'catalogo' };
   if (Number(linea.precioConfirmado) > 0) return { precio: Number(linea.precioConfirmado), fuente: 'confirmado' };
   return { precio: null, fuente: 'sin_precio' };
+}
+
+const normU = (u) => String(u || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[²2]/g, '2').replace(/\s+/g, '');
+
+/**
+ * CONTRATO SEGURO DE LÍNEA (P1 2026-11-07): clasifica una línea en un estado explícito.
+ * Un estado que no se puede costear BLOQUEA la emisión; nunca se cuesta en silencio.
+ *   precio_vigente · precio_historico · cero_real  → no bloquean (costo definido)
+ *   cantidad_invalida · unidad_incompatible · precio_faltante → bloquean
+ * fuente se conserva para la UI (catalogo | confirmado | cero | sin_precio).
+ */
+export function clasificarLineaBOM(linea = {}, insumos = {}) {
+  const excluido = linea.excluido === true || linea.suministradoCliente === true;
+  const cantRaw = Number(linea.cantidad);
+  const cantOk = Number.isFinite(cantRaw) && cantRaw > 0;
+  // Exclusión confirmada / equipo del cliente: cuesta 0 legítimo, sin importar precio ni cantidad.
+  if (excluido) {
+    return { estado: 'cero_real', bloquea: false, precio: 0, cantidad: cantOk ? cantRaw : 0, costo: 0, fuente: 'cero' };
+  }
+  // Cantidad inválida (0, negativa, NaN, ausente): BLOQUEA. No se trata como 0 en silencio.
+  if (!cantOk) {
+    return { estado: 'cantidad_invalida', bloquea: true, precio: null, cantidad: 0, costo: 0, fuente: 'sin_precio' };
+  }
+  const ins = linea.insumoId ? insumos[linea.insumoId] : null;
+  const precioCat = ins ? Number(ins.precio) : NaN;
+  if (ins && precioUsable(ins) && Number.isFinite(precioCat) && precioCat > 0) {
+    const uL = normU(linea.unidad), uI = normU(ins.unidad);
+    if (uL && uI && uL !== uI) {
+      return { estado: 'unidad_incompatible', bloquea: true, precio: null, cantidad: cantRaw, costo: 0, fuente: 'sin_precio', unidad: { linea: linea.unidad, catalogo: ins.unidad } };
+    }
+    return { estado: 'precio_vigente', bloquea: false, precio: precioCat, cantidad: cantRaw, costo: precioCat * cantRaw, fuente: 'catalogo' };
+  }
+  // Catálogo con precio 0 / no usable NO sirve: cae a histórico orientativo, o faltante.
+  if (Number(linea.precioConfirmado) > 0) {
+    const p = Number(linea.precioConfirmado);
+    return { estado: 'precio_historico', bloquea: false, precio: p, cantidad: cantRaw, costo: p * cantRaw, fuente: 'confirmado' };
+  }
+  return { estado: 'precio_faltante', bloquea: true, precio: null, cantidad: cantRaw, costo: 0, fuente: 'sin_precio' };
 }
 
 /**
@@ -37,18 +75,23 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
   const lineas = Array.isArray(bom.lineas) ? bom.lineas : [];
   const detalle = [];
   const reporte = [];
-  let conCatalogo = 0, conConfirmado = 0, sinPrecio = 0;
+  const bloqueos = [];
+  let conCatalogo = 0, conConfirmado = 0, sinPrecio = 0, orientativo = false;
   for (const L of lineas) {
-    const p = precioLineaBOM(L, insumos);
-    const cant = Number(L.cantidad) > 0 ? Number(L.cantidad) : 0;
-    const costo = p.precio != null ? p.precio * cant : 0;
-    if (p.fuente === 'catalogo') conCatalogo++;
-    else if (p.fuente === 'confirmado') conConfirmado++;
-    else sinPrecio++;
+    const c = clasificarLineaBOM(L, insumos);
+    if (c.fuente === 'catalogo') conCatalogo++;
+    else if (c.fuente === 'confirmado') conConfirmado++;
+    else if (c.bloquea) sinPrecio++;
+    if (c.estado === 'precio_historico') orientativo = true;
+    if (c.bloquea) bloqueos.push({ desc: L.desc, estado: c.estado, unidad: c.unidad });
     // La política VH clasifica por sección; compra-venta = gráficos/iluminación.
-    detalle.push({ seccion: L.esCompraVenta ? 'graficos' : 'metal', costo });
-    reporte.push({ desc: L.desc, cantidad: cant, precio: p.precio, costo, fuente: p.fuente, esCompraVenta: !!L.esCompraVenta });
+    detalle.push({ seccion: L.esCompraVenta ? 'graficos' : 'metal', costo: c.costo });
+    reporte.push({ desc: L.desc, cantidad: c.cantidad, precio: c.precio, costo: c.costo, fuente: c.fuente, estado: c.estado, bloquea: c.bloquea, esCompraVenta: !!L.esCompraVenta });
   }
+  // Un BOM AGREGADO_HISTORICO no es un BOM por materiales verificado (se refina en el bloque 2).
+  const bomDetallado = bom.tipo_bom === 'BOM_DETALLADO_VERIFICADO';
+  const emitible = bloqueos.length === 0;
+  const certificable = emitible && !orientativo && bomDetallado;
   // Factores POR CLAVE (de la hoja de estimaciones): NO son universales (Alpura 20/50, Telcel 10/25).
   // Si la clave los trae, se usan (reproduce su hoja exacto). Si no, se cae a la política por sección.
   const fm = Number(bom.factor_mo), fg = Number(bom.factor_gif);
@@ -69,7 +112,14 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
     ...vh,
     cosFabReal,
     deltaPct,
-    cobertura: { lineas: lineas.length, conCatalogo, conConfirmado, sinPrecio },
+    // Contrato seguro: emitible = hay costo para cada línea (sin bloqueos);
+    // certificable = emitible, sin precios históricos y con BOM detallado verificado.
+    emitible,
+    certificable,
+    orientativo,
+    bloqueos,
+    tipoBom: bom.tipo_bom || 'AGREGADO_HISTORICO',
+    cobertura: { lineas: lineas.length, conCatalogo, conConfirmado, sinPrecio, bloqueos: bloqueos.length },
     lineas: reporte,
   };
 }

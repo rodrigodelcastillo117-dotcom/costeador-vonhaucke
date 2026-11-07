@@ -48,11 +48,27 @@ export default function CosteoPorClave({ insumos = {} }) {
       {c && (
         <div style={{ marginTop: 10 }} data-testid="clave-resultado">
           <div style={{ fontWeight: 700 }}>{res.bom.nombre} <span className="ayuda">· {res.bom.clave}</span></div>
+
+          {/* SELLO DE ESTADO (lo más importante para el piloto: jamás confundir estimación con costo certificado) */}
+          {!c.emitible ? (
+            <div className="alerta roja" data-testid="clave-estado" data-estado="no_emitible" style={{ marginTop: 8 }}>
+              <span className="texto">✕ <strong>Costo NO EMITIBLE</strong> — {c.bloqueos.length} bloqueo(s): {c.bloqueos.slice(0, 4).map((b) => b.desc || b.estado).join(' · ')}. No se puede cotizar ni certificar.</span>
+            </div>
+          ) : c.certificable ? (
+            <div className="ayuda" data-testid="clave-estado" data-estado="certificable" style={{ marginTop: 8 }}>
+              <strong>✓ Certificable por materiales</strong> — precios vigentes del catálogo + BOM detallado verificado.
+            </div>
+          ) : (
+            <div className="alerta ambar" data-testid="clave-estado" data-estado="orientativo" style={{ marginTop: 8 }}>
+              <span className="texto">⚠ <strong>Estimación orientativa — NO es costo oficial certificado.</strong> {c.tipoBom === 'AGREGADO_HISTORICO' ? 'BOM agregado histórico, sin desglose por material.' : 'Usa precios históricos; falta precio vigente del catálogo en algunas líneas.'}</span>
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 6, marginTop: 8 }}>
             <div><div className="ayuda">Material fabricado</div><strong>{pesos(c.materialFabricado)}</strong></div>
             <div><div className="ayuda">Material compra-venta</div><strong>{pesos(c.materialCompraVenta)}</strong></div>
-            <div><div className="ayuda">Mano de obra (20%/1%)</div><strong>{pesos(c.manoObra)}</strong></div>
-            <div><div className="ayuda">Gasto indirecto (50%/5%)</div><strong>{pesos(c.gif)}</strong></div>
+            <div><div className="ayuda">Mano de obra{c.material > 0 ? ` (${(100 * c.manoObra / c.material).toFixed(1)}%)` : ''}</div><strong>{pesos(c.manoObra)}</strong></div>
+            <div><div className="ayuda">Gasto indirecto{c.material > 0 ? ` (${(100 * c.gif / c.material).toFixed(1)}%)` : ''}</div><strong>{pesos(c.gif)}</strong></div>
             <div style={{ gridColumn: '1 / -1' }}>
               <div className="ayuda">Costo de fabricación</div>
               <strong className="dinero" style={{ fontSize: '1.15em' }} data-testid="clave-cosfab">{pesos(c.costoFabricacion)}</strong>

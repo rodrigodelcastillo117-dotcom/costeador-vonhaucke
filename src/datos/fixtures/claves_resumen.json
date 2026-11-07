@@ -1,0 +1,12 @@
+{
+  "_fuente": "producto_maestro (DB viva, verificado 2026-11-07). material_real, factor_mo, factor_gif, cos_fab_real tal cual.",
+  "_nota": "Dataset congelado para la prueba FUERA DE MUESTRA. Los factores son back-fit por clave; este set sirve para medir si generalizan, no para proclamar precisión.",
+  "claves": [
+    { "clave": "COPETE-CAB-516R",      "tipo_bom": "BOM_DETALLADO_VERIFICADO", "familia": "metal-cabecera", "material_real": 460.57,   "factor_mo": 0.199991, "factor_gif": 0.599974, "cos_fab_real": 829.01 },
+    { "clave": "ENTCBCALP",            "tipo_bom": "BOM_DETALLADO_VERIFICADO", "familia": "mdf-exhibidor", "material_real": 12315.65, "factor_mo": 0.128725, "factor_gif": 0.393677, "cos_fab_real": 18749.37 },
+    { "clave": "TELCEL-MOD-ALMACEN",   "tipo_bom": "AGREGADO_HISTORICO",       "familia": "telcel-metal", "material_real": 3596.14,  "factor_mo": 0.10, "factor_gif": 0.25,  "cos_fab_real": 4854.78 },
+    { "clave": "TELCEL-VH-HORIZONTAL", "tipo_bom": "BOM_DETALLADO_VERIFICADO", "familia": "telcel-metal", "material_real": 4483.13,  "factor_mo": 0.10, "factor_gif": 0.25,  "cos_fab_real": 6052.22 },
+    { "clave": "TELCEL-VH-ISLA",       "tipo_bom": "AGREGADO_HISTORICO",       "familia": "telcel-metal", "material_real": 3297.84,  "factor_mo": 0.10, "factor_gif": 0.25,  "cos_fab_real": 4452.07 },
+    { "clave": "TELCEL-VH-TORRE",      "tipo_bom": "AGREGADO_HISTORICO",       "familia": "telcel-metal", "material_real": 2966.15,  "factor_mo": 0.10, "factor_gif": 0.005, "cos_fab_real": 3277.60 }
+  ]
+}
