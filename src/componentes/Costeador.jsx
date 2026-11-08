@@ -29,6 +29,7 @@ import { aplicarPoliticaMaterial, estadoMaterialUI, patchConfirmacionUI, alertaM
 import { aplicarAHermanas } from '../datos/materialHermanas.js';
 import BuscadorInsumo from './BuscadorInsumo.jsx';
 import CosteoPorClave from './CosteoPorClave.jsx';
+import GuardarProductoMaestro from './GuardarProductoMaestro.jsx';
 import { listarBenchmarks } from '../datos/productoMaestroCarga.js';
 import { revisarDraftVsAnalogia } from '../datos/estimacionAnaloga.js';
 import { renderSpecFromGraph } from '../datos/renderSpec.js';
@@ -854,6 +855,20 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
             grande para la MISMA pieza. Se le pasa el margen efectivo. (Para piezas
             de catálogo/Intelisis la hoja usa la lista ×3 y este override no aplica.) */}
         <HojaCosto resultado={resultado} insumos={insumos} pieza={piezaVirtual} parametros={{ ...par, margenObjetivo: margen }} tipo={costeo.tipoProducto} mostrarVolumen={puedeVerComercial} mostrarComercial={puedeVerComercial} />
+
+        {/* LOOP DE APRENDIZAJE: confirmar este despiece → guardarlo como Producto Maestro (sólo Dirección;
+            la RPC guardar_producto_maestro hace la puerta). Usa los factores VH efectivos para reproducir
+            el costo exacto. Aparece sólo con un costeo VH real y al menos un insumo mapeado al catálogo. */}
+        {puedeVerComercial && resultado.politicaVH && resultado.politicaVH.material > 0
+          && (resultado.detalleInsumos || []).some((d) => d && d.insumoId) && (
+          <GuardarProductoMaestro
+            detalleInsumos={resultado.detalleInsumos}
+            insumos={insumos}
+            factorMo={resultado.politicaVH.manoObra / resultado.politicaVH.material}
+            factorGif={resultado.politicaVH.gif / resultado.politicaVH.material}
+            nombreSugerido={costeo.nombre}
+          />
+        )}
 
         <details className="tarjeta" open style={{ marginTop: 12, borderLeft:'4px solid #5b4636' }}>
           <summary style={{ cursor:'pointer', fontWeight:800 }}>Así calculé este mueble · auditoría matemática</summary>
