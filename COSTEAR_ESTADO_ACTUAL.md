@@ -5,7 +5,7 @@
 
 - **Fecha:** 2026-11-09
 - **Rama de desarrollo:** `claude/pm-concurrencia`
-- **SHA del estado descrito:** `c4ada419684a8618997f74fa19a0f31a9247366b` (este archivo se commitea encima)
+- **SHA del estado descrito:** `7c27f46ff13bf370f247c227d2aa01f66de00bde` (este archivo se commitea encima)
 - **Prod (`c3.4-seller-safe`):** `4f79c72193baceec0cf3f38dbcc4699f2ffe9eac`
 - **PR draft (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
 - ⚠️ Nota de ramas: la rama designada original era `claude/costing-app-architecture-psf02g`, pero quedó obsoleta tras un reinicio; todo el trabajo real y el PR viven en `claude/pm-concurrencia`.
@@ -18,8 +18,11 @@ Todos con prueba adversarial RED→GREEN.
 2. **`laminasParaCalibre`:** si se pide un acero sin candidatos → **BLOQUEA**; nunca cae a otra familia de acero en silencio.
 3. **Autorización de MO:** un `autorizado:true` del cliente **no prueba nada**. `cargarEstandar` exige **aprobador real** (`aprobado_por` con rol Dirección vía `autoridadDesdeListas`, no cuenta no-humana) + versión + vigencia + unidades. `recostearExpediente` pasa la autoridad; sin ella, los estándares se **rechazan**.
 4. **Modelo oficial:** dos cálculos **separados** (`factores_vh` vs `routing_tiempos`), sin doble conteo. `oficial_mxn` usa el modelo de la **política aprobada** (`autoridadPolitica`); sin política aprobada **no hay oficial**. `certificable == emitible_comercial == (oficial_mxn != null)` **unificados**.
-5. **App verdadera + persistencia:** componente real; E2E Chromium (`e2e/pantallaIngenieria.e2e.js`) prueba recalcular/persistir/reabrir **y el rechazo de MO sin autoridad** (PASA). Contrato de persistencia en Supabase (`persistenciaExpediente.js` + RPC con concurrencia optimista) **probado en PGlite** (4). Migración `supabase/migrations/20261111_expediente_costeo.sql` **PROPUESTA, no aplicada**.
-   - **Requiere autorización** (prod/QA) para cerrar: (a) aplicar la migración, (b) insertar la pantalla en la **navegación autenticada** del flujo de costeo, (c) E2E productivo con escritura real a Supabase. No lo hago sin tu OK.
+5. **App verdadera + persistencia — COMPLETO (autorizado por Dirección):**
+   - (a) **Migración aplicada a prod** ✅ `supabase/migrations/20261111_expediente_costeo.sql`: tabla `expediente_costeo` + RLS por usuario + RPC `guardar/reabrir_expediente_costeo` (concurrencia optimista). Verificado en prod (tabla, rls=true, 2 RPCs, 2 policies, execute a authenticated). Additiva: no toca precios/BOM/PM/permisos.
+   - (b) **Integrada en la nav autenticada** ✅ `src/componentes/IngenieriaExpediente.jsx` (carga/guarda vía Supabase, sin localStorage) + pestaña Dirección en `App.jsx`. Build de producción verde; smoke E2E verde.
+   - (c) **E2E PRODUCTIVO (auth + Supabase) PASA** ✅ `e2e/pantallaIngenieriaProd.e2e.js`: login Dirección → Ingeniería → confirmar desarrollo CAD → `guardar_expediente_costeo` (RPC 200) → recargar → **reabrir desde Supabase** → la decisión persiste. Credenciales sólo por env (no en repo).
+   - Nota: la primera corrida dejó UNA fila QA (`TELSVH120` de `qa-direccion`) en `expediente_costeo` (borrador, aislado por RLS, sin impacto económico). Limpieza pendiente (no bloquea).
 
 ---
 
@@ -29,6 +32,7 @@ Todos con prueba adversarial RED→GREEN.
 |---|---|---|
 | P0 integridad guardado Producto Maestro (cliente + servidor, gate Dirección) | ✅ en prod | RPC `guardar_producto_maestro` 14-arg; cliente Vercel READY `4f79c72` |
 | P1 concurrencia (lost update) — advisory lock + FOR UPDATE + UPDATE condicional | ✅ en prod (autorizado 2026-11-09) | `supabase/migrations/DESPLIEGUE_P0_PRODUCTO_MAESTRO.md`; evidencia 2 conexiones: `supabase/tests/postgres_real/` |
+| Tabla + RPC `expediente_costeo` (persistencia de Ingeniería, RLS por usuario) | ✅ en prod (autorizado 2026-11-09) | `supabase/migrations/20261111_expediente_costeo.sql`; E2E productivo `e2e/pantallaIngenieriaProd.e2e.js`. Additiva, no toca precios/BOM/PM |
 
 **Smoke de app del P0 (humano): PENDIENTE** — Dirección debe hacer borrador→verificado→reabrir→sustituir + 2 guardados concurrentes desde su sesión (la RPC exige JWT de Dirección; no se puede suplantar).
 
