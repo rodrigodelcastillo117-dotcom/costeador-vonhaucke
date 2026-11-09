@@ -44,8 +44,8 @@ describe('costearProductoIndustrial — total seguro (P1+P2)', () => {
   });
 
   it('aun con estandares de MO cargados, un total PARCIAL sigue sin ser emitible comercial', () => {
-    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
-    cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 2, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true });
+    cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 2, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true });
     const r = costearProductoIndustrial({ piezasBOM: BOM, routing: ROUTING, insumosERP: INSUMOS_ERP, catalogoLamina: CAT });
     expect(r.mano_obra.routing_completa).toBe(true);
     expect(r.emitible_comercial).toBe(false);                 // sigue faltando material (CUE 3D, KIT precio)
@@ -66,7 +66,7 @@ describe('costearProductoIndustrial — total seguro (P1+P2)', () => {
   });
 
   it('P1: terceros pendientes -> oficial_mxn NULL aunque MO completa', () => {
-    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true });
     const bom = [...CERRADO, { clave: 'CR', desc: 'CRISTAL TEMPLADO', cantidad: 1, insumoId: 'erp-cr' }];
     const r = costearProductoIndustrial({ piezasBOM: bom, routing: R1, catalogoLamina: CAT, insumosERP: { 'erp-cr': { id: 'erp-cr', precio: 100, unidad: 'pieza', seccion: 'cristal' } } });
     expect(r.mano_obra.routing_completa).toBe(true);
@@ -76,7 +76,7 @@ describe('costearProductoIndustrial — total seguro (P1+P2)', () => {
   });
 
   it('P1: cerrado + MO completa + SIN terceros -> oficial_mxn presente y emitible', () => {
-    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true });
     const r = costearProductoIndustrial({ piezasBOM: CERRADO, routing: R1, catalogoLamina: CAT });
     expect(r.total.es_oficial).toBe(true);
     expect(r.total.oficial_mxn).toBeGreaterThan(0);
