@@ -100,6 +100,12 @@ begin
     raise exception 'tipo_bom invalido: %', p_tipo_bom;
   end if;
 
+  -- CONCURRENCIA (P1 2026-11-09): serializa por clave para que el read(version)→check→write sea ATÓMICO.
+  -- Sin esto, dos conexiones READ COMMITTED leen version=1, ambas pasan el check y ambas hacen UPDATE
+  -- (que filtra sólo por clave) → lost update. El advisory lock de transacción las serializa; el SELECT
+  -- FOR UPDATE abajo bloquea la fila existente; y el UPDATE condiciona por version. Se libera al commit.
+  perform pg_advisory_xact_lock(hashtext('producto_maestro:' || btrim(p_clave)));
+
   -- Pendientes = líneas sin insumoId, sin cantidad física > 0, sin unidad, o marcadas pendiente.
   select count(*) into v_pend from jsonb_array_elements(p_lineas) l
    where coalesce((l->>'pendiente')::boolean, false) = true
@@ -116,7 +122,7 @@ begin
 
   -- ¿Ya existe la clave? (control optimista + confirmación de sustitución)
   select version, coalesce(estado_bom, tipo_bom) into v_ver_actual, v_tipo_actual
-    from public.producto_maestro where clave = btrim(p_clave);
+    from public.producto_maestro where clave = btrim(p_clave) for update;
   v_existe := found;
 
   if v_existe then
@@ -139,7 +145,10 @@ begin
       tipo_bom = p_tipo_bom, estado_bom = p_tipo_bom,
       fuente = coalesce(nullif(btrim(coalesce(p_fuente,'')),''), 'Confirmado en COSTEAR por ' || v_email),
       version = v_nueva_ver, actualizado_por = v_email, actualizado_en = now(), huella = v_huella
-    where clave = btrim(p_clave);
+    where clave = btrim(p_clave) and version = v_ver_actual;   -- condicional atómico por versión
+    if not found then
+      raise exception 'VERSION_CONFLICT: "%" cambió durante el guardado (reabre y reintenta).', btrim(p_clave);
+    end if;
   else
     v_nueva_ver := 1; v_accion := 'crear';
     insert into public.producto_maestro
