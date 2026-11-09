@@ -10,7 +10,14 @@ import { test, expect } from '@playwright/test';
 // ============================================================================
 const EMAIL = process.env.TEST_EMAIL; const PASS = process.env.TEST_PASSWORD;
 
+async function cerrarGuia(page) {
+  // primer login: la guia de onboarding (modal-fondo) tapa el menu -> cerrarla
+  const x = page.getByRole('button', { name: /Cerrar la gu.a/i });
+  if (await x.isVisible().catch(() => false)) await x.click();
+  await expect(page.locator('.modal-fondo')).toHaveCount(0);
+}
 async function abrirIngenieria(page) {
+  await cerrarGuia(page);
   await page.locator('summary.btn-enc').click();
   await page.getByRole('menuitem', { name: /Ingenier.a \(costeo nuevo\)/i }).click();
   await expect(page.getByTestId('pantalla-ingenieria')).toBeVisible({ timeout: 30000 });
