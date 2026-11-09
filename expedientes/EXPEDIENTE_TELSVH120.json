@@ -116,11 +116,10 @@
     ]
   },
   "routing": {
-    "total_operaciones": 16,
+    "total_operaciones": 15,
     "por_centro": {
       "metalmecánica": 4,
       "vidrio": 1,
-      "carpintería": 1,
       "pintura": 3,
       "ensamble": 3,
       "eléctrico": 2,
@@ -157,12 +156,6 @@
         "centro": "metalmecánica",
         "estado": "PENDIENTE_TIEMPO",
         "disparada_por": "unión soldada a limpiar"
-      },
-      {
-        "op": "canteado",
-        "centro": "carpintería",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "canto/tapacanto en el BOM"
       },
       {
         "op": "preparacion_superficie",
@@ -340,12 +333,6 @@
           "estado": "PENDIENTE_TARIFA"
         },
         {
-          "op": "canteado",
-          "centro": "carpintería",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
           "op": "preparacion_superficie",
           "centro": "pintura",
           "costo": null,
@@ -420,7 +407,6 @@
       "Tarifa y tiempo autorizados de \"Punzonado/barrenado\" (centro metalmecánica) para costear su MO.",
       "Tarifa y tiempo autorizados de \"Doblez\" (centro metalmecánica) para costear su MO.",
       "Tarifa y tiempo autorizados de \"Esmerilado/acabado de soldadura\" (centro metalmecánica) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Pegado de canto\" (centro carpintería) para costear su MO.",
       "Tarifa y tiempo autorizados de \"Preparación de superficie\" (centro pintura) para costear su MO.",
       "Tarifa y tiempo autorizados de \"Pintura líquida / laca / barniz\" (centro pintura) para costear su MO.",
       "Tarifa y tiempo autorizados de \"Secado / curado\" (centro pintura) para costear su MO.",
@@ -441,7 +427,6 @@
     "Tarifa y tiempo autorizados de \"Punzonado/barrenado\" (centro metalmecánica) para costear su MO.",
     "Tarifa y tiempo autorizados de \"Doblez\" (centro metalmecánica) para costear su MO.",
     "Tarifa y tiempo autorizados de \"Esmerilado/acabado de soldadura\" (centro metalmecánica) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Pegado de canto\" (centro carpintería) para costear su MO.",
     "Tarifa y tiempo autorizados de \"Preparación de superficie\" (centro pintura) para costear su MO.",
     "Tarifa y tiempo autorizados de \"Pintura líquida / laca / barniz\" (centro pintura) para costear su MO.",
     "Tarifa y tiempo autorizados de \"Secado / curado\" (centro pintura) para costear su MO.",
