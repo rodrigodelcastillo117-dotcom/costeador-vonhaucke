@@ -5,10 +5,24 @@
 
 - **Fecha:** 2026-11-09
 - **Rama de desarrollo:** `claude/pm-concurrencia`
-- **SHA del estado descrito:** `489ec531f6c8df9203559f5ba6f706b1dfef8cdf` (este archivo se commitea encima)
+- **SHA del estado descrito:** `cefd2ed32a14645f1bb6c167c860bb634cb2823a` (este archivo se commitea encima)
 - **Prod (`c3.4-seller-safe`):** `4f79c72193baceec0cf3f38dbcc4699f2ffe9eac`
 - **PR draft (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
 - ⚠️ Nota de ramas: la rama designada original era `claude/costing-app-architecture-psf02g`, pero quedó obsoleta tras un reinicio; todo el trabajo real y el PR viven en `claude/pm-concurrencia`.
+
+## Último bloque — correcciones de auditoría (P1/P2/P3)
+
+Auditoría de Dirección sobre SHA `f8bd9bc` → 6 defectos del cálculo físico corregidos **RED→GREEN**.
+
+- **P1 integridad del material** (`costoPiezaFabricada.js`, 10 pruebas adversariales):
+  1. Fuente **autoritativa**: lámina del `catalogo_vigente` con precio exacto + `precio_id` + unidad + evidencia + `certificable` (fixture `src/datos/fixtures/catalogo_lamina_vigente.json`). Ya **no** usa el seed.
+  2. Calibre propuesto ya no se confirma solo → estado `PRELIMINAR`; soporta `calibreConfirmado`.
+  3. Desarrollo `VERIFICADO` (L×W) vs `INFERIDO_L2D` separados.
+  4. Pieza que no cabe → `BLOQUEADO` + busca formato compatible; nunca una hoja en silencio.
+  5. Cantidad inválida/faltante → `BLOQUEADO` (se eliminó `Number(x)||1`).
+  6. Nesteo/kerf/formato/merma vía el motor; selección por menor costo por pieza; sin doble conteo.
+- **P2 total seguro** (`costoPropuestoProcesos.js`): material incluido vs pendiente, fabricado verificable vs preliminar, MO política_vh vs routing-sin-estándares, GIF, terceros, **total PARCIAL vs OFICIAL**; `emitible_comercial=false` mientras sea parcial.
+- **P3 confirmaciones que recalculan** (`pantallaIngenieria.js`): `recostearExpediente()` conecta confirmaciones (calibre/desarrollo/precio/estándares) y **recalcula con el motor existente**, conserva evidencia y versiona. El expediente lleva `inputs`.
 
 ---
 
@@ -43,27 +57,31 @@ Todo el **costeo industrial** y la pantalla son código nuevo en `claude/pm-conc
 
 ## Problemas corregidos
 
+- **Auditoría (este bloque):** 6 defectos del cálculo físico de material (ver P1 arriba): seed→catálogo autoritativo; calibre propuesto≠confirmado; desarrollo verificado vs inferido; no-cabe ya no asigna hoja en silencio; `Number(x)||1` eliminado; selección de formato por menor costo/pieza.
 - Condición de carrera (lost update) en la RPC → advisory lock + UPDATE condicional (en prod).
-- Falso positivo de routing: "cantos pulidos" del cristal disparaba canteado de carpintería → corregido (`ba828df`).
-- Selección de calibre no-exacto elegía el más grueso → ahora el más cercano (cal24→cal22).
-- `areaHoja` NaN para láminas 4×8 sin `largoMM` → fallback al formato por defecto.
+- Falso positivo de routing: "cantos pulidos" del cristal disparaba canteado de carpintería (`ba828df`).
 
 ## Pruebas reales ejecutadas
 
-- **Suite completa: 4325 tests verde** (exit 0).
-- **Postgres real, 2 conexiones concurrentes:** versión previa reproduce LOST UPDATE; parche lo cierra (VERSION_CONFLICT). → `supabase/tests/postgres_real/`
-- **E2E TELSVH120** (plano nuevo fuera de muestra, leído en vivo): `tools/e2e_plano_nuevo.mjs` → `expedientes/EXPEDIENTE_TELSVH120.json`
+- **Suite completa: 4331 tests verde** (exit 0) en SHA `cefd2ed`.
+- **10 pruebas adversariales** (una por defecto de la auditoría) en `costoPiezaFabricada.test.js`.
+- **Postgres real, 2 conexiones concurrentes:** versión previa reproduce LOST UPDATE; parche lo cierra. → `supabase/tests/postgres_real/`
+- **E2E TELSVH120** (plano nuevo fuera de muestra, leído en vivo): `tools/e2e_plano_nuevo.mjs`.
 
-## Resultados — TELSVH120 (costo defendible hoy)
+## Resultados — TELSVH120 (con lámina autoritativa, total seguro)
 
 | Concepto | Valor |
 |---|---|
-| Material total (físico real) | $5,072.86 (lámina fabricada $378.96 + comprado $4,693.90) |
-| MO (POLÍTICA_VH autorizada) | $122.73 |
-| GIF (POLÍTICA_VH) | $462.07 |
-| **Costo fabricación VH (parcial)** | **$5,657.65** |
+| Material **incluido** (físico real) | $4,987.96 (fabricado $294.06 + comprado $4,693.90) — lámina `erp-ln22310` `precio_id 8748` |
+| ↳ fabricado verificable / preliminar | $0.13 / $293.93 |
+| MO (POLÍTICA_VH autorizada) | $105.75 |
+| GIF (POLÍTICA_VH) | $411.13 |
+| MO por tiempos (routing) | PENDIENTE (sin estándares) |
+| **Total PARCIAL** | **$5,504.84** |
+| **Total OFICIAL** | — (no procede) · `emitible_comercial=false` |
+| Material pendiente (NO en el total) | CUE, BX2, SOC, SOM (CAD) + KIT, COEME20ND (precio) |
 
-Evidencia: `expedientes/EXPEDIENTE_TELSVH120.json`, `expedientes/VISTA_INGENIERIA_TELSVH120.json`, `expedientes/HOLDOUT_PLANOS.md`, `expedientes/HOLDOUT_INDUSTRIAL.md`.
+Evidencia: `expedientes/EXPEDIENTE_TELSVH120.json`, `expedientes/VISTA_INGENIERIA_TELSVH120.json`; pantalla https://claude.ai/artifact/SVfD179sNmHzyJt62vDTjf
 
 ## Bloqueos pendientes (datos de Ingeniería, no código)
 
@@ -74,13 +92,13 @@ Evidencia: `expedientes/EXPEDIENTE_TELSVH120.json`, `expedientes/VISTA_INGENIERI
 
 ## Errores todavía abiertos
 
-- **Ninguno en tests** (4325 verde).
-- Pendientes que NO son errores: smoke de app del P0 (humano); cobertura del holdout limitada por parseo de capa de texto (no por el motor); 1/12 E2E completos.
+- **Ninguno en tests** (4331 verde, exit 0).
+- Pendientes que NO son errores: **P4 — E2E completo dentro de la app** (usuario autorizado, navegador real, RLS) NO hecho; smoke de app del P0 (humano); 1/12 E2E completos; cobertura del holdout limitada por parseo de capa de texto (no por el motor).
 
-## Próximos pasos (esperando decisión de Dirección)
+## Próximos pasos
 
-- (a) Leer el cuerpo CUE en vivo (multimodal) para intentar su desarrollo plano, o
-- (b) Cargar tiempos de referencia industrial como estándares PROPUESTOS (marcados no-autorizados) para ver el costo con MO por routing, o
-- (c) Parar para que Ingeniería entregue desarrollos de CAD + tiempos/tarifas reales.
+- **P4 (siguiente):** integrar el flujo dentro de COSTEAR (no sólo view-model/artefacto): PLANO→ENTENDÍ→DESPIECE→MATERIALES→ROUTING→CONFIRMACIONES→RECÁLCULO→GUARDAR→REABRIR, probado con usuario autorizado, navegador real y RLS, en 5 planos. Distinguir simulación / corpus congelado / navegador real / multimodal en vivo.
+- (a) Cuerpo CUE: su desarrollo plano **no está en el plano de taller** (caja 3D); no se inventa. El recálculo (P3) lo incorpora en cuanto Ingeniería dé el despliegue de CAD.
+- (b) MO por tiempos: el contrato recibe estándares **autorizados** (demostrado). No se cargan tiempos de referencia inventados como estándares (regla de integridad).
 
-**Score honesto actual: ~59/100.** El techo restante es dato de Ingeniería, no código.
+**Score honesto actual: ~63/100** (sube de 59 por integridad del material, total seguro y recálculo). El techo restante es dato de Ingeniería + integración de app (P4), no cálculo.
