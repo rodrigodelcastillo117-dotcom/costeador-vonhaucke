@@ -5,33 +5,41 @@
 
 - **Fecha:** 2026-11-09
 - **Rama de desarrollo:** `claude/pm-concurrencia`
-- **SHA auditado:** `36432bb905909df5d4dc7ccecee6e08165e5f39d` (este archivo y el fix se commitean encima)
+- **SHA auditado:** `5230f16` → trabajo nuevo encima (este archivo se commitea encima)
 - **Prod (`c3.4-seller-safe`):** `4f79c72193baceec0cf3f38dbcc4699f2ffe9eac`
-- **PR draft (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
+- **PR draft industrial (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
+- **Release de seguridad P0 (independiente, DB-only):** rama `claude/p0-expediente-seguridad` desde el base de prod — sólo migración + rollback + preflight + tests. No fusiona el módulo industrial.
 - ⚠️ Nota de ramas: la rama designada original era `claude/costing-app-architecture-psf02g`, pero quedó obsoleta tras un reinicio; todo el trabajo real y el PR viven en `claude/pm-concurrencia`.
 
-## 🔴 Último bloque — auditoría sobre `36432bb` (P0 de autorización + 3 bloqueos)
+## 🔴 Bloque actual — cierre de seguridad P0 (preflight para autorización)
 
-### P0 (PRIORIDAD ABSOLUTA) — autorización de `guardar_expediente_costeo` · FIX PROPUESTO, NO APLICADO
+### PRIORIDAD 1 — P0 `guardar_expediente_costeo` · FIX PROPUESTO, PREFLIGHT LISTO, NO APLICADO
 
-**Defecto (reproducido en entorno aislado, no sobre expedientes productivos):** la RPC `guardar_expediente_costeo` de `20261111` (ya en prod) localizaba la fila **sólo por `clave`**, sin verificar propietario, y reasignaba `actualizado_por`. Un usuario B podía **sobrescribir y RECLAMAR** el expediente de A (control transfer); tras el overwrite, A perdía el `reabrir`. Agravante: el mensaje `VERSION_CONFLICT` **filtraba la versión** de la fila ajena.
+**Defecto (vivo en prod, reproducido en entorno aislado — NO sobre expedientes productivos):** la RPC de `20261111` localiza la fila **sólo por `clave`**, sin verificar dueño, y reasigna `actualizado_por` → un usuario B **sobrescribe y RECLAMA** el expediente de A; `VERSION_CONFLICT` **filtra la versión** ajena.
 
-**Fix (reversible, para aprobación):**
-- `supabase/migrations/20261112_expediente_costeo_seguridad.sql` — **PK compuesta `(creado_por, clave)`** (identidad por dueño; la clave comercial ya no identifica por sí sola → sin colisión entre usuarios); **dueño inmutable** (`creado_por` nunca se actualiza); RPC `guardar`/`reabrir` **aisladas por dueño** (`where creado_por = v_email`, imposible tocar fila ajena); concurrencia optimista preservada; **historial append-only** (`expediente_costeo_historial`); RLS por `creado_por` inmutable; `VERSION_CONFLICT` ya **no filtra** la versión. Compatible con la fila QA preexistente.
-- `supabase/migrations/ROLLBACK_20261112_...sql` — rollback verificado (aplica limpio, PK vuelve a `(clave)`, fila QA conservada).
-- **12 pruebas** `supabase/tests/expedienteCosteoSeguridad.test.js`: Parte A **reproduce** el defecto (overwrite + claim + fuga de versión) sobre el contrato viejo; Parte B **cierra** (aislamiento, dueño inmutable, concurrencia, historial, roles, RLS, compat QA, atacante no reclama la fila QA).
-- ⚠️ **NO APLICADO a prod.** Requiere autorización explícita de Dirección. **Prod sigue corriendo la RPC vulnerable.**
+**Preflight verificado contra el esquema productivo real** — `supabase/migrations/PREFLIGHT_P0_expediente_costeo.md`:
+- Esquema prod actual (PK `(clave)`, `creado_por` nullable, policies por `actualizado_por`, funciones que filtran sólo por `clave`, 1 fila QA) ↔ lo que produce el fix. Aditivo y compatible.
+- Fix `20261112`: PK `(creado_por, clave)`, dueño inmutable, RPC aisladas por dueño, historial append-only, RLS por `creado_por`, sin fuga de versión. Firma/return sin cambios → **sin redeploy de cliente**.
+- **Rollback** (riesgo que marcó la auditoría): restaurar la PK global tras claves repetidas por dueño es **imposible sin perder datos**; el rollback lo **ABORTA por diseño** (guard de colisión), demostrado. Revertir re-abre el P0 → sólo ventana inmediata; después, corregir hacia adelante.
 
-### 2º bloqueo — CAD ficticio FUERA del flujo autenticado ✅
-`IngenieriaExpediente.jsx` ya **no** ofrece la acción `ing-confirmar-cad-cue` con medidas inventadas. El contenedor sólo **muestra** el expediente y permite **Guardar borrador** (persiste tal cual, sin fabricar geometría). Test estático extendido lo garantiza (`pantallaIngenieriaSinAprobaciones.test.js`).
+**Evidencia ejecutada (no prod):**
+- **Postgres REAL (initdb efímero), 14/14 PASS** — `supabase/tests/postgres_real/aislamiento_dos_usuarios.sh`: acceso directo denegado a `authenticated`, **RLS por `creado_por`**, RPC aisladas por dueño, **SECURITY DEFINER + search_path**, identidad inmutable, sin fuga de versión, rollback aborta ante colisión.
+- **PGlite 12/12** — `supabase/tests/expedienteCosteoSeguridad.test.js`: reproduce el defecto y lo cierra.
 
-### 3er bloqueo — estándares de MO verificados server-side ✅
-`cargarEstandar` ahora exige, como en precios (`insumo_precios.estado='aprobado'`), un **hecho de aprobación escrito por el servidor** (`estado='aprobado'`): un aprobador **nombrado** por el cliente **ya no basta**. Nuevo verificador server-logic `aprobacionEstandarMO` (espejo de `aprobacionPrecioExacto`): rol Dirección + no cuenta no-humana + **fail-closed sin la lista de cuentas no humanas**. RED→GREEN en `costoOperacion.test.js` y `autoridadCosteoServidor.test.js`.
+⚠️ **NO APLICADO a prod.** Preflight presentado; espera autorización explícita. **Prod sigue con la RPC vulnerable.** Entregado como **release mínimo independiente** (`claude/p0-expediente-seguridad`), sin el módulo industrial.
 
-### 4º — E2E real (ejecutado vs omitido)
-- **EJECUTADO** (contrato SQL, entorno aislado): 12 pruebas con **dos usuarios A/B**, expedientes independientes, **acceso cruzado denegado**, concurrencia, reapertura — sin tocar expedientes productivos (como se pidió).
-- **EJECUTADO** (navegador, 1 usuario sobre su propia fila): `e2e/pantallaIngenieriaProd.e2e.js` actualizado → login Dirección → **Guardar borrador** → `guardar_expediente_costeo` (RPC 200) → recargar → **reabrir** devuelve la fila (no null). Requiere env; sólo su propia fila.
-- **OMITIDO**: E2E de navegador con **dos usuarios** y acceso cruzado — requeriría el fix aplicado en una BD no-productiva + una 2ª cuenta; **no se corre contra prod** para no explotar expedientes productivos. Cubierto a nivel de contrato por las 12 pruebas SQL.
+### PRIORIDAD 2 — aprobaciones económicas (CORRECCIÓN: estaba mal)
+
+**Reconocido:** mi "fix server-side" de MO del bloque anterior exigía `estado='aprobado'`… en un **objeto JavaScript del cliente**. Eso **no prueba nada** (igual que `autorizado:true`). Sólo moví el hueco de campo.
+
+Hecho en este bloque (verificable, sin tocar prod):
+- `costoOperacion()`: un estándar **suministrado directamente** (objeto cliente) es **siempre REFERENCIA**, `oficial:false`, `origen:'suministrado'`, aunque traiga `autorizado:true` y `estado:'aprobado'`. RED→GREEN.
+- `cargarEstandar()`: contrato corregido con honestidad — es función CLIENTE; `estado='aprobado'` ahí **no** es prueba server-side. La verificación real es `aprobacionEstandarMO` contra **registros del servidor**.
+
+**Pendiente P2 (siguiente build, migración propia autorizada):** tabla `estandar_mo` + RPC `aprobar_estandar_mo` (rol Dirección) que capture identidad, permisos, fecha, versión y evidencia; y cablear la verificación server-side en el camino del costo oficial. **No se declara costo oficial de MO sin eso.**
+
+### PRIORIDAD 3 — costeo industrial
+TELSVH120 se mantiene **PARCIAL** (faltan componentes/desarrollos/tiempos/terceros). PR #90 **DRAFT**, módulo industrial **no desplegado**. Cambios de cliente (CAD ficticio removido, etc.) viven en `pm-concurrencia`/PR #90, fuera del release de seguridad.
 
 ---
 
