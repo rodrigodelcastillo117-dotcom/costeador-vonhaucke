@@ -49,7 +49,31 @@
 - El rollback sólo es seguro en la **ventana inmediata** post-aplicación (si el fix falla o la RPC nueva tiene un bug), **antes** de que exista una 2ª fila con clave repetida. Hoy hay **1 sola fila** → ventana segura.
 - Revertir restaura la RPC **vulnerable** (re-abre el P0), así que no es un "undo" neutro: pasada esa ventana, **corregir hacia adelante**, no revertir. La PK compuesta y el historial son inocuos de conservar.
 
-## 5. Evidencia (ejecutada)
+## 4-bis. Alternativa SEGURA: corrección hacia adelante (recomendada sobre el rollback)
+
+El rollback re-abre el P0 y falla tras colisiones; por eso, si el fix necesitara un ajuste, la vía recomendada es **corregir hacia adelante** (una nueva migración que **conserva** la PK compuesta, el dueño inmutable, el historial y el aislamiento, y sólo cambia lo que haga falta):
+
+- **Si la RPC nueva tuviera un bug** (p.ej. en el lock o el chequeo de versión): un `create or replace function public.guardar_expediente_costeo(...)` corregido, **manteniendo** `where creado_por = v_email and clave = v_clave` y sin tocar `creado_por`. No requiere cambiar la tabla ni perder datos.
+- **Si hiciera falta endurecer la policy/permiso:** un `drop policy ... / create policy ...` sobre `creado_por`, o ajustar grants, sin tocar la PK ni las filas.
+- **Si se quisiera una identidad de expediente aún más desacoplada** (surrogate `id uuid` + `unique(creado_por, clave)`): se **añade** la columna y el índice único, se rellena, y se migran las RPC — todo aditivo, sin colapsar a PK global ni perder aislamiento.
+- **Invariante en toda corrección hacia adelante:** nunca volver a localizar la fila sólo por `clave`; nunca actualizar `creado_por`; nunca degradar la RLS a `actualizado_por`. Estas tres son las que causaron el P0.
+
+En resumen: el **rollback** es el botón de pánico de la ventana inmediata (hoy segura, 1 fila); la **corrección hacia adelante** es la vía por defecto una vez que el fix está en uso.
+
+## 5. Evidencia (ejecutada y RE-VERIFICADA el 2026-11-09)
+
+- **Prod RE-VERIFICADO en vivo (read-only):** sigue vulnerable y sin cambios — PK `(clave)`, sin `expediente_costeo_historial`, `guardar` filtra sólo por `clave`, 1 fila. Las tablas de precio (`insumo_precios`, `catalogo_vigente`, `producto_maestro`) existen y la migración **no las referencia** → **sin cambio de precios ni de frontend** (firma/return de las RPC idénticas).
+- **Respaldo recuperable:** `supabase/backups/RESPALDO_expediente_costeo_20261109.md` — snapshot md5 `6fdd462c…`, migración aditiva que preserva la fila, INSERT idempotente verificado.
+- **Postgres REAL (no prod), 14/14 PASS** — `aislamiento_dos_usuarios.sh`:
+  1. `authenticated` sin acceso directo a la tabla (sólo vía RPC).
+  2. RLS filtra por `creado_por`: B sólo ve su fila, no la de A; B no lee el secreto de A.
+  3. RPC aisladas: B no lee/sobrescribe/reclama a A; coexisten 2 filas sin colisión.
+  4. `SECURITY DEFINER` + `search_path` fijado.
+  5. `creado_por` inmutable tras varios guardados.
+  6. `VERSION_CONFLICT` ya no revela la versión.
+  7. Rollback aborta ante colisión, sin perder datos.
+- **PGlite 12/12** — reproduce el defecto (contrato viejo) y lo cierra (contrato nuevo).
+- Migración verificada **contra el esquema productivo real** (sección 2 ↔ 3).
 
 - **Postgres REAL (no prod), 14/14 PASS** — `aislamiento_dos_usuarios.sh`:
   1. `authenticated` sin acceso directo a la tabla (sólo vía RPC).
@@ -65,8 +89,8 @@
 ## 6. Plan de aplicación (sólo con tu autorización)
 
 1. Aplicar `20261112_expediente_costeo_seguridad.sql` a `mtuvnbgljwbsaizjjgzs`.
-2. Verificar en vivo: PK = `(creado_por, clave)`, historial existe, `guardar` aislado por dueño, fila QA intacta (`reabrir` de `qa-direccion` devuelve v3).
+2. Verificar en vivo: PK = `(creado_por, clave)`, historial existe, `guardar` aislado por dueño, y **fila QA intacta** — `md5(expediente::text)` sigue siendo `6fdd462c…`, `version=1`, `creado_por=qa-direccion@vonhaucke.mx` (`reabrir` de `qa-direccion` la devuelve).
 3. Smoke productivo (opcional): E2E de Ingeniería con la cuenta QA (guardar borrador → reabrir).
-4. Rollback listo si algo falla en la ventana inmediata.
+4. Rollback listo en la ventana inmediata; después, corrección hacia adelante (sección 4-bis).
 
 **No ejecuto nada de esto sin tu aprobación explícita.**
