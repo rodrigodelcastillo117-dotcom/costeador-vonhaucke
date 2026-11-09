@@ -42,9 +42,10 @@ export function desarrolloPlano(dims_mm = [], { umbralPestanaMM = 30 } = {}) {
   return { tipo: 'CAJA_3D', pendiente: true, motivo: `caja 3D de ${L}x${W}x${D} mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)` };
 }
 
-/** Registros autoritativos de lamina para un calibre: exacto o el mas cercano (sustituido). */
-export function laminasParaCalibre(calibre, catalogoLamina = []) {
-  const cat = Array.isArray(catalogoLamina) ? catalogoLamina.filter((l) => Number(l.precio) > 0 && l.formato) : [];
+/** Registros autoritativos de lamina para un calibre (y acero): exacto o el mas cercano (sustituido). */
+export function laminasParaCalibre(calibre, catalogoLamina = [], acero = null) {
+  let cat = Array.isArray(catalogoLamina) ? catalogoLamina.filter((l) => Number(l.precio) > 0 && l.formato) : [];
+  if (acero) { const soloAcero = cat.filter((l) => l.acero === acero); if (soloAcero.length) cat = soloAcero; }
   if (!cat.length || !calibre) return { exacto: false, registros: [] };
   const exactos = cat.filter((l) => Number(l.calibre) === calibre);
   if (exactos.length) return { exacto: true, registros: exactos };
@@ -67,9 +68,18 @@ export function costearMateriaPrima(pieza = {}, { catalogoLamina = [], par = PAR
   const q = Number(pieza.cantidad);
   if (!Number.isFinite(q) || q <= 0) return bloq(clave, 'BLOQUEADO', 'cantidad invalida o faltante: no se costea');
 
-  // Desarrollo (P1.3: verificado vs inferido).
-  const dev = desarrolloPlano(pieza.dims_mm);
-  if (dev.pendiente) return bloq(clave, 'INCOMPLETO', dev.motivo);
+  // Desarrollo: CAD confirmado (geometria EXPLICITA y versionada) tiene prioridad y NO se re-infiere
+  // del bounding box (punto 2 de la auditoria). Si no, se calcula (P1.3: verificado vs inferido).
+  let dev;
+  const dc = pieza.desarrolloConfirmado;
+  if (dc && Number(dc.largoMM) > 0 && Number(dc.anchoMM) > 0) {
+    const area = Number(dc.area_m2) > 0 ? +Number(dc.area_m2).toFixed(4) : +((dc.largoMM * dc.anchoMM) / 1e6).toFixed(4);
+    dev = { tipo: 'CAD', metodo: 'CAD_CONFIRMADO', verificado: true, largoMM: Number(dc.largoMM), anchoMM: Number(dc.anchoMM), area_m2: area,
+      fuente: dc.fuente || 'CAD', version: dc.version || null, nota: 'desarrollo plano CONFIRMADO por Ingenieria (CAD); geometria explicita versionada' };
+  } else {
+    dev = desarrolloPlano(pieza.dims_mm);
+    if (dev.pendiente) return bloq(clave, 'INCOMPLETO', dev.motivo);
+  }
 
   // Calibre: CONFIRMADO por Ingenieria > del plano > propuesto (P1.2: un propuesto nunca se confirma solo).
   const calTexto = calibreDesdeTexto(pieza.desc || pieza.nombre);
@@ -79,9 +89,10 @@ export function costearMateriaPrima(pieza = {}, { catalogoLamina = [], par = PAR
   const calibreConfirmado = tieneConf || (!!calTexto && !pieza.calibrePropuesto);
   const calibreFuente = tieneConf ? 'confirmado (Ingenieria)' : pieza.calibrePropuesto ? 'propuesto (override)' : calTexto ? 'del plano' : 'default propuesto';
 
-  // Lamina autoritativa (P1.1).
-  const { exacto, registros } = laminasParaCalibre(calibre, catalogoLamina);
-  if (!registros.length) return bloq(clave, 'INCOMPLETO', `sin precio autoritativo de lamina para calibre ${calibre} en el catalogo vigente`, { calibre });
+  // Lamina autoritativa (P1.1) del acero correcto (default negra para mueble pintado).
+  const acero = pieza.aceroPropuesto || 'negra';
+  const { exacto, registros } = laminasParaCalibre(calibre, catalogoLamina, acero);
+  if (!registros.length) return bloq(clave, 'INCOMPLETO', `sin precio autoritativo de lamina ${acero} calibre ${calibre} en el catalogo vigente`, { calibre, acero });
 
   // P1.4: elegir el formato que SI CABE. Nunca asignar una hoja en silencio.
   // Criterio: primero certificable, luego MENOR costo por pieza (precio/ppt).
@@ -123,8 +134,8 @@ export function costearMateriaPrima(pieza = {}, { catalogoLamina = [], par = PAR
       insumo: { ...lam, unidad: lam.unidad, formato: { tipo: 'lamina', largoMM: fmtL, anchoMM: fmtA, medida: areaHoja }, fraccion: true, mermaCorte: 0, seccion: 'metal', nombre: lam.insumo_id } },
     evidencia: {
       calibre: { valor: calibre, confirmado: calibreConfirmado, fuente: calibreFuente, lamina_calibre: lam.calibre, exacto },
-      desarrollo: { tipo: dev.tipo, metodo: dev.metodo, verificado: dev.verificado, largoMM: dev.largoMM, anchoMM: dev.anchoMM, area_m2: dev.area_m2 },
-      lamina: { insumo_id: lam.insumo_id, precio: Number(lam.precio), precio_id: lam.precio_id, version: lam.precio_id, unidad: lam.unidad,
+      desarrollo: { tipo: dev.tipo, metodo: dev.metodo, verificado: dev.verificado, largoMM: dev.largoMM, anchoMM: dev.anchoMM, area_m2: dev.area_m2, fuente: dev.fuente || null, version: dev.version || null },
+      lamina: { insumo_id: lam.insumo_id, acero: lam.acero, acabado: lam.acabado, precio: Number(lam.precio), precio_id: lam.precio_id, version: lam.precio_id, unidad: lam.unidad,
         vigente_desde: lam.vigente_desde, certificable: !!lam.certificable, estatus: lam.estatus, fuente: lam.fuente,
         formato: `${fmtL}x${fmtA} mm`, area_hoja_m2: areaHoja },
       area_neta_m2: areaNeta, piezas_por_hoja: +ppt.toFixed(2), hojas, aprovechamiento_pct: aprovechamiento,

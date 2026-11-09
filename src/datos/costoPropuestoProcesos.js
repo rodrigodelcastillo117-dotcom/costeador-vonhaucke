@@ -47,7 +47,8 @@ export function costearProductoIndustrial({ piezasBOM = [], routing = { operacio
 
   for (const p of piezasBOM) {
     if (p.fabricada) {
-      const mp = costearMateriaPrima({ clave: p.clave, nombre: p.desc || p.clave, dims_mm: p.dims_mm, cantidad: p.cantidad, desc: p.desc, calibrePropuesto: p.calibrePropuesto }, { catalogoLamina, par });
+      const mp = costearMateriaPrima({ clave: p.clave, nombre: p.desc || p.clave, dims_mm: p.dims_mm, cantidad: p.cantidad, desc: p.desc,
+        calibrePropuesto: p.calibrePropuesto, calibreConfirmado: p.calibreConfirmado, aceroPropuesto: p.aceroPropuesto, desarrolloConfirmado: p.desarrolloConfirmado }, { catalogoLamina, par });
       if (mp.componente) {
         componentes.push(mp.componente);
         insumos[mp.componente.insumoId] = mp.componente.insumo;   // insumo autoritativo para el motor

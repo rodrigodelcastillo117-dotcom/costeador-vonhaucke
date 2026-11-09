@@ -127,10 +127,14 @@
             "verificado": false,
             "largoMM": 834,
             "anchoMM": 578,
-            "area_m2": 0.4821
+            "area_m2": 0.4821,
+            "fuente": null,
+            "version": null
           },
           "lamina": {
             "insumo_id": "erp-ln22310",
+            "acero": "negra",
+            "acabado": "sin acabado",
             "precio": 326.59,
             "precio_id": 8748,
             "version": 8748,
@@ -170,10 +174,14 @@
             "verificado": false,
             "largoMM": 834,
             "anchoMM": 578,
-            "area_m2": 0.4821
+            "area_m2": 0.4821,
+            "fuente": null,
+            "version": null
           },
           "lamina": {
             "insumo_id": "erp-ln22310",
+            "acero": "negra",
+            "acabado": "sin acabado",
             "precio": 326.59,
             "precio_id": 8748,
             "version": 8748,
@@ -213,10 +221,14 @@
             "verificado": false,
             "largoMM": 1132,
             "anchoMM": 854,
-            "area_m2": 0.9667
+            "area_m2": 0.9667,
+            "fuente": null,
+            "version": null
           },
           "lamina": {
             "insumo_id": "erp-ln22310",
+            "acero": "negra",
+            "acabado": "sin acabado",
             "precio": 326.59,
             "precio_id": 8748,
             "version": 8748,
@@ -256,10 +268,14 @@
             "verificado": true,
             "largoMM": 40,
             "anchoMM": 23,
-            "area_m2": 0.0009
+            "area_m2": 0.0009,
+            "fuente": null,
+            "version": null
           },
           "lamina": {
             "insumo_id": "erp-ln24310",
+            "acero": "negra",
+            "acabado": "sin acabado",
             "precio": 261.27,
             "precio_id": 6201,
             "version": 6201,
@@ -296,10 +312,17 @@
     "total": {
       "parcial_mxn": 5504.84,
       "oficial_mxn": null,
+      "es_oficial": false,
+      "bloqueado_por": [
+        "material/precio/desarrollo pendiente o pieza preliminar",
+        "MO por routing sin estandares autorizados",
+        "terceros pendientes (operaciones externas)"
+      ],
       "estado": "PARCIAL — no emitible como costo completo"
     },
     "cobertura": {
       "cerrado": false,
+      "es_oficial": false,
       "desarrollos_pendientes": [
         {
           "clave": "TELSVH120-CUE",
@@ -647,30 +670,15 @@
     },
     "catalogoLamina": [
       {
-        "insumo_id": "erp-ln24310",
-        "calibre": 24,
-        "formato": {
-          "nombre": "3x10",
-          "largoMM": 3048,
-          "anchoMM": 914,
-          "area_m2": 2.786
-        },
-        "precio": 261.27,
-        "precio_id": 6201,
-        "unidad": "hoja",
-        "certificable": true,
-        "vigente_desde": "2025-10-17",
-        "estatus": "CERTIFICADO",
-        "fuente": "Compras · ERP Intelisis"
-      },
-      {
         "insumo_id": "erp-ln22310",
         "calibre": 22,
+        "acero": "negra",
+        "acabado": "sin acabado",
         "formato": {
           "nombre": "3x10",
           "largoMM": 3048,
           "anchoMM": 914,
-          "area_m2": 2.786
+          "area_m2": 2.7859
         },
         "precio": 326.59,
         "precio_id": 8748,
@@ -681,30 +689,34 @@
         "fuente": "Compras · ERP Intelisis"
       },
       {
-        "insumo_id": "erp-ln24410",
+        "insumo_id": "erp-ln24310",
         "calibre": 24,
+        "acero": "negra",
+        "acabado": "sin acabado",
         "formato": {
-          "nombre": "4x10",
+          "nombre": "3x10",
           "largoMM": 3048,
-          "anchoMM": 1219,
-          "area_m2": 3.716
+          "anchoMM": 914,
+          "area_m2": 2.7859
         },
-        "precio": 510.3,
-        "precio_id": 7948,
+        "precio": 261.27,
+        "precio_id": 6201,
         "unidad": "hoja",
         "certificable": true,
-        "vigente_desde": "2025-03-04",
+        "vigente_desde": "2025-10-17",
         "estatus": "CERTIFICADO",
         "fuente": "Compras · ERP Intelisis"
       },
       {
         "insumo_id": "erp-ln22410",
         "calibre": 22,
+        "acero": "negra",
+        "acabado": "sin acabado",
         "formato": {
           "nombre": "4x10",
           "largoMM": 3048,
           "anchoMM": 1219,
-          "area_m2": 3.716
+          "area_m2": 3.7155
         },
         "precio": 521.55,
         "precio_id": 13177,
@@ -715,13 +727,34 @@
         "fuente": "Compras · ERP Intelisis"
       },
       {
-        "insumo_id": "erp-ln20410",
-        "calibre": 20,
+        "insumo_id": "erp-ln24410",
+        "calibre": 24,
+        "acero": "negra",
+        "acabado": "sin acabado",
         "formato": {
           "nombre": "4x10",
           "largoMM": 3048,
           "anchoMM": 1219,
-          "area_m2": 3.716
+          "area_m2": 3.7155
+        },
+        "precio": 510.3,
+        "precio_id": 7948,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2025-03-04",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln20410",
+        "calibre": 20,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "4x10",
+          "largoMM": 3048,
+          "anchoMM": 1219,
+          "area_m2": 3.7155
         },
         "precio": 583.117,
         "precio_id": 11669,
@@ -734,11 +767,13 @@
       {
         "insumo_id": "erp-ln18310",
         "calibre": 18,
+        "acero": "negra",
+        "acabado": "sin acabado",
         "formato": {
           "nombre": "3x10",
           "largoMM": 3048,
           "anchoMM": 914,
-          "area_m2": 2.786
+          "area_m2": 2.7859
         },
         "precio": 615.15,
         "precio_id": 13176,
@@ -749,30 +784,15 @@
         "fuente": "Compras · ERP Intelisis"
       },
       {
-        "insumo_id": "erp-ln18410",
-        "calibre": 18,
-        "formato": {
-          "nombre": "4x10",
-          "largoMM": 3048,
-          "anchoMM": 1219,
-          "area_m2": 3.716
-        },
-        "precio": 776.52,
-        "precio_id": 11668,
-        "unidad": "hoja",
-        "certificable": true,
-        "vigente_desde": "2026-09-09",
-        "estatus": "CERTIFICADO",
-        "fuente": "Compras · ERP Intelisis"
-      },
-      {
         "insumo_id": "erp-ln16310",
         "calibre": 16,
+        "acero": "negra",
+        "acabado": "sin acabado",
         "formato": {
           "nombre": "3x10",
           "largoMM": 3048,
           "anchoMM": 914,
-          "area_m2": 2.786
+          "area_m2": 2.7859
         },
         "precio": 800,
         "precio_id": 13175,
@@ -783,13 +803,34 @@
         "fuente": "Compras · ERP Intelisis"
       },
       {
-        "insumo_id": "erp-ln14410",
-        "calibre": 14,
+        "insumo_id": "erp-ln13410",
+        "calibre": 13,
+        "acero": "negra",
+        "acabado": "sin acabado",
         "formato": {
           "nombre": "4x10",
           "largoMM": 3048,
           "anchoMM": 1219,
-          "area_m2": 3.716
+          "area_m2": 3.7155
+        },
+        "precio": 825.33,
+        "precio_id": 7947,
+        "unidad": "hoja",
+        "certificable": false,
+        "vigente_desde": "2010-10-20",
+        "estatus": "PRELIMINAR",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln14410",
+        "calibre": 14,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "4x10",
+          "largoMM": 3048,
+          "anchoMM": 1219,
+          "area_m2": 3.7155
         },
         "precio": 1211.953,
         "precio_id": 11667,
@@ -800,20 +841,41 @@
         "fuente": "Compras · ERP Intelisis"
       },
       {
-        "insumo_id": "erp-ln13410",
-        "calibre": 13,
+        "insumo_id": "erp-li22310",
+        "calibre": 22,
+        "acero": "inoxidable",
+        "acabado": "SATINADO P3",
         "formato": {
-          "nombre": "4x10",
+          "nombre": "3x10",
           "largoMM": 3048,
-          "anchoMM": 1219,
-          "area_m2": 3.716
+          "anchoMM": 914,
+          "area_m2": 2.7859
         },
-        "precio": 825.33,
-        "precio_id": 7947,
+        "precio": 1550,
+        "precio_id": 8625,
         "unidad": "hoja",
-        "certificable": false,
-        "vigente_desde": "2010-10-20",
-        "estatus": "PRELIMINAR",
+        "certificable": true,
+        "vigente_desde": "2025-10-09",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-lg18310",
+        "calibre": 18,
+        "acero": "galvanizada",
+        "acabado": null,
+        "formato": {
+          "nombre": "3x10",
+          "largoMM": 3048,
+          "anchoMM": 914,
+          "area_m2": 2.7859
+        },
+        "precio": 780,
+        "precio_id": 6077,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2025-10-13",
+        "estatus": "CERTIFICADO",
         "fuente": "Compras · ERP Intelisis"
       }
     ],

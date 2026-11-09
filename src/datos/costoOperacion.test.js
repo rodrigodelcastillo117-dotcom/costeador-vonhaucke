@@ -12,14 +12,26 @@ describe('costoOperacion — contrato tiempo+tarifa', () => {
     expect(r.pregunta).toMatch(/Tiempo estandar/);
   });
 
-  it('rechaza cargar un estandar NO autorizado o incompleto', () => {
-    expect(() => cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 5, tarifa_mxn_min: 1, autorizado: false })).toThrow(/NO autorizado/);
-    expect(() => cargarEstandar({ centro: 'pintura', op: 'pintura', tarifa_mxn_min: 1, autorizado: true })).toThrow(/incompleto/);
+  it('P3: rechaza no-autorizado, unidades invalidas, sin version y sin vigencia (nada por-defecto cuenta como aprobado)', () => {
+    const ok = { centro: 'pintura', op: 'pintura', tiempo_proceso_min: 5, tarifa_mxn_min: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true };
+    expect(() => cargarEstandar({ ...ok, autorizado: false })).toThrow(/NO autorizado/);
+    expect(() => cargarEstandar({ ...ok, tarifa_mxn_min: 0 })).toThrow(/unidades invalidas/);     // tarifa <= 0
+    expect(() => cargarEstandar({ ...ok, tiempo_proceso_min: undefined })).toThrow(/unidades invalidas/); // sin tiempo
+    expect(() => cargarEstandar({ ...ok, version: undefined })).toThrow(/sin version/);            // sin version
+    expect(() => cargarEstandar({ ...ok, vigente_desde: undefined })).toThrow(/sin vigencia/);     // sin vigencia
+    expect(cargarEstandar(ok).version).toBe('v1');                                                 // completo: carga
+  });
+
+  it('P3: un estandar con vigencia expirada no se usa (fail-closed)', () => {
+    cargarEstandar({ centro: 'corte', op: 'c', tiempo_proceso_min: 1, tarifa_mxn_min: 10, version: 'v1', vigente_desde: '2020-01-01', vigente_hasta: '2021-01-01', autorizado: true });
+    const r = costoOperacion({ centro: 'corte', op: 'c', piezas: 1 });   // hoy > vigente_hasta
+    expect(r.estado).toBe('PENDIENTE_ESTANDAR');
+    expect(r.costo_mxn).toBeNull();
   });
 
   it('con estandar autorizado: aplica preparacion/lote + tiempo×tarifa×piezas + adicionales', () => {
     cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_preparacion_min: 30, tiempo_proceso_min: 2,
-      tarifa_mxn_min: 10, costos_adicionales_mxn: 3, lote_piezas: 10, version: 'v1', fuente: 'Ingenieria', autorizado: true });
+      tarifa_mxn_min: 10, costos_adicionales_mxn: 3, lote_piezas: 10, version: 'v1', vigente_desde: '2026-01-01', fuente: 'Ingenieria', autorizado: true });
     const r = costoOperacion({ centro: 'metalmecánica', op: 'corte_lamina', piezas: 5, lote: 10 });
     // prep/pieza = 30*10/10 = 30 ; proceso/pieza = 2*10 = 20 ; adic = 3 => unit 53 ; x5 = 265
     expect(r.estado).toBe('AUTORIZADA');
@@ -41,8 +53,8 @@ describe('costoOperacion — contrato tiempo+tarifa', () => {
     expect(r0.mano_obra_mxn).toBeNull();
     expect(r0.completa).toBe(false);
     expect(r0.faltantes.length).toBe(2);
-    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
-    cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 2, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true });
+    cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 2, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true });
     const r1 = costoManoObraRouting(ops, { piezas: 1 });
     expect(r1.completa).toBe(true);
     expect(r1.mano_obra_mxn).toBe(10 + 20);

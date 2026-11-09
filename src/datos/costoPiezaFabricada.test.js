@@ -85,6 +85,38 @@ describe('costoPiezaFabricada — integridad del calculo (adversarial)', () => {
     expect(cerca.registros[0].calibre).toBe(22);   // 22 es el mas cercano a 24 en el catalogo de prueba
   });
 
+  it('P1.1 filtra por ACERO: una vitrina negra no se costea con inoxidable', () => {
+    const CATMIX = [
+      { insumo_id: 'erp-ln22310', calibre: 22, acero: 'negra', formato: { largoMM: 3048, anchoMM: 914, area_m2: 2.786 }, precio: 326.59, precio_id: 8748, unidad: 'hoja', certificable: true, vigente_desde: '2026-01-26' },
+      { insumo_id: 'erp-li22310', calibre: 22, acero: 'inoxidable', formato: { largoMM: 3048, anchoMM: 914, area_m2: 2.786 }, precio: 1550, precio_id: 8625, unidad: 'hoja', certificable: true, vigente_desde: '2025-10-09' },
+    ];
+    const r = costearMateriaPrima(base({ clave: 'PL', dims_mm: [400, 230, 3], desc: 'PLACA CALIBRE 22' }), { catalogoLamina: CATMIX });
+    expect(r.evidencia.lamina.insumo_id).toBe('erp-ln22310');   // negra, no la inox mas cara
+    expect(r.evidencia.lamina.acero).toBe('negra');
+  });
+
+  it('P1.6 nesting conjunto con geometrias DISTINTAS: conserva material, sin doble conteo ni perdida', () => {
+    const a = costearMateriaPrima(base({ clave: 'A', dims_mm: [400, 300, 3], desc: 'CALIBRE 22' }), { catalogoLamina: CAT }).componente;
+    const b = costearMateriaPrima(base({ clave: 'B', dims_mm: [700, 250, 3], desc: 'CALIBRE 22' }), { catalogoLamina: CAT }).componente; // geometria distinta, misma lamina
+    const insumos = { [a.insumoId]: a.insumo };
+    const soloA = calcular({ nombre: 't', componentes: [a] }, 1, insumos, PARAMETROS_DEFAULT).materialTotal;
+    const soloB = calcular({ nombre: 't', componentes: [b] }, 1, insumos, PARAMETROS_DEFAULT).materialTotal;
+    const juntas = calcular({ nombre: 't', componentes: [a, b] }, 1, insumos, PARAMETROS_DEFAULT).materialTotal;
+    expect(juntas).toBeGreaterThan(0);
+    expect(juntas).toBeLessThanOrEqual(soloA + soloB + 0.01);   // no cuesta MAS que por separado (sin doble conteo)
+    expect(juntas).toBeGreaterThanOrEqual(Math.max(soloA, soloB) - 0.01); // ni menos que la mayor (sin perdida)
+    expect(juntas).toBeLessThan(326.59 * 2);                    // dos piezas chicas nunca 2 hojas enteras
+  });
+
+  it('P2/geom: desarrollo CAD confirmado se usa como geometria EXPLICITA (no se re-infiere del bounding box)', () => {
+    const r = costearMateriaPrima(base({ clave: 'CUE', cantidad: 1, dims_mm: [1200, 865, 600], desc: 'CUERPO CALIBRE 22',
+      desarrolloConfirmado: { largoMM: 2770, anchoMM: 865, area_m2: 2.396, fuente: 'CAD', version: 'cad-v1' } }), { catalogoLamina: CAT });
+    expect(r.estado).not.toBe('INCOMPLETO');                    // ya no es caja 3D pendiente
+    expect(r.evidencia.desarrollo.metodo).toBe('CAD_CONFIRMADO');
+    expect(r.evidencia.desarrollo.area_m2).toBe(2.396);         // area EXPLICITA del CAD, no (L+2D)
+    expect(r.evidencia.desarrollo.fuente).toBe('CAD');
+  });
+
   it('desarrolloPlano: plano/pestanas/caja/insuficiente', () => {
     expect(desarrolloPlano([400, 230]).metodo).toBe('VERIFICADO');
     expect(desarrolloPlano([538, 794, 20]).metodo).toBe('INFERIDO_L2D');

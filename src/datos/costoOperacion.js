@@ -44,22 +44,37 @@ export function normalizarEstandar(e = {}) {
     tarifa_mxn_min,
     costos_adicionales_mxn: Number.isFinite(Number(e.costos_adicionales_mxn)) ? Number(e.costos_adicionales_mxn) : 0,
     lote_piezas: Number(e.lote_piezas) > 0 ? Number(e.lote_piezas) : 1,
-    version: e.version || 's/version',
+    version: e.version ? String(e.version) : null,            // sin default: un estandar sin version NO es aprobado
     fuente: e.fuente || '',
+    vigente_desde: e.vigente_desde || null,
+    vigente_hasta: e.vigente_hasta || null,
     autorizado: e.autorizado === true,
   };
 }
 
-/** Importa un estandar autorizado al registro. Rechaza los no autorizados o incompletos. */
+/**
+ * Importa un estandar AUTORIZADO al registro. Fail-closed: exige autorizacion, unidades
+ * (tarifa $/min > 0, tiempo finito >= 0), VERSION y VIGENCIA. Nada ausente/por-defecto cuenta
+ * como aprobado. (punto 3 de la auditoria)
+ */
 export function cargarEstandar(e) {
   const n = normalizarEstandar(e);
   if (!n.centro || !n.op) throw new Error('estandar sin centro/op');
   if (!n.autorizado) throw new Error(`estandar ${n.centro}/${n.op} NO autorizado: no se carga`);
-  if (n.tiempo_proceso_min == null || n.tarifa_mxn_min == null) throw new Error(`estandar ${n.centro}/${n.op} incompleto (falta tiempo o tarifa)`);
+  if (!(Number.isFinite(n.tiempo_proceso_min) && n.tiempo_proceso_min >= 0) || !(Number.isFinite(n.tarifa_mxn_min) && n.tarifa_mxn_min > 0)) throw new Error(`estandar ${n.centro}/${n.op}: unidades invalidas (tiempo min >= 0 y tarifa $/min > 0)`);
+  if (n.tiempo_preparacion_min != null && !(Number.isFinite(n.tiempo_preparacion_min) && n.tiempo_preparacion_min >= 0)) throw new Error(`estandar ${n.centro}/${n.op}: preparacion invalida`);
+  if (!n.version) throw new Error(`estandar ${n.centro}/${n.op}: sin version (trazabilidad obligatoria)`);
+  if (!n.vigente_desde) throw new Error(`estandar ${n.centro}/${n.op}: sin vigencia (vigente_desde obligatorio)`);
   REGISTRO.set(clave(n.centro, n.op), n);
   return n;
 }
-export function estandarDe(centro, op) { return REGISTRO.get(clave(centro, op)) || null; }
+/** Devuelve el estandar si existe Y esta vigente a la fecha dada (fail-closed si expiro). */
+export function estandarDe(centro, op, hoy = new Date()) {
+  const n = REGISTRO.get(clave(centro, op));
+  if (!n) return null;
+  if (n.vigente_hasta) { const h = Date.parse(n.vigente_hasta); if (Number.isFinite(h) && hoy.getTime() > h) return null; }
+  return n;
+}
 export function limpiarEstandares() { REGISTRO.clear(); }
 export function estandaresCargados() { return [...REGISTRO.values()]; }
 

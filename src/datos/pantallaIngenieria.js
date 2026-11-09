@@ -96,7 +96,10 @@ export function recostearExpediente(expediente = {}, confirmacion = {}) {
   const buscar = (c) => piezas.find((p) => p.clave === c);
   switch (confirmacion.tipo) {
     case 'calibre': { const p = buscar(confirmacion.clave); if (p) p.calibreConfirmado = confirmacion.calibre; break; }
-    case 'desarrollo': { const p = buscar(confirmacion.clave); if (p) p.dims_mm = confirmacion.desarrollo_mm; break; } // flat pattern 2D de CAD
+    case 'desarrollo': { const p = buscar(confirmacion.clave); if (p) {
+      const [L, W] = confirmacion.desarrollo_mm || [];
+      p.desarrolloConfirmado = { largoMM: L, anchoMM: W, area_m2: confirmacion.area_m2 || +((L * W) / 1e6).toFixed(4), fuente: confirmacion.fuente || 'CAD', version: confirmacion.version || `cad-${(expediente.version || 1) + 1}` };
+    } break; } // geometria CAD EXPLICITA y versionada (no re-inferida)
     case 'precio': { const p = buscar(confirmacion.clave); if (p) p.insumoId = confirmacion.insumoId; inputs.insumosERP = { ...(inputs.insumosERP || {}), [confirmacion.insumoId]: confirmacion.insumo }; break; }
     case 'estandares': { (confirmacion.estandares || []).forEach(cargarEstandar); break; }
     default: throw new Error('tipo de confirmacion desconocido: ' + confirmacion.tipo);

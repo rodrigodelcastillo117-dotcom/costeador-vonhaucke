@@ -56,9 +56,9 @@ describe('pantallaIngenieria', () => {
   it('P3 recostearExpediente: cargar estandares de MO hace que la MO por routing deje de ser null', () => {
     limpiarEstandares();
     const centros = [...new Set((EXP.inputs.routing.operaciones || []).map((o) => o.centro))];
-    const estandares = centros.map((c) => ({ centro: c, op: (EXP.inputs.routing.operaciones.find((o) => o.centro === c) || {}).op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, autorizado: true }));
+    const estandares = centros.map((c) => ({ centro: c, op: (EXP.inputs.routing.operaciones.find((o) => o.centro === c) || {}).op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true }));
     // cargar TODOS los op de cada centro
-    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, autorizado: true }));
+    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true }));
     const v2 = recostearExpediente(EXP, { tipo: 'estandares', estandares: ops });
     expect(v2.costo_industrial.mano_obra.routing_completa).toBe(true);
     expect(v2.costo_industrial.mano_obra.routing_tiempos_mxn).toBeGreaterThan(0);
