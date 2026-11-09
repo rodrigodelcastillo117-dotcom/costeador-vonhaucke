@@ -1,0 +1,243 @@
+{
+  "clave": "TELSVH120",
+  "generado": "2026-11-09",
+  "interpretacion": {
+    "producto": "Vitrina horizontal de exhibicion, metalica, con capelo de cristal y caja de luz iluminada",
+    "funcion": "Exhibidor de mostrador para punto de venta (modelo SAMS), con vitrina superior iluminada y gabinete inferior con 2 puertas",
+    "dimensiones_generales_mm": {
+      "ancho": 1200,
+      "alto": 1150,
+      "fondo": 600
+    },
+    "modulos": [
+      {
+        "modulo": "Gabinete inferior (cuerpo)",
+        "piezas": [
+          "TELSVH120-CUE",
+          "TELSVH120-CF",
+          "TELSVH120-P",
+          "TELSVH120-PC"
+        ]
+      },
+      {
+        "modulo": "Vitrina superior / capelo",
+        "piezas": [
+          "TELSVH120-CAP",
+          "TELSVH120-SOM",
+          "TELSVH120-BX2",
+          "TELSVH120-SOC"
+        ]
+      },
+      {
+        "modulo": "Caja de luz iluminada",
+        "piezas": [
+          "TELSVH120-BAA",
+          "TELSVH120-KIT",
+          "TELVIH-LOAC"
+        ]
+      },
+      {
+        "modulo": "Herrajes y cierre",
+        "piezas": [
+          "P36CR",
+          "COEME20ND",
+          "REP46",
+          "TO3812NIC",
+          "PITR114",
+          "CLENR2CA",
+          "TELSVH120-PLA"
+        ]
+      },
+      {
+        "modulo": "Selladores",
+        "piezas": [
+          "TELSVH120-AD",
+          "TELSVH120-SIL"
+        ]
+      }
+    ],
+    "criterio_ingenieria": {
+      "cristal_acrilico": "Capelo de cristal 1148x548x254 esp 6mm templado (CAP) + logo acrilico laser 797x173x3 (LOAC) + caja de luz termoformada acrilico Z2 (BAA)",
+      "iluminacion_cableado": "Kit LED 5 tiras 1m 5050/60 4000K + fuente 100W Mean Well + cable tomacorriente 2.5m (KIT) -> operaciones cableado + pruebas electricas",
+      "tornilleria_herrajes": "Pasador P36CR, 45 remaches REP46, corredera COEME20ND, 4 niveladores TO3812NIC, pija PITR114, clavo CLENR2CA",
+      "dobleces_refuerzos": "PROPUESTA: cuerpo/frente/puertas en lamina doblada (gabinete de mostrador) -> implica corte + doblez; refuerzos internos no acotados en el plano (proponer)",
+      "soldadura_uniones": "PROPUESTA: union de cuerpo por remache (plano dice 'remachar'), soldadura no confirmada en el plano -> no asumir soldadura certificada",
+      "soportes_anclajes": "Soportes de correderas a cuerpo (plano: 'fijar soportes a cuerpo con remaches')",
+      "acabados": "PROPUESTA: pintura/acabado del gabinete metalico (no acotado color/proceso en este despiece) -> proponer",
+      "equipo_cliente": "Ninguno indicado"
+    }
+  },
+  "bom_canonico": {
+    "tipo_bom": "BOM_BORRADOR",
+    "estado": "borrador",
+    "total_renglones": 20,
+    "resueltas": 10,
+    "pendientes": [
+      {
+        "desc": "CUERPO PARA VITRINA HORIZONTAL DE 1200 X 865 X 600 mm ; EN LAMINA",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "EXHIBIDOR PARA VITRINA DE 1117 X 242 X 527 mm ; EN LAMINA",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "BASE CORREDERA DE 500 X 48 X 40 mm ; EN LAMINA",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "SOMBRA PARA VITRINA DE 1127 X 78 X 42 mm ; EN LAMINA",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm DERECHA; EN LAMINA",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm IZQUIERDA; EN LAMINA",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "FRENTE PARA VITRINA DE 1106 X 828 X 13 mm ; EN LAMINA",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "KIT DE ILUMINACION: 5 TIRAS 1m LED 5050/60 4000K + FUENTE 100W MEAN WELL + CABLE",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "MAQUILA PLACA GALVANIZADA 40 X 23 mm CAL 24 IDENTIFICACION, 2 BARRENOS, SERIGRAF",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      },
+      {
+        "desc": "CORREDERAS - COEME20ND",
+        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
+      }
+    ]
+  },
+  "routing": {
+    "total_operaciones": 16,
+    "por_centro": {
+      "metalmecánica": 4,
+      "vidrio": 1,
+      "carpintería": 1,
+      "pintura": 3,
+      "ensamble": 3,
+      "eléctrico": 2,
+      "calidad": 1,
+      "embalaje": 1
+    },
+    "operaciones": [
+      {
+        "op": "corte_lamina",
+        "centro": "metalmecánica",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "lámina/placa en el BOM"
+      },
+      {
+        "op": "corte_vidrio",
+        "centro": "vidrio",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "vidrio/acrílico en el BOM"
+      },
+      {
+        "op": "punzonado",
+        "centro": "metalmecánica",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "lámina (barrenos/troqueles habituales)"
+      },
+      {
+        "op": "doblez",
+        "centro": "metalmecánica",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "lámina/solera (dobleces habituales)"
+      },
+      {
+        "op": "esmerilado",
+        "centro": "metalmecánica",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "unión soldada a limpiar"
+      },
+      {
+        "op": "canteado",
+        "centro": "carpintería",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "canto/tapacanto en el BOM"
+      },
+      {
+        "op": "preparacion_superficie",
+        "centro": "pintura",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "se va a pintar/recubrir"
+      },
+      {
+        "op": "pintura_liquida",
+        "centro": "pintura",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "laca/barniz/pintura líquida en el BOM"
+      },
+      {
+        "op": "secado_curado",
+        "centro": "pintura",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "proceso de pintura presente"
+      },
+      {
+        "op": "armado",
+        "centro": "ensamble",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "10 pieza(s) fabricable(s) a ensamblar"
+      },
+      {
+        "op": "instalacion_herrajes",
+        "centro": "ensamble",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "herrajes en el BOM (montaje y ajuste en fábrica)"
+      },
+      {
+        "op": "colocacion_vidrio",
+        "centro": "ensamble",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "vidrio/acrílico a montar"
+      },
+      {
+        "op": "cableado",
+        "centro": "eléctrico",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "iluminación/eléctrico en el BOM"
+      },
+      {
+        "op": "pruebas_electricas",
+        "centro": "eléctrico",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "circuito eléctrico a probar"
+      },
+      {
+        "op": "inspeccion",
+        "centro": "calidad",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "producto fabricado a inspeccionar"
+      },
+      {
+        "op": "embalaje",
+        "centro": "embalaje",
+        "estado": "PENDIENTE_TIEMPO",
+        "disparada_por": "módulo transportable"
+      }
+    ],
+    "nota": "Operaciones propuestas desde el despiece. Faltan tiempos y tarifas reales (Ingeniería/Producción) para costear la MO oficialmente."
+  },
+  "estado_economico": {
+    "material_resuelto_mxn": 4693.9,
+    "lineas_resueltas": 10,
+    "lineas_pendientes": 10,
+    "cobertura_bom": "10/20 renglones con precio ERP",
+    "cos_fab_calculado_PARCIAL_mxn": 6336.77,
+    "base_factores": "TELCEL 10/25 PRESTADOS (no autorizados para TELSVH120) — ilustrativo",
+    "mano_obra_certificable": false,
+    "veredicto_costo": "NO CERTIFICABLE / PARCIAL: faltan 10 pieza(s) (fabricadas de lamina + compradas sin precio) y tiempos/tarifas de routing. El total resuelto es un PISO de material, no el costo del producto.",
+    "no_verificable_por": [
+      "10 pieza(s) pendiente(s) de identidad/precio"
+    ]
+  }
+}

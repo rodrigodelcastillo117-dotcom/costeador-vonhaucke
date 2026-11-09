@@ -1,0 +1,55 @@
+{
+  "_meta": {
+    "caso": "PLANO NUEVO FUERA DE MUESTRA — primer E2E industrial",
+    "clave": "TELSVH120",
+    "fuente_plano": "Google Drive TELSVH120.pdf (4 hojas) — leido EN VIVO (multimodal) 2026-11-09",
+    "plano_no": "TEVHSU02-VP-01-N1",
+    "no_usado_para_calibrar": true,
+    "nota": "Modelo SAMS (cliente/linea distintos de la calibracion TELCEL/ALPURA/VENTO y de los 6 Productos Maestros existentes). Precios ERP resueltos contra catalogo_vigente (prod) el 2026-11-09, snapshot de solo lectura.",
+    "advertencia": "Inferencias de ingenieria marcadas 'propuesta'. Nada aqui se escribe a prod sin autorizacion. BOM queda BORRADOR (tiene pendientes)."
+  },
+  "interpretacion": {
+    "producto": "Vitrina horizontal de exhibicion, metalica, con capelo de cristal y caja de luz iluminada",
+    "funcion": "Exhibidor de mostrador para punto de venta (modelo SAMS), con vitrina superior iluminada y gabinete inferior con 2 puertas",
+    "dimensiones_generales_mm": { "ancho": 1200, "alto": 1150, "fondo": 600 },
+    "modulos": [
+      { "modulo": "Gabinete inferior (cuerpo)", "piezas": ["TELSVH120-CUE","TELSVH120-CF","TELSVH120-P","TELSVH120-PC"] },
+      { "modulo": "Vitrina superior / capelo", "piezas": ["TELSVH120-CAP","TELSVH120-SOM","TELSVH120-BX2","TELSVH120-SOC"] },
+      { "modulo": "Caja de luz iluminada", "piezas": ["TELSVH120-BAA","TELSVH120-KIT","TELVIH-LOAC"] },
+      { "modulo": "Herrajes y cierre", "piezas": ["P36CR","COEME20ND","REP46","TO3812NIC","PITR114","CLENR2CA","TELSVH120-PLA"] },
+      { "modulo": "Selladores", "piezas": ["TELSVH120-AD","TELSVH120-SIL"] }
+    ],
+    "criterio_ingenieria": {
+      "cristal_acrilico": "Capelo de cristal 1148x548x254 esp 6mm templado (CAP) + logo acrilico laser 797x173x3 (LOAC) + caja de luz termoformada acrilico Z2 (BAA)",
+      "iluminacion_cableado": "Kit LED 5 tiras 1m 5050/60 4000K + fuente 100W Mean Well + cable tomacorriente 2.5m (KIT) -> operaciones cableado + pruebas electricas",
+      "tornilleria_herrajes": "Pasador P36CR, 45 remaches REP46, corredera COEME20ND, 4 niveladores TO3812NIC, pija PITR114, clavo CLENR2CA",
+      "dobleces_refuerzos": "PROPUESTA: cuerpo/frente/puertas en lamina doblada (gabinete de mostrador) -> implica corte + doblez; refuerzos internos no acotados en el plano (proponer)",
+      "soldadura_uniones": "PROPUESTA: union de cuerpo por remache (plano dice 'remachar'), soldadura no confirmada en el plano -> no asumir soldadura certificada",
+      "soportes_anclajes": "Soportes de correderas a cuerpo (plano: 'fijar soportes a cuerpo con remaches')",
+      "acabados": "PROPUESTA: pintura/acabado del gabinete metalico (no acotado color/proceso en este despiece) -> proponer",
+      "equipo_cliente": "Ninguno indicado"
+    }
+  },
+  "bom": [
+    { "no": 1, "clave": "TELSVH120-CUE", "desc": "CUERPO PARA VITRINA HORIZONTAL DE 1200 X 865 X 600 mm ; EN LAMINA", "cantidad": 1, "insumoId": null, "fabricada": true, "material_propuesto": "lamina (calibre a definir por Ingenieria)" },
+    { "no": 2, "clave": "TELSVH120-BX2", "desc": "EXHIBIDOR PARA VITRINA DE 1117 X 242 X 527 mm ; EN LAMINA", "cantidad": 1, "insumoId": null, "fabricada": true },
+    { "no": 3, "clave": "TELSVH120-SOC", "desc": "BASE CORREDERA DE 500 X 48 X 40 mm ; EN LAMINA", "cantidad": 2, "insumoId": null, "fabricada": true },
+    { "no": 4, "clave": "TELSVH120-SOM", "desc": "SOMBRA PARA VITRINA DE 1127 X 78 X 42 mm ; EN LAMINA", "cantidad": 1, "insumoId": null, "fabricada": true },
+    { "no": 5, "clave": "TELSVH120-BAA", "desc": "CAJA DE LUZ TERMOFORMADA DE 1110 X 500 X 130 mm ESPESOR 3.0 mm EN ACRILICO TRASLUCIDO Z2", "cantidad": 1, "insumoId": "erp-telsvh120-baa", "precio": 1685, "unidad": "pieza" },
+    { "no": 6, "clave": "TELSVH120-PC", "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm DERECHA; EN LAMINA", "cantidad": 1, "insumoId": null, "fabricada": true },
+    { "no": 7, "clave": "TELSVH120-P", "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm IZQUIERDA; EN LAMINA", "cantidad": 1, "insumoId": null, "fabricada": true },
+    { "no": 8, "clave": "TELSVH120-CF", "desc": "FRENTE PARA VITRINA DE 1106 X 828 X 13 mm ; EN LAMINA", "cantidad": 1, "insumoId": null, "fabricada": true },
+    { "no": 9, "clave": "TELSVH120-AD", "desc": "SIKAFLEX 1a SELLADOR ELASTICO DE POLIURETANO BLANCO - SK1ASEP", "cantidad": 1, "insumoId": "erp-sk1asep", "precio": 170, "unidad": "pieza" },
+    { "no": 10, "clave": "TELSVH120-SIL", "desc": "SILICON TRANSPARENTE 300 ml DOW CORNING SISTA 781 - AD-0008", "cantidad": 1, "insumoId": "erp-ad-0008", "precio": 138.2, "unidad": "pieza" },
+    { "no": 11, "clave": "TELSVH120-KIT", "desc": "KIT DE ILUMINACION: 5 TIRAS 1m LED 5050/60 4000K + FUENTE 100W MEAN WELL + CABLE 2.5m", "cantidad": 1, "insumoId": null, "esCompraVenta": true, "pendiente_precio": true },
+    { "no": 12, "clave": "TELSVH120-PLA", "desc": "MAQUILA PLACA GALVANIZADA 40 X 23 mm CAL 24 IDENTIFICACION, 2 BARRENOS, SERIGRAFIA", "cantidad": 1, "insumoId": null, "fabricada": true },
+    { "no": 13, "clave": "TO3812NIC", "desc": "TORNILLO NIVELADOR 3/8 X 1 PLATAFORMA 2 CROMADO - TO3812NIC", "cantidad": 4, "insumoId": "erp-to3812nic", "precio": 40.7, "unidad": "pieza" },
+    { "no": 14, "clave": "TELSVH120-CAP", "desc": "CAPELO DE CRISTAL 1148 X 548 X 254 mm ESP 6mm CLARO TEMPLADO CANTOS PULIDOS", "cantidad": 1, "insumoId": "erp-telsvh120-cap", "precio": 1737.99, "unidad": "pieza" },
+    { "no": 15, "clave": "PITR114", "desc": "PIJA CABEZA PLANA PHILLIPS 1 1/4 TABLAROCA PAVONADO - PITR114", "cantidad": 1, "insumoId": "erp-pitr114", "precio": 0.29, "unidad": "pieza" },
+    { "no": 16, "clave": "CLENR2CA", "desc": "CLAVO EN ROLLO 2 PARA CLAVADORA NEUMATICA - CLENR2CA", "cantidad": 1, "insumoId": "erp-clenr2ca", "precio": 590, "unidad": "caja" },
+    { "no": 17, "clave": "TELVIH-LOAC", "desc": "CORTE LASER LOGOTIPO TELCEL 797 X 173 X 3 mm ACRILICO AZUL ESP 3mm - TELVIH-LOAC", "cantidad": 1, "insumoId": "erp-telvih-loac", "precio": 130, "unidad": "pieza", "esCompraVenta": true },
+    { "no": 18, "clave": "REP46", "desc": "REMACHE POP AM-46 ALUMINIO NATURAL - REP46", "cantidad": 45, "insumoId": "erp-rep46", "precio": 0.31, "unidad": "pieza" },
+    { "no": 19, "clave": "P36CR", "desc": "PASADOR MODELO 36 PHILLIPS CON BOTON DE SEGURIDAD CROMO SATINADO - P36CR", "cantidad": 1, "insumoId": "erp-p36cr", "precio": 65.67, "unidad": "pieza" },
+    { "no": 20, "clave": "COEME20ND", "desc": "CORREDERAS - COEME20ND", "cantidad": 1, "insumoId": null, "pendiente_precio": true }
+  ]
+}
