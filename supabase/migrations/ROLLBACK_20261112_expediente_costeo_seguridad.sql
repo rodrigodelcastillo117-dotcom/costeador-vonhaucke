@@ -2,12 +2,21 @@
 --  ROLLBACK de 20261112_expediente_costeo_seguridad.sql
 --  Devuelve el contrato de 20261111 (RPC/RLS/PK originales).
 --
---  ADVERTENCIA: la PK vuelve a ser (clave). Esto SOLO es seguro si NO existen
---  dos filas con la misma `clave` de dueños distintos (que el nuevo esquema si
---  permite). Si las hay, el rollback FALLA a proposito (no se pierden datos):
---  primero hay que resolver el conflicto de claves manualmente.
---  El historial (expediente_costeo_historial) se conserva por si acaso; para
---  eliminarlo, descomentar la ultima linea.
+--  ⚠️ LEE ESTO ANTES DE USARLO (riesgo señalado por la auditoria):
+--  Este rollback restaura la PK GLOBAL (clave). El esquema nuevo permite que dos
+--  dueños distintos tengan la MISMA clave; en cuanto eso ocurra, restaurar una PK
+--  global es IMPOSIBLE sin perder el aislamiento y/o datos. Por eso este script
+--  tiene un GUARD que lo ABORTA si detecta claves repetidas por dueño (no borra
+--  nada; probado en supabase/tests/postgres_real/aislamiento_dos_usuarios.sh #7).
+--
+--  Ademas: revertir restaura la RPC VULNERABLE (re-abre el P0). Por tanto:
+--   · Usa este rollback SOLO en la ventana inmediata post-aplicacion, si el fix
+--     falla o la RPC nueva tiene un bug, y ANTES de que exista una 2a fila con
+--     clave repetida (hoy solo hay 1 fila QA -> ventana segura).
+--   · Despues de esa ventana, NO reviertas a la PK global: corrige hacia adelante.
+--     La PK compuesta y el historial son inocuos de conservar.
+--  El historial (expediente_costeo_historial) se conserva; para eliminarlo,
+--  descomentar la ultima linea.
 -- ============================================================================
 
 -- Verificacion: no debe haber claves duplicadas entre dueños antes de revertir.

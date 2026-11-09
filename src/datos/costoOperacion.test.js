@@ -43,6 +43,17 @@ describe('costoOperacion — autoridad y contrato', () => {
     expect(() => cargarEstandar({ ...STD, estado: 'propuesto' }, { autoridad: AUT })).toThrow(/sin aprobacion registrada por el servidor/);
   });
 
+  it('36432bb p2: un estandar SUMINISTRADO directamente NUNCA es oficial/autorizado', () => {
+    // Aunque el objeto cliente traiga autorizado:true Y estado:'aprobado', no prueba nada.
+    const r = costoOperacion({ centro: 'metalmecánica', op: 'corte_lamina', piezas: 1,
+      estandar: { ...STD, autorizado: true, estado: 'aprobado', tiempo_proceso_min: 1, tarifa_mxn_min: 10 } });
+    expect(r.costo_mxn).toBe(10);            // calcula como REFERENCIA
+    expect(r.estado).toBe('REFERENCIA');     // nunca AUTORIZADA desde un objeto cliente
+    expect(r.oficial).toBe(false);
+    expect(r.origen).toBe('suministrado');
+    expect(r.parametros.autorizado).toBe(false);
+  });
+
   it('P3: exige unidades, version y vigencia', () => {
     expect(() => cargarEstandar({ ...STD, tarifa_mxn_min: 0 }, { autoridad: AUT })).toThrow(/unidades invalidas/);
     expect(() => cargarEstandar({ ...STD, tiempo_proceso_min: undefined }, { autoridad: AUT })).toThrow(/unidades invalidas/);

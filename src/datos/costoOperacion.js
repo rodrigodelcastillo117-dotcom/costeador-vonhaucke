@@ -72,15 +72,17 @@ export function autoridadDesdeListas({ permitidos = [], noHumanas = [], roles = 
 const AUTORIDAD_CERRADA = () => ({ ok: false, rol: null });
 
 /**
- * Importa un estandar de MO al registro. Fail-closed (auditorias p3 y 36432bb): un `autorizado:true`
- * del cliente NO prueba nada, y un aprobador NOMBRADO tampoco. Exige, como en precios (insumo_precios):
- *   (a) un HECHO de aprobacion escrito por el servidor: `estado`/`estado_aprobacion` == 'aprobado'
- *       (lo escribe una RPC con rol Direccion; el cliente no puede fabricarlo de forma trazable);
- *   (b) que el APROBADOR (`aprobado_por`) tenga rol Direccion segun la lista server-side (`autoridad`),
- *       y no sea cuenta no-humana;
- *   (c) unidades, VERSION y VIGENCIA.
- * La identidad+permiso se comprueba contra el servidor, no solo con el callback: el callback verifica
- * el ROL del aprobador, y `estado='aprobado'` verifica que la aprobacion OCURRIO en el servidor.
+ * Importa un estandar de MO al REGISTRO de REFERENCIA. Fail-closed (auditorias p3 y 36432bb).
+ *
+ * ⚠️ HONESTIDAD (correccion 36432bb): esta funcion es CLIENTE. Verifica requisitos MINIMOS
+ * (unidades, version, vigencia, aprobador con rol via `autoridad`, y un campo `estado='aprobado'`),
+ * pero NO puede, por si sola, probar que la aprobacion OCURRIO en el servidor: `estado='aprobado'`
+ * en un objeto que llega del cliente NO es prueba suficiente (igual que `autorizado:true` no lo era).
+ * La aprobacion economica REAL se verifica aparte, contra registros del servidor, con
+ * `aprobacionEstandarMO` (autoridadCosteoServidor.js): identidad+permiso+fecha+version+evidencia.
+ * Por eso un estandar cargado aqui es REFERENCIA; declarar un costo OFICIAL con el exige, ademas,
+ * la verificacion server-side. El objetivo P2 es que estos estandares provengan de una tabla
+ * `estandar_mo` escrita por una RPC `aprobar_estandar_mo` (rol Direccion), no de un objeto cliente.
  * @param {object} e
  * @param {{autoridad?:Function}} opts  autoridad(email) -> {ok, rol}. Default: CERRADA (rechaza todo).
  */
@@ -125,7 +127,12 @@ export function estandaresCargados() { return [...REGISTRO.values()]; }
  *   total = preparacion_imputada x piezas(si base pieza) + proceso + adicionales x piezas
  */
 export function costoOperacion({ centro, op, piezas = 1, lote = null, estandar = null } = {}) {
-  const std = estandar ? normalizarEstandar(estandar) : estandarDe(centro, op);
+  // Un estandar SUMINISTRADO directamente (objeto cliente) es SIEMPRE referencia, nunca
+  // oficial/autorizado: sus campos autorizado:true o estado:'aprobado' NO prueban aprobacion
+  // (auditoria 36432bb, p2). Solo un estandar del REGISTRO (vetado por cargarEstandar con
+  // autoridad) puede ser AUTORIZADA. La oficialidad economica la decide el servidor, no aqui.
+  const directo = !!estandar;
+  const std = directo ? normalizarEstandar(estandar) : estandarDe(centro, op);
   const qty = Number(piezas) > 0 ? Number(piezas) : 1;
   if (!std || std.tiempo_proceso_min == null || std.tarifa_mxn_min == null) {
     return {
@@ -140,8 +147,10 @@ export function costoOperacion({ centro, op, piezas = 1, lote = null, estandar =
   const adicionalPorPieza = std.costos_adicionales_mxn || 0;
   const costoUnit = prepPorPieza + procesoPorPieza + adicionalPorPieza;
   const costo = +(costoUnit * qty).toFixed(2);
+  const autorizada = !directo && std.autorizado === true;   // directo nunca es oficial
   return {
-    estado: std.autorizado ? 'AUTORIZADA' : 'REFERENCIA', centro, op, costo_mxn: costo,
+    estado: autorizada ? 'AUTORIZADA' : 'REFERENCIA', oficial: false, origen: directo ? 'suministrado' : 'registro',
+    centro, op, costo_mxn: costo,
     desglose: {
       preparacion_imputada_mxn: +(prepPorPieza * qty).toFixed(2),
       proceso_mxn: +(procesoPorPieza * qty).toFixed(2),
@@ -150,7 +159,7 @@ export function costoOperacion({ centro, op, piezas = 1, lote = null, estandar =
     },
     parametros: { tiempo_preparacion_min: std.tiempo_preparacion_min, tiempo_proceso_min: std.tiempo_proceso_min,
       tarifa_mxn_min: std.tarifa_mxn_min, lote_piezas: loteEf, piezas: qty, base_reparto: 'preparacion por lote',
-      version: std.version, fuente: std.fuente, autorizado: std.autorizado },
+      version: std.version, fuente: std.fuente, autorizado: autorizada },
   };
 }
 
