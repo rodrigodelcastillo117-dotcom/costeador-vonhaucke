@@ -83,14 +83,30 @@ En resumen: el **rollback** es el botón de pánico de la ventana inmediata (hoy
   5. `creado_por` inmutable tras varios guardados.
   6. `VERSION_CONFLICT` ya no revela la versión.
   7. Rollback aborta ante colisión, sin perder datos.
+  8. **Ejecución transaccional (atómica):** una transacción que falla a mitad **revierte todo** (PK sigue `clave`, sin historial); el commit deja el fix **completo** (PK `creado_por,clave`, historial, fila preservada). → todo-o-nada.
 - **PGlite 12/12** — reproduce el defecto (contrato viejo) y lo cierra (contrato nuevo).
 - Migración verificada **contra el esquema productivo real** (sección 2 ↔ 3).
+- **CI del release (run #1063, SHA `539b7da`): ambos jobs SUCCESS** — `verify` (npm ci, `npm audit` 0 vulns, `vitest` 4315/4315, build) y `E2E público+auth` (Playwright).
 
-## 6. Plan de aplicación (sólo con tu autorización)
+## 6. Ejecución transaccional
 
-1. Aplicar `20261112_expediente_costeo_seguridad.sql` a `mtuvnbgljwbsaizjjgzs`.
-2. Verificar en vivo: PK = `(creado_por, clave)`, historial existe, `guardar` aislado por dueño, y **fila QA intacta** — `md5(expediente::text)` sigue siendo `6fdd462c…`, `version=1`, `creado_por=qa-direccion@vonhaucke.mx` (`reabrir` de `qa-direccion` la devuelve).
+La migración se aplica **dentro de una sola transacción** (`begin; … commit;`), de modo que es **atómica**: si cualquier paso falla (incluido el `do $$ … raise $$` que aborta ante un expediente sin dueño), **nada** queda a medias. Postgres ejecuta el DDL de forma transaccional; probado en `aislamiento_dos_usuarios.sh` #8 (falla → rollback total; commit → fix completo). El comando de aplicación va envuelto en `begin/commit`.
+
+## 7. Verificación POSTERIOR (sólo lectura)
+
+`supabase/migrations/VERIFICACION_POST_20261112.sql` — 14 chequeos con PASS/FAIL (objetivo: 0 FAIL): PK `(creado_por,clave)`, `creado_por NOT NULL`, ambas RPC aisladas por dueño, ausencia del patrón vulnerable, historial + RLS, policy por `creado_por`, execute a `authenticated`, `anon` sin execute, sin acceso directo a la tabla, `SECURITY DEFINER`+`search_path`, firmas intactas, y fila QA preservada por md5. Validado en Postgres real (13/13 estructurales PASS; el #14 de md5 sólo aplica en prod).
+
+## 8. Plan de aplicación (sólo con tu autorización)
+
+```sql
+-- 1) Aplicar (transaccional):
+begin;
+\i supabase/migrations/20261112_expediente_costeo_seguridad.sql
+commit;
+-- 2) Verificar (0 FAIL esperado):
+\i supabase/migrations/VERIFICACION_POST_20261112.sql
+```
 3. Smoke productivo (opcional): E2E de Ingeniería con la cuenta QA (guardar borrador → reabrir).
-4. Rollback listo en la ventana inmediata; después, corrección hacia adelante (sección 4-bis).
+4. **Recuperación:** prioriza **corrección hacia adelante** (§4-bis). El rollback a `20261111` re-abre el P0 y sólo es admisible en la ventana inmediata, antes de que exista una 2ª fila con clave repetida.
 
 **No ejecuto nada de esto sin tu aprobación explícita.**

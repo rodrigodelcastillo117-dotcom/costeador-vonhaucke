@@ -109,6 +109,32 @@ ok "ROLLBACK_ABORTADO ante colision (sin perder datos)" '[[ "$RB2" == *ROLLBACK_
 NROWS2=$(S -d t -c "select count(*) from public.expediente_costeo;")
 ok "las filas siguen ahi tras el rollback abortado" '[[ "$NROWS2" == "2" ]]' "NROWS2=$NROWS2"
 
+echo; echo "### 8. EJECUCION TRANSACCIONAL (atomica, todo-o-nada) ###"
+# Base limpia + fila heredada; luego aplicar el FIX dentro de UNA transaccion que FALLA al final.
+P -c "create database tx" >/dev/null
+P -d tx -f "$W/stub.sql" >/dev/null
+P -d tx -f "$W/mig_base.sql" >/dev/null
+P -d tx -c "insert into public.expediente_costeo(clave,version,expediente,creado_por,actualizado_por) values('TELSVH120',3,'{\"qa\":true}'::jsonb,'a@vh.mx','a@vh.mx');" >/dev/null
+# BEGIN + migracion + error forzado: con ON_ERROR_STOP la tx aborta y revierte TODO.
+{ echo "begin;"; cat "$W/mig_fix.sql"; echo "select 1/0;"; echo "commit;"; } | psql -h "$SOCK" -U postgres -v ON_ERROR_STOP=1 -q -d tx >/dev/null 2>"$W/txerr.txt" || true
+PKORDER="select string_agg(a.attname, ',' order by k.ord) from pg_index i join lateral unnest(i.indkey) with ordinality as k(attnum,ord) on true join pg_attribute a on a.attrelid=i.indrelid and a.attnum=k.attnum where i.indrelid='public.expediente_costeo'::regclass and i.indisprimary"
+PKtx=$(S -d tx -c "$PKORDER;")
+HISTtx=$(S -d tx -c "select to_regclass('public.expediente_costeo_historial') is not null;")
+ok "la transaccion fallida NO dejo cambios (PK sigue siendo clave)" '[[ "$PKtx" == "clave" ]]' "PKtx=$PKtx"
+ok "la transaccion fallida NO creo el historial" '[[ "$HISTtx" == "f" ]]' "HISTtx=$HISTtx"
+# Y aplicada dentro de UNA transaccion que COMMITea: queda completa (atomico en exito).
+P -c "create database tx2" >/dev/null
+P -d tx2 -f "$W/stub.sql" >/dev/null
+P -d tx2 -f "$W/mig_base.sql" >/dev/null
+P -d tx2 -c "insert into public.expediente_costeo(clave,version,expediente,creado_por,actualizado_por) values('TELSVH120',3,'{\"qa\":true}'::jsonb,'a@vh.mx','a@vh.mx');" >/dev/null
+{ echo "begin;"; cat "$W/mig_fix.sql"; echo "commit;"; } | psql -h "$SOCK" -U postgres -v ON_ERROR_STOP=1 -q -d tx2 >/dev/null 2>"$W/tx2err.txt" || { echo "  FALLO aplicar en tx2:"; cat "$W/tx2err.txt"; }
+PKtx2=$(S -d tx2 -c "$PKORDER;")
+HISTtx2=$(S -d tx2 -c "select to_regclass('public.expediente_costeo_historial') is not null;")
+MD5tx2=$(S -d tx2 -c "select md5(expediente::text) from public.expediente_costeo where clave='TELSVH120';")
+ok "commit transaccional deja el fix COMPLETO (PK creado_por,clave)" '[[ "$PKtx2" == "creado_por,clave" ]]' "PKtx2=$PKtx2"
+ok "commit transaccional crea el historial" '[[ "$HISTtx2" == "t" ]]' "HISTtx2=$HISTtx2"
+ok "la fila heredada se preserva en el commit (existe md5)" '[[ -n "$MD5tx2" ]]' "MD5tx2=$MD5tx2"
+
 echo; echo "============================================================"
 echo ">>> AISLAMIENTO: PASS=$PASS FAIL=$FAIL"
 [ "$FAIL" = 0 ] && echo ">>> VEREDICTO: AISLAMIENTO REAL VERIFICADO" || echo ">>> VEREDICTO: HAY FALLOS"
