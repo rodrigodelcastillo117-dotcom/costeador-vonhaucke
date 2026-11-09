@@ -239,5 +239,218 @@
     "no_verificable_por": [
       "10 pieza(s) pendiente(s) de identidad/precio"
     ]
-  }
+  },
+  "costo_propuesto": {
+    "certificable": false,
+    "material": {
+      "resuelto_erp_mxn": 4693.9,
+      "lamina_propuesta_mxn_cota": 386.05,
+      "total_floor_mxn": 5079.95,
+      "detalle_lamina": [
+        {
+          "clave": "TELSVH120-CUE",
+          "area_m2_cota_inferior": 1.038,
+          "cantidad": 1,
+          "costo_cota": 113.4,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        },
+        {
+          "clave": "TELSVH120-BX2",
+          "area_m2_cota_inferior": 0.5887,
+          "cantidad": 1,
+          "costo_cota": 64.32,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        },
+        {
+          "clave": "TELSVH120-SOC",
+          "area_m2_cota_inferior": 0.024,
+          "cantidad": 2,
+          "costo_cota": 5.24,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        },
+        {
+          "clave": "TELSVH120-SOM",
+          "area_m2_cota_inferior": 0.0879,
+          "cantidad": 1,
+          "costo_cota": 9.6,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        },
+        {
+          "clave": "TELSVH120-PC",
+          "area_m2_cota_inferior": 0.4272,
+          "cantidad": 1,
+          "costo_cota": 46.67,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        },
+        {
+          "clave": "TELSVH120-P",
+          "area_m2_cota_inferior": 0.4272,
+          "cantidad": 1,
+          "costo_cota": 46.67,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        },
+        {
+          "clave": "TELSVH120-CF",
+          "area_m2_cota_inferior": 0.9158,
+          "cantidad": 1,
+          "costo_cota": 100.05,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        },
+        {
+          "clave": "TELSVH120-PLA",
+          "area_m2_cota_inferior": 0.0009,
+          "cantidad": 1,
+          "costo_cota": 0.1,
+          "estado": "PROPUESTA_COTA_INFERIOR"
+        }
+      ]
+    },
+    "mano_obra": {
+      "completa": false,
+      "mxn": null,
+      "detalle": [
+        {
+          "op": "corte_lamina",
+          "centro": "metalmecánica",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "corte_vidrio",
+          "centro": "vidrio",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "punzonado",
+          "centro": "metalmecánica",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "doblez",
+          "centro": "metalmecánica",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "esmerilado",
+          "centro": "metalmecánica",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "canteado",
+          "centro": "carpintería",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "preparacion_superficie",
+          "centro": "pintura",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "pintura_liquida",
+          "centro": "pintura",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "secado_curado",
+          "centro": "pintura",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "armado",
+          "centro": "ensamble",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "instalacion_herrajes",
+          "centro": "ensamble",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "colocacion_vidrio",
+          "centro": "ensamble",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "cableado",
+          "centro": "eléctrico",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "pruebas_electricas",
+          "centro": "eléctrico",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "inspeccion",
+          "centro": "calidad",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        },
+        {
+          "op": "embalaje",
+          "centro": "embalaje",
+          "costo": null,
+          "estado": "PENDIENTE_TARIFA"
+        }
+      ],
+      "nota": "MO NO costeada: faltan tarifas/tiempos autorizados. Operaciones identificadas, costo pendiente de Ingeniería."
+    },
+    "total_propuesto_mxn": null,
+    "estado": "PROPUESTA_NO_CERTIFICABLE",
+    "supuestos": [
+      "Lámina a 95 $/m² (derivado de piezas \"CORTE LAMINA NEGRA\" cal 20/22 del catálogo ERP (incluye corte)); merma 15% (rango industrial corte de lámina 10–25% (referencia, no medición)). Área = cara mayor (COTA INFERIOR, ignora dobleces)."
+    ],
+    "preguntas_ingenieria": [
+      "Confirmar calibre y tipo de lámina por pieza y el desarrollo plano real (m²) de cada pieza fabricada.",
+      "Tarifa y tiempo autorizados de \"Corte de lámina\" (centro metalmecánica) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Corte de vidrio/acrílico (posible tercero)\" (centro vidrio) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Punzonado/barrenado\" (centro metalmecánica) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Doblez\" (centro metalmecánica) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Esmerilado/acabado de soldadura\" (centro metalmecánica) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Pegado de canto\" (centro carpintería) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Preparación de superficie\" (centro pintura) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Pintura líquida / laca / barniz\" (centro pintura) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Secado / curado\" (centro pintura) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Armado / ensamble\" (centro ensamble) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Instalación y ajuste de herrajes\" (centro ensamble) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Colocación de vidrio/acrílico\" (centro ensamble) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Cableado e instalación eléctrica\" (centro eléctrico) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Pruebas eléctricas\" (centro eléctrico) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Inspección de calidad\" (centro calidad) para costear su MO.",
+      "Tarifa y tiempo autorizados de \"Embalaje\" (centro embalaje) para costear su MO."
+    ],
+    "advertencia": "Costo PROPUESTO con referencias explícitas y cotas. No es costo oficial. Material de lámina es cota inferior. MO requiere tarifas/tiempos reales. Validación de Ingeniería y Dirección obligatoria."
+  },
+  "esto_necesito_confirmar": [
+    "Confirmar calibre y tipo de lámina por pieza y el desarrollo plano real (m²) de cada pieza fabricada.",
+    "Tarifa y tiempo autorizados de \"Corte de lámina\" (centro metalmecánica) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Corte de vidrio/acrílico (posible tercero)\" (centro vidrio) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Punzonado/barrenado\" (centro metalmecánica) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Doblez\" (centro metalmecánica) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Esmerilado/acabado de soldadura\" (centro metalmecánica) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Pegado de canto\" (centro carpintería) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Preparación de superficie\" (centro pintura) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Pintura líquida / laca / barniz\" (centro pintura) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Secado / curado\" (centro pintura) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Armado / ensamble\" (centro ensamble) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Instalación y ajuste de herrajes\" (centro ensamble) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Colocación de vidrio/acrílico\" (centro ensamble) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Cableado e instalación eléctrica\" (centro eléctrico) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Pruebas eléctricas\" (centro eléctrico) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Inspección de calidad\" (centro calidad) para costear su MO.",
+    "Tarifa y tiempo autorizados de \"Embalaje\" (centro embalaje) para costear su MO."
+  ]
 }

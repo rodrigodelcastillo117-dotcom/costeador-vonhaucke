@@ -9,6 +9,12 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { bomDesdeDespiece } from '../src/datos/productoMaestroDesdeDespiece.js';
 import { proponerRouting } from '../src/datos/routingFabricacion.js';
+import { costoPropuesto } from '../src/datos/costoPropuestoProcesos.js';
+
+const dimsDeDesc = (desc) => {
+  const m = String(desc).match(/(\d+(?:\.\d+)?)\s*[Xx]\s*(\d+(?:\.\d+)?)\s*[Xx]\s*(\d+(?:\.\d+)?)/);
+  return m ? [+m[1], +m[2], +m[3]] : (String(desc).match(/(\d+)\s*[Xx]\s*(\d+)/) ? [+RegExp.$1, +RegExp.$2] : []);
+};
 
 const RAIZ = new URL('../', import.meta.url);
 const exp = JSON.parse(readFileSync(new URL('src/datos/fixtures/telsvh120_plano_nuevo.json', RAIZ), 'utf8'));
@@ -35,6 +41,10 @@ const bom = bomDesdeDespiece(detalle, insumos, {
 
 // Routing desde las piezas del BOM (incluye fabricadas, cristal, LED).
 const routing = proponerRouting({ piezas: exp.bom.map((l) => ({ nombre: l.desc, insumoId: l.insumoId })), insumos });
+
+// Costo PROPUESTO por procesos (PRIORIDAD 3): lámina cota inferior (base ERP) + MO pendiente de tarifas.
+const fabricadas = exp.bom.filter((l) => l.fabricada).map((l) => ({ clave: l.clave, cantidad: l.cantidad, dims_mm: dimsDeDesc(l.desc) }));
+const propuesta = costoPropuesto({ fabricadas, operaciones: routing.operaciones, materialResueltoMxn: bom.material_real });
 
 // --- estado economico HONESTO ---
 const nResueltas = bom.lineas.filter((l) => !l.pendiente).length;
@@ -63,6 +73,8 @@ const expediente = {
     operaciones: routing.operaciones.map((o) => ({ op: o.op, centro: o.centro, estado: o.estado, disparada_por: o.disparada_por })),
     nota: routing.resumen.nota },
   estado_economico,
+  costo_propuesto: propuesta,
+  esto_necesito_confirmar: propuesta.preguntas_ingenieria,
 };
 
 mkdirSync(new URL('expedientes/', RAIZ), { recursive: true });
@@ -79,5 +91,11 @@ console.log('Material RESUELTO (piso):', '$' + bom.material_real.toLocaleString(
 console.log('cos_fab_calculado PARCIAL (factores prestados):', bom.cos_fab_calculado ? '$' + bom.cos_fab_calculado.toLocaleString('es-MX') : '—');
 console.log('Routing:', routing.resumen.total, 'operaciones |', JSON.stringify(routing.resumen.por_centro));
 console.log('  MO certificable:', routing.resumen.mano_obra_certificable, '(sin tiempos/tarifas autorizados)');
+console.log('--- COSTO PROPUESTO POR PROCESOS (no certificable) ---');
+console.log('  Material piso (ERP resuelto + lámina cota):', '$' + propuesta.material.total_floor_mxn.toLocaleString('es-MX'),
+  '( resuelto', '$' + propuesta.material.resuelto_erp_mxn.toLocaleString('es-MX'), '+ lámina cota', '$' + propuesta.material.lamina_propuesta_mxn_cota.toLocaleString('es-MX'), ')');
+console.log('  MO:', propuesta.mano_obra.mxn ?? 'PENDIENTE (sin tarifas autorizadas)', '|', propuesta.mano_obra.nota || '');
+console.log('  ESTO NECESITO CONFIRMAR (', propuesta.preguntas_ingenieria.length, 'preguntas):');
+propuesta.preguntas_ingenieria.slice(0, 8).forEach((q, i) => console.log('   ', i + 1, '·', q));
 console.log('VEREDICTO COSTO:', estado_economico.veredicto_costo);
 console.log('Expediente ->', out.pathname);
