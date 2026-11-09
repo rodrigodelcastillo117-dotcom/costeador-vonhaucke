@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { cargarBOMporClave } from '../datos/productoMaestroCarga.js';
 import { costearBOM } from '../datos/productoMaestro.js';
+import { sanarBOM } from '../datos/mapeoPorClave.js';
 
 const pesos = (x) => (x == null || !Number.isFinite(Number(x))) ? '—' : '$' + Number(x).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -20,8 +21,11 @@ export default function CosteoPorClave({ insumos = {} }) {
     try {
       const r = await cargarBOMporClave(clave);
       if (!r.ok) { setErr(r.error); return; }
-      const costo = costearBOM(r.bom, insumos);
-      setRes({ bom: r.bom, costo });
+      // Auto-sanador: amarra por clave ERP las líneas sin insumoId antes de costear (no destructivo;
+      // sólo cuando la clave es única y la unidad compatible — ver mapeoPorClave.js).
+      const { bom, mapeadas } = sanarBOM(r.bom, insumos);
+      const costo = costearBOM(bom, insumos);
+      setRes({ bom, costo, mapeadas });
     } finally { setCargando(false); }
   }
 
@@ -49,6 +53,11 @@ export default function CosteoPorClave({ insumos = {} }) {
       {c && (
         <div style={{ marginTop: 10 }} data-testid="clave-resultado">
           <div style={{ fontWeight: 700 }}>{res.bom.nombre} <span className="ayuda">· {res.bom.clave}</span></div>
+          {!!(res.mapeadas && res.mapeadas.length) && (
+            <div className="ayuda" data-testid="clave-automap" style={{ marginTop: 4 }}>
+              🔗 {res.mapeadas.length} línea(s) amarrada(s) automáticamente a su material del catálogo por clave ERP.
+            </div>
+          )}
 
           {/* SELLO DE ESTADO (lo más importante para el piloto: jamás confundir estimación con costo certificado) */}
           {!c.emitible ? (
