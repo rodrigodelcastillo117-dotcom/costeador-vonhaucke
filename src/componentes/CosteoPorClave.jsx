@@ -5,6 +5,8 @@
 import React, { useState } from 'react';
 import { cargarBOMporClave } from '../datos/productoMaestroCarga.js';
 import { costearBOM } from '../datos/productoMaestro.js';
+import { sanarBOM } from '../datos/mapeoPorClave.js';
+import { semaforoCertificacion } from '../datos/semaforoCertificacion.js';
 
 const pesos = (x) => (x == null || !Number.isFinite(Number(x))) ? '—' : '$' + Number(x).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -20,14 +22,20 @@ export default function CosteoPorClave({ insumos = {} }) {
     try {
       const r = await cargarBOMporClave(clave);
       if (!r.ok) { setErr(r.error); return; }
-      const costo = costearBOM(r.bom, insumos);
-      setRes({ bom: r.bom, costo });
+      // Auto-sanador: amarra por clave ERP las líneas sin insumoId antes de costear (no destructivo;
+      // sólo cuando la clave es única y la unidad compatible — ver mapeoPorClave.js).
+      const { bom, mapeadas } = sanarBOM(r.bom, insumos);
+      const costo = costearBOM(bom, insumos);
+      setRes({ bom, costo, mapeadas });
     } finally { setCargando(false); }
   }
 
   const c = res && res.costo;
   const pendientes = res ? res.costo.lineas.filter((l) => l.fuente === 'confirmado') : [];
+  const vencidos = res ? res.costo.lineas.filter((l) => l.fuente === 'catalogo' && l.fresco === false) : [];
   const sinPrecio = res ? res.costo.lineas.filter((l) => l.fuente === 'sin_precio') : [];
+  const sem = c ? semaforoCertificacion(c) : null;
+  const icono = { verde: '✅', ambar: '🟡', gris: '⚪', rojo: '🔴' };
 
   return (
     <div className="tarjeta" data-testid="costeo-por-clave" style={{ marginTop: 12, borderLeft: '4px solid #2e6f4e' }}>
@@ -48,6 +56,11 @@ export default function CosteoPorClave({ insumos = {} }) {
       {c && (
         <div style={{ marginTop: 10 }} data-testid="clave-resultado">
           <div style={{ fontWeight: 700 }}>{res.bom.nombre} <span className="ayuda">· {res.bom.clave}</span></div>
+          {!!(res.mapeadas && res.mapeadas.length) && (
+            <div className="ayuda" data-testid="clave-automap" style={{ marginTop: 4 }}>
+              🔗 {res.mapeadas.length} línea(s) amarrada(s) automáticamente a su material del catálogo por clave ERP.
+            </div>
+          )}
 
           {/* SELLO DE ESTADO (lo más importante para el piloto: jamás confundir estimación con costo certificado) */}
           {!c.emitible ? (
@@ -60,7 +73,15 @@ export default function CosteoPorClave({ insumos = {} }) {
             </div>
           ) : (
             <div className="alerta ambar" data-testid="clave-estado" data-estado="orientativo" style={{ marginTop: 8 }}>
-              <span className="texto">⚠ <strong>Estimación orientativa — NO es costo oficial certificado.</strong> {c.tipoBom === 'AGREGADO_HISTORICO' ? 'BOM agregado histórico, sin desglose por material.' : 'Usa precios históricos; falta precio vigente del catálogo en algunas líneas.'}</span>
+              <span className="texto">⚠ <strong>Estimación orientativa — NO es costo oficial certificado.</strong>{' '}
+                {c.tipoBom === 'AGREGADO_HISTORICO' ? 'BOM agregado histórico, sin desglose por material.' : (
+                  <>
+                    {c.hayPrecioViejo ? `${c.cobertura.catalogoViejo} precio(s) de catálogo vencido(s) (>24 meses) → el servidor los marca PRELIMINAR. ` : ''}
+                    {c.cobertura.conConfirmado ? `${c.cobertura.conConfirmado} línea(s) con precio histórico (falta alta en catálogo). ` : ''}
+                    Refresca esos precios en Compras para certificar.
+                  </>
+                )}
+              </span>
             </div>
           )}
 
@@ -83,11 +104,45 @@ export default function CosteoPorClave({ insumos = {} }) {
             {c.cobertura.lineas} líneas · {c.cobertura.conCatalogo} con precio del catálogo vigente · {c.cobertura.conConfirmado} con precio confirmado de estimaciones
             {c.cobertura.sinPrecio ? ` · ${c.cobertura.sinPrecio} SIN precio` : ''}.
           </div>
+          {sem && (sem.resumen.ambar + sem.resumen.gris + sem.resumen.rojo > 0) && (
+            <details style={{ marginTop: 8 }} data-testid="clave-semaforo" open>
+              <summary className="ayuda" style={{ cursor: 'pointer', fontWeight: 700 }}>
+                🚦 Semáforo de certificación — {sem.resumen.verde}{icono.verde} · {sem.resumen.ambar}{icono.ambar} · {sem.resumen.gris}{icono.gris} · {sem.resumen.rojo}{icono.rojo}
+              </summary>
+              {!!sem.acciones.length && (
+                <div className="ayuda" style={{ margin: '6px 0' }}>
+                  <strong>Para certificar falta:</strong>
+                  <ul style={{ margin: '4px 0 0 16px' }}>
+                    {sem.acciones.map((a, i) => <li key={i}>{icono[a.nivel]} {a.accion}</li>)}
+                  </ul>
+                </div>
+              )}
+              <table className="ayuda" style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6 }}>
+                <tbody>
+                  {sem.filas.map((f, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid #eee' }}>
+                      <td style={{ padding: '2px 6px', whiteSpace: 'nowrap' }}>{icono[f.nivel]}</td>
+                      <td style={{ padding: '2px 6px' }}>{f.desc}</td>
+                      <td style={{ padding: '2px 6px', color: '#777' }}>{f.etiqueta}{f.accion ? ` — ${f.accion}` : ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
           {!!pendientes.length && (
             <details style={{ marginTop: 6 }}>
               <summary className="ayuda" style={{ cursor: 'pointer' }}>{pendientes.length} material(es) aún sin insumo en catálogo (usan precio de estimaciones; pendientes de alta por Compras)</summary>
               <ul className="ayuda" style={{ margin: '6px 0 0 16px' }}>
                 {pendientes.slice(0, 40).map((l, i) => <li key={i}>{l.desc} — {pesos(l.precio)} × {l.cantidad}</li>)}
+              </ul>
+            </details>
+          )}
+          {!!vencidos.length && (
+            <details style={{ marginTop: 6 }} data-testid="clave-vencidos">
+              <summary className="ayuda" style={{ cursor: 'pointer' }}>{vencidos.length} material(es) con precio de catálogo vencido (&gt;24 meses; el servidor los marca PRELIMINAR — refrescar en Compras)</summary>
+              <ul className="ayuda" style={{ margin: '6px 0 0 16px' }}>
+                {vencidos.slice(0, 40).map((l, i) => <li key={i}>{l.desc} — {pesos(l.precio)} × {l.cantidad}</li>)}
               </ul>
             </details>
           )}

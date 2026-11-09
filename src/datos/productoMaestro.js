@@ -56,7 +56,13 @@ export function clasificarLineaBOM(linea = {}, insumos = {}) {
     if (uL && uI && uL !== uI) {
       return { estado: 'unidad_incompatible', bloquea: true, precio: null, cantidad: cantRaw, costo: 0, fuente: 'sin_precio', unidad: { linea: linea.unidad, catalogo: ins.unidad } };
     }
-    return { estado: 'precio_vigente', bloquea: false, precio: precioCat, cantidad: cantRaw, costo: precioCat * cantRaw, fuente: 'catalogo' };
+    // FRESCURA (honestidad motor = servidor): un precio de catálogo VENCIDO (>24 meses / sin
+    // validar por Compras) lo marca el servidor con evidencia.certificable === false. Cuesta igual
+    // (precio vigente usable), pero NO certifica: la línea se marca fresco:false y el BOM cae a
+    // orientativo. Sólo un `false` EXPLÍCITO degrada; sin dato de evidencia se trata como fresco
+    // (compatibilidad con BOMs/pruebas sin evidencia y con catálogos que no exponen la bandera).
+    const fresco = !(ins && ins.evidencia && ins.evidencia.certificable === false);
+    return { estado: 'precio_vigente', bloquea: false, precio: precioCat, cantidad: cantRaw, costo: precioCat * cantRaw, fuente: 'catalogo', fresco };
   }
   // Catálogo con precio 0 / no usable NO sirve: cae a histórico orientativo, o faltante.
   if (Number(linea.precioConfirmado) > 0) {
@@ -76,22 +82,28 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
   const detalle = [];
   const reporte = [];
   const bloqueos = [];
-  let conCatalogo = 0, conConfirmado = 0, sinPrecio = 0, orientativo = false;
+  let conCatalogo = 0, conConfirmado = 0, sinPrecio = 0, orientativo = false, catalogoViejo = 0;
   for (const L of lineas) {
     const c = clasificarLineaBOM(L, insumos);
     if (c.fuente === 'catalogo') conCatalogo++;
     else if (c.fuente === 'confirmado') conConfirmado++;
     else if (c.bloquea) sinPrecio++;
     if (c.estado === 'precio_historico') orientativo = true;
+    // Precio de catálogo VENCIDO: cuesta (precio vigente usable) pero NO certifica (frescura = servidor).
+    if (c.estado === 'precio_vigente' && c.fresco === false) catalogoViejo += 1;
     if (c.bloquea) bloqueos.push({ desc: L.desc, estado: c.estado, unidad: c.unidad });
     // La política VH clasifica por sección; compra-venta = gráficos/iluminación.
     detalle.push({ seccion: L.esCompraVenta ? 'graficos' : 'metal', costo: c.costo });
-    reporte.push({ desc: L.desc, cantidad: c.cantidad, precio: c.precio, costo: c.costo, fuente: c.fuente, estado: c.estado, bloquea: c.bloquea, esCompraVenta: !!L.esCompraVenta });
+    reporte.push({ desc: L.desc, cantidad: c.cantidad, precio: c.precio, costo: c.costo, fuente: c.fuente, estado: c.estado, fresco: c.fresco !== false, bloquea: c.bloquea, esCompraVenta: !!L.esCompraVenta });
   }
   // Un BOM AGREGADO_HISTORICO no es un BOM por materiales verificado (se refina en el bloque 2).
   const bomDetallado = bom.tipo_bom === 'BOM_DETALLADO_VERIFICADO';
   const emitible = bloqueos.length === 0;
-  const certificable = emitible && !orientativo && bomDetallado;
+  // Certificable (honestidad = servidor): además de emitible/no-orientativo/BOM detallado, NINGUNA
+  // línea de catálogo puede usar un precio VENCIDO (catalogoViejo===0). Antes el motor pintaba
+  // "✓ Certificable" con precios de catálogo de hace años que el servidor marca PRELIMINAR.
+  const hayPrecioViejo = catalogoViejo > 0;
+  const certificable = emitible && !orientativo && !hayPrecioViejo && bomDetallado;
   // Factores POR CLAVE (de la hoja de estimaciones): NO son universales (Alpura 20/50, Telcel 10/25).
   // Si la clave los trae, se usan (reproduce su hoja exacto). Si no, se cae a la política por sección.
   const fm = Number(bom.factor_mo), fg = Number(bom.factor_gif);
@@ -112,14 +124,15 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
     ...vh,
     cosFabReal,
     deltaPct,
-    // Contrato seguro: emitible = hay costo para cada línea (sin bloqueos);
-    // certificable = emitible, sin precios históricos y con BOM detallado verificado.
+    // Contrato seguro: emitible = hay costo para cada línea (sin bloqueos); certificable = emitible,
+    // sin precios históricos, sin precios de catálogo vencidos (frescura) y con BOM detallado verificado.
     emitible,
     certificable,
     orientativo,
+    hayPrecioViejo,
     bloqueos,
     tipoBom: bom.tipo_bom || 'AGREGADO_HISTORICO',
-    cobertura: { lineas: lineas.length, conCatalogo, conConfirmado, sinPrecio, bloqueos: bloqueos.length },
+    cobertura: { lineas: lineas.length, conCatalogo, conConfirmado, catalogoViejo, sinPrecio, bloqueos: bloqueos.length },
     lineas: reporte,
   };
 }
