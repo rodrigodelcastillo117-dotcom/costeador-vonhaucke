@@ -105,3 +105,53 @@ describe('CONTRATO DE LÍNEA · ningún costo incompleto es oficial', () => {
     expect(r.lineas[0].fuente).toBe('confirmado');
   });
 });
+
+// FRESCURA (honestidad motor = servidor, 2026-11-09). El motor del cliente marcaba
+// "✓ Certificable" con precios de catálogo de hace años, que el servidor marca PRELIMINAR
+// (regla de 24 meses). Un precio de catálogo VENCIDO viene con evidencia.certificable === false:
+// cuesta (es un precio vigente usable) pero NO certifica. Sólo un `false` EXPLÍCITO degrada.
+describe('FRESCURA · un precio de catálogo vencido cuesta pero NO certifica', () => {
+  const bomDet = (insumoId) => ({ clave: 'T', tipo_bom: 'BOM_DETALLADO_VERIFICADO',
+    lineas: [{ desc: 'pintura', insumoId, cantidad: 2 }] });
+
+  it('precio de catálogo VENCIDO (evidencia.certificable===false): emitible, no histórico, NO certificable', () => {
+    const insumos = { viejo: { id: 'viejo', precio: 150, unidad: 'kg', evidencia: { certificable: false } } };
+    const r = costearBOM(bomDet('viejo'), insumos);
+    expect(r.emitible).toBe(true);                   // hay costo real
+    expect(r.orientativo).toBe(false);               // es precio de catálogo, no histórico
+    expect(r.lineas[0].estado).toBe('precio_vigente');
+    expect(r.lineas[0].fresco).toBe(false);
+    expect(r.hayPrecioViejo).toBe(true);
+    expect(r.cobertura.catalogoViejo).toBe(1);
+    expect(r.certificable).toBe(false);              // ← antes se pintaba verde falsamente
+  });
+
+  it('precio de catálogo FRESCO (evidencia.certificable===true) SÍ certifica', () => {
+    const insumos = { ok: { id: 'ok', precio: 150, unidad: 'kg', evidencia: { certificable: true } } };
+    const r = costearBOM(bomDet('ok'), insumos);
+    expect(r.certificable).toBe(true);
+    expect(r.hayPrecioViejo).toBe(false);
+    expect(r.lineas[0].fresco).toBe(true);
+  });
+
+  it('back-compat: insumo SIN evidencia se trata como fresco (no rompe catálogos/BOMs sin la bandera)', () => {
+    const insumos = { x: { id: 'x', precio: 10, unidad: 'pza' } };
+    const r = costearBOM(bomDet('x'), insumos);
+    expect(r.certificable).toBe(true);
+    expect(r.hayPrecioViejo).toBe(false);
+    expect(r.lineas[0].fresco).toBe(true);
+  });
+
+  it('un solo precio vencido entre varios frescos tumba la certificación (fail-closed)', () => {
+    const insumos = {
+      a: { id: 'a', precio: 10, unidad: 'pza', evidencia: { certificable: true } },
+      b: { id: 'b', precio: 20, unidad: 'pza', evidencia: { certificable: false } },
+    };
+    const bom = { clave: 'T', tipo_bom: 'BOM_DETALLADO_VERIFICADO',
+      lineas: [{ desc: 'x', insumoId: 'a', cantidad: 1 }, { desc: 'y', insumoId: 'b', cantidad: 1 }] };
+    const r = costearBOM(bom, insumos);
+    expect(r.emitible).toBe(true);
+    expect(r.certificable).toBe(false);
+    expect(r.cobertura.catalogoViejo).toBe(1);
+  });
+});

@@ -27,6 +27,7 @@ export default function CosteoPorClave({ insumos = {} }) {
 
   const c = res && res.costo;
   const pendientes = res ? res.costo.lineas.filter((l) => l.fuente === 'confirmado') : [];
+  const vencidos = res ? res.costo.lineas.filter((l) => l.fuente === 'catalogo' && l.fresco === false) : [];
   const sinPrecio = res ? res.costo.lineas.filter((l) => l.fuente === 'sin_precio') : [];
 
   return (
@@ -60,7 +61,15 @@ export default function CosteoPorClave({ insumos = {} }) {
             </div>
           ) : (
             <div className="alerta ambar" data-testid="clave-estado" data-estado="orientativo" style={{ marginTop: 8 }}>
-              <span className="texto">⚠ <strong>Estimación orientativa — NO es costo oficial certificado.</strong> {c.tipoBom === 'AGREGADO_HISTORICO' ? 'BOM agregado histórico, sin desglose por material.' : 'Usa precios históricos; falta precio vigente del catálogo en algunas líneas.'}</span>
+              <span className="texto">⚠ <strong>Estimación orientativa — NO es costo oficial certificado.</strong>{' '}
+                {c.tipoBom === 'AGREGADO_HISTORICO' ? 'BOM agregado histórico, sin desglose por material.' : (
+                  <>
+                    {c.hayPrecioViejo ? `${c.cobertura.catalogoViejo} precio(s) de catálogo vencido(s) (>24 meses) → el servidor los marca PRELIMINAR. ` : ''}
+                    {c.cobertura.conConfirmado ? `${c.cobertura.conConfirmado} línea(s) con precio histórico (falta alta en catálogo). ` : ''}
+                    Refresca esos precios en Compras para certificar.
+                  </>
+                )}
+              </span>
             </div>
           )}
 
@@ -88,6 +97,14 @@ export default function CosteoPorClave({ insumos = {} }) {
               <summary className="ayuda" style={{ cursor: 'pointer' }}>{pendientes.length} material(es) aún sin insumo en catálogo (usan precio de estimaciones; pendientes de alta por Compras)</summary>
               <ul className="ayuda" style={{ margin: '6px 0 0 16px' }}>
                 {pendientes.slice(0, 40).map((l, i) => <li key={i}>{l.desc} — {pesos(l.precio)} × {l.cantidad}</li>)}
+              </ul>
+            </details>
+          )}
+          {!!vencidos.length && (
+            <details style={{ marginTop: 6 }} data-testid="clave-vencidos">
+              <summary className="ayuda" style={{ cursor: 'pointer' }}>{vencidos.length} material(es) con precio de catálogo vencido (&gt;24 meses; el servidor los marca PRELIMINAR — refrescar en Compras)</summary>
+              <ul className="ayuda" style={{ margin: '6px 0 0 16px' }}>
+                {vencidos.slice(0, 40).map((l, i) => <li key={i}>{l.desc} — {pesos(l.precio)} × {l.cantidad}</li>)}
               </ul>
             </details>
           )}
