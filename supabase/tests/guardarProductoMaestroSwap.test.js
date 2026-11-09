@@ -15,6 +15,7 @@ const RAIZ = new URL('../../', import.meta.url);
 const leer = (rel) => readFileSync(new URL(rel, RAIZ), 'utf8');
 const RPC_VIEJA = 'supabase/migrations/20261108_guardar_producto_maestro.sql';
 const RPC_NUEVA = 'supabase/migrations/20261109_guardar_producto_maestro_integridad.sql';
+const RPC_ROLLBACK = 'supabase/migrations/ROLLBACK_20261109_guardar_producto_maestro.sql';
 const DIRECCION = 'rodrigo@vh.mx';
 
 const L_OK = [
@@ -95,5 +96,15 @@ describe('PREFLIGHT swap · 10 args (prod) → 14 args (nueva), sin romper al cl
     const e2 = await fallo(db.query(sql, ['VIEJO-3', 'x', conPendiente, 0.1, 0.25, 2450, 'BOM_DETALLADO_VERIFICADO']));
     await db.exec(`select set_config('test.email', '', false)`);
     expect(String(e2?.message || '')).toMatch(/rechazado/i);
+  });
+
+  it('ROLLBACK probado: restaura la función de 10 args y los datos quedan intactos', async () => {
+    const antes = (await db.query('select count(*)::int n from public.producto_maestro')).rows[0].n;
+    await db.exec(leer(RPC_ROLLBACK));
+    const f = await nFunciones(db);
+    expect(f.n).toBe(1); expect(f.args).toBe(10);        // vuelve la firma vieja, una sola
+    const r = await callVieja(db, DIRECCION, { clave: 'VIEJO-2' }); // existente → el viejo vuelve a sobrescribir
+    expect(r.ok).toBe(true);
+    expect((await db.query('select count(*)::int n from public.producto_maestro')).rows[0].n).toBe(antes); // datos intactos
   });
 });
