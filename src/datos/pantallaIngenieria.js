@@ -58,7 +58,7 @@ export function vistaIngenieria(expediente = {}) {
       bom: expediente.bom_canonico || null,
       operaciones_por_centro: routing.por_centro || null,
       total_operaciones: routing.total_operaciones ?? null,
-      piezas_fabricadas: (costo.material?.evidencia || []).map((e) => ({ clave: e.clave, tipo: e.desarrollo?.tipo, lamina: e.lamina?.id, costo_mp: money(e.costo_mp_mxn) })),
+      piezas_fabricadas: (costo.material?.evidencia || []).map((e) => ({ clave: e.clave, estado: e.estado, tipo: e.desarrollo?.tipo, metodo: e.desarrollo?.metodo, lamina: e.lamina?.insumo_id, precio_id: e.lamina?.precio_id, costo_mp: money(e.costo_mp_mxn) })),
       desarrollos_pendientes: costo.cobertura?.desarrollos_pendientes || [],
     },
     esto_necesito_confirmar: (costo.preguntas_por_decision || []).map((q) => ({ decision: q.decision, afecta: q.afecta, n: q.n })),

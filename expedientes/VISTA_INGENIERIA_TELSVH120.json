@@ -46,22 +46,38 @@
     "piezas_fabricadas": [
       {
         "clave": "TELSVH120-PC",
+        "estado": "PRELIMINAR",
         "tipo": "PANEL_PESTANAS",
+        "metodo": "INFERIDO_L2D",
+        "lamina": "erp-ln22310",
+        "precio_id": 8748,
         "costo_mp": 65.32
       },
       {
         "clave": "TELSVH120-P",
+        "estado": "PRELIMINAR",
         "tipo": "PANEL_PESTANAS",
+        "metodo": "INFERIDO_L2D",
+        "lamina": "erp-ln22310",
+        "precio_id": 8748,
         "costo_mp": 65.32
       },
       {
         "clave": "TELSVH120-CF",
+        "estado": "PRELIMINAR",
         "tipo": "PANEL_PESTANAS",
+        "metodo": "INFERIDO_L2D",
+        "lamina": "erp-ln22310",
+        "precio_id": 8748,
         "costo_mp": 163.29
       },
       {
         "clave": "TELSVH120-PLA",
+        "estado": "VERIFICABLE",
         "tipo": "PANEL_PLANO",
+        "metodo": "VERIFICADO",
+        "lamina": "erp-ln24310",
+        "precio_id": 6201,
         "costo_mp": 0.13
       }
     ],
