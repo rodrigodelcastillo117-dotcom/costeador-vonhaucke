@@ -64,6 +64,11 @@ create trigger trg_pm_historial_inmutable before update or delete on public.prod
   for each row execute function public.producto_maestro_historial_inmutable();
 
 -- 3) La RPC gobernada, fail-closed en el servidor.
+-- IMPRESCINDIBLE: quita la firma vieja (10 args) para dejar UNA sola función. Con ambas sobrecargas,
+-- una llamada de 10 args nombrados sería ambigua ("function is not unique") y rompería hasta CREAR, y
+-- el cliente viejo seguiría usando la RPC insegura. Con una sola, un call viejo de 10 args resuelve a
+-- la nueva (los 4 parámetros extra por defecto) → contrato seguro para TODOS los clientes, sin ventana.
+drop function if exists public.guardar_producto_maestro(text,text,jsonb,numeric,numeric,numeric,numeric,integer[],text,text);
 create or replace function public.guardar_producto_maestro(
   p_clave text, p_nombre text, p_lineas jsonb,
   p_factor_mo numeric, p_factor_gif numeric, p_material_real numeric,
