@@ -5,24 +5,20 @@
 
 - **Fecha:** 2026-11-09
 - **Rama de desarrollo:** `claude/pm-concurrencia`
-- **SHA del estado descrito:** `cefd2ed32a14645f1bb6c167c860bb634cb2823a` (este archivo se commitea encima)
+- **SHA del estado descrito:** `bf0a0272ebe5e51f1de172cc18c0d45997b83122` (este archivo se commitea encima)
 - **Prod (`c3.4-seller-safe`):** `4f79c72193baceec0cf3f38dbcc4699f2ffe9eac`
 - **PR draft (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
 - ⚠️ Nota de ramas: la rama designada original era `claude/costing-app-architecture-psf02g`, pero quedó obsoleta tras un reinicio; todo el trabajo real y el PR viven en `claude/pm-concurrencia`.
 
-## Último bloque — correcciones de auditoría (P1/P2/P3)
+## Último bloque — auditoría sobre `2caa5ee` (P1 económico + 5 puntos)
 
-Auditoría de Dirección sobre SHA `f8bd9bc` → 6 defectos del cálculo físico corregidos **RED→GREEN**.
-
-- **P1 integridad del material** (`costoPiezaFabricada.js`, 10 pruebas adversariales):
-  1. Fuente **autoritativa**: lámina del `catalogo_vigente` con precio exacto + `precio_id` + unidad + evidencia + `certificable` (fixture `src/datos/fixtures/catalogo_lamina_vigente.json`). Ya **no** usa el seed.
-  2. Calibre propuesto ya no se confirma solo → estado `PRELIMINAR`; soporta `calibreConfirmado`.
-  3. Desarrollo `VERIFICADO` (L×W) vs `INFERIDO_L2D` separados.
-  4. Pieza que no cabe → `BLOQUEADO` + busca formato compatible; nunca una hoja en silencio.
-  5. Cantidad inválida/faltante → `BLOQUEADO` (se eliminó `Number(x)||1`).
-  6. Nesteo/kerf/formato/merma vía el motor; selección por menor costo por pieza; sin doble conteo.
-- **P2 total seguro** (`costoPropuestoProcesos.js`): material incluido vs pendiente, fabricado verificable vs preliminar, MO política_vh vs routing-sin-estándares, GIF, terceros, **total PARCIAL vs OFICIAL**; `emitible_comercial=false` mientras sea parcial.
-- **P3 confirmaciones que recalculan** (`pantallaIngenieria.js`): `recostearExpediente()` conecta confirmaciones (calibre/desarrollo/precio/estándares) y **recalcula con el motor existente**, conserva evidencia y versiona. El expediente lleva `inputs`.
+- **P1 ECONÓMICO (fail-closed):** `total.oficial_mxn` ya **no** sale de `cerrado` solo; exige además MO routing completa **y** sin terceros pendientes (`es_oficial`), con `total.bloqueado_por`. 3 pruebas RED→GREEN.
+- **Punto 1 — catálogo vivo validado:** `catalogoLaminaVigente.js` carga lámina de `catalogo_vigente` (Supabase) validando precio_id, unidad=hoja, calibre, **acero**, acabado, formato, evidencia; fail-closed (2 filas con unidad `pza` **rechazadas**). Fixture generado por el loader desde datos vivos (`lamina_vigente_raw.json`). `costoPiezaFabricada` filtra por acero (negra por defecto).
+- **Punto 2 — desarrollo CAD explícito:** geometría CONFIRMADA (`CAD_CONFIRMADO`) versionada, **no** se re-infiere del bounding box.
+- **Punto 3 — estándares MO:** `cargarEstandar` exige autorización, unidades, **versión** y **vigencia**; descarta vigencia expirada. Nada ausente/por-defecto cuenta como aprobado.
+- **Punto 4 — nesteo conjunto** con geometrías distintas: conservación de material probada (sin doble conteo ni pérdida).
+- **Punto 5 — pantalla en la app + navegador real:** `src/componentes/PantallaIngenieria.jsx`; E2E Chromium (`e2e/pantallaIngenieria.e2e.js`) prueba **confirmar→recalcular→persistir→reabrir** (PASA). `vite build` verde.
+  - Pendiente (siguiente ciclo): insertar la pantalla en la **navegación autenticada** del flujo de costeo + persistencia respaldada en Supabase.
 
 ---
 
@@ -67,6 +63,8 @@ Todo el **costeo industrial** y la pantalla son código nuevo en `claude/pm-conc
 - **10 pruebas adversariales** (una por defecto de la auditoría) en `costoPiezaFabricada.test.js`.
 - **Postgres real, 2 conexiones concurrentes:** versión previa reproduce LOST UPDATE; parche lo cierra. → `supabase/tests/postgres_real/`
 - **E2E TELSVH120** (plano nuevo fuera de muestra, leído en vivo): `tools/e2e_plano_nuevo.mjs`.
+- **E2E navegador real (Chromium)** `e2e/pantallaIngenieria.e2e.js`: confirmar→recalcular→persistir→reabrir **PASA**.
+- **Lámina viva de Supabase** validada por el loader (2 filas `pza` rechazadas); `vite build` producción verde.
 
 ## Resultados — TELSVH120 (con lámina autoritativa, total seguro)
 
@@ -92,13 +90,12 @@ Evidencia: `expedientes/EXPEDIENTE_TELSVH120.json`, `expedientes/VISTA_INGENIERI
 
 ## Errores todavía abiertos
 
-- **Ninguno en tests** (4331 verde, exit 0).
-- Pendientes que NO son errores: **P4 — E2E completo dentro de la app** (usuario autorizado, navegador real, RLS) NO hecho; smoke de app del P0 (humano); 1/12 E2E completos; cobertura del holdout limitada por parseo de capa de texto (no por el motor).
+- **Ninguno en tests** (suite verde, exit 0) ni en el E2E de navegador.
+- Pendientes que NO son errores: pantalla de Ingeniería dentro de la **navegación autenticada** del flujo de costeo (hoy: componente real + ruta de demo probada en navegador, falta insertarla en el menú tras login) y persistencia respaldada en **Supabase** (hoy localStorage); smoke de app del P0 (humano); cobertura del holdout limitada por parseo de capa de texto.
 
 ## Próximos pasos
 
-- **P4 (siguiente):** integrar el flujo dentro de COSTEAR (no sólo view-model/artefacto): PLANO→ENTENDÍ→DESPIECE→MATERIALES→ROUTING→CONFIRMACIONES→RECÁLCULO→GUARDAR→REABRIR, probado con usuario autorizado, navegador real y RLS, en 5 planos. Distinguir simulación / corpus congelado / navegador real / multimodal en vivo.
-- (a) Cuerpo CUE: su desarrollo plano **no está en el plano de taller** (caja 3D); no se inventa. El recálculo (P3) lo incorpora en cuanto Ingeniería dé el despliegue de CAD.
-- (b) MO por tiempos: el contrato recibe estándares **autorizados** (demostrado). No se cargan tiempos de referencia inventados como estándares (regla de integridad).
+- Insertar `PantallaIngenieria` en la navegación autenticada (pestaña) del flujo PLANO→ENTENDÍ→…→REABRIR y persistir el expediente en Supabase (requiere auth/schema → autorización).
+- Datos de Ingeniería para cerrar el costo oficial de TELSVH120: desarrollos de CAD (4 piezas 3D), 2 precios ERP, tiempos/tarifas por centro, terceros.
 
-**Score honesto actual: ~63/100** (sube de 59 por integridad del material, total seguro y recálculo). El techo restante es dato de Ingeniería + integración de app (P4), no cálculo.
+**Score honesto actual: ~66/100** (sube por el P1 económico fail-closed, catálogo vivo validado, desarrollo CAD explícito, estándares con vigencia, nesteo conjunto y la pantalla probada en navegador real). El techo restante es dato de Ingeniería + la inserción en la nav autenticada, no cálculo.
