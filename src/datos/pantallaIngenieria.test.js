@@ -57,7 +57,7 @@ describe('pantallaIngenieria', () => {
 
   it('P3 recostearExpediente: con AUTORIDAD real, los estandares aprobados cierran la MO por routing', () => {
     limpiarEstandares();
-    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' }));
+    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx', estado: 'aprobado' }));
     const v2 = recostearExpediente(EXP, { tipo: 'estandares', estandares: ops }, { autoridadEstandares: AUT });
     expect(v2.costo_industrial.mano_obra.routing_completa).toBe(true);
     expect(v2.costo_industrial.mano_obra.routing_tiempos_mxn).toBeGreaterThan(0);
@@ -65,7 +65,7 @@ describe('pantallaIngenieria', () => {
 
   it('P3: sin autoridad (UI/cliente), cargar estandares se RECHAZA (recostear lanza)', () => {
     limpiarEstandares();
-    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' }));
+    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx', estado: 'aprobado' }));
     expect(() => recostearExpediente(EXP, { tipo: 'estandares', estandares: ops })).toThrow(/NO autorizado/);
   });
 

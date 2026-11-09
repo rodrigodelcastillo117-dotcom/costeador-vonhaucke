@@ -50,6 +50,10 @@ export function normalizarEstandar(e = {}) {
     vigente_hasta: e.vigente_hasta || null,
     aprobado_por: e.aprobado_por ? String(e.aprobado_por).toLowerCase() : null,
     aprobado_en: e.aprobado_en || null,
+    // Estado de aprobacion ESCRITO POR EL SERVIDOR (como insumo_precios.estado='aprobado').
+    // Un aprobador NOMBRADO no basta; debe existir el hecho server-side. Acepta `estado` o `estado_aprobacion`.
+    estado_aprobacion: e.estado_aprobacion ? String(e.estado_aprobacion).toLowerCase()
+      : e.estado ? String(e.estado).toLowerCase() : null,
   };
 }
 
@@ -68,15 +72,22 @@ export function autoridadDesdeListas({ permitidos = [], noHumanas = [], roles = 
 const AUTORIDAD_CERRADA = () => ({ ok: false, rol: null });
 
 /**
- * Importa un estandar de MO al registro. Fail-closed (auditoria p3): un `autorizado:true` del
- * cliente NO prueba nada. Exige fuente autoritativa (verificador `autoridad`), usuario APROBADOR
- * real (`aprobado_por` con rol Direccion, no cuenta no-humana), unidades, VERSION y VIGENCIA.
+ * Importa un estandar de MO al registro. Fail-closed (auditorias p3 y 36432bb): un `autorizado:true`
+ * del cliente NO prueba nada, y un aprobador NOMBRADO tampoco. Exige, como en precios (insumo_precios):
+ *   (a) un HECHO de aprobacion escrito por el servidor: `estado`/`estado_aprobacion` == 'aprobado'
+ *       (lo escribe una RPC con rol Direccion; el cliente no puede fabricarlo de forma trazable);
+ *   (b) que el APROBADOR (`aprobado_por`) tenga rol Direccion segun la lista server-side (`autoridad`),
+ *       y no sea cuenta no-humana;
+ *   (c) unidades, VERSION y VIGENCIA.
+ * La identidad+permiso se comprueba contra el servidor, no solo con el callback: el callback verifica
+ * el ROL del aprobador, y `estado='aprobado'` verifica que la aprobacion OCURRIO en el servidor.
  * @param {object} e
  * @param {{autoridad?:Function}} opts  autoridad(email) -> {ok, rol}. Default: CERRADA (rechaza todo).
  */
 export function cargarEstandar(e, { autoridad = AUTORIDAD_CERRADA } = {}) {
   const n = normalizarEstandar(e);
   if (!n.centro || !n.op) throw new Error('estandar sin centro/op');
+  if (n.estado_aprobacion !== 'aprobado') throw new Error(`estandar ${n.centro}/${n.op}: sin aprobacion registrada por el servidor (estado != 'aprobado'). Un aprobador nombrado no basta: debe existir el hecho server-side (RPC con rol Direccion).`);
   if (!n.aprobado_por) throw new Error(`estandar ${n.centro}/${n.op}: sin aprobador (aprobado_por). Un 'autorizado:true' del cliente no prueba aprobacion.`);
   const ver = autoridad(n.aprobado_por);
   if (!ver || !ver.ok) throw new Error(`estandar ${n.centro}/${n.op}: aprobador ${n.aprobado_por} NO autorizado (rol ${ver?.rol || 'desconocido'})`);

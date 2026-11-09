@@ -5,24 +5,33 @@
 
 - **Fecha:** 2026-11-09
 - **Rama de desarrollo:** `claude/pm-concurrencia`
-- **SHA del estado descrito:** `7c27f46ff13bf370f247c227d2aa01f66de00bde` (este archivo se commitea encima)
+- **SHA auditado:** `36432bb905909df5d4dc7ccecee6e08165e5f39d` (este archivo y el fix se commitean encima)
 - **Prod (`c3.4-seller-safe`):** `4f79c72193baceec0cf3f38dbcc4699f2ffe9eac`
 - **PR draft (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
 - ⚠️ Nota de ramas: la rama designada original era `claude/costing-app-architecture-psf02g`, pero quedó obsoleta tras un reinicio; todo el trabajo real y el PR viven en `claude/pm-concurrencia`.
 
-## Último bloque — auditoría sobre `20ac9b7` (5 bloqueos de seguridad económica)
+## 🔴 Último bloque — auditoría sobre `36432bb` (P0 de autorización + 3 bloqueos)
 
-Todos con prueba adversarial RED→GREEN.
+### P0 (PRIORIDAD ABSOLUTA) — autorización de `guardar_expediente_costeo` · FIX PROPUESTO, NO APLICADO
 
-1. **Aprobaciones ficticias FUERA del componente:** `PantallaIngenieria.jsx` ya **no** fabrica `autorizado:true`, tiempos ni desarrollos; las acciones llegan por prop. Datos de demo aislados en `pantallaIngenieria.demo.js` (solo demo/E2E). Test estático lo garantiza.
-2. **`laminasParaCalibre`:** si se pide un acero sin candidatos → **BLOQUEA**; nunca cae a otra familia de acero en silencio.
-3. **Autorización de MO:** un `autorizado:true` del cliente **no prueba nada**. `cargarEstandar` exige **aprobador real** (`aprobado_por` con rol Dirección vía `autoridadDesdeListas`, no cuenta no-humana) + versión + vigencia + unidades. `recostearExpediente` pasa la autoridad; sin ella, los estándares se **rechazan**.
-4. **Modelo oficial:** dos cálculos **separados** (`factores_vh` vs `routing_tiempos`), sin doble conteo. `oficial_mxn` usa el modelo de la **política aprobada** (`autoridadPolitica`); sin política aprobada **no hay oficial**. `certificable == emitible_comercial == (oficial_mxn != null)` **unificados**.
-5. **App verdadera + persistencia — COMPLETO (autorizado por Dirección):**
-   - (a) **Migración aplicada a prod** ✅ `supabase/migrations/20261111_expediente_costeo.sql`: tabla `expediente_costeo` + RLS por usuario + RPC `guardar/reabrir_expediente_costeo` (concurrencia optimista). Verificado en prod (tabla, rls=true, 2 RPCs, 2 policies, execute a authenticated). Additiva: no toca precios/BOM/PM/permisos.
-   - (b) **Integrada en la nav autenticada** ✅ `src/componentes/IngenieriaExpediente.jsx` (carga/guarda vía Supabase, sin localStorage) + pestaña Dirección en `App.jsx`. Build de producción verde; smoke E2E verde.
-   - (c) **E2E PRODUCTIVO (auth + Supabase) PASA** ✅ `e2e/pantallaIngenieriaProd.e2e.js`: login Dirección → Ingeniería → confirmar desarrollo CAD → `guardar_expediente_costeo` (RPC 200) → recargar → **reabrir desde Supabase** → la decisión persiste. Credenciales sólo por env (no en repo).
-   - Nota: la primera corrida dejó UNA fila QA (`TELSVH120` de `qa-direccion`) en `expediente_costeo` (borrador, aislado por RLS, sin impacto económico). Limpieza pendiente (no bloquea).
+**Defecto (reproducido en entorno aislado, no sobre expedientes productivos):** la RPC `guardar_expediente_costeo` de `20261111` (ya en prod) localizaba la fila **sólo por `clave`**, sin verificar propietario, y reasignaba `actualizado_por`. Un usuario B podía **sobrescribir y RECLAMAR** el expediente de A (control transfer); tras el overwrite, A perdía el `reabrir`. Agravante: el mensaje `VERSION_CONFLICT` **filtraba la versión** de la fila ajena.
+
+**Fix (reversible, para aprobación):**
+- `supabase/migrations/20261112_expediente_costeo_seguridad.sql` — **PK compuesta `(creado_por, clave)`** (identidad por dueño; la clave comercial ya no identifica por sí sola → sin colisión entre usuarios); **dueño inmutable** (`creado_por` nunca se actualiza); RPC `guardar`/`reabrir` **aisladas por dueño** (`where creado_por = v_email`, imposible tocar fila ajena); concurrencia optimista preservada; **historial append-only** (`expediente_costeo_historial`); RLS por `creado_por` inmutable; `VERSION_CONFLICT` ya **no filtra** la versión. Compatible con la fila QA preexistente.
+- `supabase/migrations/ROLLBACK_20261112_...sql` — rollback verificado (aplica limpio, PK vuelve a `(clave)`, fila QA conservada).
+- **12 pruebas** `supabase/tests/expedienteCosteoSeguridad.test.js`: Parte A **reproduce** el defecto (overwrite + claim + fuga de versión) sobre el contrato viejo; Parte B **cierra** (aislamiento, dueño inmutable, concurrencia, historial, roles, RLS, compat QA, atacante no reclama la fila QA).
+- ⚠️ **NO APLICADO a prod.** Requiere autorización explícita de Dirección. **Prod sigue corriendo la RPC vulnerable.**
+
+### 2º bloqueo — CAD ficticio FUERA del flujo autenticado ✅
+`IngenieriaExpediente.jsx` ya **no** ofrece la acción `ing-confirmar-cad-cue` con medidas inventadas. El contenedor sólo **muestra** el expediente y permite **Guardar borrador** (persiste tal cual, sin fabricar geometría). Test estático extendido lo garantiza (`pantallaIngenieriaSinAprobaciones.test.js`).
+
+### 3er bloqueo — estándares de MO verificados server-side ✅
+`cargarEstandar` ahora exige, como en precios (`insumo_precios.estado='aprobado'`), un **hecho de aprobación escrito por el servidor** (`estado='aprobado'`): un aprobador **nombrado** por el cliente **ya no basta**. Nuevo verificador server-logic `aprobacionEstandarMO` (espejo de `aprobacionPrecioExacto`): rol Dirección + no cuenta no-humana + **fail-closed sin la lista de cuentas no humanas**. RED→GREEN en `costoOperacion.test.js` y `autoridadCosteoServidor.test.js`.
+
+### 4º — E2E real (ejecutado vs omitido)
+- **EJECUTADO** (contrato SQL, entorno aislado): 12 pruebas con **dos usuarios A/B**, expedientes independientes, **acceso cruzado denegado**, concurrencia, reapertura — sin tocar expedientes productivos (como se pidió).
+- **EJECUTADO** (navegador, 1 usuario sobre su propia fila): `e2e/pantallaIngenieriaProd.e2e.js` actualizado → login Dirección → **Guardar borrador** → `guardar_expediente_costeo` (RPC 200) → recargar → **reabrir** devuelve la fila (no null). Requiere env; sólo su propia fila.
+- **OMITIDO**: E2E de navegador con **dos usuarios** y acceso cruzado — requeriría el fix aplicado en una BD no-productiva + una 2ª cuenta; **no se corre contra prod** para no explotar expedientes productivos. Cubierto a nivel de contrato por las 12 pruebas SQL.
 
 ---
 
@@ -32,7 +41,7 @@ Todos con prueba adversarial RED→GREEN.
 |---|---|---|
 | P0 integridad guardado Producto Maestro (cliente + servidor, gate Dirección) | ✅ en prod | RPC `guardar_producto_maestro` 14-arg; cliente Vercel READY `4f79c72` |
 | P1 concurrencia (lost update) — advisory lock + FOR UPDATE + UPDATE condicional | ✅ en prod (autorizado 2026-11-09) | `supabase/migrations/DESPLIEGUE_P0_PRODUCTO_MAESTRO.md`; evidencia 2 conexiones: `supabase/tests/postgres_real/` |
-| Tabla + RPC `expediente_costeo` (persistencia de Ingeniería, RLS por usuario) | ✅ en prod (autorizado 2026-11-09) | `supabase/migrations/20261111_expediente_costeo.sql`; E2E productivo `e2e/pantallaIngenieriaProd.e2e.js`. Additiva, no toca precios/BOM/PM |
+| Tabla + RPC `expediente_costeo` (persistencia de Ingeniería) | 🔴 **en prod con P0 de autorización ABIERTO** | `20261111` aplicada; fix `20261112` **propuesto, NO aplicado**. Ver bloque P0 arriba. Mitigante: la pantalla de Ingeniería NO está en el cliente desplegado (`4f79c72`); la RPC es alcanzable por API directa de cualquier usuario autenticado; la tabla tiene 1 fila QA |
 
 **Smoke de app del P0 (humano): PENDIENTE** — Dirección debe hacer borrador→verificado→reabrir→sustituir + 2 guardados concurrentes desde su sesión (la RPC exige JWT de Dirección; no se puede suplantar).
 
@@ -62,9 +71,15 @@ Todo el **costeo industrial** y la pantalla son código nuevo en `claude/pm-conc
 - Condición de carrera (lost update) en la RPC → advisory lock + UPDATE condicional (en prod).
 - Falso positivo de routing: "cantos pulidos" del cristal disparaba canteado de carpintería (`ba828df`).
 
-## Pruebas reales ejecutadas
+## Pruebas reales ejecutadas (este bloque)
 
-- **Suite completa: 4331 tests verde** (exit 0) en SHA `cefd2ed`.
+- **P0 seguridad — 12 pruebas PGlite** `supabase/tests/expedienteCosteoSeguridad.test.js`: reproducen el defecto (Parte A) y lo cierran (Parte B). **12/12 verde.**
+- **Rollback verificado:** el fix aplica y el rollback aplica limpio sobre él (PK vuelve a `(clave)`, fila QA conservada).
+- **3er bloqueo — MO server-side:** RED→GREEN en `costoOperacion.test.js` (aprobador nombrado sin hecho de servidor → rechazado) y 5 pruebas de `aprobacionEstandarMO` en `autoridadCosteoServidor.test.js`.
+- **Suite completa: 4372 tests verde** (la única falla fue un test estático auto-referencial mío, ya corregido). `vite build` de producción verde.
+- **E2E productivo** `e2e/pantallaIngenieriaProd.e2e.js` actualizado a **Guardar borrador** (requiere env; ejecutado = 1 usuario sobre su fila; omitido = 2 usuarios en navegador, ver 4º arriba).
+
+### Evidencia previa (bloques anteriores)
 - **10 pruebas adversariales** (una por defecto de la auditoría) en `costoPiezaFabricada.test.js`.
 - **Postgres real, 2 conexiones concurrentes:** versión previa reproduce LOST UPDATE; parche lo cierra. → `supabase/tests/postgres_real/`
 - **E2E TELSVH120** (plano nuevo fuera de muestra, leído en vivo): `tools/e2e_plano_nuevo.mjs`.
@@ -95,12 +110,15 @@ Evidencia: `expedientes/EXPEDIENTE_TELSVH120.json`, `expedientes/VISTA_INGENIERI
 
 ## Errores todavía abiertos
 
-- **Ninguno en tests** (suite verde, exit 0) ni en el E2E de navegador.
-- Pendientes que NO son errores: pantalla de Ingeniería dentro de la **navegación autenticada** del flujo de costeo (hoy: componente real + ruta de demo probada en navegador, falta insertarla en el menú tras login) y persistencia respaldada en **Supabase** (hoy localStorage); smoke de app del P0 (humano); cobertura del holdout limitada por parseo de capa de texto.
+- 🔴 **P0 VIVO en prod:** `guardar_expediente_costeo` (contrato `20261111`) permite sobrescribir/reclamar expedientes ajenos. El fix (`20261112`) está **listo y probado pero NO aplicado** — espera autorización. Mientras tanto, la RPC vulnerable sigue expuesta a cualquier usuario autenticado por API directa (la pantalla no está en el cliente desplegado; 1 fila QA en la tabla).
+- **Tests:** suite completa verde salvo verificación en curso de este bloque (ver "Pruebas reales"); la única falla transitoria fue un test estático auto-referencial, ya corregido.
+- **Seguimiento (no en el alcance de este bloque):** la autoridad de **política de costo** (`autoridadPolitica` en `costoPropuestoProcesos.js`) sigue siendo un callback JS; debería verificarse server-side como MO/precios. Marcado, no cerrado.
+- Pendientes que NO son errores: smoke de app del P0 de Producto Maestro (humano); datos de Ingeniería para el costo oficial de TELSVH120.
 
 ## Próximos pasos
 
-- Insertar `PantallaIngenieria` en la navegación autenticada (pestaña) del flujo PLANO→ENTENDÍ→…→REABRIR y persistir el expediente en Supabase (requiere auth/schema → autorización).
+- **Esperar autorización** para aplicar `20261112_expediente_costeo_seguridad.sql` a prod (reversible; rollback listo). Tras aplicar: verificar en vivo, re-correr E2E productivo, limpiar la fila QA.
+- Verificar server-side la autoridad de política de costo (seguimiento del 3er bloqueo).
 - Datos de Ingeniería para cerrar el costo oficial de TELSVH120: desarrollos de CAD (4 piezas 3D), 2 precios ERP, tiempos/tarifas por centro, terceros.
 
-**Score honesto actual: ~66/100** (sube por el P1 económico fail-closed, catálogo vivo validado, desarrollo CAD explícito, estándares con vigencia, nesteo conjunto y la pantalla probada en navegador real). El techo restante es dato de Ingeniería + la inserción en la nav autenticada, no cálculo.
+**Score honesto actual: ~58/100** (BAJA respecto a 66: el P0 de autorización vivo en prod es grave aunque el fix esté listo; sube de nuevo en cuanto se aplique y se verifique). El techo restante es aplicar el fix + dato de Ingeniería, no cálculo.

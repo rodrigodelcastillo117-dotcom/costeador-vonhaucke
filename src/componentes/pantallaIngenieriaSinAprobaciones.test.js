@@ -25,4 +25,14 @@ describe('PantallaIngenieria · sin aprobaciones ficticias', () => {
     expect(demo).toMatch(/accionesDemo/);
     expect(prod).not.toMatch(/pantallaIngenieria\.demo/);   // el componente NO importa la demo
   });
+
+  // 2o bloqueo (auditoria 36432bb): el CONTENEDOR autenticado no fabrica geometria CAD.
+  it('IngenieriaExpediente (flujo autenticado) NO contiene geometria/desarrollo CAD fabricado', () => {
+    const cont = readFileSync(new URL('./IngenieriaExpediente.jsx', import.meta.url), 'utf8');
+    expect(cont).not.toMatch(/desarrollo_mm/);           // nada de un desarrollo fijo inventado
+    expect(cont).not.toMatch(/2770/);                    // la medida ficticia concreta ya no esta
+    expect(cont).not.toMatch(/ing-confirmar-cad/);       // la accion CAD falsa fue removida
+    expect(cont).not.toMatch(/tipo:\s*'desarrollo'/);    // no emite confirmaciones de geometria fabricadas
+    expect(cont).toMatch(/onGuardar/);                   // solo guardar borrador tal cual
+  });
 });

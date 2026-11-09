@@ -1,7 +1,7 @@
 // Operación 9.5 · OP9.5-04 (estado del servidor con motivos) y P1-03 (aprobación humana del PRECIO EXACTO).
 // Datos de las filas: valores reales de producción leídos el 14-oct-2026 (aprobadores, el empate de lamina-3x10-14).
 import { describe, it, expect } from 'vitest';
-import { estadoBaseServidor, conMotivos, precioVigenteElegido, aprobacionPrecioExacto, preciosAprobables, preciosNoAprobables, resumenFrescura } from './autoridadCosteoServidor.js';
+import { estadoBaseServidor, conMotivos, precioVigenteElegido, aprobacionPrecioExacto, preciosAprobables, preciosNoAprobables, resumenFrescura, aprobacionEstandarMO } from './autoridadCosteoServidor.js';
 import { costeoEmitible } from '../motor/calculo.js';
 import { clasificarCosto } from './estadoCosto.js';
 
@@ -238,5 +238,38 @@ describe('resumenFrescura · antigüedad del documento de compra (honestidad §5
     expect(r.fresco).toBe(true);
     expect(r.nTotal).toBe(0);
     expect(r.masAntiguoFecha).toBe(null);
+  });
+});
+
+// 36432bb · 3er bloqueo: aprobacion de estandares de MO verificada como los precios (server-side).
+describe('aprobacionEstandarMO · identidad+permiso del servidor, no callback JS', () => {
+  const PERMITIDOS = [{ email: 'rodrigo@vh.mx', rol: 'direccion' }, { email: 'vendedor@vh.mx', rol: 'vendedor' }];
+  const NOH = ['qa-bot@vh.mx'];
+  const STD = { centro: 'metalmecánica', op: 'corte_lamina', version: 'v1', estado: 'aprobado', approved_by: 'rodrigo@vh.mx' };
+
+  it('aprobada solo con hecho de servidor (estado=aprobado) + aprobador Direccion + no cuenta no-humana', () => {
+    const r = aprobacionEstandarMO({ estandar: STD, permitidos: PERMITIDOS, noHumanas: NOH });
+    expect(r.aprobada).toBe(true);
+    expect(r.traza.rol_aprobador).toBe('direccion');
+  });
+  it('sin hecho de servidor (estado!=aprobado) -> NO aprobada, aunque el aprobador sea Direccion', () => {
+    const r = aprobacionEstandarMO({ estandar: { ...STD, estado: 'propuesto' }, permitidos: PERMITIDOS, noHumanas: NOH });
+    expect(r.aprobada).toBe(false);
+    expect(r.traza.motivo).toMatch(/no aprobado por el servidor/);
+  });
+  it('aprobador sin rol Direccion -> NO aprobada', () => {
+    const r = aprobacionEstandarMO({ estandar: { ...STD, approved_by: 'vendedor@vh.mx' }, permitidos: PERMITIDOS, noHumanas: NOH });
+    expect(r.aprobada).toBe(false);
+    expect(r.traza.motivo).toMatch(/sin rol aprobador/);
+  });
+  it('cuenta no-humana -> NO aprobada', () => {
+    const r = aprobacionEstandarMO({ estandar: { ...STD, approved_by: 'qa-bot@vh.mx' }, permitidos: [...PERMITIDOS, { email: 'qa-bot@vh.mx', rol: 'direccion' }], noHumanas: NOH });
+    expect(r.aprobada).toBe(false);
+    expect(r.traza.motivo).toMatch(/cuenta no humana/);
+  });
+  it('fail-closed: sin lista de cuentas no humanas (tabla no aplicada) -> NO aprobada', () => {
+    const r = aprobacionEstandarMO({ estandar: STD, permitidos: PERMITIDOS, noHumanas: null });
+    expect(r.aprobada).toBe(false);
+    expect(r.motivos.join(' ')).toMatch(/no humanas no disponible/);
   });
 });

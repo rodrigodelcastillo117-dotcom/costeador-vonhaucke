@@ -7,7 +7,8 @@ const AUT = autoridadDesdeListas({
   permitidos: [{ email: 'rodrigo@vh.mx', rol: 'direccion' }, { email: 'vendedor@vh.mx', rol: 'vendedor' }],
   noHumanas: ['qa-bot@vh.mx'],
 });
-const STD = { centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' };
+// estado:'aprobado' = hecho escrito por el servidor (como insumo_precios.estado). Sin el, no carga.
+const STD = { centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx', estado: 'aprobado' };
 
 describe('costoOperacion — autoridad y contrato', () => {
   beforeEach(() => limpiarEstandares());
@@ -34,6 +35,12 @@ describe('costoOperacion — autoridad y contrato', () => {
     expect(g.aprobado_por).toBe('rodrigo@vh.mx');
     expect(g.rol_aprobador).toBe('direccion');
     expect(g.autorizado).toBe(true);
+  });
+
+  it('36432bb: un aprobador NOMBRADO sin hecho de servidor (estado!=aprobado) NO carga', () => {
+    // El aprobador es Direccion real, pero el servidor NO registro la aprobacion -> rechazado.
+    expect(() => cargarEstandar({ ...STD, estado: undefined }, { autoridad: AUT })).toThrow(/sin aprobacion registrada por el servidor/);
+    expect(() => cargarEstandar({ ...STD, estado: 'propuesto' }, { autoridad: AUT })).toThrow(/sin aprobacion registrada por el servidor/);
   });
 
   it('P3: exige unidades, version y vigencia', () => {

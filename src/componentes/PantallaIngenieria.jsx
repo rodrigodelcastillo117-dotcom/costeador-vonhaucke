@@ -24,9 +24,11 @@ function leerPersistido(clave, inicial, persistencia) {
  * @param {Array}  [p.acciones]      [{id, label, confirmacion}] — provistas por el contenedor, NO por la UI
  * @param {Function} [p.onConfirmar] handler externo: recibe la confirmacion y devuelve el expediente recalculado
  *                                    (p.ej. una RPC gobernada). Si no se pasa, usa recostearExpediente local + persistencia.
+ * @param {Function} [p.onGuardar]   handler externo: persiste el expediente ACTUAL tal cual (borrador), sin fabricar datos.
+ *                                    Devuelve {version}. Si no se pasa, no se muestra el boton de guardar.
  * @param {object} [p.persistencia]  almacen tipo Storage (default localStorage). Para pruebas / backend.
  */
-export default function PantallaIngenieria({ expediente: inicial, acciones = [], onConfirmar = null, persistencia = null }) {
+export default function PantallaIngenieria({ expediente: inicial, acciones = [], onConfirmar = null, onGuardar = null, persistencia = null }) {
   const almacen = persistencia || (typeof localStorage !== 'undefined' ? localStorage : null);
   const [exp, setExp] = useState(() => leerPersistido(inicial?.clave, inicial, almacen));
   const [aviso, setAviso] = useState('');
@@ -41,6 +43,16 @@ export default function PantallaIngenieria({ expediente: inicial, acciones = [],
       setExp(next);
     } catch (e) { setAviso('Rechazada: ' + String(e?.message || e)); }
   }, [exp, onConfirmar, almacen]);
+
+  // Guardar BORRADOR: persiste el expediente actual tal cual (no fabrica geometria ni aprobaciones).
+  const guardar = useCallback(async () => {
+    setAviso('');
+    if (!onGuardar) return;
+    try {
+      const r = await onGuardar(exp);
+      setAviso('Borrador guardado' + (r && r.version ? ` (v${r.version})` : '') + '.');
+    } catch (e) { setAviso('No se pudo guardar: ' + String(e?.message || e)); }
+  }, [exp, onGuardar]);
 
   const c = v.este_es_el_costo;
   const confs = exp.confirmaciones || [];
@@ -82,11 +94,14 @@ export default function PantallaIngenieria({ expediente: inicial, acciones = [],
             <div style={{ color: '#6b645c', fontSize: 12 }}>{d.afecta.join(', ')}</div>
           </div>
         ))}
-        {acciones.length > 0 && (
+        {(acciones.length > 0 || onGuardar) && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
             {acciones.map((a) => (
               <button key={a.id} type="button" data-testid={a.id} onClick={() => aplicar(a.confirmacion)}>{a.label}</button>
             ))}
+            {onGuardar && (
+              <button type="button" data-testid="ing-guardar-borrador" onClick={guardar}>Guardar borrador</button>
+            )}
           </div>
         )}
         {aviso && <p data-testid="aviso-confirmacion" style={{ color: '#c0453b', fontSize: 13 }}>{aviso}</p>}

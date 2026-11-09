@@ -45,8 +45,8 @@ describe('costearProductoIndustrial — total seguro (P1+P2)', () => {
   });
 
   it('aun con estandares de MO cargados, un total PARCIAL sigue sin ser emitible comercial', () => {
-    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' }, { autoridad: AUT });
-    cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 2, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' }, { autoridad: AUT });
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx', estado: 'aprobado' }, { autoridad: AUT });
+    cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 2, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx', estado: 'aprobado' }, { autoridad: AUT });
     const r = costearProductoIndustrial({ piezasBOM: BOM, routing: ROUTING, insumosERP: INSUMOS_ERP, catalogoLamina: CAT });
     expect(r.mano_obra.routing_completa).toBe(true);
     expect(r.emitible_comercial).toBe(false);                 // sigue faltando material (CUE 3D, KIT precio)
@@ -58,7 +58,7 @@ describe('costearProductoIndustrial — total seguro (P1+P2)', () => {
   const AUTP = autoridadDesdeListas({ permitidos: [{ email: 'rodrigo@vh.mx', rol: 'direccion' }] });
   const POL_FACT = { modelo: 'factores_vh', aprobada_por: 'rodrigo@vh.mx' };
   const POL_ROUT = { modelo: 'routing_tiempos', aprobada_por: 'rodrigo@vh.mx' };
-  const cargarR1 = () => cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' }, { autoridad: AUT });
+  const cargarR1 = () => cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx', estado: 'aprobado' }, { autoridad: AUT });
 
   it('P4: SIN politica de costo aprobada -> oficial_mxn NULL aunque todo este completo', () => {
     cargarR1();

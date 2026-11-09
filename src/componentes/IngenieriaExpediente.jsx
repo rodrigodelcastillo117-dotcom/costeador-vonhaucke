@@ -1,13 +1,18 @@
 // ============================================================================
 //  CONTENEDOR: Pantalla de Ingenieria conectada a PERSISTENCIA SUPABASE (p5).
-//  Carga el expediente del usuario (reabrir_expediente_costeo), aplica confirmaciones
-//  recalculando con el motor, y GUARDA con concurrencia optimista (guardar_expediente_costeo).
-//  Sustituye localStorage por Supabase. La UI NO autoriza estandares de MO (fail-closed):
-//  las confirmaciones de geometria (CAD) si recalculan; la aprobacion economica es del backend.
+//  Carga el expediente del usuario (reabrir_expediente_costeo) y lo GUARDA como
+//  BORRADOR con concurrencia optimista (guardar_expediente_costeo). Sustituye
+//  localStorage por Supabase.
+//
+//  SEGURIDAD (auditoria 36432bb, 2o bloqueo): este contenedor NO ofrece acciones
+//  de confirmacion con datos FABRICADOS (p.ej. un "CAD" con medidas inventadas).
+//  Una confirmacion industrial debe proceder de datos capturados/validados por
+//  Ingenieria o de un CAD real con evidencia. Hasta que exista esa fuente, la
+//  pantalla solo MUESTRA el expediente y permite guardar el borrador tal cual.
+//  La aprobacion economica (MO/precio) es del backend, nunca de la UI.
 // ============================================================================
 import React, { useEffect, useRef, useState } from 'react';
 import PantallaIngenieria from './PantallaIngenieria.jsx';
-import { recostearExpediente } from '../datos/pantallaIngenieria.js';
 import { guardarExpediente, reabrirExpediente } from '../datos/persistenciaExpediente.js';
 import { nube } from '../nube.js';
 import expedientePiloto from '../../expedientes/EXPEDIENTE_TELSVH120.json';
@@ -36,12 +41,12 @@ export default function IngenieriaExpediente({ svc = nube, clave = CLAVE_PILOTO,
     return () => { vivo = false; };
   }, [svc, clave, expedienteInicial]);
 
-  // onConfirmar: recalcula con el motor y PERSISTE en Supabase (optimista). La UI no autoriza MO.
-  async function onConfirmar(confirmacion, actual) {
-    const next = recostearExpediente(actual, confirmacion, { autoridadEstandares: undefined });
-    const r = await guardarExpediente(svc, { clave: next.clave || clave, expediente: next, versionAnterior: dbVersion.current });
+  // onGuardar: persiste el expediente ACTUAL tal cual (borrador) en Supabase, con
+  // concurrencia optimista. No fabrica geometria ni aprobaciones.
+  async function onGuardar(actual) {
+    const r = await guardarExpediente(svc, { clave: actual.clave || clave, expediente: actual, versionAnterior: dbVersion.current });
     dbVersion.current = r.version;
-    return next;
+    return r;
   }
 
   if (estado === 'cargando') return <div className="contenido" style={{ padding: 24, color: '#6b645c' }}>Cargando expediente…</div>;
@@ -50,10 +55,8 @@ export default function IngenieriaExpediente({ svc = nube, clave = CLAVE_PILOTO,
 
   return (
     <div className="contenido">
-      <PantallaIngenieria expediente={exp} onConfirmar={onConfirmar} persistencia={NOOP_STORAGE} acciones={[
-        // Confirmacion de geometria CAD (no es aprobacion economica): recalcula y persiste.
-        { id: 'ing-confirmar-cad-cue', label: 'Confirmar desarrollo CAD del cuerpo', confirmacion: { tipo: 'desarrollo', clave: 'TELSVH120-CUE', desarrollo_mm: [2770, 865], fuente: 'CAD', version: 'cad-cue-1' } },
-      ]} />
+      {/* Sin acciones fabricadas: solo mostrar el expediente y guardar borrador. */}
+      <PantallaIngenieria expediente={exp} onGuardar={onGuardar} persistencia={NOOP_STORAGE} />
     </div>
   );
 }
