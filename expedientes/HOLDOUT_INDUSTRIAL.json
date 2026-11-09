@@ -1,0 +1,134 @@
+{
+  "TELSVH120": {
+    "detectadas": 4,
+    "costeadas": 1,
+    "pendientes_desarrollo": 3,
+    "mp_lamina_mxn": 189.39,
+    "items": [
+      {
+        "clave": "TELSVH120-CF",
+        "dims": [
+          1106,
+          828,
+          13
+        ],
+        "costo": 189.39,
+        "lamina": "lamina-22",
+        "tipo": "PANEL_PESTANAS"
+      },
+      {
+        "clave": "TELSVH120-SOM",
+        "dims": [
+          1127,
+          78,
+          42
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      },
+      {
+        "clave": "TELSVH120-SOC",
+        "dims": [
+          500,
+          48,
+          40
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      },
+      {
+        "clave": "TELSVH120-BX2",
+        "dims": [
+          1117,
+          242,
+          527
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      }
+    ]
+  },
+  "TELSMG": {
+    "detectadas": 0,
+    "costeadas": 0,
+    "pendientes_desarrollo": 0,
+    "mp_lamina_mxn": 0,
+    "items": []
+  },
+  "TEVTSU": {
+    "detectadas": 3,
+    "costeadas": 0,
+    "pendientes_desarrollo": 3,
+    "mp_lamina_mxn": 0,
+    "items": [
+      {
+        "clave": "TEVTSU-TC",
+        "dims": [
+          592,
+          278,
+          592
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      },
+      {
+        "clave": "TEVTSU-BRS",
+        "dims": [
+          139,
+          964,
+          139
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      },
+      {
+        "clave": "TEVTSU-COP",
+        "dims": [
+          600,
+          600,
+          300
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      }
+    ]
+  },
+  "TEVHSU": {
+    "detectadas": 3,
+    "costeadas": 1,
+    "pendientes_desarrollo": 2,
+    "mp_lamina_mxn": 126.25,
+    "items": [
+      {
+        "clave": "TEVHSU-CF",
+        "dims": [
+          1106,
+          659,
+          15
+        ],
+        "costo": 126.25,
+        "lamina": "lamina-22",
+        "tipo": "PANEL_PESTANAS"
+      },
+      {
+        "clave": "TEVHSU-SOC",
+        "dims": [
+          500,
+          49,
+          40
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      },
+      {
+        "clave": "TEVHSU-BEXL2",
+        "dims": [
+          1176,
+          286,
+          514
+        ],
+        "estado": "DESARROLLO_PENDIENTE"
+      }
+    ]
+  },
+  "TVCAC": {
+    "detectadas": 0,
+    "costeadas": 0,
+    "pendientes_desarrollo": 0,
+    "mp_lamina_mxn": 0,
+    "items": []
+  }
+}
