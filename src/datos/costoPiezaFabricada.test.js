@@ -30,6 +30,7 @@ describe('costoPiezaFabricada', () => {
   it('elegirLamina: formato segun largo (4x8 vs 3x10) y calibre', () => {
     expect(elegirLamina(22, { largoMM: 834 }).id).toBe('lamina-22');             // cabe en 4x8
     expect(elegirLamina(20, { largoMM: 3000 }).id).toBe('lamina-3x10-20');       // >2440 -> 3x10
+    expect(elegirLamina(24, { largoMM: 40 }).id).toBe('lamina-22');              // cal24 no existe -> mas cercano = cal22 (no cal10)
     expect(elegirLamina(null, {})).toBeNull();
   });
 

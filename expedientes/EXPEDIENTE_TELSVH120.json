@@ -69,51 +69,9 @@
   },
   "bom_canonico": {
     "tipo_bom": "BOM_BORRADOR",
-    "estado": "borrador",
     "total_renglones": 20,
-    "resueltas": 10,
-    "pendientes": [
-      {
-        "desc": "CUERPO PARA VITRINA HORIZONTAL DE 1200 X 865 X 600 mm ; EN LAMINA",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "EXHIBIDOR PARA VITRINA DE 1117 X 242 X 527 mm ; EN LAMINA",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "BASE CORREDERA DE 500 X 48 X 40 mm ; EN LAMINA",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "SOMBRA PARA VITRINA DE 1127 X 78 X 42 mm ; EN LAMINA",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm DERECHA; EN LAMINA",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm IZQUIERDA; EN LAMINA",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "FRENTE PARA VITRINA DE 1106 X 828 X 13 mm ; EN LAMINA",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "KIT DE ILUMINACION: 5 TIRAS 1m LED 5050/60 4000K + FUENTE 100W MEAN WELL + CABLE",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "MAQUILA PLACA GALVANIZADA 40 X 23 mm CAL 24 IDENTIFICACION, 2 BARRENOS, SERIGRAF",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      },
-      {
-        "desc": "CORREDERAS - COEME20ND",
-        "motivo": "sin insumoId (material no mapeado al catálogo) — Ingeniería/Compras"
-      }
-    ]
+    "resueltos": 10,
+    "pendientes": 10
   },
   "routing": {
     "total_operaciones": 15,
@@ -125,317 +83,244 @@
       "eléctrico": 2,
       "calidad": 1,
       "embalaje": 1
-    },
-    "operaciones": [
-      {
-        "op": "corte_lamina",
-        "centro": "metalmecánica",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "lámina/placa en el BOM"
-      },
-      {
-        "op": "corte_vidrio",
-        "centro": "vidrio",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "vidrio/acrílico en el BOM"
-      },
-      {
-        "op": "punzonado",
-        "centro": "metalmecánica",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "lámina (barrenos/troqueles habituales)"
-      },
-      {
-        "op": "doblez",
-        "centro": "metalmecánica",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "lámina/solera (dobleces habituales)"
-      },
-      {
-        "op": "esmerilado",
-        "centro": "metalmecánica",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "unión soldada a limpiar"
-      },
-      {
-        "op": "preparacion_superficie",
-        "centro": "pintura",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "se va a pintar/recubrir"
-      },
-      {
-        "op": "pintura_liquida",
-        "centro": "pintura",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "laca/barniz/pintura líquida en el BOM"
-      },
-      {
-        "op": "secado_curado",
-        "centro": "pintura",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "proceso de pintura presente"
-      },
-      {
-        "op": "armado",
-        "centro": "ensamble",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "10 pieza(s) fabricable(s) a ensamblar"
-      },
-      {
-        "op": "instalacion_herrajes",
-        "centro": "ensamble",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "herrajes en el BOM (montaje y ajuste en fábrica)"
-      },
-      {
-        "op": "colocacion_vidrio",
-        "centro": "ensamble",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "vidrio/acrílico a montar"
-      },
-      {
-        "op": "cableado",
-        "centro": "eléctrico",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "iluminación/eléctrico en el BOM"
-      },
-      {
-        "op": "pruebas_electricas",
-        "centro": "eléctrico",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "circuito eléctrico a probar"
-      },
-      {
-        "op": "inspeccion",
-        "centro": "calidad",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "producto fabricado a inspeccionar"
-      },
-      {
-        "op": "embalaje",
-        "centro": "embalaje",
-        "estado": "PENDIENTE_TIEMPO",
-        "disparada_por": "módulo transportable"
-      }
-    ],
-    "nota": "Operaciones propuestas desde el despiece. Faltan tiempos y tarifas reales (Ingeniería/Producción) para costear la MO oficialmente."
+    }
   },
-  "estado_economico": {
-    "material_resuelto_mxn": 4693.9,
-    "lineas_resueltas": 10,
-    "lineas_pendientes": 10,
-    "cobertura_bom": "10/20 renglones con precio ERP",
-    "cos_fab_calculado_PARCIAL_mxn": 6336.77,
-    "base_factores": "TELCEL 10/25 PRESTADOS (no autorizados para TELSVH120) — ilustrativo",
-    "mano_obra_certificable": false,
-    "veredicto_costo": "NO CERTIFICABLE / PARCIAL: faltan 10 pieza(s) (fabricadas de lamina + compradas sin precio) y tiempos/tarifas de routing. El total resuelto es un PISO de material, no el costo del producto.",
-    "no_verificable_por": [
-      "10 pieza(s) pendiente(s) de identidad/precio"
-    ]
-  },
-  "costo_propuesto": {
+  "costo_industrial": {
     "certificable": false,
     "material": {
-      "resuelto_erp_mxn": 4693.9,
-      "lamina_propuesta_mxn_cota": 386.05,
-      "total_floor_mxn": 5079.95,
-      "detalle_lamina": [
-        {
-          "clave": "TELSVH120-CUE",
-          "area_m2_cota_inferior": 1.038,
-          "cantidad": 1,
-          "costo_cota": 113.4,
-          "estado": "PROPUESTA_COTA_INFERIOR"
-        },
-        {
-          "clave": "TELSVH120-BX2",
-          "area_m2_cota_inferior": 0.5887,
-          "cantidad": 1,
-          "costo_cota": 64.32,
-          "estado": "PROPUESTA_COTA_INFERIOR"
-        },
-        {
-          "clave": "TELSVH120-SOC",
-          "area_m2_cota_inferior": 0.024,
-          "cantidad": 2,
-          "costo_cota": 5.24,
-          "estado": "PROPUESTA_COTA_INFERIOR"
-        },
-        {
-          "clave": "TELSVH120-SOM",
-          "area_m2_cota_inferior": 0.0879,
-          "cantidad": 1,
-          "costo_cota": 9.6,
-          "estado": "PROPUESTA_COTA_INFERIOR"
-        },
+      "total_mxn": 5072.86,
+      "fabricado_lamina_mxn": 378.96,
+      "comprado_mxn": 4693.9,
+      "piezas_fabricadas_costeadas": 4,
+      "evidencia": [
         {
           "clave": "TELSVH120-PC",
-          "area_m2_cota_inferior": 0.4272,
-          "cantidad": 1,
-          "costo_cota": 46.67,
-          "estado": "PROPUESTA_COTA_INFERIOR"
+          "estado": "COSTEADA",
+          "desarrollo": {
+            "tipo": "PANEL_PESTANAS",
+            "largoMM": 834,
+            "anchoMM": 578,
+            "area_m2": 0.4821,
+            "nota": "panel con pestanas de 20 mm: desarrollo = (L+2d)x(W+2d) (PROPUESTA; asume pestanas simples, sin troqueles/recortes)"
+          },
+          "calibre": 22,
+          "calibre_fuente": "default propuesto",
+          "lamina": {
+            "id": "lamina-22",
+            "nombre": "Lamina de acero cal. 22",
+            "precio_hoja": 378.78,
+            "fuente": "Compras, lista del 2026-08-14",
+            "formato": "2440x1220 mm",
+            "area_hoja_m2": 2.9768,
+            "merma_corte_pct": 8
+          },
+          "area_neta_m2": 0.4821,
+          "piezas_por_hoja": 4,
+          "hojas": 0.25,
+          "aprovechamiento_pct": 64.8,
+          "costo_mp_mxn": 94.69,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
         },
         {
           "clave": "TELSVH120-P",
-          "area_m2_cota_inferior": 0.4272,
-          "cantidad": 1,
-          "costo_cota": 46.67,
-          "estado": "PROPUESTA_COTA_INFERIOR"
+          "estado": "COSTEADA",
+          "desarrollo": {
+            "tipo": "PANEL_PESTANAS",
+            "largoMM": 834,
+            "anchoMM": 578,
+            "area_m2": 0.4821,
+            "nota": "panel con pestanas de 20 mm: desarrollo = (L+2d)x(W+2d) (PROPUESTA; asume pestanas simples, sin troqueles/recortes)"
+          },
+          "calibre": 22,
+          "calibre_fuente": "default propuesto",
+          "lamina": {
+            "id": "lamina-22",
+            "nombre": "Lamina de acero cal. 22",
+            "precio_hoja": 378.78,
+            "fuente": "Compras, lista del 2026-08-14",
+            "formato": "2440x1220 mm",
+            "area_hoja_m2": 2.9768,
+            "merma_corte_pct": 8
+          },
+          "area_neta_m2": 0.4821,
+          "piezas_por_hoja": 4,
+          "hojas": 0.25,
+          "aprovechamiento_pct": 64.8,
+          "costo_mp_mxn": 94.69,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
         },
         {
           "clave": "TELSVH120-CF",
-          "area_m2_cota_inferior": 0.9158,
-          "cantidad": 1,
-          "costo_cota": 100.05,
-          "estado": "PROPUESTA_COTA_INFERIOR"
+          "estado": "COSTEADA",
+          "desarrollo": {
+            "tipo": "PANEL_PESTANAS",
+            "largoMM": 1132,
+            "anchoMM": 854,
+            "area_m2": 0.9667,
+            "nota": "panel con pestanas de 13 mm: desarrollo = (L+2d)x(W+2d) (PROPUESTA; asume pestanas simples, sin troqueles/recortes)"
+          },
+          "calibre": 22,
+          "calibre_fuente": "default propuesto",
+          "lamina": {
+            "id": "lamina-22",
+            "nombre": "Lamina de acero cal. 22",
+            "precio_hoja": 378.78,
+            "fuente": "Compras, lista del 2026-08-14",
+            "formato": "2440x1220 mm",
+            "area_hoja_m2": 2.9768,
+            "merma_corte_pct": 8
+          },
+          "area_neta_m2": 0.9667,
+          "piezas_por_hoja": 2,
+          "hojas": 0.5,
+          "aprovechamiento_pct": 64.9,
+          "costo_mp_mxn": 189.39,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
         },
         {
           "clave": "TELSVH120-PLA",
-          "area_m2_cota_inferior": 0.0009,
-          "cantidad": 1,
-          "costo_cota": 0.1,
-          "estado": "PROPUESTA_COTA_INFERIOR"
+          "estado": "COSTEADA",
+          "desarrollo": {
+            "tipo": "PANEL_PLANO",
+            "largoMM": 40,
+            "anchoMM": 23,
+            "area_m2": 0.0009,
+            "nota": "panel plano (3a cota es espesor o inexistente)"
+          },
+          "calibre": 24,
+          "calibre_fuente": "del plano",
+          "lamina": {
+            "id": "lamina-22",
+            "nombre": "Lamina de acero cal. 22",
+            "precio_hoja": 378.78,
+            "fuente": "Compras, lista del 2026-08-14",
+            "formato": "2440x1220 mm",
+            "area_hoja_m2": 2.9768,
+            "merma_corte_pct": 8
+          },
+          "area_neta_m2": 0.0009,
+          "piezas_por_hoja": 2158,
+          "hojas": 0.0005,
+          "aprovechamiento_pct": 60.5,
+          "costo_mp_mxn": 0.19,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
         }
       ]
     },
     "mano_obra": {
-      "completa": false,
-      "mxn": null,
-      "detalle": [
+      "politica_vh_mxn": 122.73,
+      "routing_tiempos_mxn": null,
+      "routing_completa": false,
+      "nota": "MO por routing incompleta: faltan estandares (tiempo+tarifa) autorizados. Modelo vigente mientras tanto: POLITICA_VH por factores."
+    },
+    "gif_mxn": 462.07,
+    "costo_fabricacion_vh_mxn": 5657.65,
+    "cobertura": {
+      "cerrado": false,
+      "desarrollos_pendientes": [
         {
-          "op": "corte_lamina",
-          "centro": "metalmecánica",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
+          "clave": "TELSVH120-CUE",
+          "motivo": "caja 3D de 1200x865x600 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
         },
         {
-          "op": "corte_vidrio",
-          "centro": "vidrio",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
+          "clave": "TELSVH120-BX2",
+          "motivo": "caja 3D de 1117x527x242 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
         },
         {
-          "op": "punzonado",
-          "centro": "metalmecánica",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
+          "clave": "TELSVH120-SOC",
+          "motivo": "caja 3D de 500x48x40 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
         },
         {
-          "op": "doblez",
-          "centro": "metalmecánica",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "esmerilado",
-          "centro": "metalmecánica",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "preparacion_superficie",
-          "centro": "pintura",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "pintura_liquida",
-          "centro": "pintura",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "secado_curado",
-          "centro": "pintura",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "armado",
-          "centro": "ensamble",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "instalacion_herrajes",
-          "centro": "ensamble",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "colocacion_vidrio",
-          "centro": "ensamble",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "cableado",
-          "centro": "eléctrico",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "pruebas_electricas",
-          "centro": "eléctrico",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "inspeccion",
-          "centro": "calidad",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
-        },
-        {
-          "op": "embalaje",
-          "centro": "embalaje",
-          "costo": null,
-          "estado": "PENDIENTE_TARIFA"
+          "clave": "TELSVH120-SOM",
+          "motivo": "caja 3D de 1127x78x42 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
         }
       ],
-      "nota": "MO NO costeada: faltan tarifas/tiempos autorizados. Operaciones identificadas, costo pendiente de Ingeniería."
+      "compradas_sin_precio": [
+        {
+          "clave": "TELSVH120-KIT",
+          "desc": "KIT DE ILUMINACION: 5 TIRAS 1m LED 5050/60 4000K + FUENTE 100W MEAN WELL + CABLE 2.5m"
+        },
+        {
+          "clave": "COEME20ND",
+          "desc": "CORREDERAS - COEME20ND"
+        }
+      ],
+      "pendientes_motor": [],
+      "doble_conteo": [
+        {
+          "clave": "TELSVH120-PC",
+          "nota": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
+        },
+        {
+          "clave": "TELSVH120-P",
+          "nota": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
+        },
+        {
+          "clave": "TELSVH120-CF",
+          "nota": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
+        },
+        {
+          "clave": "TELSVH120-PLA",
+          "nota": "Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado."
+        }
+      ]
     },
-    "total_propuesto_mxn": null,
-    "estado": "PROPUESTA_NO_CERTIFICABLE",
-    "supuestos": [
-      "Lámina a 95 $/m² (derivado de piezas \"CORTE LAMINA NEGRA\" cal 20/22 del catálogo ERP (incluye corte)); merma 15% (rango industrial corte de lámina 10–25% (referencia, no medición)). Área = cara mayor (COTA INFERIOR, ignora dobleces)."
+    "preguntas_por_decision": [
+      {
+        "decision": "Confirmar espesores/calibres y desarrollos",
+        "afecta": [
+          "TELSVH120-CUE",
+          "TELSVH120-BX2",
+          "TELSVH120-SOC",
+          "TELSVH120-SOM",
+          "TELSVH120-PC",
+          "TELSVH120-P",
+          "TELSVH120-CF"
+        ],
+        "n": 7
+      },
+      {
+        "decision": "Confirmar tiempos y tarifas por centro",
+        "afecta": [
+          "metalmecánica",
+          "vidrio",
+          "pintura",
+          "ensamble",
+          "eléctrico",
+          "calidad",
+          "embalaje"
+        ],
+        "n": 7
+      },
+      {
+        "decision": "Confirmar operaciones externas (terceros)",
+        "afecta": [
+          "TELSVH120-BAA",
+          "TO3812NIC",
+          "TELSVH120-CAP",
+          "TELVIH-LOAC"
+        ],
+        "n": 4
+      },
+      {
+        "decision": "Confirmar componentes comprados y su precio",
+        "afecta": [
+          "TELSVH120-KIT",
+          "COEME20ND"
+        ],
+        "n": 2
+      }
     ],
-    "preguntas_ingenieria": [
-      "Confirmar calibre y tipo de lámina por pieza y el desarrollo plano real (m²) de cada pieza fabricada.",
-      "Tarifa y tiempo autorizados de \"Corte de lámina\" (centro metalmecánica) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Corte de vidrio/acrílico (posible tercero)\" (centro vidrio) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Punzonado/barrenado\" (centro metalmecánica) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Doblez\" (centro metalmecánica) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Esmerilado/acabado de soldadura\" (centro metalmecánica) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Preparación de superficie\" (centro pintura) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Pintura líquida / laca / barniz\" (centro pintura) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Secado / curado\" (centro pintura) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Armado / ensamble\" (centro ensamble) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Instalación y ajuste de herrajes\" (centro ensamble) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Colocación de vidrio/acrílico\" (centro ensamble) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Cableado e instalación eléctrica\" (centro eléctrico) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Pruebas eléctricas\" (centro eléctrico) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Inspección de calidad\" (centro calidad) para costear su MO.",
-      "Tarifa y tiempo autorizados de \"Embalaje\" (centro embalaje) para costear su MO."
-    ],
-    "advertencia": "Costo PROPUESTO con referencias explícitas y cotas. No es costo oficial. Material de lámina es cota inferior. MO requiere tarifas/tiempos reales. Validación de Ingeniería y Dirección obligatoria."
+    "advertencia": "Costo con MP fisica real (lamina comercial ERP) y MO/GIF por POLITICA_VH autorizada. La MO por tiempos de routing queda pendiente de estandares de Ingenieria. Piezas 3D sin desarrollo de CAD quedan pendientes. No es costo oficial sin validacion."
   },
-  "esto_necesito_confirmar": [
-    "Confirmar calibre y tipo de lámina por pieza y el desarrollo plano real (m²) de cada pieza fabricada.",
-    "Tarifa y tiempo autorizados de \"Corte de lámina\" (centro metalmecánica) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Corte de vidrio/acrílico (posible tercero)\" (centro vidrio) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Punzonado/barrenado\" (centro metalmecánica) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Doblez\" (centro metalmecánica) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Esmerilado/acabado de soldadura\" (centro metalmecánica) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Preparación de superficie\" (centro pintura) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Pintura líquida / laca / barniz\" (centro pintura) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Secado / curado\" (centro pintura) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Armado / ensamble\" (centro ensamble) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Instalación y ajuste de herrajes\" (centro ensamble) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Colocación de vidrio/acrílico\" (centro ensamble) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Cableado e instalación eléctrica\" (centro eléctrico) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Pruebas eléctricas\" (centro eléctrico) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Inspección de calidad\" (centro calidad) para costear su MO.",
-    "Tarifa y tiempo autorizados de \"Embalaje\" (centro embalaje) para costear su MO."
-  ]
+  "diferencias_vs_anterior": {
+    "material_anterior_mxn": 4693.9,
+    "material_ahora_mxn": 5072.86,
+    "delta_material_mxn": 378.96,
+    "nota": "El anterior ignoraba el material de las piezas fabricadas; ahora la lamina se costea desde su MP real."
+  }
 }

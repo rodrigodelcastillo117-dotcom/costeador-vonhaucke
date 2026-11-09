@@ -1,123 +1,114 @@
 // ============================================================================
-//  COSTO PROPUESTO POR PROCESOS (PRIORIDAD 3) — honesto, fail-closed.
+//  COSTEO INDUSTRIAL DE UN PRODUCTO (orquestador) — directiva Direccion 2026-11-09.
 //  --------------------------------------------------------------------------
-//  Objetivo: dar un costo de un producto NUEVO sin depender sólo del factor
-//  histórico de otro SKU, PERO sin inventar precios ni tarifas.
-//
-//  Regla dura (directiva Dirección): "No inventes tarifas ni tiempos." Aquí:
-//   · MATERIAL de lámina (piezas fabricadas) → se PROPONE con base en un $/m²
-//     DERIVADO DE DATOS ERP REALES (piezas CORTE LAMINA del catálogo). Queda
-//     `autorizado:false`, es una COTA/propuesta, y exige confirmar calibre y el
-//     desarrollo plano real por pieza (Ingeniería). El área usada es la cara
-//     mayor = COTA INFERIOR (ignora dobleces/retornos); nunca sobreestima a
-//     escondidas.
-//   · MANO DE OBRA / GIF por operación → NO se inventa un peso. Si no se pasan
-//     tarifas autorizadas (o de referencia explícita que tú decidas), cada
-//     operación queda PENDIENTE y se emite la PREGUNTA concreta para Ingeniería.
-//     El número de MO sólo aparece si ALGUIEN inyecta la tarifa (autorizado o
-//     referencia marcada). El mecanismo existe; el número no se fabrica.
-//
-//  Nada aquí es certificable. Todo trae fuente, autorizado:false y, cuando falta,
-//  la pregunta exacta que lo cierra. No escribe en la nube, no toca precios ERP.
+//  Transforma materias primas en mueble, NO busca piezas fabricadas como SKU.
+//  REUSA el motor de produccion (src/motor/calculo.js: `calcular`) y los modulos
+//  fisicos; NO crea un segundo sistema de costeo. Junta:
+//    · piezas FABRICADAS  -> materia prima real (costoPiezaFabricada: desarrollo
+//      plano -> lamina comercial -> aprovechamiento/merma). Caja 3D sin desarrollo
+//      -> PENDIENTE (no inventa).
+//    · piezas COMPRADAS   -> su insumo ERP (precio valido).
+//    · MO/GIF             -> POLITICA_VH autorizada (via `calcular`), modelo vigente;
+//      y en paralelo la MO por ROUTING (tiempo x tarifa, costoOperacion) que queda
+//      PENDIENTE hasta que Ingenieria cargue estandares. No se inventan tiempos.
+//  Anti DOBLE CONTEO: la lamina cruda NO trae corte -> el corte es operacion del
+//  routing, nunca se suma un corte ya incluido en el precio de una pieza cortada.
+//  PREGUNTAS agrupadas por DECISION industrial (no una por pieza).
 // ============================================================================
+import { calcular, PARAMETROS_DEFAULT } from '../motor/calculo.js';
+import { INSUMOS_SEMILLA } from './insumos.js';
+import { costearMateriaPrima } from './costoPiezaFabricada.js';
+import { costoManoObraRouting } from './costoOperacion.js';
 
-// Referencia de material DERIVADA DE ERP (no una tarifa de MO):
-//   CORTE LAMINA NEGRA CAL 22 708x338mm = $22.65 → 0.2393 m² → $94.6/m²
-//   CORTE LAMINA NEGRA CAL 20 424x270mm = $11.08 → 0.1145 m² → $96.8/m²
-// ⇒ ~$95/m² (incluye corte). Calibre exacto por pieza: PENDIENTE de Ingeniería.
-export const REF_LAMINA_MXN_M2 = {
-  valor: 95,
-  fuente: 'derivado de piezas "CORTE LAMINA NEGRA" cal 20/22 del catálogo ERP (incluye corte)',
-  autorizado: false,
-  pregunta: 'Confirmar calibre y tipo de lámina por pieza y el desarrollo plano real (m²) de cada pieza fabricada.',
-};
-// Merma de corte: rango industrial estándar (10–25%); se usa 15% conservador, marcado.
-export const REF_MERMA_PCT = { valor: 0.15, fuente: 'rango industrial corte de lámina 10–25% (referencia, no medición)', autorizado: false };
+const SEED = Object.fromEntries(INSUMOS_SEMILLA.map((i) => [i.id, i]));
 
-const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-
-/** Cota inferior de área (m²) de una pieza fabricada: cara mayor de su bounding box.
- *  Es DELIBERADAMENTE una cota inferior (ignora dobleces/retornos/caras extra). */
-export function areaCaraMayorM2(dims_mm = []) {
-  const d = (Array.isArray(dims_mm) ? dims_mm : []).map(num).filter((x) => x > 0).sort((a, b) => b - a);
-  if (d.length < 2) return null;
-  return +((d[0] * d[1]) / 1e6).toFixed(4); // mm² → m²
+// Agrupa preguntas por DECISION industrial (cada decision -> set de claves afectadas).
+function agrupa(mapa, decision, clave) {
+  if (!mapa.has(decision)) mapa.set(decision, new Set());
+  if (clave) mapa.get(decision).add(clave);
 }
+const OPERACION_EXTERNA = /templad|termoform|cristal|vidrio|acrilico|galvan|cromad|anodiz/i;
 
 /**
  * @param {object} p
- * @param {Array}  p.fabricadas  piezas fabricadas: {clave, cantidad, dims_mm:[l,w,h]}
- * @param {Array}  p.operaciones routing (proponerRouting().operaciones)
- * @param {object} [p.tarifas]   mapa opcional centro→{mxn, autorizado, fuente}. Si falta una, PENDIENTE.
- * @param {number} [p.materialResueltoMxn] material ya resuelto por ERP (piezas con precio)
+ * @param {Array}  p.piezasBOM  [{clave, desc, cantidad, dims_mm?, fabricada?, insumoId?, esCompraVenta?, calibrePropuesto?}]
+ * @param {object} p.routing    { operaciones:[{op,centro}] }
+ * @param {object} p.insumosERP  mapa insumoId -> {nombre, precio, unidad, seccion}
+ * @param {number} [p.lote]
  */
-export function costoPropuesto({ fabricadas = [], operaciones = [], tarifas = {}, materialResueltoMxn = 0,
-  refLamina = REF_LAMINA_MXN_M2, refMerma = REF_MERMA_PCT } = {}) {
-  const preguntas = [];
-  const supuestos = [];
+export function costearProductoIndustrial({ piezasBOM = [], routing = { operaciones: [] }, insumosERP = {}, lote = null, par = PARAMETROS_DEFAULT } = {}) {
+  const insumos = { ...SEED, ...insumosERP };
+  const componentes = [];
+  const evidencia_fabricadas = [];
+  const desarrollos_pendientes = [];
+  const compradas_sin_precio = [];
+  const doble_conteo = [];
+  const decisiones = new Map();
 
-  // --- MATERIAL propuesto de lámina (cota inferior, base ERP) ---
-  let laminaMxn = 0;
-  const detalleLamina = [];
-  for (const f of fabricadas) {
-    const area = areaCaraMayorM2(f.dims_mm);
-    const qty = num(f.cantidad) || 1;
-    if (area == null) {
-      detalleLamina.push({ clave: f.clave, area_m2: null, costo: null, estado: 'SIN_DIMS' });
-      preguntas.push(`Dimensiones/espesor de la pieza fabricada ${f.clave} para estimar material.`);
-      continue;
+  for (const p of piezasBOM) {
+    const qty = Number(p.cantidad) || 1;
+    if (p.fabricada) {
+      const mp = costearMateriaPrima({ clave: p.clave, nombre: p.desc || p.clave, dims_mm: p.dims_mm, piezas: qty, desc: p.desc, calibrePropuesto: p.calibrePropuesto });
+      if (mp.componente) {
+        componentes.push(mp.componente);
+        evidencia_fabricadas.push({ clave: p.clave, estado: mp.estado, ...mp.evidencia });
+        if (mp.evidencia?.corte_incluido_en_precio === false) doble_conteo.push({ clave: p.clave, nota: mp.evidencia.nota_doble_conteo });
+        if (mp.pregunta) agrupa(decisiones, 'Confirmar espesores/calibres y desarrollos', p.clave);
+      } else {
+        desarrollos_pendientes.push({ clave: p.clave, motivo: mp.motivo });
+        agrupa(decisiones, 'Confirmar espesores/calibres y desarrollos', p.clave);
+      }
+    } else if (p.insumoId) {
+      const seccion = insumos[p.insumoId]?.seccion || (p.esCompraVenta ? 'graficos' : 'herrajes');
+      componentes.push({ nombre: p.desc || p.clave, insumoId: p.insumoId, cantidad: qty, piezas: qty, seccion });
+      if (OPERACION_EXTERNA.test(p.desc || '')) agrupa(decisiones, 'Confirmar operaciones externas (terceros)', p.clave);
+    } else {
+      compradas_sin_precio.push({ clave: p.clave, desc: p.desc });
+      agrupa(decisiones, 'Confirmar componentes comprados y su precio', p.clave);
     }
-    const costo = +(area * qty * refLamina.valor * (1 + refMerma.valor)).toFixed(2);
-    laminaMxn += costo;
-    detalleLamina.push({ clave: f.clave, area_m2_cota_inferior: area, cantidad: qty, costo_cota: costo, estado: 'PROPUESTA_COTA_INFERIOR' });
-  }
-  laminaMxn = +laminaMxn.toFixed(2);
-  if (fabricadas.length) {
-    supuestos.push(`Lámina a ${refLamina.valor} $/m² (${refLamina.fuente}); merma ${Math.round(refMerma.valor * 100)}% (${refMerma.fuente}). Área = cara mayor (COTA INFERIOR, ignora dobleces).`);
-    preguntas.push(refLamina.pregunta);
   }
 
-  // --- MANO DE OBRA por operación: número SÓLO si hay tarifa; si no, PREGUNTA ---
-  let moMxn = 0; let moCompleta = true;
-  const detalleMO = [];
-  for (const op of operaciones) {
-    const t = tarifas[op.centro];
-    if (!t || !Number.isFinite(Number(t.mxn))) {
-      moCompleta = false;
-      detalleMO.push({ op: op.op, centro: op.centro, costo: null, estado: 'PENDIENTE_TARIFA' });
-      preguntas.push(`Tarifa y tiempo autorizados de "${op.nombre || op.op}" (centro ${op.centro}) para costear su MO.`);
-      continue;
-    }
-    const costo = +Number(t.mxn).toFixed(2);
-    moMxn += costo;
-    detalleMO.push({ op: op.op, centro: op.centro, costo, autorizado: !!t.autorizado, fuente: t.fuente || null, estado: t.autorizado ? 'AUTORIZADA' : 'REFERENCIA' });
-  }
-  moMxn = +moMxn.toFixed(2);
+  // Motor real: material + MO (POLITICA_VH por tipo de material) + GIF + pendientes.
+  const motor = calcular({ nombre: 'producto', componentes }, 1, insumos, par);
 
-  const materialFloor = +(num(materialResueltoMxn) + laminaMxn).toFixed(2);
-  // Preguntas únicas, ordenadas (las de impacto económico primero = material y MO faltante).
-  const preguntasUnicas = [...new Set(preguntas)];
+  // MO por ROUTING (tiempo x tarifa) — PENDIENTE hasta estandares autorizados.
+  const mo_routing = costoManoObraRouting(routing.operaciones || [], { piezas: 1, lote });
+  for (const f of (mo_routing.faltantes || [])) agrupa(decisiones, 'Confirmar tiempos y tarifas por centro', f.centro);
+
+  // Preguntas agrupadas -> lista legible.
+  const preguntas_por_decision = [...decisiones.entries()].map(([decision, claves]) => ({
+    decision, afecta: [...claves], n: claves.size,
+  })).sort((a, b) => b.n - a.n);
+
+  const materialFabricado = +evidencia_fabricadas.reduce((s, e) => s + (e.costo_mp_mxn || 0), 0).toFixed(2);
+  const mat = motor.materialTotal;
+  const cerrado = desarrollos_pendientes.length === 0 && compradas_sin_precio.length === 0 && (motor.componentesIgnorados || []).length === 0;
 
   return {
-    certificable: false,              // NUNCA certificable desde propuestas
+    certificable: false,                         // nunca certificable desde propuestas/politica; requiere validacion
     material: {
-      resuelto_erp_mxn: +num(materialResueltoMxn).toFixed(2),
-      lamina_propuesta_mxn_cota: laminaMxn,
-      total_floor_mxn: materialFloor,
-      detalle_lamina: detalleLamina,
+      total_mxn: +mat.toFixed(2),
+      fabricado_lamina_mxn: materialFabricado,
+      comprado_mxn: +(mat - materialFabricado).toFixed(2),
+      piezas_fabricadas_costeadas: evidencia_fabricadas.length,
+      evidencia: evidencia_fabricadas,
     },
     mano_obra: {
-      completa: operaciones.length ? moCompleta : null,
-      mxn: moCompleta && operaciones.length ? moMxn : null,
-      detalle: detalleMO,
-      nota: operaciones.length && !moCompleta
-        ? 'MO NO costeada: faltan tarifas/tiempos autorizados. Operaciones identificadas, costo pendiente de Ingeniería.'
-        : null,
+      politica_vh_mxn: +motor.manoObra.toFixed(2),       // modelo VIGENTE autorizado (por tipo de material)
+      routing_tiempos_mxn: mo_routing.mano_obra_mxn,     // objetivo: null hasta estandares
+      routing_completa: mo_routing.completa,
+      nota: mo_routing.nota,
     },
-    total_propuesto_mxn: moCompleta && operaciones.length ? +(materialFloor + moMxn).toFixed(2) : null,
-    estado: 'PROPUESTA_NO_CERTIFICABLE',
-    supuestos,
-    preguntas_ingenieria: preguntasUnicas,
-    advertencia: 'Costo PROPUESTO con referencias explícitas y cotas. No es costo oficial. Material de lámina es cota inferior. MO requiere tarifas/tiempos reales. Validación de Ingeniería y Dirección obligatoria.',
+    gif_mxn: +motor.indirectosFabrica.toFixed(2),
+    costo_fabricacion_vh_mxn: +motor.costoFabricacion.toFixed(2),  // con MO/GIF POLITICA_VH
+    cobertura: {
+      cerrado,
+      desarrollos_pendientes,
+      compradas_sin_precio,
+      pendientes_motor: motor.componentesIgnorados || [],
+      doble_conteo,
+    },
+    preguntas_por_decision,
+    advertencia: 'Costo con MP fisica real (lamina comercial ERP) y MO/GIF por POLITICA_VH autorizada. La MO por tiempos de routing queda pendiente de estandares de Ingenieria. Piezas 3D sin desarrollo de CAD quedan pendientes. No es costo oficial sin validacion.',
   };
 }

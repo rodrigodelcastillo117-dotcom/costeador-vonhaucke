@@ -1,72 +1,60 @@
-// ============================================================================
-//  COSTO PROPUESTO POR PROCESOS — invariantes de HONESTIDAD.
-//  Verifica que: (1) nunca es certificable; (2) sin tarifas, la MO no se inventa
-//  (queda pendiente + pregunta por operación); (3) la lámina es cota inferior
-//  (cara mayor) con base ERP + merma; (4) con tarifa de referencia se costea
-//  pero sigue no certificable y marcada REFERENCIA; (5) el material resuelto no
-//  se toca.
-// ============================================================================
-import { describe, it, expect } from 'vitest';
-import { costoPropuesto, areaCaraMayorM2, REF_LAMINA_MXN_M2, REF_MERMA_PCT } from './costoPropuestoProcesos.js';
+// Orquestador de costeo industrial: MP fisica real (motor) + MO POLITICA_VH + routing pendiente,
+// fail-closed, preguntas agrupadas por decision, anti doble-conteo.
+import { describe, it, expect, beforeEach } from 'vitest';
+import { costearProductoIndustrial } from './costoPropuestoProcesos.js';
+import { limpiarEstandares, cargarEstandar } from './costoOperacion.js';
 
-const FAB = [
-  { clave: 'CUE', cantidad: 1, dims_mm: [1200, 865, 600] },
-  { clave: 'CF', cantidad: 1, dims_mm: [1106, 828, 13] },
-  { clave: 'SOC', cantidad: 2, dims_mm: [500, 48, 40] },
+const INSUMOS_ERP = {
+  'erp-cap': { id: 'erp-cap', nombre: 'Capelo cristal', precio: 1737.99, unidad: 'pieza', seccion: 'cristal' },
+};
+const BOM = [
+  { clave: 'P', desc: 'PUERTA EN LAMINA', cantidad: 2, dims_mm: [538, 794, 20], fabricada: true },
+  { clave: 'CUE', desc: 'CUERPO EN LAMINA', cantidad: 1, dims_mm: [1200, 865, 600], fabricada: true },
+  { clave: 'CAP', desc: 'CAPELO DE CRISTAL TEMPLADO', cantidad: 1, insumoId: 'erp-cap' },
+  { clave: 'KIT', desc: 'KIT LED', cantidad: 1 },   // comprada sin precio
 ];
-const OPS = [
-  { op: 'corte', nombre: 'Corte', centro: 'metalmecánica' },
-  { op: 'doblez', nombre: 'Doblez', centro: 'metalmecánica' },
-  { op: 'pintura', nombre: 'Pintura', centro: 'pintura' },
-  { op: 'ensamble', nombre: 'Ensamble', centro: 'ensamble' },
-];
+const ROUTING = { operaciones: [{ op: 'corte_lamina', centro: 'metalmecánica' }, { op: 'pintura', centro: 'pintura' }] };
 
-describe('costoPropuestoProcesos — honestidad', () => {
-  it('areaCaraMayorM2 = cara mayor (cota inferior), en m²', () => {
-    expect(areaCaraMayorM2([1200, 865, 600])).toBeCloseTo((1200 * 865) / 1e6, 4); // 1.038
-    expect(areaCaraMayorM2([500, 48, 40])).toBeCloseTo((500 * 48) / 1e6, 4);       // 0.024
-    expect(areaCaraMayorM2([100])).toBeNull();
-  });
+describe('costearProductoIndustrial', () => {
+  beforeEach(() => limpiarEstandares());
 
-  it('SIN tarifas: nunca certificable, MO NO se inventa (pendiente + pregunta por operación)', () => {
-    const r = costoPropuesto({ fabricadas: FAB, operaciones: OPS, materialResueltoMxn: 4693.9 });
+  it('MP fisica real + MO POLITICA_VH; routing pendiente; fail-closed; nunca certificable', () => {
+    const r = costearProductoIndustrial({ piezasBOM: BOM, routing: ROUTING, insumosERP: INSUMOS_ERP });
     expect(r.certificable).toBe(false);
-    expect(r.mano_obra.mxn).toBeNull();
-    expect(r.mano_obra.completa).toBe(false);
-    expect(r.total_propuesto_mxn).toBeNull();                 // sin MO no hay total
-    // una pregunta por cada operación sin tarifa
-    for (const op of OPS) expect(r.preguntas_ingenieria.some((q) => q.includes(op.nombre))).toBe(true);
-    // material resuelto intacto + lámina como cota
-    expect(r.material.resuelto_erp_mxn).toBe(4693.9);
-    expect(r.material.lamina_propuesta_mxn_cota).toBeGreaterThan(0);
-    expect(r.material.total_floor_mxn).toBe(+(4693.9 + r.material.lamina_propuesta_mxn_cota).toFixed(2));
+    // material: lamina fabricada (puertas) + comprado (capelo)
+    expect(r.material.fabricado_lamina_mxn).toBeGreaterThan(0);
+    expect(r.material.comprado_mxn).toBeGreaterThanOrEqual(1737.99 - 1);
+    expect(r.material.piezas_fabricadas_costeadas).toBe(1);        // solo la puerta (cuerpo es 3D pendiente)
+    // cuerpo 3D -> desarrollo pendiente; KIT -> comprada sin precio
+    expect(r.cobertura.desarrollos_pendientes.map((d) => d.clave)).toContain('CUE');
+    expect(r.cobertura.compradas_sin_precio.map((d) => d.clave)).toContain('KIT');
+    expect(r.cobertura.cerrado).toBe(false);
+    // MO POLITICA_VH presente; routing por tiempos aun no
+    expect(r.mano_obra.politica_vh_mxn).toBeGreaterThan(0);
+    expect(r.mano_obra.routing_tiempos_mxn).toBeNull();
+    expect(r.mano_obra.routing_completa).toBe(false);
+    // anti doble-conteo en la puerta
+    expect(r.cobertura.doble_conteo.some((d) => d.clave === 'P')).toBe(true);
   });
 
-  it('lámina = cara mayor × cantidad × $/m² × (1+merma), base ERP declarada', () => {
-    const r = costoPropuesto({ fabricadas: [{ clave: 'CUE', cantidad: 1, dims_mm: [1200, 865, 600] }], operaciones: [] });
-    const esperado = +(1.038 * 1 * REF_LAMINA_MXN_M2.valor * (1 + REF_MERMA_PCT.valor)).toFixed(2);
-    expect(r.material.lamina_propuesta_mxn_cota).toBeCloseTo(esperado, 1);
-    expect(r.material.detalle_lamina[0].estado).toBe('PROPUESTA_COTA_INFERIOR');
-    expect(REF_LAMINA_MXN_M2.autorizado).toBe(false);
+  it('preguntas agrupadas por DECISION (no una por pieza)', () => {
+    const r = costearProductoIndustrial({ piezasBOM: BOM, routing: ROUTING, insumosERP: INSUMOS_ERP });
+    const decisiones = r.preguntas_por_decision.map((q) => q.decision);
+    expect(decisiones).toContain('Confirmar espesores/calibres y desarrollos');
+    expect(decisiones).toContain('Confirmar componentes comprados y su precio');
+    expect(decisiones).toContain('Confirmar tiempos y tarifas por centro');
+    // la decision de desarrollos agrupa puerta (calibre propuesto) + cuerpo (3D)
+    const dev = r.preguntas_por_decision.find((q) => /espesores/.test(q.decision));
+    expect(dev.afecta).toEqual(expect.arrayContaining(['P', 'CUE']));
+    // operacion externa: cristal templado
+    expect(decisiones).toContain('Confirmar operaciones externas (terceros)');
   });
 
-  it('CON tarifa de referencia: costea MO pero sigue no certificable y marcada REFERENCIA', () => {
-    const tarifas = {
-      'metalmecánica': { mxn: 30, autorizado: false, fuente: 'ref' },
-      'pintura': { mxn: 60, autorizado: false, fuente: 'ref' },
-      'ensamble': { mxn: 50, autorizado: false, fuente: 'ref' },
-    };
-    const r = costoPropuesto({ fabricadas: FAB, operaciones: OPS, tarifas, materialResueltoMxn: 100 });
-    expect(r.certificable).toBe(false);
-    expect(r.mano_obra.completa).toBe(true);
-    expect(r.mano_obra.mxn).toBe(30 + 30 + 60 + 50);          // corte+doblez(metal) + pintura + ensamble
-    expect(r.total_propuesto_mxn).toBe(+(r.material.total_floor_mxn + r.mano_obra.mxn).toFixed(2));
-    expect(r.mano_obra.detalle.every((d) => d.estado === 'REFERENCIA')).toBe(true);
-  });
-
-  it('pieza fabricada sin dims: no inventa área, emite pregunta', () => {
-    const r = costoPropuesto({ fabricadas: [{ clave: 'X', cantidad: 1, dims_mm: [] }], operaciones: [] });
-    expect(r.material.detalle_lamina[0].estado).toBe('SIN_DIMS');
-    expect(r.preguntas_ingenieria.some((q) => q.includes('X'))).toBe(true);
+  it('con estandares autorizados cargados, la MO por routing deja de ser null', () => {
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    cargarEstandar({ centro: 'pintura', op: 'pintura', tiempo_proceso_min: 2, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    const r = costearProductoIndustrial({ piezasBOM: BOM, routing: ROUTING, insumosERP: INSUMOS_ERP });
+    expect(r.mano_obra.routing_completa).toBe(true);
+    expect(r.mano_obra.routing_tiempos_mxn).toBe(30);
   });
 });

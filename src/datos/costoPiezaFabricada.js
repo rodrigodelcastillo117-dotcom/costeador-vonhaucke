@@ -63,11 +63,13 @@ export function elegirLamina(calibre, { largoMM = 0 } = {}) {
     return quiere3x10 ? es3x10 : !es3x10;
   });
   const pool = candidatos.length ? candidatos : LAMINAS;
-  // calibre exacto; si no, el de numero mas cercano por arriba (mas grueso = numero menor)
+  // calibre exacto; si no, el de numero de calibre MAS CERCANO (|dif| minima). Nota:
+  // numero de calibre mayor = lamina mas delgada; cal24 (no existe) -> cal22, no cal10.
   const exact = pool.find((i) => calibreDeId(i.id) === calibre);
   if (exact) return exact;
-  const ordenados = pool.filter((i) => calibreDeId(i.id) != null).sort((a, b) => calibreDeId(a.id) - calibreDeId(b.id));
-  return ordenados.find((i) => calibreDeId(i.id) <= calibre) || ordenados[ordenados.length - 1] || null;
+  const conCal = pool.filter((i) => calibreDeId(i.id) != null);
+  if (!conCal.length) return null;
+  return conCal.sort((a, b) => Math.abs(calibreDeId(a.id) - calibre) - Math.abs(calibreDeId(b.id) - calibre))[0];
 }
 
 /**
