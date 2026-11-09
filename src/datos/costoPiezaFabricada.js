@@ -1,28 +1,21 @@
 // ============================================================================
-//  COSTO DE PIEZA FABRICADA (directiva Direccion 2026-11-09).
+//  COSTO DE PIEZA FABRICADA — materia prima autoritativa, FAIL-CLOSED.
+//  Auditoria Direccion 2026-11-09 (SHA f8bd9bc): corrige 6 defectos.
 //  --------------------------------------------------------------------------
-//  Una pieza fabricada (omega, cuerpo, puerta, frente...) NO es un SKU comprable:
-//  se costea desde su MATERIA PRIMA (lamina comercial) + sus OPERACIONES. Este
-//  modulo hace SOLO la parte fisica de materia prima, y REUSA el motor de
-//  produccion (src/motor/calculo.js: piezasPorTablero/comprar/calcular). No crea
-//  un segundo sistema de costeo.
+//  Una pieza fabricada se costea desde su MATERIA PRIMA (lamina comercial) +
+//  operaciones, NO como SKU. REUSA el nesteo del motor (piezasPorTablero). La
+//  fuente economica es el CATALOGO VIGENTE del servidor (precio exacto + version
+//  precio_id + unidad + evidencia + certificable), NO el seed.
 //
-//  Pasos (por pieza): identidad -> dimensiones/funcion -> calibre/material
-//  (propuesto si no esta especificado) -> DESARROLLO PLANO cuando la geometria
-//  alcanza -> area neta/consumo -> lamina comercial del catalogo -> aprovechamiento
-//  /merma (motor) -> costo de MP con evidencia. Operaciones de corte/doblez van
-//  al routing (NO se duplican en el precio de la hoja: la hoja cruda no trae corte).
-//
-//  REGLA DURA: si la geometria NO alcanza (caja 3D sin desarrollo de CAD), el
-//  desarrollo queda PENDIENTE. No se inventan dimensiones. El calibre, cuando no
-//  esta en el plano, es PROPUESTA sujeta a validacion de Ingenieria.
+//  Estados (vocabulario del servidor, ver autoridadCosteoServidor.js):
+//   · BLOQUEADO   cantidad invalida; o la pieza no cabe en ningun formato disponible.
+//   · INCOMPLETO  falta un dato: desarrollo (caja 3D sin CAD) o precio autoritativo.
+//   · PRELIMINAR  se costea con supuestos: calibre propuesto (no del plano), desarrollo
+//                 inferido (L+2D), lamina sustituida o precio no certificable. Bloquea certificacion.
+//   · VERIFICABLE calibre del plano + desarrollo verificado + precio certificable exacto.
+//  Nunca convierte un supuesto en material confirmado. Nunca asigna una hoja en silencio.
 // ============================================================================
-import { INSUMOS_SEMILLA } from './insumos.js';
-import { piezasPorTablero, precioDeInsumo, PARAMETROS_DEFAULT } from '../motor/calculo.js';
-
-// Lamina comercial del catalogo (metal, formato hoja, fraccion). Indice por calibre y formato.
-const LAMINAS = INSUMOS_SEMILLA.filter((i) => i.seccion === 'metal' && i.formato && i.formato.tipo === 'lamina' && i.fraccion);
-const calibreDeId = (id) => { const m = String(id).match(/(\d{2})(?!.*\d)/); return m ? +m[1] : null; };
+import { piezasPorTablero, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 
 /** Calibre explicito en el texto del plano ("... CALIBRE 24 ..."), o null. */
 export function calibreDesdeTexto(desc) {
@@ -31,94 +24,115 @@ export function calibreDesdeTexto(desc) {
 }
 
 /**
- * Desarrollo plano a partir del bounding box. Fail-closed:
- *   - 2 cotas (o 3a <= 5mm = espesor): PANEL PLANO, desarrollo = L x W.
- *   - 3a cota 5..UMBRAL mm: PANEL CON PESTANAS, desarrollo = (L+2d) x (W+2d) (PROPUESTA).
- *   - 3a cota > UMBRAL: CAJA 3D -> desarrollo PENDIENTE (requiere CAD). No inventa.
- * @returns {{tipo, largoMM?, anchoMM?, area_m2?, nota?, pendiente?, motivo?}}
+ * Desarrollo plano fail-closed, distinguiendo VERIFICADO de INFERIDO.
+ *   - 2 cotas, o 3a <= 5mm (espesor): PANEL_PLANO -> metodo VERIFICADO (huella real LxW).
+ *   - 3a cota 5..UMBRAL: PANEL_PESTANAS -> metodo INFERIDO_L2D (propuesta (L+2d)x(W+2d)).
+ *   - 3a cota > UMBRAL: CAJA_3D -> PENDIENTE (requiere CAD). No inventa.
  */
 export function desarrolloPlano(dims_mm = [], { umbralPestanaMM = 30 } = {}) {
   const d = (Array.isArray(dims_mm) ? dims_mm : []).map(Number).filter((x) => x > 0).sort((a, b) => b - a);
   if (d.length < 2) return { tipo: 'INSUFICIENTE', pendiente: true, motivo: 'dimensiones insuficientes (se necesitan al menos 2 cotas)' };
   const [L, W, D] = [d[0], d[1], d[2] || 0];
-  if (D <= 5) {
-    return { tipo: 'PANEL_PLANO', largoMM: L, anchoMM: W, area_m2: +((L * W) / 1e6).toFixed(4), nota: 'panel plano (3a cota es espesor o inexistente)' };
-  }
+  if (D <= 5) return { tipo: 'PANEL_PLANO', metodo: 'VERIFICADO', verificado: true, largoMM: L, anchoMM: W, area_m2: +((L * W) / 1e6).toFixed(4), nota: 'panel plano: huella real L x W' };
   if (D <= umbralPestanaMM) {
     const lg = L + 2 * D, an = W + 2 * D;
-    return { tipo: 'PANEL_PESTANAS', largoMM: lg, anchoMM: an, area_m2: +((lg * an) / 1e6).toFixed(4),
-      nota: `panel con pestanas de ${D} mm: desarrollo = (L+2d)x(W+2d) (PROPUESTA; asume pestanas simples, sin troqueles/recortes)` };
+    return { tipo: 'PANEL_PESTANAS', metodo: 'INFERIDO_L2D', verificado: false, largoMM: lg, anchoMM: an, area_m2: +((lg * an) / 1e6).toFixed(4),
+      nota: `desarrollo INFERIDO (L+2d)x(W+2d) con pestanas de ${D} mm; asume pestanas simples sin troqueles. Requiere validacion.` };
   }
-  return { tipo: 'CAJA_3D', pendiente: true,
-    motivo: `caja 3D de ${L}x${W}x${D} mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)` };
+  return { tipo: 'CAJA_3D', pendiente: true, motivo: `caja 3D de ${L}x${W}x${D} mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)` };
 }
 
-/** Elige la lamina comercial: por calibre (exacto o el inmediato mas grueso) y formato
- *  (3x10 si la pieza no cabe a lo largo de 2440 mm; si no, 4x8). Devuelve el insumo o null. */
-export function elegirLamina(calibre, { largoMM = 0 } = {}) {
-  if (!calibre) return null;
-  const quiere3x10 = largoMM > 2440;            // no cabe en 4x8 (2440) -> formato 3x10 (3048)
-  const candidatos = LAMINAS.filter((i) => {
-    const es3x10 = i.formato.largoMM === 3048 || /3x10/.test(i.formato.corto || '');
-    return quiere3x10 ? es3x10 : !es3x10;
-  });
-  const pool = candidatos.length ? candidatos : LAMINAS;
-  // calibre exacto; si no, el de numero de calibre MAS CERCANO (|dif| minima). Nota:
-  // numero de calibre mayor = lamina mas delgada; cal24 (no existe) -> cal22, no cal10.
-  const exact = pool.find((i) => calibreDeId(i.id) === calibre);
-  if (exact) return exact;
-  const conCal = pool.filter((i) => calibreDeId(i.id) != null);
-  if (!conCal.length) return null;
-  return conCal.sort((a, b) => Math.abs(calibreDeId(a.id) - calibre) - Math.abs(calibreDeId(b.id) - calibre))[0];
+/** Registros autoritativos de lamina para un calibre: exacto o el mas cercano (sustituido). */
+export function laminasParaCalibre(calibre, catalogoLamina = []) {
+  const cat = Array.isArray(catalogoLamina) ? catalogoLamina.filter((l) => Number(l.precio) > 0 && l.formato) : [];
+  if (!cat.length || !calibre) return { exacto: false, registros: [] };
+  const exactos = cat.filter((l) => Number(l.calibre) === calibre);
+  if (exactos.length) return { exacto: true, registros: exactos };
+  // mas cercano por |dif| de calibre (numero mayor = mas delgada)
+  const min = Math.min(...cat.map((l) => Math.abs(Number(l.calibre) - calibre)));
+  return { exacto: false, registros: cat.filter((l) => Math.abs(Number(l.calibre) - calibre) === min) };
 }
+
+const bloq = (clave, estado, motivo, extra = {}) => ({ estado, clave, motivo, pregunta: `${motivo} (pieza ${clave}).`, ...extra });
 
 /**
- * Cuesta la MATERIA PRIMA de una pieza fabricada reusando el nesteo del motor
- * (piezasPorTablero). Devuelve el componente para `calcular` y la evidencia fisica.
- * @param {{clave, nombre, dims_mm, piezas, calibrePropuesto?, desc?}} pieza
- * @returns {{estado, componente?, evidencia?, pregunta?}}
+ * Cuesta la materia prima de una pieza fabricada. Fail-closed y autoritativo.
+ * @param {{clave,nombre,dims_mm,cantidad,calibrePropuesto?,desc?}} pieza
+ * @param {{catalogoLamina:Array, par?}} opts  catalogoLamina = filas autoritativas (catalogo_vigente)
  */
-export function costearMateriaPrima(pieza, { calibreDefault = 22, par = PARAMETROS_DEFAULT } = {}) {
-  const dev = desarrolloPlano(pieza.dims_mm);
-  if (dev.pendiente) {
-    return { estado: 'DESARROLLO_PENDIENTE', motivo: dev.motivo,
-      pregunta: `Desarrollo plano / calibre de pieza fabricada "${pieza.clave}" (${dev.motivo}).` };
-  }
-  const calTexto = calibreDesdeTexto(pieza.desc || pieza.nombre);
-  const calibre = pieza.calibrePropuesto || calTexto || calibreDefault;
-  const calibreFuente = pieza.calibrePropuesto ? 'propuesto' : calTexto ? 'del plano' : 'default propuesto';
-  const lamina = elegirLamina(calibre, { largoMM: dev.largoMM });
-  if (!lamina) return { estado: 'SIN_LAMINA', motivo: `no hay lamina comercial para calibre ${calibre}`,
-    pregunta: `Lamina comercial para calibre ${calibre} (pieza ${pieza.clave}).` };
+export function costearMateriaPrima(pieza = {}, { catalogoLamina = [], par = PARAMETROS_DEFAULT } = {}) {
+  const clave = pieza.clave || 'pieza';
 
-  const qty = Number(pieza.piezas) || 1;
-  const fmtL = lamina.formato.largoMM || par.tableroLargoMM;   // 4x8 no trae largoMM -> default 2440
-  const fmtA = lamina.formato.anchoMM || par.tableroAnchoMM;   // -> default 1220
-  const ppt = piezasPorTablero(dev.largoMM, dev.anchoMM, { ...par, tableroLargoMM: fmtL, tableroAnchoMM: fmtA });
-  const precioHoja = precioDeInsumo(lamina, par);
-  const cabe = ppt > 0;
-  const hojasPorPieza = cabe ? 1 / ppt : 1;            // si no cabe, 1 hoja por pieza (y se avisa)
-  const hojasTotal = +(hojasPorPieza * qty).toFixed(4);
-  const costoMP = +(hojasTotal * precioHoja).toFixed(2);
-  const areaNeta = +(dev.area_m2 * qty).toFixed(4);
-  const areaHoja = +((fmtL * fmtA) / 1e6).toFixed(4);
-  const aprovechamiento = cabe ? +((areaNeta / (hojasTotal * areaHoja)) * 100).toFixed(1) : null;
+  // P1.5: cantidad invalida/faltante BLOQUEA (no Number(x)||1).
+  const q = Number(pieza.cantidad);
+  if (!Number.isFinite(q) || q <= 0) return bloq(clave, 'BLOQUEADO', 'cantidad invalida o faltante: no se costea');
+
+  // Desarrollo (P1.3: verificado vs inferido).
+  const dev = desarrolloPlano(pieza.dims_mm);
+  if (dev.pendiente) return bloq(clave, 'INCOMPLETO', dev.motivo);
+
+  // Calibre: CONFIRMADO por Ingenieria > del plano > propuesto (P1.2: un propuesto nunca se confirma solo).
+  const calTexto = calibreDesdeTexto(pieza.desc || pieza.nombre);
+  const calConf = Number(pieza.calibreConfirmado);
+  const tieneConf = Number.isFinite(calConf) && calConf > 0;
+  const calibre = tieneConf ? calConf : (pieza.calibrePropuesto || calTexto || 22);
+  const calibreConfirmado = tieneConf || (!!calTexto && !pieza.calibrePropuesto);
+  const calibreFuente = tieneConf ? 'confirmado (Ingenieria)' : pieza.calibrePropuesto ? 'propuesto (override)' : calTexto ? 'del plano' : 'default propuesto';
+
+  // Lamina autoritativa (P1.1).
+  const { exacto, registros } = laminasParaCalibre(calibre, catalogoLamina);
+  if (!registros.length) return bloq(clave, 'INCOMPLETO', `sin precio autoritativo de lamina para calibre ${calibre} en el catalogo vigente`, { calibre });
+
+  // P1.4: elegir el formato que SI CABE. Nunca asignar una hoja en silencio.
+  // Criterio: primero certificable, luego MENOR costo por pieza (precio/ppt).
+  let mejor = null;
+  for (const lam of registros) {
+    const fmtL = Math.max(lam.formato.largoMM, lam.formato.anchoMM);
+    const fmtA = Math.min(lam.formato.largoMM, lam.formato.anchoMM);
+    const ppt = piezasPorTablero(dev.largoMM, dev.anchoMM, { ...par, tableroLargoMM: fmtL, tableroAnchoMM: fmtA });
+    if (ppt > 0) {
+      const areaHoja = +((fmtL * fmtA) / 1e6).toFixed(4);
+      const costoPorPieza = Number(lam.precio) / ppt;
+      const cand = { lam, ppt, fmtL, fmtA, areaHoja, costoPorPieza };
+      const mejorCert = mejor && mejor.lam.certificable, estaCert = !!lam.certificable;
+      if (!mejor || (estaCert && !mejorCert) || (estaCert === mejorCert && costoPorPieza < mejor.costoPorPieza)) mejor = cand;
+    }
+  }
+  if (!mejor) {
+    return bloq(clave, 'BLOQUEADO', `la pieza (${dev.largoMM}x${dev.anchoMM} mm) NO cabe en ningun formato de lamina disponible (cal ${calibre}): requiere seccionar o formato especial (decision de Ingenieria)`, { calibre, desarrollo: dev });
+  }
+
+  const { lam, ppt, fmtL, fmtA, areaHoja } = mejor;
+  const hojasPorPieza = 1 / ppt;
+  const hojas = +(hojasPorPieza * q).toFixed(4);
+  const costoMP = +(hojas * Number(lam.precio)).toFixed(2);
+  const areaNeta = +(dev.area_m2 * q).toFixed(4);
+  const aprovechamiento = +((areaNeta / (hojas * areaHoja)) * 100).toFixed(1);
+
+  // Motivos que impiden "VERIFICABLE".
+  const motivos = [];
+  if (!calibreConfirmado) motivos.push('calibre no confirmado (propuesto)');
+  if (!dev.verificado) motivos.push('desarrollo inferido (L+2D), sin CAD');
+  if (!exacto) motivos.push(`calibre sustituido a ${lam.calibre} (no habia ${calibre} exacto)`);
+  if (!lam.certificable) motivos.push('precio de lamina no certificable');
+  const estado = motivos.length ? 'PRELIMINAR' : 'VERIFICABLE';
 
   return {
-    estado: cabe ? 'COSTEADA' : 'NO_CABE',
-    // componente listo para `calcular` (reusa el motor; MO/GIF por POLITICA_VH):
-    componente: { nombre: pieza.nombre || pieza.clave, insumoId: lamina.id, largoMM: dev.largoMM, anchoMM: dev.anchoMM, piezas: qty, seccion: 'metal' },
+    estado, clave,
+    componente: { nombre: pieza.nombre || clave, insumoId: lam.insumo_id, largoMM: dev.largoMM, anchoMM: dev.anchoMM, piezas: q, seccion: 'metal',
+      insumo: { ...lam, unidad: lam.unidad, formato: { tipo: 'lamina', largoMM: fmtL, anchoMM: fmtA, medida: areaHoja }, fraccion: true, mermaCorte: 0, seccion: 'metal', nombre: lam.insumo_id } },
     evidencia: {
-      desarrollo: dev,
-      calibre, calibre_fuente: calibreFuente,
-      lamina: { id: lamina.id, nombre: lamina.nombre, precio_hoja: precioHoja, fuente: lamina.fuente || null, formato: `${fmtL}x${fmtA} mm`, area_hoja_m2: areaHoja, merma_corte_pct: lamina.mermaCorte },
-      area_neta_m2: areaNeta, piezas_por_hoja: cabe ? +ppt.toFixed(2) : 0, hojas: hojasTotal, aprovechamiento_pct: aprovechamiento,
+      calibre: { valor: calibre, confirmado: calibreConfirmado, fuente: calibreFuente, lamina_calibre: lam.calibre, exacto },
+      desarrollo: { tipo: dev.tipo, metodo: dev.metodo, verificado: dev.verificado, largoMM: dev.largoMM, anchoMM: dev.anchoMM, area_m2: dev.area_m2 },
+      lamina: { insumo_id: lam.insumo_id, precio: Number(lam.precio), precio_id: lam.precio_id, version: lam.precio_id, unidad: lam.unidad,
+        vigente_desde: lam.vigente_desde, certificable: !!lam.certificable, estatus: lam.estatus, fuente: lam.fuente,
+        formato: `${fmtL}x${fmtA} mm`, area_hoja_m2: areaHoja },
+      area_neta_m2: areaNeta, piezas_por_hoja: +ppt.toFixed(2), hojas, aprovechamiento_pct: aprovechamiento,
       costo_mp_mxn: costoMP,
-      corte_incluido_en_precio: false,   // hoja cruda: el CORTE es operacion aparte (routing). No doble-conteo.
-      nota_doble_conteo: 'Precio de HOJA CRUDA: el corte/doblez NO estan incluidos -> son operaciones del routing. No se suma un corte ya cobrado.',
+      corte_incluido_en_precio: false,
+      nota_doble_conteo: 'Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado.',
+      motivos,
     },
-    pregunta: calibreFuente !== 'del plano'
-      ? `Confirmar calibre y material de "${pieza.clave}" (se uso ${calibre} ${calibreFuente}).`
-      : null,
+    pregunta: motivos.length ? `Confirmar ${motivos.join('; ')} de "${clave}".` : null,
   };
 }

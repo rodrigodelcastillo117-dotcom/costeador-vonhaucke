@@ -47,26 +47,22 @@
       {
         "clave": "TELSVH120-PC",
         "tipo": "PANEL_PESTANAS",
-        "lamina": "lamina-22",
-        "costo_mp": 94.69
+        "costo_mp": 65.32
       },
       {
         "clave": "TELSVH120-P",
         "tipo": "PANEL_PESTANAS",
-        "lamina": "lamina-22",
-        "costo_mp": 94.69
+        "costo_mp": 65.32
       },
       {
         "clave": "TELSVH120-CF",
         "tipo": "PANEL_PESTANAS",
-        "lamina": "lamina-22",
-        "costo_mp": 189.39
+        "costo_mp": 163.29
       },
       {
         "clave": "TELSVH120-PLA",
         "tipo": "PANEL_PLANO",
-        "lamina": "lamina-22",
-        "costo_mp": 0.19
+        "costo_mp": 0.13
       }
     ],
     "desarrollos_pendientes": [
@@ -135,48 +131,47 @@
     }
   ],
   "este_es_el_costo": {
-    "material_total": 5072.86,
-    "material_fabricado_lamina": 378.96,
+    "material_incluido": 4987.96,
+    "material_fabricado_verificable": 0.13,
+    "material_fabricado_preliminar": 293.93,
     "material_comprado": 4693.9,
-    "mano_obra_politica_vh": 122.73,
+    "material_pendiente": {
+      "desarrollos_3d": [
+        "TELSVH120-CUE",
+        "TELSVH120-BX2",
+        "TELSVH120-SOC",
+        "TELSVH120-SOM"
+      ],
+      "bloqueadas": [],
+      "compradas_sin_precio": [
+        "TELSVH120-KIT",
+        "COEME20ND"
+      ]
+    },
+    "mano_obra_politica_vh": 105.75,
     "mano_obra_routing_tiempos": null,
-    "gif": 462.07,
-    "costo_fabricacion_vh": 5657.65,
-    "estado": "PARCIAL — faltan desarrollos 3D y/o precios",
+    "gif": 411.13,
+    "terceros_pendiente": true,
+    "total_parcial": 5504.84,
+    "total_oficial": null,
+    "emitible_comercial": false,
+    "estado": "PARCIAL — no emitible como costo completo",
     "certificable": false
   },
   "asi_podria_mejorarse": [
     {
       "tipo": "aprovechamiento",
-      "clave": "TELSVH120-PC",
-      "propuesta": "Aprovechamiento 64.8% en TELSVH120-PC: nestear junto con otras piezas de lamina-22 o evaluar formato alterno para subir rendimiento."
-    },
-    {
-      "tipo": "aprovechamiento",
-      "clave": "TELSVH120-P",
-      "propuesta": "Aprovechamiento 64.8% en TELSVH120-P: nestear junto con otras piezas de lamina-22 o evaluar formato alterno para subir rendimiento."
-    },
-    {
-      "tipo": "aprovechamiento",
       "clave": "TELSVH120-CF",
-      "propuesta": "Aprovechamiento 64.9% en TELSVH120-CF: nestear junto con otras piezas de lamina-22 o evaluar formato alterno para subir rendimiento."
+      "propuesta": "Aprovechamiento 69.4% en TELSVH120-CF: nestear junto con otras piezas de undefined o evaluar formato alterno para subir rendimiento."
     },
     {
       "tipo": "aprovechamiento",
       "clave": "TELSVH120-PLA",
-      "propuesta": "Aprovechamiento 60.5% en TELSVH120-PLA: nestear junto con otras piezas de lamina-22 o evaluar formato alterno para subir rendimiento."
-    },
-    {
-      "tipo": "nesteo_conjunto",
-      "propuesta": "Cortar TELSVH120-PC, TELSVH120-P, TELSVH120-CF, TELSVH120-PLA en la misma hoja de lamina-22 (nesteo conjunto) para reducir merma y hojas compradas."
+      "propuesta": "Aprovechamiento 64.6% en TELSVH120-PLA: nestear junto con otras piezas de undefined o evaluar formato alterno para subir rendimiento."
     },
     {
       "tipo": "make_vs_buy",
       "propuesta": "Definir make-vs-buy de TELSVH120-KIT, COEME20ND: cotizar compra vs fabricar en casa."
-    },
-    {
-      "tipo": "estandarizar_calibre",
-      "propuesta": "Estandarizar calibre de TELSVH120-PC, TELSVH120-P, TELSVH120-CF (hoy propuesto): un solo calibre por familia simplifica compra y corte."
     }
   ]
 }

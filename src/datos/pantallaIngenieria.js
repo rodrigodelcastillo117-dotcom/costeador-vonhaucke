@@ -5,9 +5,12 @@
 //  recalcula, no es un segundo sistema) y lo presenta en 5 secciones:
 //    ESTO ENTENDI · ASI LO FABRICARIA · ESTO NECESITO CONFIRMAR · ESTE ES EL COSTO ·
 //    ASI PODRIA MEJORARSE.
-//  Las confirmaciones (resolver una decision) se aplican sobre el MISMO expediente
-//  (aplicarConfirmacion) sin perder informacion ni repetir el analisis.
+//  Las confirmaciones de Ingenieria se aplican sobre el MISMO expediente y
+//  RECALCULAN con el motor existente (recostearExpediente), conservando evidencia
+//  y versionando cada cambio. No construye otro motor.
 // ============================================================================
+import { costearProductoIndustrial } from './costoPropuestoProcesos.js';
+import { cargarEstandar } from './costoOperacion.js';
 
 const money = (n) => (n == null ? null : +Number(n).toFixed(2));
 
@@ -60,14 +63,19 @@ export function vistaIngenieria(expediente = {}) {
     },
     esto_necesito_confirmar: (costo.preguntas_por_decision || []).map((q) => ({ decision: q.decision, afecta: q.afecta, n: q.n })),
     este_es_el_costo: {
-      material_total: money(costo.material?.total_mxn),
-      material_fabricado_lamina: money(costo.material?.fabricado_lamina_mxn),
+      material_incluido: money(costo.material?.incluido_mxn ?? costo.material?.total_mxn),
+      material_fabricado_verificable: money(costo.material?.fabricado_verificable_mxn),
+      material_fabricado_preliminar: money(costo.material?.fabricado_preliminar_mxn),
       material_comprado: money(costo.material?.comprado_mxn),
+      material_pendiente: costo.material?.pendiente || null,
       mano_obra_politica_vh: money(costo.mano_obra?.politica_vh_mxn),
       mano_obra_routing_tiempos: costo.mano_obra?.routing_tiempos_mxn ?? null,
       gif: money(costo.gif_mxn),
-      costo_fabricacion_vh: money(costo.costo_fabricacion_vh_mxn),
-      estado: costo.cobertura?.cerrado ? 'COMPLETO (sujeto a validacion)' : 'PARCIAL — faltan desarrollos 3D y/o precios',
+      terceros_pendiente: costo.terceros?.pendiente ?? null,
+      total_parcial: money(costo.total?.parcial_mxn),
+      total_oficial: costo.total?.oficial_mxn ?? null,
+      emitible_comercial: costo.emitible_comercial ?? false,
+      estado: costo.total?.estado || (costo.cobertura?.cerrado ? 'OFICIAL' : 'PARCIAL'),
       certificable: false,
     },
     asi_podria_mejorarse: mejorasDe(costo),
@@ -75,9 +83,34 @@ export function vistaIngenieria(expediente = {}) {
 }
 
 /**
- * Aplica una confirmacion de Ingenieria sobre el MISMO expediente (inmutable):
- * registra la respuesta por decision y marca las claves resueltas, sin borrar nada.
- * No recalcula aqui (eso lo hace el pipeline cuando corresponda); solo persiste la decision.
+ * P3: una confirmacion de Ingenieria RECALCULA el expediente con el motor existente.
+ * Tipos: 'calibre' {clave, calibre}, 'desarrollo' {clave, desarrollo_mm:[L,W] de CAD},
+ * 'precio' {clave, insumoId, insumo}, 'estandares' {estandares:[...]} (MO por tiempos).
+ * Conserva evidencia previa, versiona el cambio y re-ejecuta costearProductoIndustrial.
+ * Requiere que el expediente lleve `inputs` (piezasBOM, insumosERP, catalogoLamina, routing).
+ */
+export function recostearExpediente(expediente = {}, confirmacion = {}) {
+  if (!expediente.inputs) throw new Error('expediente sin inputs: no se puede recalcular');
+  const inputs = JSON.parse(JSON.stringify(expediente.inputs));
+  const piezas = inputs.piezasBOM || [];
+  const buscar = (c) => piezas.find((p) => p.clave === c);
+  switch (confirmacion.tipo) {
+    case 'calibre': { const p = buscar(confirmacion.clave); if (p) p.calibreConfirmado = confirmacion.calibre; break; }
+    case 'desarrollo': { const p = buscar(confirmacion.clave); if (p) p.dims_mm = confirmacion.desarrollo_mm; break; } // flat pattern 2D de CAD
+    case 'precio': { const p = buscar(confirmacion.clave); if (p) p.insumoId = confirmacion.insumoId; inputs.insumosERP = { ...(inputs.insumosERP || {}), [confirmacion.insumoId]: confirmacion.insumo }; break; }
+    case 'estandares': { (confirmacion.estandares || []).forEach(cargarEstandar); break; }
+    default: throw new Error('tipo de confirmacion desconocido: ' + confirmacion.tipo);
+  }
+  const costo = costearProductoIndustrial({ piezasBOM: piezas, routing: inputs.routing || { operaciones: [] }, insumosERP: inputs.insumosERP || {}, catalogoLamina: inputs.catalogoLamina || [] });
+  const version = (expediente.version || 1) + 1;
+  return {
+    ...expediente, inputs, costo_industrial: costo, version,
+    confirmaciones: [...(expediente.confirmaciones || []), { ...confirmacion, fecha: confirmacion.fecha || new Date().toISOString().slice(0, 10), version }],
+  };
+}
+
+/**
+ * Registra una confirmacion por DECISION sin recalcular (traza ligera; para el recalculo usar recostearExpediente).
  */
 export function aplicarConfirmacion(expediente = {}, { decision, respuesta, por = 'ingenieria', fecha = null } = {}) {
   if (!decision) throw new Error('falta la decision a confirmar');

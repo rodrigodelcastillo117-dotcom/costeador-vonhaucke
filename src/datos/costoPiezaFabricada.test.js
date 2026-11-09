@@ -1,62 +1,95 @@
-// Costo de pieza fabricada: desarrollo plano fail-closed + materia prima real (motor).
+// Costo de pieza fabricada — pruebas ADVERSARIALES (una por defecto de la auditoria 2026-11-09).
 import { describe, it, expect } from 'vitest';
-import { desarrolloPlano, calibreDesdeTexto, elegirLamina, costearMateriaPrima } from './costoPiezaFabricada.js';
+import { desarrolloPlano, calibreDesdeTexto, laminasParaCalibre, costearMateriaPrima } from './costoPiezaFabricada.js';
+import { calcular, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 
-describe('costoPiezaFabricada', () => {
-  it('desarrolloPlano: panel plano, panel con pestañas, caja 3D pendiente, insuficiente', () => {
-    expect(desarrolloPlano([40, 23]).tipo).toBe('PANEL_PLANO');                   // 2 cotas
-    expect(desarrolloPlano([1106, 828, 13]).tipo).toBe('PANEL_PESTANAS');         // 13mm = pestaña/retorno, no plano
-    const panel = desarrolloPlano([538, 794, 20]);
-    expect(panel.tipo).toBe('PANEL_PESTANAS');
-    expect(panel.largoMM).toBe(794 + 40);                                         // L + 2d
-    expect(panel.anchoMM).toBe(538 + 40);
-    const caja = desarrolloPlano([1200, 865, 600]);
-    expect(caja.pendiente).toBe(true); expect(caja.tipo).toBe('CAJA_3D');
-    expect(desarrolloPlano([100]).pendiente).toBe(true);                          // 1 cota
+// Catalogo AUTORITATIVO de prueba (subset real de catalogo_vigente).
+const CAT = [
+  { insumo_id: 'erp-ln22310', calibre: 22, formato: { largoMM: 3048, anchoMM: 914, area_m2: 2.786 }, precio: 326.59, precio_id: 8748, unidad: 'hoja', certificable: true, vigente_desde: '2026-01-26', estatus: 'CERTIFICADO', fuente: 'Compras · ERP Intelisis' },
+  { insumo_id: 'erp-ln22410', calibre: 22, formato: { largoMM: 3048, anchoMM: 1219, area_m2: 3.716 }, precio: 521.55, precio_id: 13177, unidad: 'hoja', certificable: true, vigente_desde: '2026-10-20', estatus: 'CERTIFICADO', fuente: 'Compras · ERP Intelisis' },
+  { insumo_id: 'erp-ln13410', calibre: 13, formato: { largoMM: 3048, anchoMM: 1219, area_m2: 3.716 }, precio: 825.33, precio_id: 7947, unidad: 'hoja', certificable: false, vigente_desde: '2010-10-20', estatus: 'PRELIMINAR', fuente: 'Compras · ERP Intelisis' },
+];
+const base = (o) => ({ clave: 'X', nombre: 'X', cantidad: 1, ...o });
+
+describe('costoPiezaFabricada — integridad del calculo (adversarial)', () => {
+  it('P1.1 fuente AUTORITATIVA: la evidencia trae precio_id + fuente del catalogo, no el seed', () => {
+    const r = costearMateriaPrima(base({ clave: 'PL', dims_mm: [400, 230, 3], desc: 'PLACA CALIBRE 22' }), { catalogoLamina: CAT });
+    expect(r.evidencia.lamina.insumo_id).toBe('erp-ln22310');
+    expect(r.evidencia.lamina.precio).toBe(326.59);          // precio autoritativo, no 378.78 del seed
+    expect(r.evidencia.lamina.precio_id).toBe(8748);         // version
+    expect(r.evidencia.lamina.fuente).toMatch(/ERP/);
+    expect(r.evidencia.lamina.unidad).toBe('hoja');
   });
 
-  it('desarrolloPlano: 3a cota <=5mm es espesor -> panel plano LxW', () => {
-    const r = desarrolloPlano([1106, 828, 3]);
-    expect(r.tipo).toBe('PANEL_PLANO');
-    expect(r.largoMM).toBe(1106); expect(r.anchoMM).toBe(828);
-  });
-
-  it('calibreDesdeTexto', () => {
-    expect(calibreDesdeTexto('MAQUILA PLACA GALVANIZADA 40 X 23 mm CALIBRE 24')).toBe(24);
-    expect(calibreDesdeTexto('Lamina cal. 22 negra')).toBe(22);
-    expect(calibreDesdeTexto('CUERPO EN LAMINA')).toBeNull();
-  });
-
-  it('elegirLamina: formato segun largo (4x8 vs 3x10) y calibre', () => {
-    expect(elegirLamina(22, { largoMM: 834 }).id).toBe('lamina-22');             // cabe en 4x8
-    expect(elegirLamina(20, { largoMM: 3000 }).id).toBe('lamina-3x10-20');       // >2440 -> 3x10
-    expect(elegirLamina(24, { largoMM: 40 }).id).toBe('lamina-22');              // cal24 no existe -> mas cercano = cal22 (no cal10)
-    expect(elegirLamina(null, {})).toBeNull();
-  });
-
-  it('costearMateriaPrima: puerta -> COSTEADA con lámina real, aprovechamiento y sin doble conteo', () => {
-    const r = costearMateriaPrima({ clave: 'TELSVH120-P', nombre: 'Puerta', dims_mm: [538, 794, 20], piezas: 1, desc: 'PUERTA EN LAMINA' });
-    expect(r.estado).toBe('COSTEADA');
-    expect(r.componente.insumoId).toBe('lamina-22');                             // calibre default propuesto
-    expect(r.evidencia.costo_mp_mxn).toBeGreaterThan(0);
-    expect(r.evidencia.costo_mp_mxn).toBeLessThan(378.78);                       // menos de una hoja entera
-    expect(r.evidencia.piezas_por_hoja).toBeGreaterThan(1);
-    expect(r.evidencia.corte_incluido_en_precio).toBe(false);                    // hoja cruda -> corte aparte
-    expect(r.evidencia.calibre_fuente).toBe('default propuesto');
-    expect(r.pregunta).toMatch(/Confirmar calibre/);
-  });
-
-  it('costearMateriaPrima: caja 3D -> DESARROLLO_PENDIENTE (no inventa dims)', () => {
-    const r = costearMateriaPrima({ clave: 'TELSVH120-CUE', nombre: 'Cuerpo', dims_mm: [1200, 865, 600], piezas: 1 });
-    expect(r.estado).toBe('DESARROLLO_PENDIENTE');
+  it('P1.1 sin catalogo autoritativo: INCOMPLETO, no inventa precio (no cae al seed)', () => {
+    const r = costearMateriaPrima(base({ clave: 'PL', dims_mm: [400, 230, 3], desc: 'CALIBRE 22' }), { catalogoLamina: [] });
+    expect(r.estado).toBe('INCOMPLETO');
     expect(r.componente).toBeUndefined();
-    expect(r.pregunta).toMatch(/Desarrollo plano/);
+    expect(r.motivo).toMatch(/sin precio autoritativo/);
   });
 
-  it('costearMateriaPrima: calibre del plano manda sobre el default', () => {
-    const r = costearMateriaPrima({ clave: 'TELSVH120-PLA', nombre: 'Placa', dims_mm: [40, 23], piezas: 1, desc: 'PLACA GALVANIZADA CALIBRE 24' });
-    expect(r.estado).toBe('COSTEADA');
-    expect(r.evidencia.calibre).toBe(24);
-    expect(r.evidencia.calibre_fuente).toBe('del plano');
+  it('P1.2 calibre PROPUESTO no se confirma solo -> PRELIMINAR, nunca VERIFICABLE', () => {
+    const r = costearMateriaPrima(base({ clave: 'CF', dims_mm: [1106, 828, 13], desc: 'FRENTE EN LAMINA' }), { catalogoLamina: CAT });
+    expect(r.estado).toBe('PRELIMINAR');
+    expect(r.evidencia.calibre.confirmado).toBe(false);
+    expect(r.evidencia.motivos).toEqual(expect.arrayContaining([expect.stringMatching(/calibre no confirmado/)]));
+  });
+
+  it('P1.2/P1.3 VERIFICABLE solo con calibre del plano + desarrollo verificado + precio certificable', () => {
+    const r = costearMateriaPrima(base({ clave: 'PL', dims_mm: [400, 230, 3], desc: 'PLACA CALIBRE 22' }), { catalogoLamina: CAT });
+    expect(r.evidencia.desarrollo.metodo).toBe('VERIFICADO');
+    expect(r.evidencia.calibre.confirmado).toBe(true);
+    expect(r.evidencia.lamina.certificable).toBe(true);
+    expect(r.estado).toBe('VERIFICABLE');
+  });
+
+  it('P1.3 desarrollo INFERIDO (L+2D) se marca y baja a PRELIMINAR', () => {
+    const r = costearMateriaPrima(base({ clave: 'P', dims_mm: [538, 794, 20], desc: 'PUERTA CALIBRE 22' }), { catalogoLamina: CAT });
+    expect(r.evidencia.desarrollo.metodo).toBe('INFERIDO_L2D');
+    expect(r.evidencia.desarrollo.largoMM).toBe(794 + 40);
+    expect(r.estado).toBe('PRELIMINAR');                     // calibre del plano, pero desarrollo inferido
+    expect(r.evidencia.motivos).toEqual(expect.arrayContaining([expect.stringMatching(/inferido/)]));
+  });
+
+  it('P1.4 pieza que NO cabe en ningun formato -> BLOQUEADO, nunca una hoja en silencio', () => {
+    const r = costearMateriaPrima(base({ clave: 'GIG', dims_mm: [3500, 1500, 3], desc: 'CALIBRE 22' }), { catalogoLamina: CAT });
+    expect(r.estado).toBe('BLOQUEADO');
+    expect(r.componente).toBeUndefined();
+    expect(r.motivo).toMatch(/NO cabe/);
+  });
+
+  it('P1.5 cantidad invalida/faltante BLOQUEA (no Number(x)||1)', () => {
+    for (const bad of [0, -2, NaN, undefined, null, 'x']) {
+      const r = costearMateriaPrima(base({ clave: 'Q', dims_mm: [400, 230, 3], desc: 'CALIBRE 22', cantidad: bad }), { catalogoLamina: CAT });
+      expect(r.estado).toBe('BLOQUEADO');
+      expect(r.componente).toBeUndefined();
+    }
+  });
+
+  it('P1.6 nesting por conjunto: 2 piezas de la misma lamina comparten hojas (sin doble conteo)', () => {
+    const p = costearMateriaPrima(base({ clave: 'A', dims_mm: [400, 300, 3], desc: 'CALIBRE 22' }), { catalogoLamina: CAT });
+    // dos componentes del MISMO insumo
+    const comp = p.componente;
+    const insumos = { [comp.insumoId]: comp.insumo };
+    const una = calcular({ nombre: 't', componentes: [comp] }, 1, insumos, PARAMETROS_DEFAULT).materialTotal;
+    const dos = calcular({ nombre: 't', componentes: [comp, { ...comp, nombre: 'B' }] }, 1, insumos, PARAMETROS_DEFAULT).materialTotal;
+    expect(dos).toBeGreaterThan(una);               // dos piezas cuestan mas que una
+    expect(dos).toBeLessThan(una * 2 + 1);          // pero comparten hoja: menos que 2 hojas independientes
+    expect(dos).toBeLessThan(326.59 * 2);           // nunca 2 hojas enteras para 2 piezas chicas
+  });
+
+  it('laminasParaCalibre: exacto vs mas cercano', () => {
+    expect(laminasParaCalibre(22, CAT).exacto).toBe(true);
+    const cerca = laminasParaCalibre(24, CAT);
+    expect(cerca.exacto).toBe(false);
+    expect(cerca.registros[0].calibre).toBe(22);   // 22 es el mas cercano a 24 en el catalogo de prueba
+  });
+
+  it('desarrolloPlano: plano/pestanas/caja/insuficiente', () => {
+    expect(desarrolloPlano([400, 230]).metodo).toBe('VERIFICADO');
+    expect(desarrolloPlano([538, 794, 20]).metodo).toBe('INFERIDO_L2D');
+    expect(desarrolloPlano([1200, 865, 600]).pendiente).toBe(true);
+    expect(desarrolloPlano([100]).pendiente).toBe(true);
+    expect(calibreDesdeTexto('PLACA CALIBRE 24')).toBe(24);
   });
 });

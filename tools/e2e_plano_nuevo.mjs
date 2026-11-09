@@ -12,6 +12,7 @@ import { costearProductoIndustrial } from '../src/datos/costoPropuestoProcesos.j
 
 const RAIZ = new URL('../', import.meta.url);
 const exp = JSON.parse(readFileSync(new URL('src/datos/fixtures/telsvh120_plano_nuevo.json', RAIZ), 'utf8'));
+const catalogoLamina = JSON.parse(readFileSync(new URL('src/datos/fixtures/catalogo_lamina_vigente.json', RAIZ), 'utf8')).lamina;
 const dimsDeDesc = (desc) => {
   const m = String(desc).match(/(\d+(?:\.\d+)?)\s*[Xx]\s*(\d+(?:\.\d+)?)\s*[Xx]\s*(\d+(?:\.\d+)?)/);
   if (m) return [+m[1], +m[2], +m[3]];
@@ -40,7 +41,7 @@ const piezasBOM = exp.bom.map((l) => {
   if (l.fabricada) return { clave: l.clave, desc: l.desc, cantidad: l.cantidad, dims_mm: dimsDeDesc(l.desc), fabricada: true };
   return { clave: l.clave, desc: l.desc, cantidad: l.cantidad };   // comprada sin precio
 });
-const costo = costearProductoIndustrial({ piezasBOM, routing, insumosERP });
+const costo = costearProductoIndustrial({ piezasBOM, routing, insumosERP, catalogoLamina });
 
 // --- diferencias vs costeo anterior (piso material $4,693.90) ---
 const ANTERIOR = { material_piso_mxn: 4693.9, metodo: 'solo ERP resuelto (fabricadas tratadas como pendientes sin precio)' };
@@ -52,12 +53,14 @@ const dif = {
 };
 
 const expediente = {
-  clave: exp._meta.clave, generado: new Date().toISOString().slice(0, 10),
+  clave: exp._meta.clave, generado: new Date().toISOString().slice(0, 10), version: 1,
   interpretacion: exp.interpretacion,
   bom_canonico: { tipo_bom: bom.tipo_bom, total_renglones: exp.bom.length, resueltos: bom.lineas.filter((l) => !l.pendiente).length, pendientes: bom.pendientes.length },
   routing: { total_operaciones: routing.resumen.total, por_centro: routing.resumen.por_centro },
   costo_industrial: costo,
   diferencias_vs_anterior: dif,
+  // inputs para recalculo (P3: recostearExpediente)
+  inputs: { piezasBOM, insumosERP, catalogoLamina, routing: { operaciones: routing.operaciones.map((o) => ({ op: o.op, centro: o.centro })) } },
 };
 mkdirSync(new URL('expedientes/', RAIZ), { recursive: true });
 writeFileSync(new URL('expedientes/EXPEDIENTE_TELSVH120.json', RAIZ), JSON.stringify(expediente, null, 2));
@@ -69,13 +72,16 @@ console.log('Producto:', exp.interpretacion.producto, '|', JSON.stringify(exp.in
 console.log('BOM:', bom.tipo_bom, '| renglones', exp.bom.length);
 console.log('--- MATERIA PRIMA (fisica real) ---');
 console.log('  Fabricado (lamina):', $(costo.material.fabricado_lamina_mxn), '| Comprado:', $(costo.material.comprado_mxn), '| Total MP:', $(costo.material.total_mxn));
-for (const e of costo.material.evidencia) console.log(`    ${e.clave}: ${$(e.costo_mp_mxn)}  ${e.lamina?.id} ${e.lamina?.formato}  aprov ${e.aprovechamiento_pct}%  (${e.hojas} hoja)  [${e.desarrollo?.tipo}]`);
+for (const e of costo.material.evidencia) console.log(`    ${e.clave}: ${$(e.costo_mp_mxn)}  ${e.lamina?.insumo_id} ${e.lamina?.formato}  pid:${e.lamina?.precio_id}  [${e.estado}]  aprov ${e.aprovechamiento_pct}%  (${e.hojas} hoja)  [${e.desarrollo?.tipo}]`);
+console.log('  (fabricado verificable:', $(costo.material.fabricado_verificable_mxn), '| preliminar:', $(costo.material.fabricado_preliminar_mxn) + ')');
 console.log('--- MANO DE OBRA / GIF ---');
 console.log('  MO POLITICA_VH:', $(costo.mano_obra.politica_vh_mxn), '| GIF:', $(costo.gif_mxn), '| MO routing (tiempos):', costo.mano_obra.routing_tiempos_mxn == null ? 'PENDIENTE' : $(costo.mano_obra.routing_tiempos_mxn));
-console.log('  COSTO FABRICACION (VH):', $(costo.costo_fabricacion_vh_mxn));
-console.log('--- COBERTURA / PENDIENTES ---');
-console.log('  Cerrado:', costo.cobertura.cerrado, '| Desarrollos 3D pendientes:', costo.cobertura.desarrollos_pendientes.map((d) => d.clave).join(', ') || 'ninguno');
-console.log('  Compradas sin precio:', costo.cobertura.compradas_sin_precio.map((d) => d.clave).join(', ') || 'ninguna');
+console.log('--- TOTAL ---');
+console.log('  Total PARCIAL:', $(costo.total.parcial_mxn), '| Total OFICIAL:', costo.total.oficial_mxn == null ? '— (no procede)' : $(costo.total.oficial_mxn), '| emitible comercial:', costo.emitible_comercial);
+console.log('  Estado:', costo.total.estado);
+console.log('--- MATERIAL PENDIENTE (no entra al total) ---');
+console.log('  Desarrollos 3D:', costo.material.pendiente.desarrollos_3d.join(', ') || 'ninguno');
+console.log('  Compradas sin precio:', costo.material.pendiente.compradas_sin_precio.join(', ') || 'ninguna', '| Bloqueadas:', costo.material.pendiente.bloqueadas.join(', ') || 'ninguna');
 console.log('--- PREGUNTAS POR DECISION (' + costo.preguntas_por_decision.length + ') ---');
 for (const q of costo.preguntas_por_decision) console.log(`   · ${q.decision} (${q.n}): ${q.afecta.join(', ')}`);
 console.log('--- DIFERENCIA vs anterior ---');
