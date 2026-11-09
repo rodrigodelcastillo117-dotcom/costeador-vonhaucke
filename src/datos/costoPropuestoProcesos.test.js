@@ -51,6 +51,38 @@ describe('costearProductoIndustrial — total seguro (P1+P2)', () => {
     expect(r.emitible_comercial).toBe(false);                 // sigue faltando material (CUE 3D, KIT precio)
   });
 
+  // --- P1 ECONOMICO (auditoria 2caa5ee): oficial_mxn debe ser fail-closed ---
+  const CERRADO = [{ clave: 'PL', desc: 'PLACA CALIBRE 22', cantidad: 1, dims_mm: [400, 230, 3], fabricada: true }]; // placa -> VERIFICABLE
+  const R1 = { operaciones: [{ op: 'corte_lamina', centro: 'metalmecánica' }] };
+
+  it('P1: cerrado pero MO routing INCOMPLETA -> oficial_mxn NULL (fail-closed)', () => {
+    const r = costearProductoIndustrial({ piezasBOM: CERRADO, routing: R1, catalogoLamina: CAT });
+    expect(r.cobertura.cerrado).toBe(true);           // material cerrado (placa verificable)
+    expect(r.mano_obra.routing_completa).toBe(false);
+    expect(r.total.oficial_mxn).toBeNull();           // el bug: antes salia con valor
+    expect(r.total.es_oficial).toBe(false);
+    expect(r.emitible_comercial).toBe(false);
+    expect(r.total.bloqueado_por).toEqual(expect.arrayContaining([expect.stringMatching(/MO por routing/)]));
+  });
+
+  it('P1: terceros pendientes -> oficial_mxn NULL aunque MO completa', () => {
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    const bom = [...CERRADO, { clave: 'CR', desc: 'CRISTAL TEMPLADO', cantidad: 1, insumoId: 'erp-cr' }];
+    const r = costearProductoIndustrial({ piezasBOM: bom, routing: R1, catalogoLamina: CAT, insumosERP: { 'erp-cr': { id: 'erp-cr', precio: 100, unidad: 'pieza', seccion: 'cristal' } } });
+    expect(r.mano_obra.routing_completa).toBe(true);
+    expect(r.terceros.pendiente).toBe(true);
+    expect(r.total.oficial_mxn).toBeNull();
+    expect(r.total.bloqueado_por).toEqual(expect.arrayContaining([expect.stringMatching(/terceros/)]));
+  });
+
+  it('P1: cerrado + MO completa + SIN terceros -> oficial_mxn presente y emitible', () => {
+    cargarEstandar({ centro: 'metalmecánica', op: 'corte_lamina', tiempo_proceso_min: 1, tarifa_mxn_min: 10, lote_piezas: 1, autorizado: true });
+    const r = costearProductoIndustrial({ piezasBOM: CERRADO, routing: R1, catalogoLamina: CAT });
+    expect(r.total.es_oficial).toBe(true);
+    expect(r.total.oficial_mxn).toBeGreaterThan(0);
+    expect(r.emitible_comercial).toBe(true);
+  });
+
   it('preguntas agrupadas por DECISION', () => {
     const r = costearProductoIndustrial({ piezasBOM: BOM, routing: ROUTING, insumosERP: INSUMOS_ERP, catalogoLamina: CAT });
     const dec = r.preguntas_por_decision.map((q) => q.decision);

@@ -89,12 +89,15 @@ export function costearProductoIndustrial({ piezasBOM = [], routing = { operacio
   const sinPendientes = desarrollos_pendientes.length === 0 && bloqueadas.length === 0 && compradas_sin_precio.length === 0 && (motor.componentesIgnorados || []).length === 0;
   const todasVerificables = material_preliminar === 0 && evidencia_fabricadas.every((e) => e.estado === 'VERIFICABLE');
   const cerrado = sinPendientes && todasVerificables;
-  // P2: un total parcial NUNCA es emitible comercialmente como costo completo.
-  const emitible_comercial = cerrado && mo_routing.completa === true;
+  const terceros_pendiente = [...decisiones.keys()].includes('Confirmar operaciones externas (terceros)');
+  // P1 ECONOMICO (fail-closed): un total es OFICIAL solo si esta cerrado, la MO por routing esta
+  // completa (estandares autorizados) Y no quedan terceros pendientes. Si falta cualquiera -> null.
+  const es_oficial = cerrado && mo_routing.completa === true && terceros_pendiente === false;
+  const emitible_comercial = es_oficial;
 
   return {
     certificable: false,
-    emitible_comercial,                            // P2: false mientras sea parcial
+    emitible_comercial,                            // P1/P2: solo cuando es OFICIAL
     material: {
       total_mxn: +mat.toFixed(2),
       incluido_mxn: +mat.toFixed(2),               // lo que SI entra al total
@@ -117,13 +120,19 @@ export function costearProductoIndustrial({ piezasBOM = [], routing = { operacio
       nota: mo_routing.nota,
     },
     gif_mxn: +motor.indirectosFabrica.toFixed(2),
-    terceros: { pendiente: [...decisiones.keys()].includes('Confirmar operaciones externas (terceros)'), nota: 'Cristal templado / termoformado / galvanizado: costo externo a confirmar (no incluido).' },
+    terceros: { pendiente: terceros_pendiente, nota: 'Cristal templado / termoformado / galvanizado: costo externo a confirmar (no incluido).' },
     total: {
       parcial_mxn: +motor.costoFabricacion.toFixed(2),   // material incluido + MO/GIF POLITICA_VH
-      oficial_mxn: cerrado ? +motor.costoFabricacion.toFixed(2) : null,  // solo cuando procede
-      estado: cerrado ? 'OFICIAL (sujeto a validacion de Direccion)' : 'PARCIAL — no emitible como costo completo',
+      oficial_mxn: es_oficial ? +motor.costoFabricacion.toFixed(2) : null,  // solo si cerrado + MO routing + sin terceros
+      es_oficial,
+      bloqueado_por: es_oficial ? [] : [
+        ...(cerrado ? [] : ['material/precio/desarrollo pendiente o pieza preliminar']),
+        ...(mo_routing.completa === true ? [] : ['MO por routing sin estandares autorizados']),
+        ...(terceros_pendiente ? ['terceros pendientes (operaciones externas)'] : []),
+      ],
+      estado: es_oficial ? 'OFICIAL (sujeto a validacion de Direccion)' : 'PARCIAL — no emitible como costo completo',
     },
-    cobertura: { cerrado, desarrollos_pendientes, bloqueadas, compradas_sin_precio, pendientes_motor: motor.componentesIgnorados || [], doble_conteo },
+    cobertura: { cerrado, es_oficial, desarrollos_pendientes, bloqueadas, compradas_sin_precio, pendientes_motor: motor.componentesIgnorados || [], doble_conteo },
     preguntas_por_decision,
     advertencia: 'MP fisica real (lamina autoritativa del catalogo vigente, con precio_id) + MO/GIF POLITICA_VH. MO por routing pendiente de estandares. Piezas 3D sin CAD y precios faltantes NO entran al total. Total parcial: no emitible comercialmente como costo completo.',
   };
