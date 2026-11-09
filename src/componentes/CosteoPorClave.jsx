@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { cargarBOMporClave } from '../datos/productoMaestroCarga.js';
 import { costearBOM } from '../datos/productoMaestro.js';
 import { sanarBOM } from '../datos/mapeoPorClave.js';
+import { semaforoCertificacion } from '../datos/semaforoCertificacion.js';
 
 const pesos = (x) => (x == null || !Number.isFinite(Number(x))) ? '—' : '$' + Number(x).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -33,6 +34,8 @@ export default function CosteoPorClave({ insumos = {} }) {
   const pendientes = res ? res.costo.lineas.filter((l) => l.fuente === 'confirmado') : [];
   const vencidos = res ? res.costo.lineas.filter((l) => l.fuente === 'catalogo' && l.fresco === false) : [];
   const sinPrecio = res ? res.costo.lineas.filter((l) => l.fuente === 'sin_precio') : [];
+  const sem = c ? semaforoCertificacion(c) : null;
+  const icono = { verde: '✅', ambar: '🟡', gris: '⚪', rojo: '🔴' };
 
   return (
     <div className="tarjeta" data-testid="costeo-por-clave" style={{ marginTop: 12, borderLeft: '4px solid #2e6f4e' }}>
@@ -101,6 +104,32 @@ export default function CosteoPorClave({ insumos = {} }) {
             {c.cobertura.lineas} líneas · {c.cobertura.conCatalogo} con precio del catálogo vigente · {c.cobertura.conConfirmado} con precio confirmado de estimaciones
             {c.cobertura.sinPrecio ? ` · ${c.cobertura.sinPrecio} SIN precio` : ''}.
           </div>
+          {sem && (sem.resumen.ambar + sem.resumen.gris + sem.resumen.rojo > 0) && (
+            <details style={{ marginTop: 8 }} data-testid="clave-semaforo" open>
+              <summary className="ayuda" style={{ cursor: 'pointer', fontWeight: 700 }}>
+                🚦 Semáforo de certificación — {sem.resumen.verde}{icono.verde} · {sem.resumen.ambar}{icono.ambar} · {sem.resumen.gris}{icono.gris} · {sem.resumen.rojo}{icono.rojo}
+              </summary>
+              {!!sem.acciones.length && (
+                <div className="ayuda" style={{ margin: '6px 0' }}>
+                  <strong>Para certificar falta:</strong>
+                  <ul style={{ margin: '4px 0 0 16px' }}>
+                    {sem.acciones.map((a, i) => <li key={i}>{icono[a.nivel]} {a.accion}</li>)}
+                  </ul>
+                </div>
+              )}
+              <table className="ayuda" style={{ width: '100%', borderCollapse: 'collapse', marginTop: 6 }}>
+                <tbody>
+                  {sem.filas.map((f, i) => (
+                    <tr key={i} style={{ borderTop: '1px solid #eee' }}>
+                      <td style={{ padding: '2px 6px', whiteSpace: 'nowrap' }}>{icono[f.nivel]}</td>
+                      <td style={{ padding: '2px 6px' }}>{f.desc}</td>
+                      <td style={{ padding: '2px 6px', color: '#777' }}>{f.etiqueta}{f.accion ? ` — ${f.accion}` : ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </details>
+          )}
           {!!pendientes.length && (
             <details style={{ marginTop: 6 }}>
               <summary className="ayuda" style={{ cursor: 'pointer' }}>{pendientes.length} material(es) aún sin insumo en catálogo (usan precio de estimaciones; pendientes de alta por Compras)</summary>
