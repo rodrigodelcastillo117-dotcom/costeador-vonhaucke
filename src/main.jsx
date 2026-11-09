@@ -66,14 +66,28 @@ window.addEventListener('unhandledrejection', (e) => {
   pintarFallo('Error al cargar (promesa)', String(e.reason?.stack || e.reason));
 });
 
-try {
-  createRoot(document.getElementById('raiz')).render(
-    <React.StrictMode>
-      <SinPantallaBlanca resetKey="app" onInicio={() => window.location.reload()}>
-        <App />
-      </SinPantallaBlanca>
-    </React.StrictMode>
-  );
-} catch (e) {
-  pintarFallo('Error al arrancar', String(e?.stack || e));
+// DEMO AISLADA (no-auth) de la Pantalla de Ingenieria para E2E de navegador real:
+// solo se activa con el hash #ingenieria-demo; no afecta el flujo normal ni el login.
+if (typeof window !== 'undefined' && window.location.hash === '#ingenieria-demo') {
+  Promise.all([
+    import('./componentes/PantallaIngenieria.jsx'),
+    import('../expedientes/EXPEDIENTE_TELSVH120.json'),
+  ]).then(([mod, exp]) => {
+    const Pant = mod.default;
+    createRoot(document.getElementById('raiz')).render(
+      <React.StrictMode><Pant expediente={exp.default || exp} /></React.StrictMode>
+    );
+  }).catch((e) => pintarFallo('Demo Ingenieria', String(e?.stack || e)));
+} else {
+  try {
+    createRoot(document.getElementById('raiz')).render(
+      <React.StrictMode>
+        <SinPantallaBlanca resetKey="app" onInicio={() => window.location.reload()}>
+          <App />
+        </SinPantallaBlanca>
+      </React.StrictMode>
+    );
+  } catch (e) {
+    pintarFallo('Error al arrancar', String(e?.stack || e));
+  }
 }
