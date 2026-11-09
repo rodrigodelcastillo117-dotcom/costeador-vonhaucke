@@ -74,9 +74,11 @@ export function vistaIngenieria(expediente = {}) {
       terceros_pendiente: costo.terceros?.pendiente ?? null,
       total_parcial: money(costo.total?.parcial_mxn),
       total_oficial: costo.total?.oficial_mxn ?? null,
+      modelo_oficial: costo.total?.modelo_oficial ?? null,
+      politica_costo: costo.politica_costo ?? null,
       emitible_comercial: costo.emitible_comercial ?? false,
       estado: costo.total?.estado || (costo.cobertura?.cerrado ? 'OFICIAL' : 'PARCIAL'),
-      certificable: false,
+      certificable: costo.certificable ?? false,     // P4: unificado con es_oficial
     },
     asi_podria_mejorarse: mejorasDe(costo),
   };
@@ -89,7 +91,7 @@ export function vistaIngenieria(expediente = {}) {
  * Conserva evidencia previa, versiona el cambio y re-ejecuta costearProductoIndustrial.
  * Requiere que el expediente lleve `inputs` (piezasBOM, insumosERP, catalogoLamina, routing).
  */
-export function recostearExpediente(expediente = {}, confirmacion = {}) {
+export function recostearExpediente(expediente = {}, confirmacion = {}, { autoridadEstandares } = {}) {
   if (!expediente.inputs) throw new Error('expediente sin inputs: no se puede recalcular');
   const inputs = JSON.parse(JSON.stringify(expediente.inputs));
   const piezas = inputs.piezasBOM || [];
@@ -101,7 +103,8 @@ export function recostearExpediente(expediente = {}, confirmacion = {}) {
       p.desarrolloConfirmado = { largoMM: L, anchoMM: W, area_m2: confirmacion.area_m2 || +((L * W) / 1e6).toFixed(4), fuente: confirmacion.fuente || 'CAD', version: confirmacion.version || `cad-${(expediente.version || 1) + 1}` };
     } break; } // geometria CAD EXPLICITA y versionada (no re-inferida)
     case 'precio': { const p = buscar(confirmacion.clave); if (p) p.insumoId = confirmacion.insumoId; inputs.insumosERP = { ...(inputs.insumosERP || {}), [confirmacion.insumoId]: confirmacion.insumo }; break; }
-    case 'estandares': { (confirmacion.estandares || []).forEach(cargarEstandar); break; }
+    // estandares de MO: SOLO con autoridad real (p3). El cliente/UI no autoriza: sin autoridad -> se rechaza.
+    case 'estandares': { (confirmacion.estandares || []).forEach((e) => cargarEstandar(e, { autoridad: autoridadEstandares })); break; }
     default: throw new Error('tipo de confirmacion desconocido: ' + confirmacion.tipo);
   }
   const costo = costearProductoIndustrial({ piezasBOM: piezas, routing: inputs.routing || { operaciones: [] }, insumosERP: inputs.insumosERP || {}, catalogoLamina: inputs.catalogoLamina || [] });

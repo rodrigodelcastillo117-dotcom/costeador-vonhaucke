@@ -34,7 +34,8 @@ const OPERACION_EXTERNA = /templad|termoform|cristal|vidrio|acrilico|galvan|crom
  * @param {Array}  p.catalogoLamina  filas autoritativas de lamina (catalogo_vigente) para piezas fabricadas
  * @param {number} [p.lote]
  */
-export function costearProductoIndustrial({ piezasBOM = [], routing = { operaciones: [] }, insumosERP = {}, catalogoLamina = [], lote = null, par = PARAMETROS_DEFAULT } = {}) {
+export function costearProductoIndustrial({ piezasBOM = [], routing = { operaciones: [] }, insumosERP = {}, catalogoLamina = [], lote = null, par = PARAMETROS_DEFAULT,
+  politicaCosto = null, autoridadPolitica = null } = {}) {
   const insumos = { ...insumosERP };
   const componentes = [];
   const evidencia_fabricadas = [];      // piezas fabricadas costeadas (PRELIMINAR o VERIFICABLE)
@@ -91,13 +92,23 @@ export function costearProductoIndustrial({ piezasBOM = [], routing = { operacio
   const todasVerificables = material_preliminar === 0 && evidencia_fabricadas.every((e) => e.estado === 'VERIFICABLE');
   const cerrado = sinPendientes && todasVerificables;
   const terceros_pendiente = [...decisiones.keys()].includes('Confirmar operaciones externas (terceros)');
-  // P1 ECONOMICO (fail-closed): un total es OFICIAL solo si esta cerrado, la MO por routing esta
-  // completa (estandares autorizados) Y no quedan terceros pendientes. Si falta cualquiera -> null.
-  const es_oficial = cerrado && mo_routing.completa === true && terceros_pendiente === false;
+
+  // --- P4: MODELO ECONOMICO OFICIAL. Dos calculos SEPARADOS, sin doble conteo (material 1x + UNA MO + GIF 1x):
+  //   factores_vh  = material + MO(POLITICA_VH) + GIF   (= motor.costoFabricacion)
+  //   routing_tiempos = material + MO(routing por tiempos) + GIF
+  // El OFICIAL usa el modelo de la POLITICA DE COSTO APROBADA; sin politica aprobada NO hay oficial.
+  const total_factores_vh = +motor.costoFabricacion.toFixed(2);
+  const total_routing = mo_routing.mano_obra_mxn != null ? +(mat + mo_routing.mano_obra_mxn + motor.indirectosFabrica).toFixed(2) : null;
+  const MODELOS = ['factores_vh', 'routing_tiempos'];
+  const politicaOk = !!politicaCosto && MODELOS.includes(politicaCosto.modelo) && !!politicaCosto.aprobada_por
+    && !!autoridadPolitica && !!autoridadPolitica(politicaCosto.aprobada_por)?.ok;
+  const modeloCompleto = politicaOk && (politicaCosto.modelo === 'routing_tiempos' ? mo_routing.completa === true : true);
+  const es_oficial = cerrado && terceros_pendiente === false && modeloCompleto;
+  const oficial_mxn = es_oficial ? (politicaCosto.modelo === 'routing_tiempos' ? total_routing : total_factores_vh) : null;
   const emitible_comercial = es_oficial;
 
   return {
-    certificable: false,
+    certificable: es_oficial,                      // P4: unificado con es_oficial / oficial_mxn
     emitible_comercial,                            // P1/P2: solo cuando es OFICIAL
     material: {
       total_mxn: +mat.toFixed(2),
@@ -122,16 +133,20 @@ export function costearProductoIndustrial({ piezasBOM = [], routing = { operacio
     },
     gif_mxn: +motor.indirectosFabrica.toFixed(2),
     terceros: { pendiente: terceros_pendiente, nota: 'Cristal templado / termoformado / galvanizado: costo externo a confirmar (no incluido).' },
+    politica_costo: { aplicada: politicaOk ? politicaCosto.modelo : null, aprobada_por: politicaOk ? politicaCosto.aprobada_por : null, aprobada: politicaOk },
+    modelos: { factores_vh_mxn: total_factores_vh, routing_tiempos_mxn: total_routing },  // SEPARADOS, nunca sumados
     total: {
-      parcial_mxn: +motor.costoFabricacion.toFixed(2),   // material incluido + MO/GIF POLITICA_VH
-      oficial_mxn: es_oficial ? +motor.costoFabricacion.toFixed(2) : null,  // solo si cerrado + MO routing + sin terceros
+      parcial_mxn: total_factores_vh,              // referencia parcial (material + MO/GIF POLITICA_VH)
+      oficial_mxn,                                 // modelo APROBADO; null si falta algo
       es_oficial,
+      modelo_oficial: es_oficial ? politicaCosto.modelo : null,
       bloqueado_por: es_oficial ? [] : [
         ...(cerrado ? [] : ['material/precio/desarrollo pendiente o pieza preliminar']),
-        ...(mo_routing.completa === true ? [] : ['MO por routing sin estandares autorizados']),
+        ...(politicaOk ? [] : ['sin politica de costo aprobada (factores_vh o routing_tiempos)']),
+        ...(politicaOk && politicaCosto.modelo === 'routing_tiempos' && mo_routing.completa !== true ? ['MO por routing sin estandares autorizados'] : []),
         ...(terceros_pendiente ? ['terceros pendientes (operaciones externas)'] : []),
       ],
-      estado: es_oficial ? 'OFICIAL (sujeto a validacion de Direccion)' : 'PARCIAL — no emitible como costo completo',
+      estado: es_oficial ? `OFICIAL · modelo ${politicaCosto.modelo} (sujeto a validacion de Direccion)` : 'PARCIAL — no emitible como costo completo',
     },
     cobertura: { cerrado, es_oficial, desarrollos_pendientes, bloqueadas, compradas_sin_precio, pendientes_motor: motor.componentesIgnorados || [], doble_conteo },
     preguntas_por_decision,

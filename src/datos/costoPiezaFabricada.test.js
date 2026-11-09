@@ -5,9 +5,9 @@ import { calcular, PARAMETROS_DEFAULT } from '../motor/calculo.js';
 
 // Catalogo AUTORITATIVO de prueba (subset real de catalogo_vigente).
 const CAT = [
-  { insumo_id: 'erp-ln22310', calibre: 22, formato: { largoMM: 3048, anchoMM: 914, area_m2: 2.786 }, precio: 326.59, precio_id: 8748, unidad: 'hoja', certificable: true, vigente_desde: '2026-01-26', estatus: 'CERTIFICADO', fuente: 'Compras · ERP Intelisis' },
-  { insumo_id: 'erp-ln22410', calibre: 22, formato: { largoMM: 3048, anchoMM: 1219, area_m2: 3.716 }, precio: 521.55, precio_id: 13177, unidad: 'hoja', certificable: true, vigente_desde: '2026-10-20', estatus: 'CERTIFICADO', fuente: 'Compras · ERP Intelisis' },
-  { insumo_id: 'erp-ln13410', calibre: 13, formato: { largoMM: 3048, anchoMM: 1219, area_m2: 3.716 }, precio: 825.33, precio_id: 7947, unidad: 'hoja', certificable: false, vigente_desde: '2010-10-20', estatus: 'PRELIMINAR', fuente: 'Compras · ERP Intelisis' },
+  { insumo_id: 'erp-ln22310', calibre: 22, acero: 'negra', formato: { largoMM: 3048, anchoMM: 914, area_m2: 2.786 }, precio: 326.59, precio_id: 8748, unidad: 'hoja', certificable: true, vigente_desde: '2026-01-26', estatus: 'CERTIFICADO', fuente: 'Compras · ERP Intelisis' },
+  { insumo_id: 'erp-ln22410', calibre: 22, acero: 'negra', formato: { largoMM: 3048, anchoMM: 1219, area_m2: 3.716 }, precio: 521.55, precio_id: 13177, unidad: 'hoja', certificable: true, vigente_desde: '2026-10-20', estatus: 'CERTIFICADO', fuente: 'Compras · ERP Intelisis' },
+  { insumo_id: 'erp-ln13410', calibre: 13, acero: 'negra', formato: { largoMM: 3048, anchoMM: 1219, area_m2: 3.716 }, precio: 825.33, precio_id: 7947, unidad: 'hoja', certificable: false, vigente_desde: '2010-10-20', estatus: 'PRELIMINAR', fuente: 'Compras · ERP Intelisis' },
 ];
 const base = (o) => ({ clave: 'X', nombre: 'X', cantidad: 1, ...o });
 
@@ -83,6 +83,19 @@ describe('costoPiezaFabricada — integridad del calculo (adversarial)', () => {
     const cerca = laminasParaCalibre(24, CAT);
     expect(cerca.exacto).toBe(false);
     expect(cerca.registros[0].calibre).toBe(22);   // 22 es el mas cercano a 24 en el catalogo de prueba
+  });
+
+  it('P2 (auditoria): acero pedido sin candidatos -> BLOQUEA, nunca cae a otra familia de acero', () => {
+    const soloNegra = [
+      { insumo_id: 'erp-ln22310', calibre: 22, acero: 'negra', formato: { largoMM: 3048, anchoMM: 914, area_m2: 2.786 }, precio: 326.59, precio_id: 8748, unidad: 'hoja', certificable: true, vigente_desde: '2026-01-26' },
+    ];
+    // laminasParaCalibre no sustituye acero
+    expect(laminasParaCalibre(22, soloNegra, 'galvanizada').registros.length).toBe(0);
+    // y la pieza queda INCOMPLETO (no se costea con negra)
+    const r = costearMateriaPrima(base({ clave: 'G', dims_mm: [400, 230, 3], desc: 'CALIBRE 22', aceroPropuesto: 'galvanizada' }), { catalogoLamina: soloNegra });
+    expect(r.estado).toBe('INCOMPLETO');
+    expect(r.componente).toBeUndefined();
+    expect(r.motivo).toMatch(/galvanizada/);
   });
 
   it('P1.1 filtra por ACERO: una vitrina negra no se costea con inoxidable', () => {

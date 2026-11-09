@@ -309,13 +309,23 @@
       "pendiente": true,
       "nota": "Cristal templado / termoformado / galvanizado: costo externo a confirmar (no incluido)."
     },
+    "politica_costo": {
+      "aplicada": null,
+      "aprobada_por": null,
+      "aprobada": false
+    },
+    "modelos": {
+      "factores_vh_mxn": 5504.84,
+      "routing_tiempos_mxn": null
+    },
     "total": {
       "parcial_mxn": 5504.84,
       "oficial_mxn": null,
       "es_oficial": false,
+      "modelo_oficial": null,
       "bloqueado_por": [
         "material/precio/desarrollo pendiente o pieza preliminar",
-        "MO por routing sin estandares autorizados",
+        "sin politica de costo aprobada (factores_vh o routing_tiempos)",
         "terceros pendientes (operaciones externas)"
       ],
       "estado": "PARCIAL — no emitible como costo completo"

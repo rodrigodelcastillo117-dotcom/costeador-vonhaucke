@@ -1,9 +1,11 @@
 // ============================================================================
-//  PANTALLA DE INGENIERIA (dentro de COSTEAR) — directiva Direccion 2caa5ee, punto 5.
-//  5 secciones sobre el expediente (ESTO ENTENDI / ASI LO FABRICARIA / ESTO NECESITO
-//  CONFIRMAR / ESTE ES EL COSTO / ASI PODRIA MEJORARSE). Una confirmacion RECALCULA
-//  con el motor existente (recostearExpediente), PERSISTE (localStorage) y permite
-//  REABRIR sin perder ninguna decision. No construye otro motor; usa el view-model.
+//  PANTALLA DE INGENIERIA (dentro de COSTEAR). 5 secciones sobre el expediente.
+//  Una confirmacion RECALCULA (recostearExpediente), PERSISTE y permite REABRIR.
+//
+//  SEGURIDAD (auditoria 2caa5ee, punto 1): este componente NO fabrica aprobaciones.
+//  Las acciones de confirmacion llegan por la prop `acciones` desde el contenedor
+//  (que debe obtenerlas de una fuente autoritativa). Sin acciones, la pantalla solo
+//  MUESTRA el expediente. Los datos de demo viven en un fixture aislado, nunca aqui.
 // ============================================================================
 import React, { useMemo, useState, useCallback } from 'react';
 import { vistaIngenieria, recostearExpediente } from '../datos/pantallaIngenieria.js';
@@ -11,32 +13,40 @@ import { vistaIngenieria, recostearExpediente } from '../datos/pantallaIngenieri
 const money = (n) => (n == null || !Number.isFinite(Number(n))) ? '—' : '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const KEY = (clave) => `costear.expediente.${clave}`;
 
-function leerPersistido(clave, inicial) {
-  try { const s = localStorage.getItem(KEY(clave)); if (s) return JSON.parse(s); } catch (_e) { /* storage bloqueado */ }
+function leerPersistido(clave, inicial, persistencia) {
+  try { const s = (persistencia || (typeof localStorage !== 'undefined' ? localStorage : null))?.getItem(KEY(clave)); if (s) return JSON.parse(s); } catch (_e) { /* storage bloqueado */ }
   return inicial;
 }
-function persistir(exp) {
-  try { localStorage.setItem(KEY(exp.clave), JSON.stringify(exp)); } catch (_e) { /* no-op */ }
-}
 
-export default function PantallaIngenieria({ expediente: inicial }) {
-  // REABRIR: al montar, si hay una version persistida (con confirmaciones), se recupera.
-  const [exp, setExp] = useState(() => leerPersistido(inicial?.clave, inicial));
+/**
+ * @param {object} p
+ * @param {object} p.expediente      expediente (con inputs para recalcular)
+ * @param {Array}  [p.acciones]      [{id, label, confirmacion}] — provistas por el contenedor, NO por la UI
+ * @param {Function} [p.onConfirmar] handler externo: recibe la confirmacion y devuelve el expediente recalculado
+ *                                    (p.ej. una RPC gobernada). Si no se pasa, usa recostearExpediente local + persistencia.
+ * @param {object} [p.persistencia]  almacen tipo Storage (default localStorage). Para pruebas / backend.
+ */
+export default function PantallaIngenieria({ expediente: inicial, acciones = [], onConfirmar = null, persistencia = null }) {
+  const almacen = persistencia || (typeof localStorage !== 'undefined' ? localStorage : null);
+  const [exp, setExp] = useState(() => leerPersistido(inicial?.clave, inicial, almacen));
+  const [aviso, setAviso] = useState('');
   const v = useMemo(() => vistaIngenieria(exp), [exp]);
 
-  const confirmar = useCallback((confirmacion) => {
-    setExp((prev) => {
-      let next; try { next = recostearExpediente(prev, confirmacion); } catch (e) { return prev; }
-      persistir(next);          // PERSISTE la decision + el recalculo
-      return next;
-    });
-  }, []);
+  const aplicar = useCallback(async (confirmacion) => {
+    setAviso('');
+    try {
+      const next = onConfirmar ? await onConfirmar(confirmacion, exp) : recostearExpediente(exp, confirmacion);
+      if (!next) { setAviso('La confirmacion no fue aceptada (no autorizada o invalida).'); return; }
+      try { almacen?.setItem(KEY(next.clave), JSON.stringify(next)); } catch (_e) { /* no-op */ }
+      setExp(next);
+    } catch (e) { setAviso('Rechazada: ' + String(e?.message || e)); }
+  }, [exp, onConfirmar, almacen]);
 
   const c = v.este_es_el_costo;
   const confs = exp.confirmaciones || [];
 
   return (
-    <div className="pant-ing" style={{ maxWidth: 920, margin: '0 auto', padding: '16px', font: '14px/1.5 system-ui, sans-serif', color: '#1E1B1A' }} data-testid="pantalla-ingenieria">
+    <div className="pant-ing" style={{ maxWidth: 920, margin: '0 auto', padding: 16, font: '14px/1.5 system-ui, sans-serif', color: '#1E1B1A' }} data-testid="pantalla-ingenieria">
       <header style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'baseline', borderBottom: '1px solid #e5e2dc', paddingBottom: 12 }}>
         <div style={{ fontFamily: 'monospace', color: '#2f6f8f', fontWeight: 600 }}>{exp.clave}</div>
         <div style={{ flex: 1, minWidth: 180 }}>{v.esto_entendi.producto}</div>
@@ -72,17 +82,14 @@ export default function PantallaIngenieria({ expediente: inicial }) {
             <div style={{ color: '#6b645c', fontSize: 12 }}>{d.afecta.join(', ')}</div>
           </div>
         ))}
-        {/* Confirmaciones que RECALCULAN (demo de Ingenieria). */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-          <button type="button" data-testid="confirmar-cad-cue"
-            onClick={() => confirmar({ tipo: 'desarrollo', clave: 'TELSVH120-CUE', desarrollo_mm: [2770, 865], fuente: 'CAD', version: 'cad-cue-1' })}>
-            Confirmar desarrollo CAD del cuerpo
-          </button>
-          <button type="button" data-testid="confirmar-estandares"
-            onClick={() => confirmar({ tipo: 'estandares', estandares: (exp.inputs?.routing?.operaciones || []).map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'ref-1', vigente_desde: '2026-01-01', autorizado: true })) })}>
-            Cargar estándares de MO
-          </button>
-        </div>
+        {acciones.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+            {acciones.map((a) => (
+              <button key={a.id} type="button" data-testid={a.id} onClick={() => aplicar(a.confirmacion)}>{a.label}</button>
+            ))}
+          </div>
+        )}
+        {aviso && <p data-testid="aviso-confirmacion" style={{ color: '#c0453b', fontSize: 13 }}>{aviso}</p>}
       </section>
 
       <section style={{ marginTop: 16 }}>

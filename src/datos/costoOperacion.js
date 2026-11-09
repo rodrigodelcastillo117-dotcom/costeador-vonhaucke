@@ -48,25 +48,54 @@ export function normalizarEstandar(e = {}) {
     fuente: e.fuente || '',
     vigente_desde: e.vigente_desde || null,
     vigente_hasta: e.vigente_hasta || null,
-    autorizado: e.autorizado === true,
+    aprobado_por: e.aprobado_por ? String(e.aprobado_por).toLowerCase() : null,
+    aprobado_en: e.aprobado_en || null,
   };
 }
 
+/** Roles cuya aprobacion de un estandar de MO cuenta como humana (como en precios: solo Direccion). */
+export const ROLES_APROBADORES_MO = Object.freeze(['direccion']);
+/** Construye un verificador de aprobador a partir de las listas autoritativas (permitidos + cuentas_no_humanas). */
+export function autoridadDesdeListas({ permitidos = [], noHumanas = [], roles = ROLES_APROBADORES_MO } = {}) {
+  const byEmail = new Map((Array.isArray(permitidos) ? permitidos : []).map((p) => [String(p.email || '').toLowerCase(), String(p.rol || '').toLowerCase()]));
+  const nh = new Set((Array.isArray(noHumanas) ? noHumanas : []).map((x) => String(x && x.email ? x.email : x || '').toLowerCase()));
+  return (email) => {
+    const e = String(email || '').toLowerCase();
+    const rol = byEmail.get(e) || null;
+    return { ok: !!rol && roles.includes(rol) && !nh.has(e), rol };
+  };
+}
+const AUTORIDAD_CERRADA = () => ({ ok: false, rol: null });
+
 /**
- * Importa un estandar AUTORIZADO al registro. Fail-closed: exige autorizacion, unidades
- * (tarifa $/min > 0, tiempo finito >= 0), VERSION y VIGENCIA. Nada ausente/por-defecto cuenta
- * como aprobado. (punto 3 de la auditoria)
+ * Importa un estandar de MO al registro. Fail-closed (auditoria p3): un `autorizado:true` del
+ * cliente NO prueba nada. Exige fuente autoritativa (verificador `autoridad`), usuario APROBADOR
+ * real (`aprobado_por` con rol Direccion, no cuenta no-humana), unidades, VERSION y VIGENCIA.
+ * @param {object} e
+ * @param {{autoridad?:Function}} opts  autoridad(email) -> {ok, rol}. Default: CERRADA (rechaza todo).
  */
-export function cargarEstandar(e) {
+export function cargarEstandar(e, { autoridad = AUTORIDAD_CERRADA } = {}) {
   const n = normalizarEstandar(e);
   if (!n.centro || !n.op) throw new Error('estandar sin centro/op');
-  if (!n.autorizado) throw new Error(`estandar ${n.centro}/${n.op} NO autorizado: no se carga`);
+  if (!n.aprobado_por) throw new Error(`estandar ${n.centro}/${n.op}: sin aprobador (aprobado_por). Un 'autorizado:true' del cliente no prueba aprobacion.`);
+  const ver = autoridad(n.aprobado_por);
+  if (!ver || !ver.ok) throw new Error(`estandar ${n.centro}/${n.op}: aprobador ${n.aprobado_por} NO autorizado (rol ${ver?.rol || 'desconocido'})`);
   if (!(Number.isFinite(n.tiempo_proceso_min) && n.tiempo_proceso_min >= 0) || !(Number.isFinite(n.tarifa_mxn_min) && n.tarifa_mxn_min > 0)) throw new Error(`estandar ${n.centro}/${n.op}: unidades invalidas (tiempo min >= 0 y tarifa $/min > 0)`);
   if (n.tiempo_preparacion_min != null && !(Number.isFinite(n.tiempo_preparacion_min) && n.tiempo_preparacion_min >= 0)) throw new Error(`estandar ${n.centro}/${n.op}: preparacion invalida`);
   if (!n.version) throw new Error(`estandar ${n.centro}/${n.op}: sin version (trazabilidad obligatoria)`);
   if (!n.vigente_desde) throw new Error(`estandar ${n.centro}/${n.op}: sin vigencia (vigente_desde obligatorio)`);
-  REGISTRO.set(clave(n.centro, n.op), n);
-  return n;
+  const guardado = { ...n, rol_aprobador: ver.rol, autorizado: true };   // autorizado DERIVADO de la verificacion, no del input
+  REGISTRO.set(clave(n.centro, n.op), guardado);
+  return guardado;
+}
+
+/** Carga un lote de estandares desde una fuente autoritativa (p.ej. tabla Supabase), con verificacion. */
+export function cargarEstandaresDesde(filas = [], opts = {}) {
+  const cargados = [], rechazados = [];
+  for (const f of (Array.isArray(filas) ? filas : [])) {
+    try { cargados.push(cargarEstandar(f, opts)); } catch (err) { rechazados.push({ centro: f?.centro, op: f?.op, motivo: String(err?.message || err) }); }
+  }
+  return { cargados, rechazados };
 }
 /** Devuelve el estandar si existe Y esta vigente a la fecha dada (fail-closed si expiro). */
 export function estandarDe(centro, op, hoy = new Date()) {

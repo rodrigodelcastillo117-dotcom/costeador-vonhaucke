@@ -45,7 +45,8 @@ export function desarrolloPlano(dims_mm = [], { umbralPestanaMM = 30 } = {}) {
 /** Registros autoritativos de lamina para un calibre (y acero): exacto o el mas cercano (sustituido). */
 export function laminasParaCalibre(calibre, catalogoLamina = [], acero = null) {
   let cat = Array.isArray(catalogoLamina) ? catalogoLamina.filter((l) => Number(l.precio) > 0 && l.formato) : [];
-  if (acero) { const soloAcero = cat.filter((l) => l.acero === acero); if (soloAcero.length) cat = soloAcero; }
+  // Si se pide un acero, se EXIGE ese acero. Nunca se cae a otras familias en silencio (auditoria p2).
+  if (acero) cat = cat.filter((l) => l.acero === acero);
   if (!cat.length || !calibre) return { exacto: false, registros: [] };
   const exactos = cat.filter((l) => Number(l.calibre) === calibre);
   if (exactos.length) return { exacto: true, registros: exactos };

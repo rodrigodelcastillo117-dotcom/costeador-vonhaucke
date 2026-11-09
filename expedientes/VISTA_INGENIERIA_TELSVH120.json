@@ -170,6 +170,12 @@
     "terceros_pendiente": true,
     "total_parcial": 5504.84,
     "total_oficial": null,
+    "modelo_oficial": null,
+    "politica_costo": {
+      "aplicada": null,
+      "aprobada_por": null,
+      "aprobada": false
+    },
     "emitible_comercial": false,
     "estado": "PARCIAL — no emitible como costo completo",
     "certificable": false

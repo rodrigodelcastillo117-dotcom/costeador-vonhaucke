@@ -2,7 +2,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { vistaIngenieria, mejorasDe, aplicarConfirmacion, recostearExpediente } from './pantallaIngenieria.js';
-import { limpiarEstandares } from './costoOperacion.js';
+import { limpiarEstandares, autoridadDesdeListas } from './costoOperacion.js';
+
+const AUT = autoridadDesdeListas({ permitidos: [{ email: 'rodrigo@vh.mx', rol: 'direccion' }] });
 
 const EXP = JSON.parse(readFileSync(new URL('../../expedientes/EXPEDIENTE_TELSVH120.json', import.meta.url), 'utf8'));
 
@@ -53,15 +55,18 @@ describe('pantallaIngenieria', () => {
     expect(EXP.version || 1).toBe(1);                                  // no muta el original
   });
 
-  it('P3 recostearExpediente: cargar estandares de MO hace que la MO por routing deje de ser null', () => {
+  it('P3 recostearExpediente: con AUTORIDAD real, los estandares aprobados cierran la MO por routing', () => {
     limpiarEstandares();
-    const centros = [...new Set((EXP.inputs.routing.operaciones || []).map((o) => o.centro))];
-    const estandares = centros.map((c) => ({ centro: c, op: (EXP.inputs.routing.operaciones.find((o) => o.centro === c) || {}).op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true }));
-    // cargar TODOS los op de cada centro
-    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', autorizado: true }));
-    const v2 = recostearExpediente(EXP, { tipo: 'estandares', estandares: ops });
+    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' }));
+    const v2 = recostearExpediente(EXP, { tipo: 'estandares', estandares: ops }, { autoridadEstandares: AUT });
     expect(v2.costo_industrial.mano_obra.routing_completa).toBe(true);
     expect(v2.costo_industrial.mano_obra.routing_tiempos_mxn).toBeGreaterThan(0);
+  });
+
+  it('P3: sin autoridad (UI/cliente), cargar estandares se RECHAZA (recostear lanza)', () => {
+    limpiarEstandares();
+    const ops = EXP.inputs.routing.operaciones.map((o) => ({ centro: o.centro, op: o.op, tiempo_proceso_min: 2, tarifa_mxn_min: 8, lote_piezas: 1, version: 'v1', vigente_desde: '2026-01-01', aprobado_por: 'rodrigo@vh.mx' }));
+    expect(() => recostearExpediente(EXP, { tipo: 'estandares', estandares: ops })).toThrow(/NO autorizado/);
   });
 
   it('recostearExpediente sin inputs lanza (no recalcula a ciegas)', () => {

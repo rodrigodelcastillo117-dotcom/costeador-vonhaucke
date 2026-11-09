@@ -71,11 +71,12 @@ window.addEventListener('unhandledrejection', (e) => {
 if (typeof window !== 'undefined' && window.location.hash === '#ingenieria-demo') {
   Promise.all([
     import('./componentes/PantallaIngenieria.jsx'),
+    import('./componentes/pantallaIngenieria.demo.js'),
     import('../expedientes/EXPEDIENTE_TELSVH120.json'),
-  ]).then(([mod, exp]) => {
+  ]).then(([mod, demo, exp]) => {
     const Pant = mod.default;
     createRoot(document.getElementById('raiz')).render(
-      <React.StrictMode><Pant expediente={exp.default || exp} /></React.StrictMode>
+      <React.StrictMode><Pant expediente={exp.default || exp} acciones={demo.accionesDemo()} /></React.StrictMode>
     );
   }).catch((e) => pintarFallo('Demo Ingenieria', String(e?.stack || e)));
 } else {
