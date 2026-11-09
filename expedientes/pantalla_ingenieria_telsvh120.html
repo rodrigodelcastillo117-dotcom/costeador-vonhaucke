@@ -1,0 +1,201 @@
+<title>Expediente TELSVH120</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: banda de resumen fija arriba + 5 secciones de flujo de ingenieria.
+     Industrial/metalmecanica; acento acero; datos en mono con tabular-nums. */
+  :root{
+    --bg:#f5f6f8; --surface:#ffffff; --surface-2:#eef1f4; --fg:#1b2027; --muted:#5b6673;
+    --line:#e1e6ec; --accent:#2f6f8f; --accent-soft:#2f6f8f1a;
+    --good:#2e7d52; --good-soft:#2e7d521a; --warn:#b06f12; --warn-soft:#b06f121f; --crit:#c0453b;
+    --f-display:'Archivo',system-ui,sans-serif; --f-body:'IBM Plex Sans',system-ui,sans-serif; --f-mono:'IBM Plex Mono',ui-monospace,monospace;
+    --r:10px; --maxw:960px;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#11141a; --surface:#1a1f27; --surface-2:#222833; --fg:#e7ebf0; --muted:#98a3b0;
+    --line:#2a313c; --accent:#63aecb; --accent-soft:#63aecb1f;
+    --good:#54b483; --good-soft:#54b4831f; --warn:#d49a3e; --warn-soft:#d49a3e22; --crit:#e06a60; color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#11141a; --surface:#1a1f27; --surface-2:#222833; --fg:#e7ebf0; --muted:#98a3b0;
+    --line:#2a313c; --accent:#63aecb; --accent-soft:#63aecb1f;
+    --good:#54b483; --good-soft:#54b4831f; --warn:#d49a3e; --warn-soft:#d49a3e22; --crit:#e06a60; color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--fg);font-family:var(--f-body);line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+  .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+  h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+
+  /* --- banda de resumen --- */
+  header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--surface);z-index:10}
+  .top .wrap{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:baseline;padding-block:14px}
+  .eyebrow{font-family:var(--f-mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .clave{font-family:var(--f-mono);font-weight:500;color:var(--accent)}
+  h1{font-size:19px;font-weight:600}
+  .top .cost{margin-left:auto;text-align:right}
+  .top .cost .big{font-family:var(--f-mono);font-size:22px;font-weight:500}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;font-family:var(--f-body)}
+  .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.good{background:var(--good-soft);color:var(--good)}
+  .pill.neutral{background:var(--surface-2);color:var(--muted)}
+
+  main{padding-block:24px 48px}
+  section{margin-bottom:22px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+  .sec-head{display:flex;align-items:baseline;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .sec-head h2{font-size:15px;font-weight:700;letter-spacing:.02em}
+  .sec-head .tag{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+  .sec-body{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+  p{margin:0}
+  .lead{color:var(--fg)} .sub{color:var(--muted);font-size:13.5px}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;font-size:13.5px}
+  .kv dt{color:var(--muted)} .kv dd{margin:0}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:12px;padding:3px 9px;border-radius:6px;background:var(--surface-2);color:var(--fg);border:1px solid var(--line)}
+  .chip.mono{font-family:var(--f-mono)}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .tile{border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface-2);min-width:0}
+  .tile .t-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-family:var(--f-mono)}
+  .tile .t-val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:19px;font-weight:500;margin-top:3px}
+  .tile .t-note{font-size:11.5px;color:var(--muted);margin-top:2px}
+  .tile.pend .t-val{color:var(--warn)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  .tbl-wrap{overflow-x:auto}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+  td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+  td .k{font-family:var(--f-mono);color:var(--accent)}
+  .badge{font-size:10.5px;font-family:var(--f-mono);padding:2px 7px;border-radius:5px}
+  .badge.panel{background:var(--good-soft);color:var(--good)} .badge.caja{background:var(--warn-soft);color:var(--warn)}
+
+  /* confirmar */
+  .decision{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:9px;background:var(--surface)}
+  .decision.done{border-color:var(--good);background:var(--good-soft)}
+  .decision .d-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .decision h3{font-size:14px;font-weight:600;flex:1;min-width:0}
+  .decision .count{font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+  .btn{font-family:var(--f-body);font-size:12.5px;font-weight:600;border:1px solid var(--accent);color:var(--accent);background:transparent;border-radius:7px;padding:5px 12px;cursor:pointer}
+  .btn:hover{background:var(--accent-soft)} .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .decision.done .btn{border-color:var(--good);color:var(--good)}
+  .mejora{border-left:3px solid var(--accent);padding:8px 0 8px 12px;font-size:13.5px}
+  .mejora .mt{font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .foot{color:var(--muted);font-size:12px;text-align:center;padding-top:8px}
+  .disc{font-size:12px;color:var(--muted);background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;padding:10px 12px}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">COSTEAR · Ingeniería</div>
+      <h1><span class="clave" id="h-clave"></span> · <span id="h-prod"></span></h1>
+    </div>
+    <div class="cost">
+      <div class="eyebrow">Costo fabricación (VH)</div>
+      <div class="big num" id="h-cost"></div>
+      <div class="pill warn" id="h-state"></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+
+<script>
+const V = {"clave":"TELSVH120","esto_entendi":{"producto":"Vitrina horizontal de exhibición, metálica, con capelo de cristal y caja de luz iluminada","funcion":"Exhibidor de mostrador para punto de venta (modelo SAMS), con vitrina superior iluminada y gabinete inferior con 2 puertas","dimensiones_mm":{"ancho":1200,"alto":1150,"fondo":600},"modulos":["Gabinete inferior (cuerpo)","Vitrina superior / capelo","Caja de luz iluminada","Herrajes y cierre","Selladores"],"materiales":{"Cristal / acrílico":"Capelo de cristal 1148×548×254 esp 6mm templado + logo acrílico láser 797×173×3 + caja de luz termoformada acrílico Z2","Iluminación / cableado":"Kit LED 5 tiras 1m 5050/60 4000K + fuente 100W Mean Well + cable 2.5m → cableado + pruebas eléctricas","Tornillería / herrajes":"Pasador P36CR, 45 remaches REP46, corredera COEME20ND, 4 niveladores TO3812NIC, pija, clavo","Dobleces / refuerzos":"PROPUESTA: cuerpo/frente/puertas en lámina doblada → corte + doblez; refuerzos internos no acotados (proponer)","Soldadura / uniones":"PROPUESTA: unión por remache (el plano dice 'remachar'); soldadura no confirmada → no asumir","Acabados":"PROPUESTA: pintura del gabinete metálico (color/proceso no acotado) → proponer","Equipo del cliente":"Ninguno indicado"}},"asi_lo_fabricaria":{"bom":{"tipo_bom":"BOM_BORRADOR","total_renglones":20,"resueltos":10,"pendientes":10},"operaciones_por_centro":{"metalmecánica":4,"vidrio":1,"pintura":3,"ensamble":3,"eléctrico":2,"calidad":1,"embalaje":1},"total_operaciones":15,"piezas_fabricadas":[{"clave":"TELSVH120-PC","tipo":"PANEL_PESTANAS","lamina":"lamina-22","costo_mp":94.69},{"clave":"TELSVH120-P","tipo":"PANEL_PESTANAS","lamina":"lamina-22","costo_mp":94.69},{"clave":"TELSVH120-CF","tipo":"PANEL_PESTANAS","lamina":"lamina-22","costo_mp":189.39},{"clave":"TELSVH120-PLA","tipo":"PANEL_PLANO","lamina":"lamina-22","costo_mp":0.19}],"desarrollos_pendientes":[{"clave":"TELSVH120-CUE","motivo":"caja 3D 1200×865×600 — requiere desarrollo de CAD"},{"clave":"TELSVH120-BX2","motivo":"caja 3D 1117×527×242 — requiere desarrollo de CAD"},{"clave":"TELSVH120-SOC","motivo":"caja 3D 500×48×40 — requiere desarrollo de CAD"},{"clave":"TELSVH120-SOM","motivo":"caja 3D 1127×78×42 — requiere desarrollo de CAD"}]},"esto_necesito_confirmar":[{"decision":"Confirmar espesores/calibres y desarrollos","afecta":["TELSVH120-CUE","TELSVH120-BX2","TELSVH120-SOC","TELSVH120-SOM","TELSVH120-PC","TELSVH120-P","TELSVH120-CF"],"n":7},{"decision":"Confirmar tiempos y tarifas por centro","afecta":["metalmecánica","vidrio","pintura","ensamble","eléctrico","calidad","embalaje"],"n":7},{"decision":"Confirmar operaciones externas (terceros)","afecta":["TELSVH120-BAA","TO3812NIC","TELSVH120-CAP","TELVIH-LOAC"],"n":4},{"decision":"Confirmar componentes comprados y su precio","afecta":["TELSVH120-KIT","COEME20ND"],"n":2}],"este_es_el_costo":{"material_total":5072.86,"material_fabricado_lamina":378.96,"material_comprado":4693.9,"mano_obra_politica_vh":122.73,"mano_obra_routing_tiempos":null,"gif":462.07,"costo_fabricacion_vh":5657.65,"estado":"PARCIAL — faltan desarrollos 3D y/o precios","certificable":false},"asi_podria_mejorarse":[{"tipo":"aprovechamiento","propuesta":"Aprovechamiento ~65% en puertas, frente y placa (lámina-22): nestear las cuatro juntas o evaluar formato alterno para subir rendimiento."},{"tipo":"nesteo conjunto","propuesta":"Cortar PC, P, CF y PLA en la misma hoja de lámina-22 para reducir merma y hojas compradas."},{"tipo":"make vs buy","propuesta":"Definir make-vs-buy de KIT LED y corredera COEME20ND: cotizar compra contra fabricar en casa."},{"tipo":"estandarizar calibre","propuesta":"Estandarizar el calibre de puertas y frente (hoy propuesto cal-22): un solo calibre por familia simplifica compra y corte."}]};
+
+const mxn = (n)=> n==null ? '—' : '$'+Number(n).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+const el = (t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;};
+const esc = (s)=>String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+
+// header
+document.getElementById('h-clave').textContent = V.clave;
+document.getElementById('h-prod').textContent = V.esto_entendi.producto;
+document.getElementById('h-cost').textContent = mxn(V.este_es_el_costo.costo_fabricacion_vh);
+document.getElementById('h-state').textContent = 'PARCIAL — sujeto a validación';
+
+const app = document.getElementById('app');
+function sec(tag,title){const s=el('section');const h=el('div','sec-head');h.append(el('span','tag',tag),el('h2',null,title));s.append(h);const b=el('div','sec-body');s.append(b);app.append(s);return b;}
+
+// 1 ESTO ENTENDI
+(()=>{const b=sec('01 · lectura','Esto entendí');
+  b.append(el('p','lead',esc(V.esto_entendi.funcion)));
+  const d=V.esto_entendi.dimensiones_mm;
+  const kv=el('dl','kv');
+  kv.innerHTML=`<dt>Dimensiones</dt><dd class="num">${d.ancho} × ${d.alto} × ${d.fondo} mm</dd>`;
+  b.append(kv);
+  const mods=el('div','chips'); V.esto_entendi.modulos.forEach(m=>mods.append(el('span','chip',esc(m)))); b.append(el('div','sub','Módulos'),mods);
+  const mats=el('dl','kv');
+  Object.entries(V.esto_entendi.materiales).forEach(([k,v])=>{mats.append(el('dt',null,esc(k)));mats.append(el('dd',null,esc(v)));});
+  b.append(mats);
+})();
+
+// 2 ASI LO FABRICARIA
+(()=>{const b=sec('02 · fabricación','Así lo fabricaría');
+  const bom=V.asi_lo_fabricaria.bom;
+  b.append(el('p','sub',`BOM ${bom.tipo_bom}: ${bom.total_renglones} renglones · ${bom.resueltos} resueltos · ${bom.pendientes} pendientes`));
+  // piezas fabricadas (lamina)
+  const w=el('div','tbl-wrap');const t=el('table');
+  t.innerHTML='<thead><tr><th>Pieza</th><th>Tipo</th><th>Lámina</th><th class="num">MP</th></tr></thead>';
+  const tb=el('tbody');
+  V.asi_lo_fabricaria.piezas_fabricadas.forEach(p=>{const tr=el('tr');
+    tr.innerHTML=`<td><span class="k">${esc(p.clave)}</span></td><td><span class="badge panel">${p.tipo}</span></td><td class="num">${esc(p.lamina)}</td><td class="num">${mxn(p.costo_mp)}</td>`;tb.append(tr);});
+  V.asi_lo_fabricaria.desarrollos_pendientes.forEach(p=>{const tr=el('tr');
+    tr.innerHTML=`<td><span class="k">${esc(p.clave)}</span></td><td><span class="badge caja">CAJA 3D</span></td><td class="sub" colspan="2">${esc(p.motivo)}</td>`;tb.append(tr);});
+  t.append(tb);w.append(t);b.append(el('div','sub','Piezas fabricadas desde materia prima (lámina). Las cajas 3D requieren desarrollo de CAD.'),w);
+  // operaciones
+  const ch=el('div','chips');
+  Object.entries(V.asi_lo_fabricaria.operaciones_por_centro).forEach(([c,n])=>ch.append(el('span','chip mono',`${esc(c)} ×${n}`)));
+  b.append(el('div','sub',`Routing: ${V.asi_lo_fabricaria.total_operaciones} operaciones (tiempos pendientes de Ingeniería)`),ch);
+})();
+
+// 3 CONFIRMAR (interactivo)
+(()=>{const b=sec('03 · decisiones','Esto necesito confirmar');
+  b.append(el('p','sub','Agrupado por decisión industrial. Marca una como resuelta cuando Ingeniería la cierre; cada confirmación aplica a todas sus piezas.'));
+  let KEY='telsvh120.confirm';
+  let state={}; try{state=JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){state={}}
+  const counter=el('p','sub');
+  function refresh(){const done=V.esto_necesito_confirmar.filter(d=>state[d.decision]).length;
+    counter.textContent=`${done} de ${V.esto_necesito_confirmar.length} decisiones resueltas (en este navegador)`;}
+  V.esto_necesito_confirmar.forEach(d=>{
+    const row=el('div','decision'+(state[d.decision]?' done':''));
+    const top=el('div','d-top');
+    const btn=el('button','btn'); btn.type='button';
+    const setLbl=()=>btn.textContent=state[d.decision]?'Resuelta ✓':'Marcar resuelta';
+    setLbl();
+    btn.addEventListener('click',()=>{state[d.decision]=!state[d.decision];
+      try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+      row.classList.toggle('done',!!state[d.decision]);setLbl();refresh();});
+    top.append(el('h3',null,esc(d.decision)),el('span','count',`${d.n} ítems`),btn);
+    const ch=el('div','chips'); d.afecta.forEach(a=>ch.append(el('span','chip mono',esc(a))));
+    row.append(top,ch); b.append(row);
+  });
+  b.append(counter); refresh();
+})();
+
+// 4 COSTO
+(()=>{const b=sec('04 · costo','Éste es el costo');
+  const c=V.este_es_el_costo;
+  const g=el('div','grid');
+  const tile=(l,v,note,pend)=>{const t=el('div','tile'+(pend?' pend':''));t.innerHTML=`<div class="t-label">${l}</div><div class="t-val">${v}</div>${note?`<div class="t-note">${note}</div>`:''}`;return t;};
+  g.append(
+    tile('Material total',mxn(c.material_total),`lámina ${mxn(c.material_fabricado_lamina)} + comprado ${mxn(c.material_comprado)}`),
+    tile('Mano de obra',mxn(c.mano_obra_politica_vh),'POLÍTICA_VH (vigente)'),
+    tile('GIF',mxn(c.gif),'POLÍTICA_VH'),
+    tile('MO por tiempos',c.mano_obra_routing_tiempos==null?'PENDIENTE':mxn(c.mano_obra_routing_tiempos),'routing — falta estándar',true),
+    tile('Costo fabricación',mxn(c.costo_fabricacion_vh),'material + MO + GIF'),
+  );
+  b.append(g);
+  b.append(el('div','disc','Costo con materia prima física real (lámina comercial del ERP) y MO/GIF por POLÍTICA_VH autorizada. La MO por tiempos de routing queda pendiente de estándares de Ingeniería; las cajas 3D, de desarrollo de CAD. No es costo oficial sin validación: '+esc(c.estado)+'.'));
+})();
+
+// 5 MEJORAS
+(()=>{const b=sec('05 · mejoras','Así podría mejorarse');
+  V.asi_podria_mejorarse.forEach(m=>{const d=el('div','mejora');
+    d.innerHTML=`<div class="mt">${esc(m.tipo)}</div><div>${esc(m.propuesta)}</div>`;b.append(d);});
+})();
+
+app.append(el('p','foot','COSTEAR · expediente TELSVH120 · lectura del plano en vivo + costeo industrial sobre el motor de producción. Propuestas sujetas a validación de Ingeniería y Dirección.'));
+</script>
