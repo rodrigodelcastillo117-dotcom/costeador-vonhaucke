@@ -5,20 +5,21 @@
 
 - **Fecha:** 2026-11-09
 - **Rama de desarrollo:** `claude/pm-concurrencia`
-- **SHA del estado descrito:** `bf0a0272ebe5e51f1de172cc18c0d45997b83122` (este archivo se commitea encima)
+- **SHA del estado descrito:** `c4ada419684a8618997f74fa19a0f31a9247366b` (este archivo se commitea encima)
 - **Prod (`c3.4-seller-safe`):** `4f79c72193baceec0cf3f38dbcc4699f2ffe9eac`
 - **PR draft (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
 - ⚠️ Nota de ramas: la rama designada original era `claude/costing-app-architecture-psf02g`, pero quedó obsoleta tras un reinicio; todo el trabajo real y el PR viven en `claude/pm-concurrencia`.
 
-## Último bloque — auditoría sobre `2caa5ee` (P1 económico + 5 puntos)
+## Último bloque — auditoría sobre `20ac9b7` (5 bloqueos de seguridad económica)
 
-- **P1 ECONÓMICO (fail-closed):** `total.oficial_mxn` ya **no** sale de `cerrado` solo; exige además MO routing completa **y** sin terceros pendientes (`es_oficial`), con `total.bloqueado_por`. 3 pruebas RED→GREEN.
-- **Punto 1 — catálogo vivo validado:** `catalogoLaminaVigente.js` carga lámina de `catalogo_vigente` (Supabase) validando precio_id, unidad=hoja, calibre, **acero**, acabado, formato, evidencia; fail-closed (2 filas con unidad `pza` **rechazadas**). Fixture generado por el loader desde datos vivos (`lamina_vigente_raw.json`). `costoPiezaFabricada` filtra por acero (negra por defecto).
-- **Punto 2 — desarrollo CAD explícito:** geometría CONFIRMADA (`CAD_CONFIRMADO`) versionada, **no** se re-infiere del bounding box.
-- **Punto 3 — estándares MO:** `cargarEstandar` exige autorización, unidades, **versión** y **vigencia**; descarta vigencia expirada. Nada ausente/por-defecto cuenta como aprobado.
-- **Punto 4 — nesteo conjunto** con geometrías distintas: conservación de material probada (sin doble conteo ni pérdida).
-- **Punto 5 — pantalla en la app + navegador real:** `src/componentes/PantallaIngenieria.jsx`; E2E Chromium (`e2e/pantallaIngenieria.e2e.js`) prueba **confirmar→recalcular→persistir→reabrir** (PASA). `vite build` verde.
-  - Pendiente (siguiente ciclo): insertar la pantalla en la **navegación autenticada** del flujo de costeo + persistencia respaldada en Supabase.
+Todos con prueba adversarial RED→GREEN.
+
+1. **Aprobaciones ficticias FUERA del componente:** `PantallaIngenieria.jsx` ya **no** fabrica `autorizado:true`, tiempos ni desarrollos; las acciones llegan por prop. Datos de demo aislados en `pantallaIngenieria.demo.js` (solo demo/E2E). Test estático lo garantiza.
+2. **`laminasParaCalibre`:** si se pide un acero sin candidatos → **BLOQUEA**; nunca cae a otra familia de acero en silencio.
+3. **Autorización de MO:** un `autorizado:true` del cliente **no prueba nada**. `cargarEstandar` exige **aprobador real** (`aprobado_por` con rol Dirección vía `autoridadDesdeListas`, no cuenta no-humana) + versión + vigencia + unidades. `recostearExpediente` pasa la autoridad; sin ella, los estándares se **rechazan**.
+4. **Modelo oficial:** dos cálculos **separados** (`factores_vh` vs `routing_tiempos`), sin doble conteo. `oficial_mxn` usa el modelo de la **política aprobada** (`autoridadPolitica`); sin política aprobada **no hay oficial**. `certificable == emitible_comercial == (oficial_mxn != null)` **unificados**.
+5. **App verdadera + persistencia:** componente real; E2E Chromium (`e2e/pantallaIngenieria.e2e.js`) prueba recalcular/persistir/reabrir **y el rechazo de MO sin autoridad** (PASA). Contrato de persistencia en Supabase (`persistenciaExpediente.js` + RPC con concurrencia optimista) **probado en PGlite** (4). Migración `supabase/migrations/20261111_expediente_costeo.sql` **PROPUESTA, no aplicada**.
+   - **Requiere autorización** (prod/QA) para cerrar: (a) aplicar la migración, (b) insertar la pantalla en la **navegación autenticada** del flujo de costeo, (c) E2E productivo con escritura real a Supabase. No lo hago sin tu OK.
 
 ---
 
