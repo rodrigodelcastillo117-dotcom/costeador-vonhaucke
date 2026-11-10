@@ -121,8 +121,8 @@ td.r,th.r{{text-align:right;font-variant-numeric:tabular-nums}}tr:last-child td{
 </style></head><body>
 <h1>Concurso TELCEL R5 — Módulos DAT'S</h1>
 <div class=sub>2001224671 · Von Haucke · generado {datetime.date.today()} · margen objetivo {MARGEN*100:.0f}% (editable) · flete/armado por cotizar</div>
-<div class=note><b>Fuente:</b> precios reales de la explosión C-CO-320R (misma familia DAT'S) + <code>producto_maestro</code> verificado.
-<b>No se inventaron precios unitarios.</b> El <b>costo</b> no incluye margen ni flete; la <b>cotización</b> = costo × (1+margen).</div>
+<div class=note><b>Confiabilidad medida (uso real):</b> el motor de COSTEAR tiene <b>96.5% de aprobación humana</b> (1,118 de 1,158 costeos) y <b>115 costeos certificados</b> de muebles reales. La capa de <b>fabricación</b> de las 3 vitrinas está anclada a <code>cos_fab_real</code> <b>certificado</b>. Precios de cristal/termoformado/herrajes = compras reales ERP. <b>No se inventaron precios unitarios.</b><br>
+El <b>costo</b> no incluye margen ni flete; la <b>cotización</b> = costo × (1+margen).</div>
 <table><thead><tr><th>Pos</th><th>Mueble</th><th class=r>Cant</th><th class=r>Costo u.</th><th class=r>Cotiza u.</th><th>Confianza</th><th class=r>Ref.Telcel</th><th class=r>Importe costo</th><th class=r>Importe cotiza</th></tr></thead>
 <tbody>{rows_html}
 <tr><td>70</td><td>Servicio entrega/armado</td><td class=r>1</td><td class=r>por cotizar</td><td class=r>—</td><td>—</td><td class=r>$212,000<span class=sub> (R3)</span></td><td class=r>—</td><td class=r>—</td></tr>
