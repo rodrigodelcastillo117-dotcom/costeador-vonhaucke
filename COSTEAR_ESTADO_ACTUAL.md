@@ -3,13 +3,19 @@
 > Reporte vivo para auditoría. Se actualiza al cerrar cada bloque de trabajo.
 > **No se hace merge ni deploy sin autorización de Dirección.**
 
-- **Fecha:** 2026-11-09
+- **Fecha:** 2026-11-10
 - **Rama de desarrollo:** `claude/pm-concurrencia`
-- **SHA auditado:** `5230f16` → trabajo nuevo encima (este archivo se commitea encima)
 - **Prod (`c3.4-seller-safe`):** `4f79c72193baceec0cf3f38dbcc4699f2ffe9eac`
 - **PR draft industrial (no fusionado):** https://github.com/rodrigodelcastillo117-dotcom/costeador-vonhaucke/pull/90
-- **Release de seguridad P0 (independiente, DB-only):** rama `claude/p0-expediente-seguridad` desde el base de prod — sólo migración + rollback + preflight + tests. No fusiona el módulo industrial.
+- **Release de seguridad P0 (DB-only):** rama `claude/p0-expediente-seguridad` @ `cc7902e` (dueño por `auth.uid()` inmutable).
 - ⚠️ Nota de ramas: la rama designada original era `claude/costing-app-architecture-psf02g`, pero quedó obsoleta tras un reinicio; todo el trabajo real y el PR viven en `claude/pm-concurrencia`.
+
+## ✅ P0 `expediente_costeo` — CERRADO EN PRODUCCIÓN (autorizado por Dirección 2026-11-10)
+
+La migración `20261112` (versión `auth.uid()`) se **aplicó a prod** (`apply_migration` success, atómica) y se **verificó en vivo: 14/14 PASS, 0 FAIL** (`VERIFICACION_POST_20261112.sql`):
+PK `(propietario, clave)`, RPC `guardar`/`reabrir` y RLS **aisladas por `auth.uid()` inmutable**, sin el patrón vulnerable, historial append-only + RLS, SECURITY DEFINER + search_path, firmas intactas, y **fila QA preservada** (md5 `6fdd462c`, `propietario` = uid de qa-direccion). Ningún usuario puede leer/sobrescribir/reclamar expedientes ajenos. Evidencia previa: Postgres real 22/22, PGlite 13/13, CI run #1065 `verify` SUCCESS. Recuperación: corrección hacia adelante (el rollback re-abriría el P0).
+
+---
 
 ## 🔴 Bloque actual — cierre de seguridad P0 (preflight para autorización)
 
