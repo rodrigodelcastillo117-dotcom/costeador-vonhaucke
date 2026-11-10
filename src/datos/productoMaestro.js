@@ -45,6 +45,12 @@ export function clasificarLineaBOM(linea = {}, insumos = {}) {
   if (excluido) {
     return { estado: 'cero_real', bloquea: false, precio: 0, cantidad: cantOk ? cantRaw : 0, costo: 0, fuente: 'cero' };
   }
+  // TERCERO subcontratado sin clasificar (bloqueo 1): parece comprado terminado pero quedaría
+  // FABRICADO x1.80. BLOQUEA el costo oficial hasta que Ingeniería/Compras lo declare. El flag
+  // sólo lo pone el productor de despiece para muebles NUEVOS; los BOMs almacenados no lo traen.
+  if (linea.requiereClasificacionTercero === true) {
+    return { estado: 'tercero_sin_clasificar', bloquea: true, precio: null, cantidad: cantOk ? cantRaw : 0, costo: 0, fuente: 'sin_precio' };
+  }
   // Cantidad inválida (0, negativa, NaN, ausente): BLOQUEA. No se trata como 0 en silencio.
   if (!cantOk) {
     return { estado: 'cantidad_invalida', bloquea: true, precio: null, cantidad: 0, costo: 0, fuente: 'sin_precio' };

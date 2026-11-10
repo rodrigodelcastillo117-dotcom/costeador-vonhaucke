@@ -26,6 +26,13 @@
 const TOL = 1e-3;
 const num = (x) => { const v = Number(x); return Number.isFinite(v) ? v : null; };
 
+// TERCEROS subcontratados: un insumo que parece comprado terminado (cristal templado,
+// vidrio, acrilico, termoformado, corte laser, galvanizado) NO debe costearse como
+// FABRICADO x1.80 en silencio. Si no esta clasificado como compra-venta ni confirmado,
+// se CONSERVA como PENDIENTE (igual que una pieza sin precio) hasta que Ingenieria/Compras
+// declare su clasificacion. Fail-closed, no advertencia (bloqueo 1, auditoria cd972a1).
+const TERCERO_RE = /cristal|templad|vidrio|acril|termoform|corte\s*laser|galvaniz/i;
+
 // Procedencia del consumo (contrato del modelo: MEASURED/DERIVED/INFERRED/ASSUMED/USER_CONFIRMED).
 const PROCEDENCIA = Object.freeze({
   RENDIMIENTO_GEOMETRICO: 'MEASURED',
@@ -116,6 +123,23 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
       procedencia,
       trazable,
     };
+    // --- FAIL-CLOSED TERCEROS (bloqueo 1): no costear x1.80 en silencio un subcontratado ---
+    if (d.clasificacionTercero === 'compra_venta') linea.esCompraVenta = true;   // declarado comprado terminado -> x1.06
+    const pareceTercero = TERCERO_RE.test(descBase) || TERCERO_RE.test(String(ins.seccion || ''));
+    const terceroConfirmado = d.esCompraVenta === true
+      || d.clasificacionTercero === 'fabricado' || d.clasificacionTercero === 'compra_venta';
+    if (pareceTercero && !linea.esCompraVenta && !terceroConfirmado) {
+      linea.pendiente = true;
+      linea.requiereClasificacionTercero = true;
+      linea.cantidadSugerida = linea.cantidad;
+      linea.costoSugerido = +costo.toFixed(2);
+      linea.motivo = 'tercero sin clasificar (parece subcontratado): Ingenieria/Compras debe declarar '
+        + 'compra-venta (x1.06, se compra terminado) o fabricado (x1.80, se hace en casa). '
+        + 'Sin esa decision el costo NO es oficial.';
+      pendientes.push(linea);
+      lineas.push(linea);
+      continue;                 // excluido de materialResuelto: el costo oficial no incluye el tercero sin clasificar
+    }
     if (!trazable) {
       noTrazables.push({
         desc: descBase,
