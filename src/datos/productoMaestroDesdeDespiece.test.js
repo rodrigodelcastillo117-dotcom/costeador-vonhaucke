@@ -145,16 +145,15 @@ describe('FAIL-CLOSED TERCEROS (bloqueo 1): un subcontratado sin clasificar NO s
     cri: { nombre: 'Cristal templado 6mm', seccion: 'cristal', unidad: 'pza', precio: 700, evidencia: { certificable: true } },
     gal: { nombre: 'Lamina galvanizada corte laser', seccion: 'metal', unidad: 'hoja', precio: 900, evidencia: { certificable: true } },
   };
-  it('cristal SIN regla de Compras en el catalogo (F1 vacio) -> BLOQUEA (fail-closed, no asume x1.06 ni x1.80)', () => {
+  it('cristal TEMPLADO -> catalogo lo resuelve compra_venta (VH no templa vidrio), NO bloquea', () => {
     const detalle = [linea('lam', 800, 2), linea('cri', 700, 4)];
     const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'con-cristal', verificar: true, ...FACT });
     const cristal = bom.lineas.find((l) => /Cristal/.test(l.desc));
-    expect(cristal.pendiente).toBe(true);
-    expect(cristal.requiereClasificacionTercero).toBe(true);
-    const r = costearBOM(bom, insumosT);
-    expect(r.emitible).toBe(false);
+    expect(cristal.pendiente).toBeFalsy();
+    expect(cristal.esCompraVenta).toBe(true);                // vidrio templado -> x1.06
+    expect(cristal.clasificacion_fuente).toBe('catalogo_vh_draft');
   });
-  it('tercero AMBIGUO (galvanizado/corte laser) tampoco se asume -> BLOQUEADO', () => {
+  it('tercero AMBIGUO (galvanizado/corte laser) NO tiene regla -> BLOQUEADO (Compras decide)', () => {
     const detalle = [linea('lam', 800, 2), linea('gal', 900, 1, 'unidades')];
     const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'con-galv', verificar: true, ...FACT });
     const galv = bom.lineas.find((l) => /galvaniz/i.test(l.desc));
