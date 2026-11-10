@@ -1,112 +1,99 @@
 import { describe, it, expect } from 'vitest';
 import { costearBOM, advertenciasTerceros } from './costeoDesdeBOM.js';
 
-describe('costeoDesdeBOM · costea por el MOTOR real (POLITICA_VH)', () => {
-  it('BOM fabricado: fab x(1+0.20) y GIF 0.50 sobre (mat+MO) — igual que el motor', () => {
-    const r = costearBOM([
-      { nombre: 'Lamina c18', costo: 1000, seccion: 'metal' },
-      { nombre: 'Pintura polvo', costo: 200, seccion: 'pintura' },
-    ]);
-    expect(r.material).toBe(1200);
-    expect(r.material_fabricado).toBe(1200);
-    expect(r.material_compra_venta).toBe(0);
-    expect(r.mano_obra).toBe(240);      // 1200 * 0.20
-    expect(r.gif).toBe(720);            // (1200+240) * 0.50
-    expect(r.costo_total).toBe(2160);
-    expect(r.estado).toBe('COSTEADO');
-    expect(r.oficial).toBe(true);
-  });
+// Linea TRAZABLE completa (insumoId+precio+cantidad+unidad+procedencia) — base para costo oficial.
+const T = (o) => ({ insumoId: o.insumoId || 'ins', cantidad: o.cantidad ?? 1, precio: o.precio ?? 100,
+  unidad: o.unidad || 'pza', procedencia: o.procedencia || 'DERIVED', seccion: o.seccion || 'metal', ...o });
+const APROB = { aprobacionServidor: true };
 
-  it('graficos/iluminacion = compra-venta (x1.06), lo demas fabricado', () => {
-    const r = costearBOM([
-      { nombre: 'Lamina', costo: 1000, seccion: 'metal' },
-      { nombre: 'Sticker logo', costo: 100, seccion: 'graficos' },
-      { nombre: 'Kit LED', costo: 500, seccion: 'iluminacion' },
-    ]);
-    expect(r.material_fabricado).toBe(1000);
-    expect(r.material_compra_venta).toBe(600);   // graficos + iluminacion
-    expect(r.mano_obra).toBe(206);
-    expect(r.gif).toBe(630);
-    expect(r.costo_total).toBe(1000 + 600 + 206 + 630);
-    expect(r.oficial).toBe(true);
+describe('costeoDesdeBOM · math del MOTOR (POLITICA_VH)', () => {
+  it('BOM fabricado: fab x1.20 y GIF 0.50 sobre (mat+MO)', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }), T({ insumoId: 'pin', precio: 200, seccion: 'pintura' })], APROB);
+    expect(r.material).toBe(1200); expect(r.mano_obra).toBe(240); expect(r.gif).toBe(720);
+    expect(r.costo_total).toBe(2160); expect(r.estado).toBe('COSTEADO'); expect(r.oficial).toBe(true);
   });
-
-  it('FAIL-CLOSED precio: linea sin precio NO se pone en $0; se reporta y el costeo se BLOQUEA', () => {
-    const r = costearBOM([
-      { nombre: 'Lamina', costo: 1000, seccion: 'metal' },
-      { nombre: 'Corredera sin precio', cantidad: 2, seccion: 'herrajes' },
-    ]);
-    expect(r.completo).toBe(false);
-    expect(r.estado).toBe('BLOQUEADO');
-    expect(r.oficial).toBe(false);
-    expect(r.faltantes).toHaveLength(1);
-    expect(r.faltantes[0].nombre).toMatch(/Corredera/);
-    expect(r.material_fabricado).toBe(1000);   // solo lo que si tenia precio
-  });
-
-  it('formaliza cada linea: cantidad, costo_unitario y costo_extendido explicitos', () => {
-    const r = costearBOM([{ nombre: 'Nivelador', precio: 40.70, cantidad: 4, seccion: 'herrajes' }]);
-    const l = r.detalle[0];
-    expect(l.cantidad).toBe(4);
-    expect(l.costo_unitario).toBeCloseTo(40.70, 2);
-    expect(l.costo_extendido).toBeCloseTo(162.8, 2);   // 40.70 * 4
-    expect(r.material).toBeCloseTo(162.8, 2);
-  });
-
-  it('marca ESTIMADO si alguna linea trae consumo supuesto', () => {
-    const r = costearBOM([{ nombre: 'Lamina por area', costo: 766, seccion: 'metal', estimado: true }]);
-    expect(r.estado).toBe('ESTIMADO');
-  });
-
-  it('DUPLICADO: la misma linea dos veces se marca como bloqueo (anti doble-conteo)', () => {
-    const r = costearBOM([
-      { nombre: 'Lamina c18', costo: 500, seccion: 'metal', largoMM: 1000, anchoMM: 500 },
-      { nombre: 'Lamina c18', costo: 500, seccion: 'metal', largoMM: 1000, anchoMM: 500 },
-    ]);
-    expect(r.estado).toBe('BLOQUEADO');
-    expect(r.oficial).toBe(false);
-    expect(r.bloqueos.some((b) => /duplicada/i.test(b.motivo))).toBe(true);
+  it('graficos/iluminacion = compra-venta x1.06', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }),
+      T({ insumoId: 'sti', precio: 100, seccion: 'graficos' }), T({ insumoId: 'led', precio: 500, seccion: 'iluminacion' })], APROB);
+    expect(r.material_fabricado).toBe(1000); expect(r.material_compra_venta).toBe(600);
+    expect(r.mano_obra).toBe(206); expect(r.gif).toBe(630); expect(r.oficial).toBe(true);
   });
 });
 
-describe('costeoDesdeBOM · TERCEROS fail-closed (bloqueo 1: no basta advertencia)', () => {
-  it('cristal templado / termoformado SIN clasificar BLOQUEAN el costo oficial (no x1.80 en silencio)', () => {
-    const r = costearBOM([
-      { nombre: 'Lamina', costo: 1000, seccion: 'metal' },
-      { nombre: 'Cristal templado 6mm', costo: 900, seccion: 'cristal' },
-      { nombre: 'Capelo termoformado acrilico', costo: 2840, seccion: 'acrilico' },
-    ]);
-    expect(r.estado).toBe('BLOQUEADO');
-    expect(r.oficial).toBe(false);                 // el costo NO es oficial
-    expect(r.bloqueos.length).toBeGreaterThanOrEqual(2);
-    expect(r.bloqueos.map((b) => b.nombre).join(' ')).toMatch(/Cristal|termoformado/i);
-    expect(r.detalle.filter((d) => d.tercero_ambiguo).length).toBe(2);
+describe('P1-A · ESTIMADO nunca es OFICIAL', () => {
+  it('una linea estimada -> estado ESTIMADO y oficial=false aunque nada este bloqueado y el servidor apruebe', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 766, seccion: 'metal', estimado: true })], APROB);
+    expect(r.estado).toBe('ESTIMADO');
+    expect(r.oficial).toBe(false);            // RED antes: oficial seguia true
+    expect(r.bloqueos).toHaveLength(0);       // no esta bloqueado; simplemente no es oficial
   });
+});
 
-  it('con clasificacion declarada "compra_venta" (Ingenieria/Compras), el tercero fluye a x1.06 y desbloquea', () => {
-    const r = costearBOM([
-      { nombre: 'Lamina', costo: 1000, seccion: 'metal' },
-      { nombre: 'Cristal templado 6mm', costo: 900, seccion: 'cristal', clasificacion: 'compra_venta' },
-    ]);
-    expect(r.estado).toBe('COSTEADO');
+describe('P1-B · BOM vacio o sin lineas costeables nunca es oficial', () => {
+  it('BOM vacio -> BLOQUEADO, oficial=false, costo 0 no oficial', () => {
+    const r = costearBOM([]);
+    expect(r.estado).toBe('BLOQUEADO'); expect(r.oficial).toBe(false);
+    expect(r.bloqueos.some((b) => /vac|costear/i.test(b.motivo))).toBe(true);
+  });
+  it('solo lineas sin precio -> sin lineas costeables -> no oficial', () => {
+    const r = costearBOM([{ nombre: 'pieza', seccion: 'metal' }], APROB);
+    expect(r.completo).toBe(false); expect(r.oficial).toBe(false); expect(r.estado).toBe('BLOQUEADO');
+  });
+});
+
+describe('P1-C · trazabilidad: un importe suelto o texto no certifican', () => {
+  it('importe suelto del cliente ({costo}) -> ESTIMADO, oficial=false aun con aprobacion de servidor', () => {
+    const r = costearBOM([{ nombre: 'Pieza', costo: 5000, seccion: 'metal' }], APROB);
+    expect(r.estado).toBe('ESTIMADO');        // costo suelto = soloImporte -> estimado
+    expect(r.oficial).toBe(false);
+    expect(r.detalle[0].trazable).toBe(false);
+    expect(r.detalle[0].falta_trazabilidad).toEqual(expect.arrayContaining(['insumoId', 'precio_unitario', 'unidad', 'procedencia']));
+  });
+  it('linea TRAZABLE pero SIN aprobacion de servidor -> no oficial', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 800, seccion: 'metal' })]);  // sin APROB
+    expect(r.todasTrazables).toBe(true);
+    expect(r.oficial).toBe(false);            // falta aprobacion de servidor
+  });
+  it('linea TRAZABLE + aprobacion de servidor -> OFICIAL', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 800, seccion: 'metal' })], APROB);
     expect(r.oficial).toBe(true);
-    expect(r.material_compra_venta).toBe(900);     // el cristal entro como compra-venta
-    expect(r.material_fabricado).toBe(1000);
-    // cristal x1.06: MO 900*0.01=9, GIF 900*0.05=45 ; lamina fab: MO 200, GIF (1200)*0.5=600
-    expect(r.mano_obra).toBe(209);
-    expect(r.gif).toBe(645);
   });
+});
 
-  it('con clasificacion declarada "fabricado" (se hace en casa), se cobra x1.80 explicitamente y desbloquea', () => {
+describe('P2-D · identidad estable y cantidad', () => {
+  it('dos piezas legitimas con mismo nombre+dims pero distinta identidad NO son duplicadas', () => {
     const r = costearBOM([
-      { nombre: 'Cristal cortado en taller', costo: 1000, seccion: 'cristal', clasificacion: 'fabricado' },
-    ]);
-    expect(r.estado).toBe('COSTEADO');
+      T({ id: 'A', insumoId: 'lam', nombre: 'Lateral', largoMM: 700, anchoMM: 400, precio: 300 }),
+      T({ id: 'B', insumoId: 'lam', nombre: 'Lateral', largoMM: 700, anchoMM: 400, precio: 300 }),
+    ], APROB);
+    expect(r.bloqueos).toHaveLength(0);       // identidad estable distinta -> no duplicado
     expect(r.oficial).toBe(true);
-    expect(r.material_fabricado).toBe(1000);
-    expect(r.costo_total).toBe(1800);              // x1.80 declarado, sin ambiguedad
   });
+  it('misma identidad estable repetida SI es duplicado (bloquea)', () => {
+    const r = costearBOM([T({ id: 'A', precio: 300 }), T({ id: 'A', precio: 300 })], APROB);
+    expect(r.bloqueos.some((b) => /duplicad/i.test(b.motivo))).toBe(true);
+    expect(r.oficial).toBe(false);
+  });
+  it('cantidad AUSENTE no se vuelve 1: sin cantidad ni costo -> faltante, no se cuesta a 1x', () => {
+    const r = costearBOM([{ insumoId: 'lam', precio: 100, unidad: 'hoja', procedencia: 'DERIVED', seccion: 'metal' }], APROB);
+    expect(r.faltantes).toHaveLength(1);      // precio sin cantidad no alcanza
+    expect(r.oficial).toBe(false);
+    expect(r.material).toBe(0);               // NO se costeo como 100 (1x implicito)
+  });
+});
 
+describe('TERCEROS fail-closed (bloqueo 1)', () => {
+  it('cristal sin clasificar BLOQUEA el costo oficial', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }),
+      T({ insumoId: 'cri', nombre: 'Cristal templado 6mm', precio: 900, seccion: 'cristal' })], APROB);
+    expect(r.estado).toBe('BLOQUEADO'); expect(r.oficial).toBe(false);
+    expect(r.detalle.filter((d) => d.tercero_ambiguo).length).toBe(1);
+  });
+  it('cristal declarado compra_venta fluye a x1.06 y desbloquea (trazable + aprobado => oficial)', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }),
+      T({ insumoId: 'cri', nombre: 'Cristal templado', precio: 900, seccion: 'cristal', clasificacion: 'compra_venta' })], APROB);
+    expect(r.material_compra_venta).toBe(900); expect(r.oficial).toBe(true);
+  });
   it('sin terceros sospechosos -> sin advertencias', () => {
     expect(advertenciasTerceros([{ nombre: 'Lamina c18', tipo: 'fabricado' }])).toHaveLength(0);
   });

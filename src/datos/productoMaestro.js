@@ -104,7 +104,10 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
   }
   // Un BOM AGREGADO_HISTORICO no es un BOM por materiales verificado (se refina en el bloque 2).
   const bomDetallado = bom.tipo_bom === 'BOM_DETALLADO_VERIFICADO';
-  const emitible = bloqueos.length === 0;
+  // P1-B (auditoria 01c456c): un BOM VACIO o sin ninguna linea costeable NUNCA es emitible.
+  // Antes `bloqueos.length === 0` daba emitible=true con 0 lineas (costo oficial de $0 fantasma).
+  const nCosteables = reporte.filter((r) => !r.bloquea).length;
+  const emitible = bloqueos.length === 0 && nCosteables > 0;
   // Certificable (honestidad = servidor): además de emitible/no-orientativo/BOM detallado, NINGUNA
   // línea de catálogo puede usar un precio VENCIDO (catalogoViejo===0). Antes el motor pintaba
   // "✓ Certificable" con precios de catálogo de hace años que el servidor marca PRELIMINAR.
