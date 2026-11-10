@@ -54,3 +54,44 @@ describe('PUENTE despiece -> expediente industrial (P1 integracion)', () => {
     expect(exp2.version).toBe(2);
   });
 });
+
+describe('P1-B · material fabricado SIN geometria se conserva fabricado pendiente de CAD (no comprado)', () => {
+  const clasif = (despiece) => {
+    const exp = expedienteIndustrialDesdeDespiece(despiece, { clave: 'P1B', ...ctx });
+    const p = exp.inputs.piezasBOM[0];
+    const pend = (exp.costo_industrial.cobertura?.desarrollos_pendientes || []).map((x) => x.clave);
+    return { p, pend };
+  };
+  it('pieza METALICA sin dims -> fabricada + pendiente de CAD', () => {
+    const { p, pend } = clasif([{ clave: 'LAT', desc: 'Lateral de lamina cal.18', cantidad: 2, seccion: 'metal' }]);
+    expect(p.fabricada).toBe(true);
+    expect(pend).toContain('LAT');
+  });
+  it('pieza de MDF sin dims -> fabricada + pendiente', () => {
+    const { p, pend } = clasif([{ clave: 'CUB', desc: 'Cubierta MDF 19mm', cantidad: 1, seccion: 'mdf' }]);
+    expect(p.fabricada).toBe(true);
+    expect(pend).toContain('CUB');
+  });
+  it('pieza de MADERA/melamina sin dims -> fabricada + pendiente', () => {
+    const { p, pend } = clasif([{ clave: 'ENT', desc: 'Entrepano melamina', cantidad: 3, seccion: 'madera' }]);
+    expect(p.fabricada).toBe(true);
+    expect(pend).toContain('ENT');
+  });
+  it('geometria INCOMPLETA (solo un lado) -> fabricada + pendiente (no se cuesta a medias)', () => {
+    const { p, pend } = clasif([{ clave: 'FAL', desc: 'Faldon metalico', cantidad: 1, seccion: 'metal', largoMM: 1500 }]);
+    expect(p.fabricada).toBe(true);
+    expect(pend).toContain('FAL');
+  });
+  it('componente COMPRADO (herraje, no procesable) con insumoId -> comprado, no fabricado', () => {
+    const exp = expedienteIndustrialDesdeDespiece(
+      [{ clave: 'COR', desc: 'Corredera telescopica', cantidad: 2, insumoId: 'corredera', seccion: 'herrajes' }],
+      { clave: 'P1B2', ...ctx });
+    expect(exp.inputs.piezasBOM[0].fabricada).toBe(false);
+  });
+  it('comprada:true explicito gana aunque la seccion sea procesable', () => {
+    const exp = expedienteIndustrialDesdeDespiece(
+      [{ clave: 'X', desc: 'Panel MDF cortado comprado', cantidad: 1, seccion: 'mdf', comprada: true, insumoId: 'panel' }],
+      { clave: 'P1B3', ...ctx });
+    expect(exp.inputs.piezasBOM[0].fabricada).toBe(false);
+  });
+});

@@ -39,6 +39,18 @@ function faltaTrazabilidad(l) {
   return faltan;
 }
 
+// HUELLA (ligadura) del candidato: ata un veredicto del servidor a ESTE BOM + precios + politica
+// EXACTOS. No es la firma criptografica (esa la emite el servidor); es el contrato de ligadura.
+function fnv1a(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+function huellaCandidato(detalle, politica) {
+  const canon = detalle.map((d) => `${d.insumoId || d.nombre}|${d.cantidad}|${d.costo_extendido}|${d.tipo}`).sort().join(';');
+  return fnv1a(canon + '|' + JSON.stringify(politica || {}));
+}
+
 /**
  * Costea un BOM por el motor, fail-closed. El costeo CLIENTE nunca es oficial por si mismo:
  * la certificacion es SERVER-ONLY (autoridadCosteoServidor en la Edge costear-servidor).
@@ -105,19 +117,28 @@ export function costearBOM(lineas = [], { politica = POLITICA_VH, veredictoServi
   const todasTrazables = detalle.length > 0 && detalle.every((d) => d.trazable);
   const bloqueado = faltantes.length > 0 || bloqueos.length > 0;
   const estado = bloqueado ? 'BLOQUEADO' : (hayEstimado ? 'ESTIMADO' : 'COSTEADO');
-  // VEREDICTO del servidor: SOLO cuenta si es el objeto verificable del servidor (no un booleano).
+  // HUELLA de ESTE costeo (BOM + precios + politica). El servidor liga su veredicto a ella.
+  const huella = huellaCandidato(detalle, politica);
+  // VEREDICTO del servidor (P1-A auditoria e48c0c2): certifica SOLO si viene LIGADO a este costeo
+  // exacto (misma huella) Y trae PRUEBA DE ORIGEN del servidor (firma no vacia, emitida por la Edge
+  // atada a expediente/version/BOM/precios/politica) Y marca certificado + aprobacion humana.
+  // Un objeto fabricado por el cliente ({estado,aprobacionHumana}) NO trae huella ni firma -> no cuenta.
   const vs = (veredictoServidor && typeof veredictoServidor === 'object') ? veredictoServidor : null;
-  const servidorCertifico = vs && vs.estado === 'certificado' && vs.aprobacionHumana === true;
-  // OFICIAL (P1-A/B/C + P2): nada bloqueado, nada estimado, TODO trazable, Y el SERVIDOR certifico
-  // (estado 'certificado' + aprobacion humana verificada). El cliente nunca se auto-certifica.
-  const oficial = !bloqueado && !hayEstimado && todasTrazables && !!servidorCertifico;
+  const ligado = !!(vs && vs.huella === huella);
+  const firmado = !!(vs && typeof vs.firma === 'string' && vs.firma.length > 0);
+  const servidorCertifico = ligado && firmado && vs.estado === 'certificado' && vs.aprobacionHumana === true;
+  // El cliente SIEMPRE emite un CANDIDATO. `oficial` solo es true con veredicto ligado+firmado del servidor.
+  const oficial = !bloqueado && !hayEstimado && todasTrazables && servidorCertifico;
 
   return {
     costo_total: +motor.costoFabricacion.toFixed(2), material: +motor.material.toFixed(2),
     material_fabricado: +motor.materialFabricado.toFixed(2), material_compra_venta: +motor.materialCompraVenta.toFixed(2),
     mano_obra: +motor.manoObra.toFixed(2), gif: +motor.gif.toFixed(2),
     completo: faltantes.length === 0 && detalle.length > 0,
-    oficial, estado, todasTrazables, servidorCertifico: !!servidorCertifico, politica,
+    candidato: true,                 // el cliente nunca se auto-certifica: esto es un calculo candidato
+    huella,                          // ligadura: el servidor ata su veredicto firmado a esta huella
+    oficial, estado, todasTrazables,
+    servidorCertifico, veredicto_ligado: ligado, veredicto_firmado: firmado, politica,
     detalle, faltantes, bloqueos, advertencias: advertenciasTerceros(detalle), cv_secciones: [...CV_SECCIONES],
   };
 }

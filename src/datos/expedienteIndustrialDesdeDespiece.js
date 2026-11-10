@@ -21,13 +21,14 @@ import { clasificarTercero } from './clasificacionTerceros.js';
 const num = (x) => { const v = Number(x); return Number.isFinite(v) ? v : null; };
 
 // Materia prima que VH procesa en casa (se desarrolla desde geometria), vs componente comprado.
-const SECCION_PROCESABLE = /metal|lamina|l[aá]mina|mdf|madera|tablero|acril|pintura|ptr/i;
+const SECCION_PROCESABLE = /metal|lamina|l[aá]mina|acero|hierro|mdf|madera|melamina|triplay|aglomerado|tablero|acril|policarbon|pintura|\bptr\b/i;
+// P1-B (auditoria e48c0c2): una pieza de material PROCESABLE es FABRICADA aunque NO traiga geometria.
+// Sin dims NO se asume comprada: se conserva fabricada y el motor la deja PENDIENTE de CAD (no inventa).
+// La geometria solo decide si ya se puede costear, NUNCA si es fabricada o comprada.
 function esFabricada(d) {
   if (d.fabricada === true) return true;
   if (d.comprada === true || d.insumoComprado === true) return false;
-  const procesable = SECCION_PROCESABLE.test(String(d.seccion || '')) || SECCION_PROCESABLE.test(String(d.desc || ''));
-  const tieneGeom = num(d.largoMM) > 0 || (Array.isArray(d.dims_mm) && num(d.dims_mm[0]) > 0);
-  return procesable && tieneGeom;
+  return SECCION_PROCESABLE.test(String(d.seccion || '')) || SECCION_PROCESABLE.test(String(d.desc || ''));
 }
 
 /**

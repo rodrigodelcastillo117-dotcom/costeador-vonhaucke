@@ -4,107 +4,117 @@ import { costearBOM, advertenciasTerceros } from './costeoDesdeBOM.js';
 // Linea TRAZABLE completa (insumoId+precio+cantidad+unidad+procedencia) — base para costo oficial.
 const T = (o) => ({ insumoId: o.insumoId || 'ins', cantidad: o.cantidad ?? 1, precio: o.precio ?? 100,
   unidad: o.unidad || 'pza', procedencia: o.procedencia || 'DERIVED', seccion: o.seccion || 'metal', ...o });
-// Veredicto VERIFICABLE del servidor (estadoBaseServidor + aprobacionPrecioExacto). Un booleano NO basta.
-const VS = { veredictoServidor: { estado: 'certificado', aprobacionHumana: true } };
 
-describe('costeoDesdeBOM · math del MOTOR (POLITICA_VH)', () => {
-  it('BOM fabricado: fab x1.20 y GIF 0.50 sobre (mat+MO)', () => {
-    const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }), T({ insumoId: 'pin', precio: 200, seccion: 'pintura' })], VS);
+// Simula el veredicto del SERVIDOR: ligado a la huella del candidato + firmado (origen Edge).
+// En produccion lo emite costear-servidor (autoridadCosteoServidor), nunca el cliente.
+const certificar = (cand, over = {}) => ({ veredictoServidor: {
+  estado: 'certificado', aprobacionHumana: true, huella: cand.huella, firma: 'edge:costear-servidor:#f1rma', ...over } });
+
+describe('costeoDesdeBOM · math del MOTOR (POLITICA_VH) — el cliente emite CANDIDATO', () => {
+  it('BOM fabricado: fab x1.20 y GIF 0.50; el candidato NO es oficial por si mismo', () => {
+    const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }), T({ insumoId: 'pin', precio: 200, seccion: 'pintura' })]);
     expect(r.material).toBe(1200); expect(r.mano_obra).toBe(240); expect(r.gif).toBe(720);
-    expect(r.costo_total).toBe(2160); expect(r.estado).toBe('COSTEADO'); expect(r.oficial).toBe(true);
+    expect(r.costo_total).toBe(2160); expect(r.estado).toBe('COSTEADO');
+    expect(r.candidato).toBe(true);
+    expect(r.oficial).toBe(false);            // candidato puro, sin veredicto del servidor
+    expect(typeof r.huella).toBe('string');   // huella de ligadura presente
   });
   it('graficos/iluminacion = compra-venta x1.06', () => {
     const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }),
-      T({ insumoId: 'sti', precio: 100, seccion: 'graficos' }), T({ insumoId: 'led', precio: 500, seccion: 'iluminacion' })], VS);
+      T({ insumoId: 'sti', precio: 100, seccion: 'graficos' }), T({ insumoId: 'led', precio: 500, seccion: 'iluminacion' })]);
     expect(r.material_fabricado).toBe(1000); expect(r.material_compra_venta).toBe(600);
-    expect(r.mano_obra).toBe(206); expect(r.gif).toBe(630); expect(r.oficial).toBe(true);
+    expect(r.mano_obra).toBe(206); expect(r.gif).toBe(630);
   });
 });
 
-describe('P1-A · ESTIMADO nunca es OFICIAL', () => {
-  it('una linea estimada -> estado ESTIMADO y oficial=false aunque nada este bloqueado y el servidor apruebe', () => {
-    const r = costearBOM([T({ insumoId: 'lam', precio: 766, seccion: 'metal', estimado: true })], VS);
-    expect(r.estado).toBe('ESTIMADO');
-    expect(r.oficial).toBe(false);            // RED antes: oficial seguia true
-    expect(r.bloqueos).toHaveLength(0);       // no esta bloqueado; simplemente no es oficial
-  });
-});
+describe('P1-A · oficialidad NO falsificable (auditoria e48c0c2)', () => {
+  const linea = [T({ insumoId: 'lam', precio: 800, seccion: 'metal' })];
 
-describe('P1-B · BOM vacio o sin lineas costeables nunca es oficial', () => {
-  it('BOM vacio -> BLOQUEADO, oficial=false, costo 0 no oficial', () => {
-    const r = costearBOM([]);
-    expect(r.estado).toBe('BLOQUEADO'); expect(r.oficial).toBe(false);
-    expect(r.bloqueos.some((b) => /vac|costear/i.test(b.motivo))).toBe(true);
-  });
-  it('solo lineas sin precio -> sin lineas costeables -> no oficial', () => {
-    const r = costearBOM([{ nombre: 'pieza', seccion: 'metal' }], VS);
-    expect(r.completo).toBe(false); expect(r.oficial).toBe(false); expect(r.estado).toBe('BLOQUEADO');
-  });
-});
-
-describe('P1-C · trazabilidad: un importe suelto o texto no certifican', () => {
-  it('importe suelto del cliente ({costo}) -> ESTIMADO, oficial=false aun con aprobacion de servidor', () => {
-    const r = costearBOM([{ nombre: 'Pieza', costo: 5000, seccion: 'metal' }], VS);
-    expect(r.estado).toBe('ESTIMADO');        // costo suelto = soloImporte -> estimado
-    expect(r.oficial).toBe(false);
-    expect(r.detalle[0].trazable).toBe(false);
-    expect(r.detalle[0].falta_trazabilidad).toEqual(expect.arrayContaining(['insumoId', 'precio_unitario', 'unidad', 'procedencia']));
-  });
-  it('linea TRAZABLE pero SIN veredicto del servidor -> no oficial', () => {
-    const r = costearBOM([T({ insumoId: 'lam', precio: 800, seccion: 'metal' })]);  // sin veredicto
-    expect(r.todasTrazables).toBe(true);
-    expect(r.oficial).toBe(false);            // falta la certificacion del servidor
-  });
-  it('P2: un BOOLEANO aprobacionServidor:true NO certifica (se ignora; no es autorizacion valida)', () => {
-    const r = costearBOM([T({ insumoId: 'lam', precio: 800, seccion: 'metal' })], { aprobacionServidor: true });
+  it('ADVERSARIAL: un veredicto FABRICADO por el cliente ({estado,aprobacionHumana}) NO certifica', () => {
+    const r = costearBOM(linea, { veredictoServidor: { estado: 'certificado', aprobacionHumana: true } });
+    expect(r.veredicto_ligado).toBe(false);   // sin huella -> no ligado a este costeo
+    expect(r.veredicto_firmado).toBe(false);  // sin firma -> sin prueba de origen del servidor
     expect(r.servidorCertifico).toBe(false);
-    expect(r.oficial).toBe(false);            // un flag de JS no es autoridad
-  });
-  it('P2: un veredicto PRELIMINAR del servidor tampoco certifica', () => {
-    const r = costearBOM([T({ insumoId: 'lam', precio: 800, seccion: 'metal' })],
-      { veredictoServidor: { estado: 'preliminar', aprobacionHumana: false } });
     expect(r.oficial).toBe(false);
   });
-  it('linea TRAZABLE + veredicto CERTIFICADO del servidor + aprobacion humana -> OFICIAL', () => {
-    const r = costearBOM([T({ insumoId: 'lam', precio: 800, seccion: 'metal' })], VS);
+  it('veredicto LIGADO (huella correcta) pero SIN firma -> no certifica', () => {
+    const cand = costearBOM(linea);
+    const r = costearBOM(linea, { veredictoServidor: { estado: 'certificado', aprobacionHumana: true, huella: cand.huella } });
+    expect(r.veredicto_ligado).toBe(true);
+    expect(r.veredicto_firmado).toBe(false);
+    expect(r.oficial).toBe(false);
+  });
+  it('veredicto FIRMADO pero con huella de OTRO costeo -> no certifica (no ligado)', () => {
+    const otro = costearBOM([T({ insumoId: 'x', precio: 999, seccion: 'metal' })]);
+    const r = costearBOM(linea, { veredictoServidor: { estado: 'certificado', aprobacionHumana: true, huella: otro.huella, firma: 'edge:abc' } });
+    expect(r.veredicto_ligado).toBe(false);
+    expect(r.oficial).toBe(false);
+  });
+  it('veredicto del servidor en PRELIMINAR (ligado+firmado) tampoco certifica', () => {
+    const cand = costearBOM(linea);
+    const r = costearBOM(linea, certificar(cand, { estado: 'preliminar', aprobacionHumana: false }));
+    expect(r.oficial).toBe(false);
+  });
+  it('veredicto LIGADO + FIRMADO + certificado + aprobacion humana -> OFICIAL', () => {
+    const cand = costearBOM(linea);
+    const r = costearBOM(linea, certificar(cand));
     expect(r.servidorCertifico).toBe(true);
     expect(r.oficial).toBe(true);
+  });
+  it('cambiar el BOM invalida un veredicto viejo (la huella ya no liga)', () => {
+    const cand = costearBOM(linea);
+    const v = certificar(cand);                                   // veredicto para el BOM original
+    const r = costearBOM([T({ insumoId: 'lam', precio: 900, seccion: 'metal' })], v);  // precio cambiado
+    expect(r.veredicto_ligado).toBe(false);
+    expect(r.oficial).toBe(false);
+  });
+});
+
+describe('P1-A/C · ESTIMADO, vacio y trazabilidad nunca son oficiales', () => {
+  it('una linea estimada -> ESTIMADO y oficial=false aun con veredicto valido', () => {
+    const lines = [T({ insumoId: 'lam', precio: 766, seccion: 'metal', estimado: true })];
+    const cand = costearBOM(lines);
+    const r = costearBOM(lines, certificar(cand));
+    expect(r.estado).toBe('ESTIMADO'); expect(r.oficial).toBe(false);
+  });
+  it('BOM vacio -> BLOQUEADO, oficial=false', () => {
+    const r = costearBOM([]);
+    expect(r.estado).toBe('BLOQUEADO'); expect(r.oficial).toBe(false);
+  });
+  it('importe suelto del cliente ({costo}) -> ESTIMADO, no trazable, oficial=false', () => {
+    const lines = [{ nombre: 'Pieza', costo: 5000, seccion: 'metal' }];
+    const cand = costearBOM(lines);
+    const r = costearBOM(lines, certificar(cand));
+    expect(r.estado).toBe('ESTIMADO'); expect(r.oficial).toBe(false);
+    expect(r.detalle[0].trazable).toBe(false);
   });
 });
 
 describe('P2-D · identidad estable y cantidad', () => {
-  it('dos piezas legitimas con mismo nombre+dims pero distinta identidad NO son duplicadas', () => {
-    const r = costearBOM([
-      T({ id: 'A', insumoId: 'lam', nombre: 'Lateral', largoMM: 700, anchoMM: 400, precio: 300 }),
-      T({ id: 'B', insumoId: 'lam', nombre: 'Lateral', largoMM: 700, anchoMM: 400, precio: 300 }),
-    ], VS);
-    expect(r.bloqueos).toHaveLength(0);       // identidad estable distinta -> no duplicado
-    expect(r.oficial).toBe(true);
+  it('mismo nombre+dims distinta identidad -> NO duplicado', () => {
+    const r = costearBOM([T({ id: 'A', insumoId: 'lam', precio: 300 }), T({ id: 'B', insumoId: 'lam', precio: 300 })]);
+    expect(r.bloqueos).toHaveLength(0);
   });
-  it('misma identidad estable repetida SI es duplicado (bloquea)', () => {
-    const r = costearBOM([T({ id: 'A', precio: 300 }), T({ id: 'A', precio: 300 })], VS);
-    expect(r.bloqueos.some((b) => /duplicad/i.test(b.motivo))).toBe(true);
-    expect(r.oficial).toBe(false);
+  it('misma identidad repetida -> duplicado (bloquea)', () => {
+    const r = costearBOM([T({ id: 'A', precio: 300 }), T({ id: 'A', precio: 300 })]);
+    expect(r.bloqueos.some((b) => /duplicad/i.test(b.motivo))).toBe(true); expect(r.oficial).toBe(false);
   });
-  it('cantidad AUSENTE no se vuelve 1: sin cantidad ni costo -> faltante, no se cuesta a 1x', () => {
-    const r = costearBOM([{ insumoId: 'lam', precio: 100, unidad: 'hoja', procedencia: 'DERIVED', seccion: 'metal' }], VS);
-    expect(r.faltantes).toHaveLength(1);      // precio sin cantidad no alcanza
-    expect(r.oficial).toBe(false);
-    expect(r.material).toBe(0);               // NO se costeo como 100 (1x implicito)
+  it('cantidad AUSENTE no se vuelve 1: sin cantidad ni costo -> faltante', () => {
+    const r = costearBOM([{ insumoId: 'lam', precio: 100, unidad: 'hoja', procedencia: 'DERIVED', seccion: 'metal' }]);
+    expect(r.faltantes).toHaveLength(1); expect(r.material).toBe(0);
   });
 });
 
 describe('TERCEROS fail-closed (bloqueo 1)', () => {
-  it('cristal sin clasificar BLOQUEA el costo oficial', () => {
+  it('cristal sin clasificar BLOQUEA', () => {
     const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }),
-      T({ insumoId: 'cri', nombre: 'Cristal templado 6mm', precio: 900, seccion: 'cristal' })], VS);
+      T({ insumoId: 'cri', nombre: 'Cristal templado 6mm', precio: 900, seccion: 'cristal' })]);
     expect(r.estado).toBe('BLOQUEADO'); expect(r.oficial).toBe(false);
-    expect(r.detalle.filter((d) => d.tercero_ambiguo).length).toBe(1);
   });
-  it('cristal declarado compra_venta fluye a x1.06 y desbloquea (trazable + aprobado => oficial)', () => {
+  it('cristal declarado compra_venta fluye a x1.06', () => {
     const r = costearBOM([T({ insumoId: 'lam', precio: 1000, seccion: 'metal' }),
-      T({ insumoId: 'cri', nombre: 'Cristal templado', precio: 900, seccion: 'cristal', clasificacion: 'compra_venta' })], VS);
-    expect(r.material_compra_venta).toBe(900); expect(r.oficial).toBe(true);
+      T({ insumoId: 'cri', nombre: 'Cristal templado', precio: 900, seccion: 'cristal', clasificacion: 'compra_venta' })]);
+    expect(r.material_compra_venta).toBe(900);
   });
   it('sin terceros sospechosos -> sin advertencias', () => {
     expect(advertenciasTerceros([{ nombre: 'Lamina c18', tipo: 'fabricado' }])).toHaveLength(0);

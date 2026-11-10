@@ -1,25 +1,34 @@
 // ============================================================================
-//  PANEL: Expediente de Ingenieria DESDE el despiece vivo de VONI (P1, ultima milla).
+//  PANEL: Expediente de Ingenieria DESDE el despiece vivo de VONI (P1, circuito).
 //
-//  Toma el despiece RICO del Asistente (b.componentes: nombre, insumoId, cantidad,
-//  largoMM, anchoMM) + el catalogo ERP + el catalogo de lamina (catalogo_vigente) y
-//  construye el EXPEDIENTE INDUSTRIAL con el puente (reusa costearProductoIndustrial).
-//  Asi las piezas FABRICADAS se costean por desarrollo/anidado en vez de quedar todas
-//  pendientes. Lo que no tiene geometria/lamina queda pendiente de CAD (no inventa).
-//  Montaje aislado y colapsado: no toca el flujo de costeo existente.
+//  Toma el despiece RICO del Asistente (b.componentes) + ERP + catalogo de lamina real
+//  y arma el EXPEDIENTE INDUSTRIAL con el puente (reusa costearProductoIndustrial).
+//  Circuito completo (P1-C auditoria e48c0c2), SIN valores predeterminados como hechos:
+//    · CONFIRMACIONES: Ingenieria captura el desarrollo CAD REAL (largo×ancho) de cada
+//      pieza pendiente. Los campos nacen VACIOS; nada se confirma solo.
+//    · RECALCULO: al confirmar, recostearExpediente recalcula y versiona.
+//    · GUARDADO/REAPERTURA: guarda el expediente por clave (RPC guardar_expediente_costeo,
+//      RLS por propietario); se reabre por clave en la pantalla de Ingenieria.
+//  Montaje colapsado en el flujo de costeo (Diseno/veCostos). No toca el motor.
 // ============================================================================
 import React, { useEffect, useMemo, useState } from 'react';
 import PantallaIngenieria from './PantallaIngenieria.jsx';
 import { expedienteIndustrialDesdeDespiece } from '../datos/expedienteIndustrialDesdeDespiece.js';
+import { recostearExpediente } from '../datos/pantallaIngenieria.js';
 import { cargarLaminaDesdeSupabase } from '../datos/catalogoLaminaVigente.js';
+import { guardarExpediente } from '../datos/persistenciaExpediente.js';
 import { nube } from '../nube.js';
+
+const NOOP = { getItem: () => null, setItem: () => {} };
 
 export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = {}, clave = null, nombre = null, svc = nube }) {
   const [lamina, setLamina] = useState([]);
   const [abierto, setAbierto] = useState(false);
+  const [confirmado, setConfirmado] = useState(null);  // expediente recalculado tras confirmaciones
+  const [dims, setDims] = useState({});                // input CAD de Ingenieria (NACE VACIO)
+  const [msg, setMsg] = useState('');
+  const [guardando, setGuardando] = useState(false);
 
-  // Catalogo de lamina (catalogo_vigente) para costear las piezas fabricadas. Si no carga,
-  // las fabricadas quedan pendientes (fail-closed, no inventa un precio de lamina).
   useEffect(() => {
     if (!abierto) return undefined;
     let vivo = true;
@@ -27,30 +36,70 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
     return () => { vivo = false; };
   }, [abierto, svc]);
 
-  const expediente = useMemo(() => {
+  const base = useMemo(() => {
     const despiece = (Array.isArray(componentes) ? componentes : []).map((c) => {
       const sec = insumos?.[c.insumoId]?.seccion;
-      return {
-        clave: c.nombre || c.insumoId, insumoId: c.insumoId, desc: c.nombre || c.insumoId,
-        cantidad: Number(c.cantidad ?? c.piezas ?? 1),
-        seccion: sec, largoMM: c.largoMM, anchoMM: c.anchoMM,
-        esCompraVenta: sec === 'graficos' || sec === 'iluminacion',
-      };
+      return { clave: c.nombre || c.insumoId, insumoId: c.insumoId, desc: c.nombre || c.insumoId,
+        cantidad: Number(c.cantidad ?? c.piezas ?? 1), seccion: sec, largoMM: c.largoMM, anchoMM: c.anchoMM,
+        esCompraVenta: sec === 'graficos' || sec === 'iluminacion' };
     });
     return expedienteIndustrialDesdeDespiece(despiece, { clave: clave || 'EN-COSTEO', nombre, insumosERP: insumos, catalogoLamina: lamina });
   }, [componentes, insumos, lamina, clave, nombre]);
 
-  const nFab = (expediente.inputs?.piezasBOM || []).filter((p) => p.fabricada).length;
+  // Si cambia el despiece base, se descartan las confirmaciones viejas (no se arrastran como hechos).
+  useEffect(() => { setConfirmado(null); setMsg(''); }, [base]);
+
+  const expediente = confirmado || base;
+  const pendientes = expediente.costo_industrial?.cobertura?.desarrollos_pendientes || [];
+
+  function confirmarCAD(clavePieza) {
+    const d = dims[clavePieza] || {};
+    const L = Number(d.L), W = Number(d.W);
+    if (!(L > 0) || !(W > 0)) { setMsg(`Captura largo y ancho reales (mm) de CAD para ${clavePieza}.`); return; }
+    try {
+      const next = recostearExpediente(expediente, { tipo: 'desarrollo', clave: clavePieza, desarrollo_mm: [L, W], fuente: 'CAD' });
+      setConfirmado(next); setMsg(`✓ ${clavePieza} recalculado (v${next.version}).`);
+    } catch (e) { setMsg(String(e?.message || e)); }
+  }
+
+  async function guardar() {
+    setGuardando(true); setMsg('');
+    try {
+      const r = await guardarExpediente(svc, { clave: expediente.clave, expediente });
+      setMsg(r && r.ok === false ? `No se pudo guardar: ${r.error || ''}` : `✓ Guardado (clave ${expediente.clave}). Se reabre en Ingeniería por su clave.`);
+    } catch (e) { setMsg(`No se pudo guardar: ${String(e?.message || e)}`); }
+    finally { setGuardando(false); }
+  }
+
+  const setDim = (c, campo, val) => setDims((s) => ({ ...s, [c]: { ...s[c], [campo]: val } }));
 
   return (
     <details className="tarjeta" style={{ marginTop: 16 }} onToggle={(e) => setAbierto(e.currentTarget.open)}>
       <summary style={{ cursor: 'pointer', fontWeight: 600 }}>
-        Expediente de Ingeniería (industrial) — {nFab} pieza(s) fabricada(s)
+        Expediente de Ingeniería (industrial){pendientes.length ? ` — ${pendientes.length} pieza(s) por confirmar (CAD)` : ''}
       </summary>
       <div style={{ marginTop: 12 }}>
-        {/* Solo mostrar: sin acciones fabricadas. Las confirmaciones reales (CAD/precio/estandares)
-            se hacen en la pantalla de Ingeniería de Dirección, gobernadas por el servidor. */}
-        <PantallaIngenieria expediente={expediente} persistencia={{ getItem: () => null, setItem: () => {} }} />
+        {pendientes.length > 0 && (
+          <div style={{ border: '1px solid var(--ambar,#b06f12)', borderRadius: 8, padding: '10px 12px', marginBottom: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>Ingeniería confirma el desarrollo (CAD) — campos vacíos, nada se asume:</div>
+            {pendientes.map((p) => (
+              <div key={p.clave} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', margin: '4px 0' }}>
+                <span style={{ minWidth: 160 }}>{p.clave}</span>
+                <input type="number" min="0" placeholder="largo mm" aria-label={`largo ${p.clave}`}
+                  value={dims[p.clave]?.L || ''} onChange={(e) => setDim(p.clave, 'L', e.target.value)} style={{ width: 92 }} />
+                <span>×</span>
+                <input type="number" min="0" placeholder="ancho mm" aria-label={`ancho ${p.clave}`}
+                  value={dims[p.clave]?.W || ''} onChange={(e) => setDim(p.clave, 'W', e.target.value)} style={{ width: 92 }} />
+                <button type="button" onClick={() => confirmarCAD(p.clave)}>Confirmar CAD</button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+          <button type="button" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar expediente'}</button>
+          {msg && <span style={{ fontSize: 13, color: /No se pudo|Captura/.test(msg) ? 'var(--alerta,#c0453b)' : 'var(--ok,#2e7d52)' }}>{msg}</span>}
+        </div>
+        <PantallaIngenieria expediente={expediente} persistencia={NOOP} />
       </div>
     </details>
   );
