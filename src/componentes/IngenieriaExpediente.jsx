@@ -18,7 +18,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import PantallaIngenieria from './PantallaIngenieria.jsx';
 import { guardarExpediente, reabrirExpediente } from '../datos/persistenciaExpediente.js';
+import { cargarBOMporClave } from '../datos/productoMaestroCarga.js';
+import { expedienteIndustrialDesdeDespiece } from '../datos/expedienteIndustrialDesdeDespiece.js';
 import { nube } from '../nube.js';
+
+// Puente (P1): construye el expediente industrial desde el BOM almacenado de una clave real.
+// Los comprados (con insumoId + precio) se costean; los fabricados sin geometria quedan
+// PENDIENTES de CAD (no inventa) y se confirman en pantalla. Admite CUALQUIER clave.
+function industrialDesdeBOM(bom, claveFallback) {
+  const lineas = Array.isArray(bom && bom.lineas) ? bom.lineas : [];
+  const insumosERP = {};
+  for (const l of lineas) {
+    if (l.insumoId && Number(l.precioConfirmado) > 0) {
+      insumosERP[l.insumoId] = { nombre: l.desc, precio: Number(l.precioConfirmado), unidad: l.unidad || null, seccion: l.seccion || 'herrajes' };
+    }
+  }
+  const despiece = lineas.map((l) => ({
+    clave: l.desc, insumoId: l.insumoId, desc: l.desc, cantidad: Number(l.cantidad),
+    seccion: l.seccion, esCompraVenta: l.esCompraVenta === true,
+  }));
+  return expedienteIndustrialDesdeDespiece(despiece, { clave: (bom && bom.clave) || claveFallback, nombre: bom && bom.nombre, insumosERP, catalogoLamina: [] });
+}
 
 const NOOP_STORAGE = { getItem: () => null, setItem: () => {} };   // no localStorage: la verdad vive en Supabase
 
@@ -40,7 +60,13 @@ export default function IngenieriaExpediente({ svc = nube, clave: claveProp = nu
         if (!vivo) return;
         if (row && row.expediente) { setExp(row.expediente); dbVersion.current = row.version; }
         else if (expedienteInicial) { setExp(expedienteInicial); dbVersion.current = null; }
-        else { setExp(null); dbVersion.current = null; }
+        else {
+          // No hay expediente guardado: se CONSTRUYE desde el BOM almacenado de la clave (puente P1).
+          const r = await cargarBOMporClave(clave).catch(() => null);
+          if (!vivo) return;
+          if (r && r.ok && r.bom) { setExp(industrialDesdeBOM(r.bom, clave)); dbVersion.current = null; }
+          else { setExp(null); dbVersion.current = null; }
+        }
         setEstado('listo');
       } catch (e) { if (vivo) { setEstado('error'); setMsg(String(e?.message || e)); } }
     })();
