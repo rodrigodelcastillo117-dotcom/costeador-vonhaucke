@@ -52,16 +52,24 @@ function huellaCandidato(detalle, politica) {
 }
 
 /**
- * Costea un BOM por el motor, fail-closed. El costeo CLIENTE nunca es oficial por si mismo:
- * la certificacion es SERVER-ONLY (autoridadCosteoServidor en la Edge costear-servidor).
+ * Costea un BOM por el motor, fail-closed. SIEMPRE devuelve un CANDIDATO.
+ *
+ * AUTORIDAD (P1 auditoria 212caeb): el cliente NUNCA produce un costo oficial. `oficial`
+ * es SIEMPRE false aqui. La oficialidad la decide EXCLUSIVAMENTE el backend autenticado
+ * (Edge `costear-servidor` + `src/datos/autoridadCosteoServidor.js`), que:
+ *   - verifica contra la BD el precio EXACTO aprobado (aprobacionPrecioExacto), el ROL
+ *     aprobador y que NO sea cuenta no-humana (fail-closed sin la lista);
+ *   - liga la autorizacion a expediente + version + BOM + precios + politica + aprobador;
+ *   - cualquier cambio posterior (precio, BOM, version) invalida la autorizacion.
+ * NINGUN objeto aportado por el cliente (ni una `firma` de texto, ni una huella, ni un
+ * booleano) autoriza un costo: todos se ignoran para la oficialidad. La `huella` que se
+ * devuelve es solo una REFERENCIA DE CONTENIDO (no seguridad, no sustituto de firma) para
+ * que el servidor pueda ligar su decision a este candidato exacto.
  * @param {Array} lineas  [{ id?|instanceId?, insumoId?, nombre?, cantidad?, precio?, costo?,
  *   unidad?, procedencia?, seccion, clasificacion?, estimado? }]
- * @param {{politica?:object, veredictoServidor?:object}} opts
- *   veredictoServidor: el RESULTADO verificable del servidor (estadoBaseServidor +
- *   aprobacionPrecioExacto): { estado:'certificado', aprobacionHumana:true }. Un booleano
- *   enviado desde JS NO es autorizacion valida (P2 auditoria 16307614): se ignora.
+ * @param {{politica?:object}} opts
  */
-export function costearBOM(lineas = [], { politica = POLITICA_VH, veredictoServidor = null } = {}) {
+export function costearBOM(lineas = [], { politica = POLITICA_VH } = {}) {
   const detalle = []; const faltantes = []; const bloqueos = []; const vistos = new Map();
   const entrada = Array.isArray(lineas) ? lineas : [];
 
@@ -117,28 +125,23 @@ export function costearBOM(lineas = [], { politica = POLITICA_VH, veredictoServi
   const todasTrazables = detalle.length > 0 && detalle.every((d) => d.trazable);
   const bloqueado = faltantes.length > 0 || bloqueos.length > 0;
   const estado = bloqueado ? 'BLOQUEADO' : (hayEstimado ? 'ESTIMADO' : 'COSTEADO');
-  // HUELLA de ESTE costeo (BOM + precios + politica). El servidor liga su veredicto a ella.
+  // Referencia de CONTENIDO del candidato (NO seguridad): permite al SERVIDOR ligar su
+  // decision a este candidato exacto. No autoriza nada por si misma.
   const huella = huellaCandidato(detalle, politica);
-  // VEREDICTO del servidor (P1-A auditoria e48c0c2): certifica SOLO si viene LIGADO a este costeo
-  // exacto (misma huella) Y trae PRUEBA DE ORIGEN del servidor (firma no vacia, emitida por la Edge
-  // atada a expediente/version/BOM/precios/politica) Y marca certificado + aprobacion humana.
-  // Un objeto fabricado por el cliente ({estado,aprobacionHumana}) NO trae huella ni firma -> no cuenta.
-  const vs = (veredictoServidor && typeof veredictoServidor === 'object') ? veredictoServidor : null;
-  const ligado = !!(vs && vs.huella === huella);
-  const firmado = !!(vs && typeof vs.firma === 'string' && vs.firma.length > 0);
-  const servidorCertifico = ligado && firmado && vs.estado === 'certificado' && vs.aprobacionHumana === true;
-  // El cliente SIEMPRE emite un CANDIDATO. `oficial` solo es true con veredicto ligado+firmado del servidor.
-  const oficial = !bloqueado && !hayEstimado && todasTrazables && servidorCertifico;
+  // P1 (auditoria 212caeb): el cliente NUNCA certifica. `oficial` es SIEMPRE false aqui.
+  // La oficialidad la emite el backend autenticado (autoridadCosteoServidor en la Edge),
+  // verificada contra la BD y ligada a expediente/version/BOM/precios/politica/aprobador.
+  const oficial = false;
 
   return {
     costo_total: +motor.costoFabricacion.toFixed(2), material: +motor.material.toFixed(2),
     material_fabricado: +motor.materialFabricado.toFixed(2), material_compra_venta: +motor.materialCompraVenta.toFixed(2),
     mano_obra: +motor.manoObra.toFixed(2), gif: +motor.gif.toFixed(2),
     completo: faltantes.length === 0 && detalle.length > 0,
-    candidato: true,                 // el cliente nunca se auto-certifica: esto es un calculo candidato
-    huella,                          // ligadura: el servidor ata su veredicto firmado a esta huella
-    oficial, estado, todasTrazables,
-    servidorCertifico, veredicto_ligado: ligado, veredicto_firmado: firmado, politica,
+    candidato: true,                 // SIEMPRE candidato: el cliente no decide oficialidad
+    autoridad: 'server-only',        // la oficialidad la emite la Edge autenticada, no el cliente
+    huella,                          // referencia de contenido para que el servidor ligue su decision
+    oficial, estado, todasTrazables, politica,
     detalle, faltantes, bloqueos, advertencias: advertenciasTerceros(detalle), cv_secciones: [...CV_SECCIONES],
   };
 }

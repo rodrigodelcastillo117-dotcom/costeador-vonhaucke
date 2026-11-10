@@ -11,7 +11,7 @@
 //      RLS por propietario); se reabre por clave en la pantalla de Ingenieria.
 //  Montaje colapsado en el flujo de costeo (Diseno/veCostos). No toca el motor.
 // ============================================================================
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PantallaIngenieria from './PantallaIngenieria.jsx';
 import { expedienteIndustrialDesdeDespiece } from '../datos/expedienteIndustrialDesdeDespiece.js';
 import { recostearExpediente } from '../datos/pantallaIngenieria.js';
@@ -28,6 +28,7 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
   const [dims, setDims] = useState({});                // input CAD de Ingenieria (NACE VACIO)
   const [msg, setMsg] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const dbVersion = useRef(null);   // version de la FILA (concurrencia optimista); null = aun no guardado
 
   useEffect(() => {
     if (!abierto) return undefined;
@@ -46,8 +47,8 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
     return expedienteIndustrialDesdeDespiece(despiece, { clave: clave || 'EN-COSTEO', nombre, insumosERP: insumos, catalogoLamina: lamina });
   }, [componentes, insumos, lamina, clave, nombre]);
 
-  // Si cambia el despiece base, se descartan las confirmaciones viejas (no se arrastran como hechos).
-  useEffect(() => { setConfirmado(null); setMsg(''); }, [base]);
+  // Si cambia el despiece base, se descartan confirmaciones y la version guardada (es otro expediente).
+  useEffect(() => { setConfirmado(null); setMsg(''); dbVersion.current = null; }, [base]);
 
   const expediente = confirmado || base;
   const pendientes = expediente.costo_industrial?.cobertura?.desarrollos_pendientes || [];
@@ -65,10 +66,21 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
   async function guardar() {
     setGuardando(true); setMsg('');
     try {
-      const r = await guardarExpediente(svc, { clave: expediente.clave, expediente });
-      setMsg(r && r.ok === false ? `No se pudo guardar: ${r.error || ''}` : `✓ Guardado (clave ${expediente.clave}). Se reabre en Ingeniería por su clave.`);
-    } catch (e) { setMsg(`No se pudo guardar: ${String(e?.message || e)}`); }
-    finally { setGuardando(false); }
+      // Concurrencia optimista: se manda la version que creemos vigente. Si otra sesion ya guardo,
+      // la RPC rechaza (version distinta) y NO se sobrescribe en silencio.
+      const r = await guardarExpediente(svc, { clave: expediente.clave, expediente, versionAnterior: dbVersion.current });
+      if (r && r.ok === false) {
+        setMsg(`No se guardó (otra sesión cambió el expediente): ${r.error || 'conflicto de versión'}. Reabre y reintenta.`);
+      } else {
+        dbVersion.current = (r && r.version != null) ? r.version : dbVersion.current;
+        setMsg(`✓ Guardado v${dbVersion.current ?? ''} (clave ${expediente.clave}). Se reabre en Ingeniería por su clave.`);
+      }
+    } catch (e) {
+      const m = String(e?.message || e);
+      setMsg(/versi[oó]n|conflicto|concurren|40001|stale/i.test(m)
+        ? 'No se guardó: otra sesión cambió el expediente. Reabre y reintenta (no se sobrescribió).'
+        : `No se pudo guardar: ${m}`);
+    } finally { setGuardando(false); }
   }
 
   const setDim = (c, campo, val) => setDims((s) => ({ ...s, [c]: { ...s[c], [campo]: val } }));
