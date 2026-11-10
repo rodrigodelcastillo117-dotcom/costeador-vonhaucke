@@ -23,6 +23,8 @@
 //   · La aprobación del PRECIO no aprueba el BOM.
 // ============================================================================
 
+import { clasificarTercero } from './clasificacionTerceros.js';
+
 const TOL = 1e-3;
 const num = (x) => { const v = Number(x); return Number.isFinite(v) ? v : null; };
 
@@ -123,11 +125,22 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
       procedencia,
       trazable,
     };
-    // --- FAIL-CLOSED TERCEROS (bloqueo 1): no costear x1.80 en silencio un subcontratado ---
+    // --- FAIL-CLOSED TERCEROS (bloqueo 1) + catalogo de clasificacion (F1) ---
     if (d.clasificacionTercero === 'compra_venta') linea.esCompraVenta = true;   // declarado comprado terminado -> x1.06
     const pareceTercero = TERCERO_RE.test(descBase) || TERCERO_RE.test(String(ins.seccion || ''));
-    const terceroConfirmado = d.esCompraVenta === true
+    let terceroConfirmado = d.esCompraVenta === true
       || d.clasificacionTercero === 'fabricado' || d.clasificacionTercero === 'compra_venta';
+    // F1: el catalogo resuelve lo CLARO (vidrio/acrilico -> compra_venta, propuesta de Compras).
+    // Lo ambiguo (galvanizado/corte laser) devuelve null y cae al bloqueo de abajo.
+    if (pareceTercero && !linea.esCompraVenta && !terceroConfirmado) {
+      const cat = clasificarTercero(descBase, ins.seccion);
+      if (cat && cat.clasificacion === 'compra_venta') {
+        linea.esCompraVenta = true; linea.clasificacion_fuente = cat.fuente; linea.clasificacion_nota = cat.nota;
+        terceroConfirmado = true;   // resuelto por catalogo (propuesto; Compras valida)
+      } else if (cat && cat.clasificacion === 'fabricado') {
+        linea.clasificacion_fuente = cat.fuente; terceroConfirmado = true;
+      }
+    }
     if (pareceTercero && !linea.esCompraVenta && !terceroConfirmado) {
       linea.pendiente = true;
       linea.requiereClasificacionTercero = true;

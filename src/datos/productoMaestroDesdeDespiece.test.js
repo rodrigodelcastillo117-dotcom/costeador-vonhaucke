@@ -143,17 +143,25 @@ describe('FAIL-CLOSED TERCEROS (bloqueo 1): un subcontratado sin clasificar NO s
   const insumosT = {
     ...insumos,
     cri: { nombre: 'Cristal templado 6mm', seccion: 'cristal', unidad: 'pza', precio: 700, evidencia: { certificable: true } },
+    gal: { nombre: 'Lamina galvanizada corte laser', seccion: 'metal', unidad: 'hoja', precio: 900, evidencia: { certificable: true } },
   };
-  it('cristal templado SIN clasificar -> PENDIENTE (requiere clasificacion), BOM borrador, recosteo bloqueado', () => {
+  it('cristal SIN regla de Compras en el catalogo (F1 vacio) -> BLOQUEA (fail-closed, no asume x1.06 ni x1.80)', () => {
     const detalle = [linea('lam', 800, 2), linea('cri', 700, 4)];
     const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'con-cristal', verificar: true, ...FACT });
     const cristal = bom.lineas.find((l) => /Cristal/.test(l.desc));
     expect(cristal.pendiente).toBe(true);
     expect(cristal.requiereClasificacionTercero).toBe(true);
-    expect(cristal.costoSugerido).toBeCloseTo(2800, 2);     // conserva el estimado provisional, no lo pierde
-    expect(bom.tipo_bom).toBe('BOM_BORRADOR');              // no certificable hasta clasificar
     const r = costearBOM(bom, insumosT);
-    expect(r.emitible).toBe(false);                          // el tercero sin clasificar BLOQUEA (no basta aviso)
+    expect(r.emitible).toBe(false);
+  });
+  it('tercero AMBIGUO (galvanizado/corte laser) tampoco se asume -> BLOQUEADO', () => {
+    const detalle = [linea('lam', 800, 2), linea('gal', 900, 1, 'unidades')];
+    const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'con-galv', verificar: true, ...FACT });
+    const galv = bom.lineas.find((l) => /galvaniz/i.test(l.desc));
+    expect(galv.pendiente).toBe(true);                      // ambiguo: puede ser proceso propio
+    expect(galv.requiereClasificacionTercero).toBe(true);
+    const r = costearBOM(bom, insumosT);
+    expect(r.emitible).toBe(false);                          // bloquea hasta decision de Ingenieria/Compras
   });
 
   it('cristal declarado compra_venta por Ingenieria -> fluye como x1.06 y desbloquea', () => {

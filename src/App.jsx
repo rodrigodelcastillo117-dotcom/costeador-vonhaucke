@@ -1367,7 +1367,7 @@ export default function App() {
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('puentes'); }}>Aprobar puentes</button>}
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('solicitudes-precio'); }}>Precios por pedir a Compras</button>}
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('referencias'); }}>Biblioteca de referencia</button>}
-                {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('ingenieria'); }}>Ingeniería (costeo nuevo)</button>}
+                {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('ingenieria'); }}>Ingeniería · expediente (preliminar)</button>}
                 <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setRecuperando(false); irA('contrasena'); }}>Contraseña</button>
               </div>
             </details>

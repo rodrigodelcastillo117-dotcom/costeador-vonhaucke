@@ -26,7 +26,7 @@ async function cerrarGuia(page) {
 async function abrirIngenieria(page) {
   await cerrarGuia(page);
   await page.locator('summary.btn-enc').click();
-  await page.getByRole('menuitem', { name: /Ingenier.a \(costeo nuevo\)/i }).click();
+  await page.getByRole('menuitem', { name: /Ingenier.a · expediente \(preliminar\)/i }).click();
   await expect(page.getByTestId('pantalla-ingenieria')).toBeVisible({ timeout: 30000 });
 }
 
