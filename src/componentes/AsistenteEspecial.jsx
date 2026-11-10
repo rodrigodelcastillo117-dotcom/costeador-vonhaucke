@@ -22,6 +22,7 @@ import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-
 import { filaSombra, entradaSombraCliente } from '../datos/sombraCosteo.js';   // VH-073
 import { difierenAlCentavo } from '../datos/renglonesComerciales.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
+import ExpedienteIngenieriaPanel from './ExpedienteIngenieriaPanel.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { clasificarCosto } from '../datos/estadoCosto.js';
 import { especialidadActiva } from '../voni/especialidades.js';
@@ -1782,6 +1783,9 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             </div>
           )}
 
+          {b.componentes?.length > 0 && (
+            <ExpedienteIngenieriaPanel componentes={b.componentes} insumos={insumos} clave={b.clave || b.nombre || null} nombre={b.nombre || null} />
+          )}
           <div className="ayuda columna-texto" data-testid="estado-costo-detalle" style={{ textAlign: 'left', marginTop: 8 }}>
             <strong style={{ color: estadoCosto3.estado === 'bloqueado' ? 'var(--alerta,#b22a22)' : estadoCosto3.estado === 'validado' ? 'var(--ok,#1a7f37)' : '#8a6d00' }}>{estadoCosto3.etiqueta}</strong>
             {estadoCosto3.motivos.length > 0 && <> — {estadoCosto3.motivos.join(' · ')}</>}
