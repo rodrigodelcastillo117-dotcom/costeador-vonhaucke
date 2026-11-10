@@ -4,18 +4,18 @@ _Generado 2026-11-10. **Markup aplicado: 25%** (= margen bruto 20%; editable). F
 
 Precios de datos reales: explosion C-CO-320R (misma familia) + producto_maestro verificado. **No se inventaron precios unitarios.**
 
-> **Markup vs margen:** `cotizacion = costo × (1 + markup)`. Markup 25% equivale a **margen bruto 20%** (margen = utilidad/precio). Si se requiere 25% de *margen bruto*, el factor sube a ×1.333 — decision de Direccion.
+> **Markup vs margen:** markup 25% = **margen bruto 20%** (margen = utilidad/precio). El **Margen VH** de abajo se mide contra el precio al que **VH vende** (P/U R7 real), no contra la sugerencia de markup. **Telcel paga** = lo que el cliente desembolsa (negocia a la baja).
 
-| Pos | Mueble | Cant | Costo u. | Cotiza u. (markup 25%) | Conf. | Ref.Telcel R7 | Importe costo | Importe cotiza |
-|--:|--|--:|--:|--:|:-:|--:|--:|--:|
-| 10 | Vitrina Torre | 153 | $15,019 | $18,774 | ALTA | $17,998 | $2,297,965 | $2,872,456 |
-| 20 | Vitrina Horizontal | 197 | $15,250 | $19,063 | ALTA | $14,215 | $3,004,260 | $3,755,325 |
-| 30 | Modulo Conector Cubo | 25 | $3,108 | $3,885 | PRELIMINAR | — | $77,702 | $97,127 |
-| 40 | Modulo Almacenamiento | 38 | $7,974 | $9,968 | MEDIA | $12,000 | $303,026 | $378,782 |
-| 50 | Vitrina Isla | 15 | $17,824 | $22,280 | ALTA | $19,200 | $267,361 | $334,202 |
-| 60 | Caja de Cobro | 10 | $6,233 | $7,791 | PRELIMINAR | — | $62,331 | $77,913 |
-| 70 | Servicio entrega/armado R5 | 1 | por cotizar | | — | $212,000 (R3 ref) | | |
-| | **TOTAL (sin servicio)** | | | | | | **$6,012,645** | **$7,515,806** |
+| Pos | Mueble | Cant | Costo u. | VH vende R7 | Margen VH | Telcel paga R7 | Conf. | Importe costo |
+|--:|--|--:|--:|--:|--:|--:|:-:|--:|
+| 10 | Vitrina Torre | 153 | $15,019 | $19,814 | +24% | $17,998 | ALTA | $2,297,965 |
+| 20 | Vitrina Horizontal | 197 | $15,250 | $15,678 | +3% | $14,215 | ALTA | $3,004,260 |
+| 30 | Modulo Conector Cubo | 25 | $3,108 | sug. $3,885 | — | — | PRELIMINAR | $77,702 |
+| 40 | Modulo Almacenamiento | 38 | $7,974 | $13,330 | +40% | $12,000 | MEDIA | $303,026 |
+| 50 | Vitrina Isla | 15 | $17,824 | $21,234 | +16% | $19,200 | ALTA | $267,361 |
+| 60 | Caja de Cobro | 10 | $6,233 | sug. $7,791 | — | — | PRELIMINAR | $62,331 |
+| 70 | Servicio entrega/armado R5 | 1 | por cotizar | — | — | $64,124 (compra) | — | |
+| | **TOTAL costo (sin servicio)** | | | | | | | **$6,012,645** |
 
 ## Confianza
 - **ALTA** (Torre, Horizontal, Isla): fabricacion ANCLADA a `cos_fab_real` verificado; terceros/comprados con precio real del workbook.

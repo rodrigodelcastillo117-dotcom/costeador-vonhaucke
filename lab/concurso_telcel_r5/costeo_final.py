@@ -13,14 +13,18 @@ import html, datetime
 MARKUP = 0.25                      # sobre-costo aplicado sobre el costo
 MARGEN_BRUTO = MARKUP/(1+MARKUP)   # = 0.20 -> el margen real de ese markup
 
-# (nombre, pos, cant, cos_fab_verificado, cv_material, confianza, ref_telcel_R7, nota)
+# Referencias REALES R7 (mismos 4 muebles, hoja de Direccion):
+#   vh_vende  = P/U de VH (lo que Von Haucke cotiza para vender).
+#   telcel_paga = "precios a los que compra Telcel" (lo que el cliente paga; negocia a la baja).
+# El MARGEN de VH se mide contra vh_vende (su precio de venta), NO contra telcel_paga.
+# (nombre, pos, cant, cos_fab_verificado, cv_material, confianza, telcel_paga, vh_vende, nota)
 M = [
- ("Vitrina Torre",        10, 153, 3277.60, 11077.15, "ALTA",       17998, "fab verificado + terceros reales (acrilico, kit, cristal)"),
- ("Vitrina Horizontal",   20, 197, 6052.22,  8677.20, "ALTA",       14215, "fab verificado + termoformado $2840 + cristal + kit"),
- ("Modulo Conector Cubo", 30,  25, None,     None,     "PRELIMINAR", None,  "BOM del spec R5 (sin historico)"),
- ("Modulo Almacenamiento",40,  38, 4854.78,  2943.00, "MEDIA",      12000, "fab verificado + herrajes workbook + MDF superficie (0.72 m2 ~0.3 hoja decorlux $3,500)"),
- ("Vitrina Isla",         50,  15, 4452.07, 12615.11, "ALTA",       19200, "fab verificado + 8 cristales templados 1900x397 + repisas"),
- ("Caja de Cobro",        60,  10, None,     None,     "PRELIMINAR", None,  "BOM del spec R5 (sin historico)"),
+ ("Vitrina Torre",        10, 153, 3277.60, 11077.15, "ALTA",       17998, 19814, "fab verificado + terceros reales (acrilico, kit, cristal)"),
+ ("Vitrina Horizontal",   20, 197, 6052.22,  8677.20, "ALTA",       14215, 15678, "fab verificado + termoformado $2840 + cristal + kit"),
+ ("Modulo Conector Cubo", 30,  25, None,     None,     "PRELIMINAR", None,  None,  "BOM del spec R5 (sin historico)"),
+ ("Modulo Almacenamiento",40,  38, 4854.78,  2943.00, "MEDIA",      12000, 13330, "fab verificado + herrajes workbook + MDF superficie (0.72 m2 ~0.3 hoja decorlux $3,500)"),
+ ("Vitrina Isla",         50,  15, 4452.07, 12615.11, "ALTA",       19200, 21234, "fab verificado + 8 cristales templados 1900x397 + repisas"),
+ ("Caja de Cobro",        60,  10, None,     None,     "PRELIMINAR", None,  None,  "BOM del spec R5 (sin historico)"),
 ]
 
 # --- Cubo y Caja: BOM del spec con precios reales del workbook. Supuestos de lamina marcados. ---
@@ -62,7 +66,7 @@ NUEVO = {"Modulo Conector Cubo": (cubo_cost, cubo_fab, cubo_cv),
 
 filas = []
 gran_costo = gran_quote = 0.0
-for nombre, pos, cant, cosfab, cv, conf, ref, nota in M:
+for nombre, pos, cant, cosfab, cv, conf, telcel, vhpu, nota in M:
     if cosfab is None:
         costo, fabm, cvm = NUEVO[nombre]
         cosfab_disp = fabm*(1+FACT_GEN[0]+FACT_GEN[1])
@@ -73,10 +77,11 @@ for nombre, pos, cant, cosfab, cv, conf, ref, nota in M:
     quote = costo*(1+MARKUP)
     imp_costo = costo*cant; imp_quote = quote*cant
     gran_costo += imp_costo; gran_quote += imp_quote
-    # markup/margen HISTORICO implicito = lo que daba la cotizacion historica vs este costo
-    mk_hist = (ref-costo)/costo if ref else None   # markup historico
-    mg_hist = (ref-costo)/ref   if ref else None   # margen bruto historico
-    filas.append((pos, nombre, cant, costo, quote, conf, ref, imp_costo, imp_quote, nota, cosfab_disp, cv, mk_hist, mg_hist))
+    # Margen REAL de VH = contra SU precio de venta (vh_vende), no contra lo que paga Telcel.
+    mg_vh = (vhpu-costo)/vhpu if vhpu else None        # margen bruto de VH a su P/U
+    # Riesgo cliente: lo que paga Telcel vs el costo (negativo = Telcel paga BAJO costo -> perdida).
+    tel_vs_costo = (telcel-costo)/costo if telcel else None
+    filas.append((pos, nombre, cant, costo, quote, conf, telcel, vhpu, imp_costo, imp_quote, nota, cosfab_disp, cv, mg_vh, tel_vs_costo))
 
 filas.sort()
 
@@ -84,14 +89,16 @@ filas.sort()
 md = ["# COSTEO CONCURSO TELCEL R5 (MODULOS DATS) — Von Haucke",
  f"\n_Generado {datetime.date.today()}. **Markup aplicado: {MARKUP*100:.0f}%** (= margen bruto {MARGEN_BRUTO*100:.0f}%; editable). Flete/armado (pos 70) por cotizar aparte._\n",
  "Precios de datos reales: explosion C-CO-320R (misma familia) + producto_maestro verificado. **No se inventaron precios unitarios.**\n",
- "> **Markup vs margen:** `cotizacion = costo × (1 + markup)`. Markup 25% equivale a **margen bruto 20%** (margen = utilidad/precio). Si se requiere 25% de *margen bruto*, el factor sube a ×1.333 — decision de Direccion.\n",
- f"| Pos | Mueble | Cant | Costo u. | Cotiza u. (markup {MARKUP*100:.0f}%) | Conf. | Ref.Telcel R7 | Importe costo | Importe cotiza |",
- "|--:|--|--:|--:|--:|:-:|--:|--:|--:|"]
-for pos, n, c, co, q, cf, rf, ic, iq, nt, cfab, cv, mkh, mgh in filas:
-    rfs = f"${rf:,}" if rf else "—"
-    md.append(f"| {pos} | {n} | {c} | ${co:,.0f} | ${q:,.0f} | {cf} | {rfs} | ${ic:,.0f} | ${iq:,.0f} |")
-md.append(f"| 70 | Servicio entrega/armado R5 | 1 | por cotizar | | — | $212,000 (R3 ref) | | |")
-md.append(f"| | **TOTAL (sin servicio)** | | | | | | **${gran_costo:,.0f}** | **${gran_quote:,.0f}** |")
+ "> **Markup vs margen:** markup 25% = **margen bruto 20%** (margen = utilidad/precio). El **Margen VH** de abajo se mide contra el precio al que **VH vende** (P/U R7 real), no contra la sugerencia de markup. **Telcel paga** = lo que el cliente desembolsa (negocia a la baja).\n",
+ "| Pos | Mueble | Cant | Costo u. | VH vende R7 | Margen VH | Telcel paga R7 | Conf. | Importe costo |",
+ "|--:|--|--:|--:|--:|--:|--:|:-:|--:|"]
+for pos, n, c, co, q, cf, telcel, vhpu, ic, iq, nt, cfab, cv, mgvh, telvc in filas:
+    vhs = f"${vhpu:,}" if vhpu else f"sug. ${q:,.0f}"
+    mgs = f"{mgvh*100:+.0f}%" if mgvh is not None else "—"
+    tels = f"${telcel:,}" if telcel else "—"
+    md.append(f"| {pos} | {n} | {c} | ${co:,.0f} | {vhs} | {mgs} | {tels} | {cf} | ${ic:,.0f} |")
+md.append(f"| 70 | Servicio entrega/armado R5 | 1 | por cotizar | — | — | $64,124 (compra) | — | |")
+md.append(f"| | **TOTAL costo (sin servicio)** | | | | | | | **${gran_costo:,.0f}** |")
 md.append("\n## Confianza\n- **ALTA** (Torre, Horizontal, Isla): fabricacion ANCLADA a `cos_fab_real` verificado; terceros/comprados con precio real del workbook.")
 md.append("- **MEDIA** (Almacen): fab verificado + herrajes del workbook; faltaria MDF de superficie (reconciliar antes de firmar).")
 md.append("- **PRELIMINAR** (Cubo, Caja): BOM del spec R5 con precios reales; los renglones marcados `*supuesto*` son consumos de lamina/MDF estimados, a validar con Ingenieria.")
@@ -108,26 +115,35 @@ print(f"\n>>> TOTAL costo ${gran_costo:,.0f} | TOTAL cotizacion (markup {MARKUP*
 # ---------- HTML (hoja compartible) ----------
 def esc(s): return html.escape(str(s))
 rows_html = ""
-for pos, n, c, co, q, cf, rf, ic, iq, nt, cfab, cv, mkh, mgh in filas:
+for pos, n, c, co, q, cf, telcel, vhpu, ic, iq, nt, cfab, cv, mgvh, telvc in filas:
     color = {"ALTA":"#2e7d52","MEDIA":"#b06f12","PRELIMINAR":"#c0453b"}[cf]
-    rfs = f"${rf:,}" if rf else "—"
+    vhs = f"${vhpu:,}" if vhpu else f"<span class=sub>sug. ${q:,.0f}</span>"
+    # margen de VH: rojo si <10%, ambar si <20%
+    if mgvh is None: mgs = "—"
+    else:
+        mc = "#c0453b" if mgvh < 0.10 else ("#b06f12" if mgvh < 0.20 else "#2e7d52")
+        mgs = f"<b style='color:{mc}'>{mgvh*100:+.0f}%</b>"
+    tels = f"${telcel:,}" if telcel else "—"
     rows_html += (f"<tr><td>{pos}</td><td>{esc(n)}</td><td class=r>{c}</td>"
-      f"<td class=r>${co:,.0f}</td><td class=r>${q:,.0f}</td>"
-      f"<td style='color:{color};font-weight:600'>{cf}</td><td class=r>{rfs}</td>"
-      f"<td class=r>${ic:,.0f}</td><td class=r>${iq:,.0f}</td></tr>")
-# ---- Hallazgo data-driven: markup/margen HISTORICO implicito (ref vs costo calculado) ----
-comp = sorted([(n, co, rf, mkh, mgh) for pos,n,c,co,q,cf,rf,ic,iq,nt,cfab,cv,mkh,mgh in filas
-               if mgh is not None], key=lambda x: x[4])
-flaco = comp[0]                       # menor margen historico
+      f"<td class=r>${co:,.0f}</td><td class=r>{vhs}</td><td class=r>{mgs}</td><td class=r>{tels}</td>"
+      f"<td style='color:{color};font-weight:600'>{cf}</td><td class=r>${ic:,.0f}</td></tr>")
+# ---- Hallazgo data-driven: margen REAL de VH (precio de venta P/U) + riesgo del precio Telcel ----
+comp = sorted([(n, co, telcel, vhpu, mgvh, telvc)
+               for pos,n,c,co,q,cf,telcel,vhpu,ic,iq,nt,cfab,cv,mgvh,telvc in filas
+               if mgvh is not None], key=lambda x: x[4])
+flaco = comp[0]                       # menor margen de VH
 resto = comp[1:]
-rango_mk = f"{min(r[3] for r in resto)*100:.0f}–{max(r[3] for r in resto)*100:.0f}%"
-rango_mg = f"{min(r[4] for r in resto)*100:.0f}–{max(r[4] for r in resto)*100:.0f}%"
-_alerta = (" <b style='color:#c0453b'>Markup negativo = se vendería BAJO costo (pérdida). "
-  "Confirmar el precio R7 correcto y recotizar antes de concursar.</b>") if flaco[3] < 0 else ""
-hallazgo = (f"La <b>{esc(flaco[0])}</b> es la de margen histórico más delgado: cotización histórica "
-  f"${flaco[2]:,.0f} vs costo calculado ${flaco[1]:,.0f} = markup {flaco[3]*100:.0f}% "
-  f"(margen bruto {flaco[4]*100:.0f}%).{_alerta} Las demás con histórico: markup {rango_mk} "
-  f"(margen bruto {rango_mg}). <b>Ojo:</b> markup ≠ margen — un markup del 25% es apenas 20% de margen bruto.")
+rango = f"{min(r[4] for r in resto)*100:.0f}–{max(r[4] for r in resto)*100:.0f}%"
+# ¿Telcel paga por DEBAJO del costo en el mueble flaco?
+perdida = flaco[5] is not None and flaco[5] < 0
+_alerta = (f" <b style='color:#c0453b'>Y ojo: Telcel la paga en ${flaco[2]:,.0f}, "
+  f"BAJO el costo (${flaco[1]:,.0f}) → si VH acepta el precio de Telcel pierde "
+  f"${flaco[1]-flaco[2]:,.0f}/pza. Subir el precio de este mueble o bajar su costo "
+  f"(revisar termoformado y kit).</b>") if perdida else ""
+hallazgo = (f"La <b>{esc(flaco[0])}</b> es la de margen más delgado: VH la vende en "
+  f"${flaco[3]:,.0f} sobre un costo de ${flaco[1]:,.0f} = <b>margen bruto {flaco[4]*100:+.0f}%</b> "
+  f"(apenas).{_alerta} Las demás tienen margen sano ({rango}). "
+  f"Recordatorio: el <b>Margen VH</b> es contra el precio de VENTA de VH, no contra lo que paga Telcel.")
 
 HTML = f"""<!DOCTYPE html><html lang=es><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
@@ -146,11 +162,11 @@ td.r,th.r{{text-align:right;font-variant-numeric:tabular-nums}}tr:last-child td{
 <h1>Concurso TELCEL R5 — Módulos DAT'S</h1>
 <div class=sub>2001224671 · Von Haucke · generado {datetime.date.today()} · markup aplicado {MARKUP*100:.0f}% = margen bruto {MARGEN_BRUTO*100:.0f}% (editable) · flete/armado por cotizar</div>
 <div class=note><b>Confiabilidad medida (uso real):</b> el motor de COSTEAR tiene <b>96.5% de aprobación humana</b> (1,118 de 1,158 costeos) y <b>115 costeos certificados</b> de muebles reales. La capa de <b>fabricación</b> de las 3 vitrinas está anclada a <code>cos_fab_real</code> <b>certificado</b>. Precios de cristal/termoformado/herrajes = compras reales ERP. <b>No se inventaron precios unitarios.</b><br>
-El <b>costo</b> no incluye markup ni flete; la <b>cotización</b> = costo × (1+markup). Markup {MARKUP*100:.0f}% = <b>margen bruto {MARGEN_BRUTO*100:.0f}%</b> (margen = utilidad/precio). Para 25% de <i>margen</i>, el factor sería ×1.333 — decisión de Dirección.</div>
-<table><thead><tr><th>Pos</th><th>Mueble</th><th class=r>Cant</th><th class=r>Costo u.</th><th class=r>Cotiza u.</th><th>Confianza</th><th class=r>Ref.Telcel</th><th class=r>Importe costo</th><th class=r>Importe cotiza</th></tr></thead>
+El <b>costo</b> es lo que a VH le cuesta fabricar (sin markup ni flete). <b>VH vende R7</b> = precio al que VH cotiza (P/U real). <b>Margen VH</b> = (VH vende − costo) / VH vende. <b>Telcel paga R7</b> = lo que el cliente desembolsa (negocia a la baja; en la Horizontal queda BAJO el costo de VH). Markup {MARKUP*100:.0f}% aplicado = margen bruto {MARGEN_BRUTO*100:.0f}%; para 25% de margen real el factor sería ×1.333 — decisión de Dirección.</div>
+<table><thead><tr><th>Pos</th><th>Mueble</th><th class=r>Cant</th><th class=r>Costo u.</th><th class=r>VH vende R7</th><th class=r>Margen VH</th><th class=r>Telcel paga R7</th><th>Confianza</th><th class=r>Importe costo</th></tr></thead>
 <tbody>{rows_html}
-<tr><td>70</td><td>Servicio entrega/armado</td><td class=r>1</td><td class=r>por cotizar</td><td class=r>—</td><td>—</td><td class=r>$212,000<span class=sub> (R3)</span></td><td class=r>—</td><td class=r>—</td></tr>
-<tr class=tot><td colspan=7>TOTAL muebles (sin servicio)</td><td class=r>${gran_costo:,.0f}</td><td class=r>${gran_quote:,.0f}</td></tr>
+<tr><td>70</td><td>Servicio entrega/armado</td><td class=r>1</td><td class=r>por cotizar</td><td class=r>—</td><td class=r>—</td><td class=r>$64,124<span class=sub> (compra)</span></td><td>—</td><td class=r>—</td></tr>
+<tr class=tot><td colspan=8>TOTAL costo muebles (sin servicio)</td><td class=r>${gran_costo:,.0f}</td></tr>
 </tbody></table>
 <h2>Confianza de cada costo</h2>
 <p class=sub><span class=badge style='background:#2e7d52'>ALTA</span> Torre, Horizontal, Isla — fabricación anclada al costo real verificado; terceros (cristal templado, termoformado, kit) con precio real.<br>
