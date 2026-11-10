@@ -40,13 +40,16 @@ function faltaTrazabilidad(l) {
 }
 
 /**
- * Costea un BOM por el motor, fail-closed.
+ * Costea un BOM por el motor, fail-closed. El costeo CLIENTE nunca es oficial por si mismo:
+ * la certificacion es SERVER-ONLY (autoridadCosteoServidor en la Edge costear-servidor).
  * @param {Array} lineas  [{ id?|instanceId?, insumoId?, nombre?, cantidad?, precio?, costo?,
  *   unidad?, procedencia?, seccion, clasificacion?, estimado? }]
- * @param {{politica?:object, aprobacionServidor?:boolean}} opts
- *   aprobacionServidor: el servidor confirmo el costeo. Sin esto el costo NUNCA es oficial.
+ * @param {{politica?:object, veredictoServidor?:object}} opts
+ *   veredictoServidor: el RESULTADO verificable del servidor (estadoBaseServidor +
+ *   aprobacionPrecioExacto): { estado:'certificado', aprobacionHumana:true }. Un booleano
+ *   enviado desde JS NO es autorizacion valida (P2 auditoria 16307614): se ignora.
  */
-export function costearBOM(lineas = [], { politica = POLITICA_VH, aprobacionServidor = false } = {}) {
+export function costearBOM(lineas = [], { politica = POLITICA_VH, veredictoServidor = null } = {}) {
   const detalle = []; const faltantes = []; const bloqueos = []; const vistos = new Map();
   const entrada = Array.isArray(lineas) ? lineas : [];
 
@@ -102,15 +105,19 @@ export function costearBOM(lineas = [], { politica = POLITICA_VH, aprobacionServ
   const todasTrazables = detalle.length > 0 && detalle.every((d) => d.trazable);
   const bloqueado = faltantes.length > 0 || bloqueos.length > 0;
   const estado = bloqueado ? 'BLOQUEADO' : (hayEstimado ? 'ESTIMADO' : 'COSTEADO');
-  // OFICIAL (P1-A/B/C): nada bloqueado, nada estimado, TODO trazable, Y aprobado por el servidor.
-  const oficial = !bloqueado && !hayEstimado && todasTrazables && aprobacionServidor === true;
+  // VEREDICTO del servidor: SOLO cuenta si es el objeto verificable del servidor (no un booleano).
+  const vs = (veredictoServidor && typeof veredictoServidor === 'object') ? veredictoServidor : null;
+  const servidorCertifico = vs && vs.estado === 'certificado' && vs.aprobacionHumana === true;
+  // OFICIAL (P1-A/B/C + P2): nada bloqueado, nada estimado, TODO trazable, Y el SERVIDOR certifico
+  // (estado 'certificado' + aprobacion humana verificada). El cliente nunca se auto-certifica.
+  const oficial = !bloqueado && !hayEstimado && todasTrazables && !!servidorCertifico;
 
   return {
     costo_total: +motor.costoFabricacion.toFixed(2), material: +motor.material.toFixed(2),
     material_fabricado: +motor.materialFabricado.toFixed(2), material_compra_venta: +motor.materialCompraVenta.toFixed(2),
     mano_obra: +motor.manoObra.toFixed(2), gif: +motor.gif.toFixed(2),
     completo: faltantes.length === 0 && detalle.length > 0,
-    oficial, estado, todasTrazables, aprobacionServidor: aprobacionServidor === true, politica,
+    oficial, estado, todasTrazables, servidorCertifico: !!servidorCertifico, politica,
     detalle, faltantes, bloqueos, advertencias: advertenciasTerceros(detalle), cv_secciones: [...CV_SECCIONES],
   };
 }
