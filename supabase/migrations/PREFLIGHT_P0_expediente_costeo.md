@@ -3,11 +3,13 @@
 > **Para autorización de Dirección. NO se ejecuta la migración productiva sin aprobación explícita.**
 > Release mínimo: sólo cierra el P0 de autorización. No incluye el módulo industrial (sigue en PR #90 DRAFT).
 
-- **Fecha:** 2026-11-09
+- **Fecha:** 2026-11-10
 - **Proyecto prod:** `mtuvnbgljwbsaizjjgzs` (costeador-vonhaucke)
 - **Migración:** `20261112_expediente_costeo_seguridad.sql`
 - **Rollback:** `ROLLBACK_20261112_expediente_costeo_seguridad.sql`
-- **Pruebas:** `supabase/tests/expedienteCosteoSeguridad.test.js` (PGlite, 12) · `supabase/tests/postgres_real/aislamiento_dos_usuarios.sh` (Postgres real, 14)
+- **Verificación posterior:** `VERIFICACION_POST_20261112.sql` (14 chequeos)
+- **Pruebas:** `supabase/tests/expedienteCosteoSeguridad.test.js` (PGlite, 13) · `supabase/tests/postgres_real/aislamiento_dos_usuarios.sh` (Postgres real, 22)
+- **Identidad de dueño: `auth.uid()` (UUID inmutable), no el email** (ver §3-bis).
 
 ## 1. Defecto (vivo en prod)
 
@@ -30,24 +32,32 @@
 
 | Objeto | Después del fix |
 |---|---|
-| PK | `PRIMARY KEY (creado_por, clave)` — identidad por dueño; la clave comercial ya no identifica sola → **sin colisión entre usuarios** |
-| `creado_por` | backfill desde `actualizado_por` si null (la fila QA ya lo tiene) → `NOT NULL` (dueño inmutable) |
-| Policies | se reemplazan por `expediente_costeo_owner` (ALL) por `creado_por` **inmutable** (no `actualizado_por` mutable) |
-| RPC guardar/reabrir | **aisladas por dueño** (`where creado_por = v_email …`): imposible leer/sobrescribir/reclamar fila ajena; `creado_por` nunca se actualiza; `VERSION_CONFLICT` ya no filtra la versión; lock por dueño+clave |
-| Historial | nueva tabla `expediente_costeo_historial` append-only (RLS por `creado_por`, sólo SELECT a authenticated) |
+| `propietario` | **nueva columna `uuid` = `auth.uid()`** (dueño inmutable). Backfill desde `auth.users` por el email guardado (`creado_por`) → `NOT NULL`. `creado_por`/`actualizado_por` (email) quedan como **auditoría**. |
+| PK | `PRIMARY KEY (propietario, clave)` — identidad por dueño; la clave comercial ya no identifica sola → **sin colisión entre usuarios** |
+| Policies | se reemplazan por `expediente_costeo_owner` (ALL) por `auth.uid() = propietario` (no email mutable) |
+| RPC guardar/reabrir | **aisladas por `auth.uid()`** (`where propietario = v_uid …`): imposible leer/sobrescribir/reclamar fila ajena; `propietario` nunca se actualiza; `VERSION_CONFLICT` ya no filtra la versión; lock por uid+clave |
+| Historial | nueva tabla `expediente_costeo_historial` (col. `propietario uuid`) append-only (RLS por `auth.uid()`, sólo SELECT a authenticated) |
 | Firma/return RPC | **sin cambios** → el cliente no requiere redeploy |
 
-**Aditiva y compatible:** no toca precios, BOM, Producto Maestro ni permisos de otras tablas. La única fila QA sobrevive (su `creado_por` ya está poblado). La migración **aborta** (sin escribir) si encontrara un expediente sin dueño, en vez de inventar uno.
+**Aditiva y compatible:** no toca precios, BOM, Producto Maestro ni permisos de otras tablas. La única fila QA sobrevive; su `propietario` se rellena con el uid de `qa-direccion` (mapeado desde `auth.users`, verificado read-only: existe y 0 filas sin match). La migración **aborta** (sin escribir) si un email dueño no mapea a un `auth.users.id`, en vez de inventar un dueño.
+
+## 3-bis. Por qué `auth.uid()` y no el email (corrección de la auditoría)
+
+El email en Supabase **es mutable y reasignable**. Identificar al dueño por email dejaba dos huecos que el uid cierra:
+- **Reasignación (seguridad):** si un correo se libera y se asigna a otra persona, su JWT traería ese email y podría reabrir/sobrescribir los expedientes del usuario original — el mismo "claim" que cerramos, resurgiendo.
+- **Cambio de correo (disponibilidad):** al cambiar su email, un usuario quedaría fuera de sus propios expedientes (`creado_por` viejo).
+
+`auth.uid()` (el `sub` del JWT) nunca cambia ni se reasigna. Probado: *"reasignar el email de A a B NO transfiere el expediente"* (PGlite + Postgres real). Costo hoy: backfill de **1 fila**.
 
 ## 4. Rollback — análisis del riesgo que señaló la auditoría
 
 **Pregunta:** ¿el rollback puede restaurar una PK global después de que existan claves repetidas por dueño?
 
-**Respuesta: NO, y por diseño.** El rollback lleva un *guard* que lo **ABORTA** (`ROLLBACK_ABORTADO`, sin borrar datos) si detecta la misma `clave` en más de un dueño — porque colapsar a `PRIMARY KEY (clave)` ahí perdería aislamiento/datos. **Demostrado** en Postgres real (test #7): con 2 filas `TELSVH120` de dueños distintos, el rollback aborta y las filas quedan intactas.
+**Respuesta: NO, y por diseño.** El rollback lleva un *guard* que lo **ABORTA** (`ROLLBACK_ABORTADO`, sin borrar datos) si detecta la misma `clave` en más de un propietario — colapsar a `PRIMARY KEY (clave)` ahí perdería aislamiento/datos. **Demostrado** en Postgres real (test #7): con 2 filas `TELSVH120` de dueños distintos, el rollback aborta y las filas quedan intactas.
 
 **Guía operativa:**
-- El rollback sólo es seguro en la **ventana inmediata** post-aplicación (si el fix falla o la RPC nueva tiene un bug), **antes** de que exista una 2ª fila con clave repetida. Hoy hay **1 sola fila** → ventana segura.
-- Revertir restaura la RPC **vulnerable** (re-abre el P0), así que no es un "undo" neutro: pasada esa ventana, **corregir hacia adelante**, no revertir. La PK compuesta y el historial son inocuos de conservar.
+- El rollback sólo es seguro en la **ventana inmediata** post-aplicación (si el fix falla), **antes** de que exista una 2ª fila con clave repetida. Hoy hay **1 sola fila** → ventana segura.
+- Revertir restaura la RPC **vulnerable** y la identidad por email: no es un "undo" neutro. Pasada esa ventana, **corregir hacia adelante**, no revertir. La columna `propietario`, la PK compuesta y el historial son inocuos de conservar.
 
 ## 4-bis. Alternativa SEGURA: corrección hacia adelante (recomendada sobre el rollback)
 
@@ -55,38 +65,29 @@ El rollback re-abre el P0 y falla tras colisiones; por eso, si el fix necesitara
 
 - **Si la RPC nueva tuviera un bug** (p.ej. en el lock o el chequeo de versión): un `create or replace function public.guardar_expediente_costeo(...)` corregido, **manteniendo** `where creado_por = v_email and clave = v_clave` y sin tocar `creado_por`. No requiere cambiar la tabla ni perder datos.
 - **Si hiciera falta endurecer la policy/permiso:** un `drop policy ... / create policy ...` sobre `creado_por`, o ajustar grants, sin tocar la PK ni las filas.
-- **Si se quisiera una identidad de expediente aún más desacoplada** (surrogate `id uuid` + `unique(creado_por, clave)`): se **añade** la columna y el índice único, se rellena, y se migran las RPC — todo aditivo, sin colapsar a PK global ni perder aislamiento.
-- **Invariante en toda corrección hacia adelante:** nunca volver a localizar la fila sólo por `clave`; nunca actualizar `creado_por`; nunca degradar la RLS a `actualizado_por`. Estas tres son las que causaron el P0.
+- **Si se quisiera una identidad aún más desacoplada:** la columna `propietario uuid` ya cumple ese rol; cualquier cambio se **añade** de forma aditiva.
+- **Invariante en toda corrección hacia adelante:** nunca localizar la fila sólo por `clave`; nunca actualizar `propietario`; nunca degradar la RLS a email (`actualizado_por`/`creado_por`). Estas son las que causaron el P0.
 
 En resumen: el **rollback** es el botón de pánico de la ventana inmediata (hoy segura, 1 fila); la **corrección hacia adelante** es la vía por defecto una vez que el fix está en uso.
 
-## 5. Evidencia (ejecutada y RE-VERIFICADA el 2026-11-09)
+## 5. Evidencia (ejecutada)
 
-- **Prod RE-VERIFICADO en vivo (read-only):** sigue vulnerable y sin cambios — PK `(clave)`, sin `expediente_costeo_historial`, `guardar` filtra sólo por `clave`, 1 fila. Las tablas de precio (`insumo_precios`, `catalogo_vigente`, `producto_maestro`) existen y la migración **no las referencia** → **sin cambio de precios ni de frontend** (firma/return de las RPC idénticas).
+- **Prod RE-VERIFICADO en vivo (read-only):** sigue vulnerable y sin cambios — PK `(clave)`, sin `expediente_costeo_historial`, `guardar` filtra sólo por `clave`, 1 fila, md5 `6fdd462c`. Las tablas de precio (`insumo_precios`, `catalogo_vigente`, `producto_maestro`) existen y la migración **no las referencia** → **sin cambio de precios ni de frontend** (firma/return de las RPC idénticas). `auth.users`: `qa-direccion` existe, **0 filas sin match** para el backfill.
 - **Respaldo recuperable:** `supabase/backups/RESPALDO_expediente_costeo_20261109.md` — snapshot md5 `6fdd462c…`, migración aditiva que preserva la fila, INSERT idempotente verificado.
-- **Postgres REAL (no prod), 14/14 PASS** — `aislamiento_dos_usuarios.sh`:
+- **Postgres REAL (no prod), 22/22 PASS** — `aislamiento_dos_usuarios.sh`:
+  0. Backfill email→uid asigna el uid correcto a la fila heredada.
   1. `authenticated` sin acceso directo a la tabla (sólo vía RPC).
-  2. RLS filtra por `creado_por`: B sólo ve su fila, no la de A; B no lee el secreto de A.
-  3. RPC aisladas: B no lee/sobrescribe/reclama a A; coexisten 2 filas sin colisión.
+  2. RLS por `propietario = auth.uid()`: B sólo ve su fila; no lee el secreto de A.
+  3. RPC aisladas por uid: B no lee/sobrescribe/reclama a A; 2 filas sin colisión.
   4. `SECURITY DEFINER` + `search_path` fijado.
-  5. `creado_por` inmutable tras varios guardados.
+  5. `propietario` inmutable; **reasignar el email de A a B NO transfiere** el expediente.
   6. `VERSION_CONFLICT` ya no revela la versión.
   7. Rollback aborta ante colisión, sin perder datos.
-- **PGlite 12/12** — reproduce el defecto (contrato viejo) y lo cierra (contrato nuevo).
+  8. **Ejecución transaccional (atómica):** tx que falla revierte **todo** (ni PK, ni historial, ni columna `propietario`); el commit deja el fix **completo** (PK `propietario,clave`) y preserva la fila.
+- **PGlite 13/13** — reproduce el defecto (contrato viejo por email) y lo cierra (contrato nuevo por uid), incl. inmutabilidad ante reasignación de email y backfill fail-closed.
+- **Verificación posterior** `VERIFICACION_POST_20261112.sql` validada en Postgres real: **13/13 estructurales PASS** (el #14 de md5 sólo aplica en prod).
 - Migración verificada **contra el esquema productivo real** (sección 2 ↔ 3).
-
-- **Postgres REAL (no prod), 14/14 PASS** — `aislamiento_dos_usuarios.sh`:
-  1. `authenticated` sin acceso directo a la tabla (sólo vía RPC).
-  2. RLS filtra por `creado_por`: B sólo ve su fila, no la de A; B no lee el secreto de A.
-  3. RPC aisladas: B no lee/sobrescribe/reclama a A; coexisten 2 filas sin colisión.
-  4. `SECURITY DEFINER` + `search_path` fijado.
-  5. `creado_por` inmutable tras varios guardados.
-  6. `VERSION_CONFLICT` ya no revela la versión.
-  7. Rollback aborta ante colisión, sin perder datos.
-  8. **Ejecución transaccional (atómica):** una transacción que falla a mitad **revierte todo** (PK sigue `clave`, sin historial); el commit deja el fix **completo** (PK `creado_por,clave`, historial, fila preservada). → todo-o-nada.
-- **PGlite 12/12** — reproduce el defecto (contrato viejo) y lo cierra (contrato nuevo).
-- Migración verificada **contra el esquema productivo real** (sección 2 ↔ 3).
-- **CI del release (run #1063, SHA `539b7da`): ambos jobs SUCCESS** — `verify` (npm ci, `npm audit` 0 vulns, `vitest` 4315/4315, build) y `E2E público+auth` (Playwright).
+- **CI del release:** `verify` (npm ci, `npm audit` 0 vulns, `vitest`, build) + `E2E público+auth` — SUCCESS en el commit previo; se re-dispara en el SHA final.
 
 ## 6. Ejecución transaccional
 
@@ -94,7 +95,7 @@ La migración se aplica **dentro de una sola transacción** (`begin; … commit;
 
 ## 7. Verificación POSTERIOR (sólo lectura)
 
-`supabase/migrations/VERIFICACION_POST_20261112.sql` — 14 chequeos con PASS/FAIL (objetivo: 0 FAIL): PK `(creado_por,clave)`, `creado_por NOT NULL`, ambas RPC aisladas por dueño, ausencia del patrón vulnerable, historial + RLS, policy por `creado_por`, execute a `authenticated`, `anon` sin execute, sin acceso directo a la tabla, `SECURITY DEFINER`+`search_path`, firmas intactas, y fila QA preservada por md5. Validado en Postgres real (13/13 estructurales PASS; el #14 de md5 sólo aplica en prod).
+`supabase/migrations/VERIFICACION_POST_20261112.sql` — 14 chequeos con PASS/FAIL (objetivo: 0 FAIL): PK `(propietario,clave)`, `propietario NOT NULL`, ambas RPC aisladas por `auth.uid()`, ausencia del patrón vulnerable, historial + RLS, policy por `propietario`/`auth.uid()`, execute a `authenticated`, `anon` sin execute, sin acceso directo a la tabla, `SECURITY DEFINER`+`search_path`, firmas intactas, y fila QA preservada por md5 con su `propietario` mapeando al uid de `qa-direccion`. Validado en Postgres real (13/13 estructurales PASS; el #14 de md5 sólo aplica en prod).
 
 ## 8. Plan de aplicación (sólo con tu autorización)
 
@@ -106,7 +107,8 @@ commit;
 -- 2) Verificar (0 FAIL esperado):
 \i supabase/migrations/VERIFICACION_POST_20261112.sql
 ```
+Chequeo de contenido: `select md5(expediente::text) from public.expediente_costeo where clave='TELSVH120';` → debe seguir siendo `6fdd462cb2fe1878746ad66f09a858db`.
 3. Smoke productivo (opcional): E2E de Ingeniería con la cuenta QA (guardar borrador → reabrir).
-4. **Recuperación:** prioriza **corrección hacia adelante** (§4-bis). El rollback a `20261111` re-abre el P0 y sólo es admisible en la ventana inmediata, antes de que exista una 2ª fila con clave repetida.
+4. **Recuperación:** prioriza **corrección hacia adelante** (§4-bis). El rollback a `20261111` re-abre el P0 y la identidad por email; sólo admisible en la ventana inmediata, antes de que exista una 2ª fila con clave repetida.
 
 **No ejecuto nada de esto sin tu aprobación explícita.**

@@ -1,38 +1,34 @@
 -- ============================================================================
 --  ROLLBACK de 20261112_expediente_costeo_seguridad.sql
---  Devuelve el contrato de 20261111 (RPC/RLS/PK originales).
+--  Devuelve el contrato de 20261111 (RPC/RLS/PK por email, PK global `clave`).
 --
 --  ⚠️ LEE ESTO ANTES DE USARLO (riesgo señalado por la auditoria):
---  Este rollback restaura la PK GLOBAL (clave). El esquema nuevo permite que dos
---  dueños distintos tengan la MISMA clave; en cuanto eso ocurra, restaurar una PK
---  global es IMPOSIBLE sin perder el aislamiento y/o datos. Por eso este script
---  tiene un GUARD que lo ABORTA si detecta claves repetidas por dueño (no borra
---  nada; probado en supabase/tests/postgres_real/aislamiento_dos_usuarios.sh #7).
+--  Restaurar la PK GLOBAL (clave) es IMPOSIBLE sin perder aislamiento/datos en
+--  cuanto dos dueños distintos tengan la misma clave. Por eso este script tiene
+--  un GUARD que lo ABORTA si detecta claves repetidas por propietario (no borra
+--  nada; probado en supabase/tests/postgres_real/aislamiento_dos_usuarios.sh).
 --
---  Ademas: revertir restaura la RPC VULNERABLE (re-abre el P0). Por tanto:
+--  Ademas revertir restaura la RPC VULNERABLE (re-abre el P0) y la identidad por
+--  email (mutable). Por tanto:
 --   · Usa este rollback SOLO en la ventana inmediata post-aplicacion, si el fix
---     falla o la RPC nueva tiene un bug, y ANTES de que exista una 2a fila con
---     clave repetida (hoy solo hay 1 fila QA -> ventana segura).
---   · Despues de esa ventana, NO reviertas a la PK global: corrige hacia adelante.
---     La PK compuesta y el historial son inocuos de conservar.
---  El historial (expediente_costeo_historial) se conserva; para eliminarlo,
---  descomentar la ultima linea.
+--     falla, y ANTES de que exista una 2a fila con clave repetida (hoy 1 fila QA).
+--   · Despues, NO reviertas: corrige hacia adelante. La columna propietario, la PK
+--     compuesta y el historial son inocuos de conservar.
 -- ============================================================================
 
--- Verificacion: no debe haber claves duplicadas entre dueños antes de revertir.
+-- Guard: no debe haber claves compartidas por varios dueños antes de revertir.
 do $$
 begin
-  if exists (
-    select 1 from public.expediente_costeo group by clave having count(*) > 1
-  ) then
-    raise exception 'ROLLBACK_ABORTADO: hay claves compartidas por varios dueños; la PK (clave) las colisionaria. Resolver antes de revertir.';
+  if exists (select 1 from public.expediente_costeo group by clave having count(*) > 1) then
+    raise exception 'ROLLBACK_ABORTADO: hay claves compartidas por varios propietarios; la PK (clave) las colisionaria. Resolver antes de revertir.';
   end if;
 end $$;
 
--- 1. PK: de (creado_por, clave) de vuelta a (clave).
+-- 1. PK: de (propietario, clave) de vuelta a (clave).
 alter table public.expediente_costeo drop constraint if exists expediente_costeo_pkey;
-alter table public.expediente_costeo
-  add constraint expediente_costeo_pkey primary key (clave);
+alter table public.expediente_costeo add constraint expediente_costeo_pkey primary key (clave);
+-- propietario deja de ser obligatorio (el contrato viejo no lo rellena).
+alter table public.expediente_costeo alter column propietario drop not null;
 
 -- 2. RLS: volver al contrato original (por actualizado_por/creado_por).
 drop policy if exists expediente_costeo_owner on public.expediente_costeo;
@@ -44,7 +40,7 @@ create policy expediente_costeo_all on public.expediente_costeo for all
   using (lower(coalesce(auth.jwt()->>'email','')) = lower(coalesce(actualizado_por, creado_por, '')))
   with check (lower(coalesce(auth.jwt()->>'email','')) = lower(coalesce(actualizado_por, creado_por, '')));
 
--- 3. RPC: restaurar las versiones de 20261111 (sin filtro por dueño).
+-- 3. RPC: restaurar las versiones de 20261111 (sin filtro por dueño — VULNERABLE).
 create or replace function public.guardar_expediente_costeo(
   p_clave text, p_expediente jsonb, p_version_anterior integer default null
 ) returns jsonb
@@ -91,5 +87,6 @@ grant execute on function public.guardar_expediente_costeo(text,jsonb,integer) t
 revoke all on function public.reabrir_expediente_costeo(text) from public, anon;
 grant execute on function public.reabrir_expediente_costeo(text) to authenticated;
 
--- 4. (Opcional) eliminar el historial creado por la migracion de seguridad.
+-- 4. (Opcional) eliminar el historial y/o la columna propietario:
 -- drop table if exists public.expediente_costeo_historial;
+-- alter table public.expediente_costeo drop column if exists propietario;

@@ -17,8 +17,8 @@
 
 ## ¿Recuperable?
 
-1. **La migración NO toca el contenido de la fila.** Es aditiva: cambia la PK a `(creado_por, clave)`, añade `expediente_costeo_historial` y reemplaza RPC/policies. El único `update` sobre datos existentes es `set creado_por = coalesce(creado_por, actualizado_por) where creado_por is null` — y esta fila **ya tiene `creado_por`**, así que ni siquiera se reescribe. No hay `delete` ni reescritura del JSON. → **la fila se preserva.**
-2. **Verificación pre/post aplicable:** tras aplicar, `md5(expediente::text)` debe seguir siendo `6fdd462c…` y `version=1`, `creado_por=qa-direccion@vonhaucke.mx`. (En el test de Postgres real, la fila heredada sobrevive al fix y su dueño la reabre.)
+1. **La migración NO toca el contenido de la fila.** Es aditiva: añade la columna `propietario uuid`, cambia la PK a `(propietario, clave)`, añade `expediente_costeo_historial` y reemplaza RPC/policies. El único `update` sobre datos existentes rellena la **nueva** columna `propietario` (desde `auth.users` por el email guardado); **no reescribe** `expediente`, `version`, `creado_por` ni `actualizado_por`. No hay `delete` ni reescritura del JSON. → **la fila se preserva.**
+2. **Verificación pre/post aplicable:** tras aplicar, `md5(expediente::text)` debe seguir siendo `6fdd462c…`, `version=1`, `creado_por=qa-direccion@vonhaucke.mx`, y `propietario` = el uid de `qa-direccion`. (En el test de Postgres real, la fila heredada sobrevive, se le asigna el uid correcto por backfill y su dueño la reabre.)
 3. **Respaldo explícito disponible:** se generó un `INSERT ... on conflict do nothing` idempotente que reconstruye la fila exacta (verificado contra el md5 de arriba). No se incrusta aquí el blob de 21 KB para evitar riesgo de transcripción; se re-materializa de forma determinista con esta consulta de sólo lectura:
    ```sql
    select 'insert into public.expediente_costeo (clave,version,expediente,actualizado_por,creado_por,creado_en,actualizado_en) values ('

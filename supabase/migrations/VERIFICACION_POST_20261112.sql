@@ -2,26 +2,27 @@
 --  VERIFICACION POSTERIOR al fix 20261112 (SOLO LECTURA).
 --  Correr DESPUES de aplicar la migracion a produccion. No modifica nada.
 --  Devuelve una fila por chequeo con PASS/FAIL. Objetivo: 0 FAIL.
---  Cubre: PK (creado_por,clave), aislamiento por dueño, historial, RLS,
---  permisos efectivos, contrato de ambas RPC, y preservacion de la fila QA.
+--  Dueño = auth.uid() (UUID inmutable). Cubre: PK (propietario,clave),
+--  aislamiento por uid, historial, RLS, permisos efectivos, contrato de ambas
+--  RPC, y preservacion+mapeo de la fila QA.
 -- ============================================================================
 with chk as (
-  -- 1. PK compuesta en el ORDEN definido (creado_por, clave)
-  select 1 n, 'PK = (creado_por, clave)' chequeo,
+  -- 1. PK compuesta en el ORDEN definido (propietario, clave)
+  select 1 n, 'PK = (propietario, clave)' chequeo,
     coalesce((select string_agg(a.attname, ',' order by k.ord)
       from pg_index i join lateral unnest(i.indkey) with ordinality k(attnum,ord) on true
       join pg_attribute a on a.attrelid=i.indrelid and a.attnum=k.attnum
-      where i.indrelid='public.expediente_costeo'::regclass and i.indisprimary),'') = 'creado_por,clave' ok,
+      where i.indrelid='public.expediente_costeo'::regclass and i.indisprimary),'') = 'propietario,clave' ok,
     'orden del indice primario' detalle
   union all
-  -- 2. creado_por NOT NULL (dueño inmutable, sin nulos)
-  select 2, 'creado_por NOT NULL',
-    coalesce((select attnotnull from pg_attribute where attrelid='public.expediente_costeo'::regclass and attname='creado_por'),false),
-    'columna dueño'
+  -- 2. propietario NOT NULL (dueño inmutable, sin nulos)
+  select 2, 'propietario (uuid) NOT NULL',
+    coalesce((select attnotnull from pg_attribute where attrelid='public.expediente_costeo'::regclass and attname='propietario'),false),
+    'columna dueño inmutable'
   union all
-  -- 3. guardar aislado por dueño (filtra por creado_por + clave)
-  select 3, 'guardar: aislado por dueño',
-    pg_get_functiondef('public.guardar_expediente_costeo(text,jsonb,integer)'::regprocedure) ilike '%creado_por = v_email and clave = v_clave%',
+  -- 3. guardar aislado por uid (filtra por propietario + clave)
+  select 3, 'guardar: aislado por auth.uid()',
+    pg_get_functiondef('public.guardar_expediente_costeo(text,jsonb,integer)'::regprocedure) ilike '%propietario = v_uid and clave = v_clave%',
     'cuerpo de la RPC'
   union all
   -- 4. guardar YA NO usa el patron vulnerable (clave sola)
@@ -29,9 +30,9 @@ with chk as (
     pg_get_functiondef('public.guardar_expediente_costeo(text,jsonb,integer)'::regprocedure) not ilike '%where clave = btrim(p_clave) for update%',
     'ausencia del defecto P0'
   union all
-  -- 5. reabrir aislado por dueño
-  select 5, 'reabrir: aislado por dueño',
-    pg_get_functiondef('public.reabrir_expediente_costeo(text)'::regprocedure) ilike '%creado_por = v_email and clave = btrim%',
+  -- 5. reabrir aislado por uid
+  select 5, 'reabrir: aislado por auth.uid()',
+    pg_get_functiondef('public.reabrir_expediente_costeo(text)'::regprocedure) ilike '%propietario = v_uid and clave = btrim%',
     'cuerpo de la RPC'
   union all
   -- 6. historial existe con RLS habilitada
@@ -45,10 +46,10 @@ with chk as (
     coalesce((select relrowsecurity from pg_class where oid='public.expediente_costeo'::regclass),false),
     'rls on'
   union all
-  -- 8. policy por creado_por INMUTABLE (no actualizado_por)
-  select 8, 'RLS policy por creado_por (no actualizado_por)',
+  -- 8. policy por propietario (auth.uid()), NO por email
+  select 8, 'RLS policy por propietario/auth.uid() (no email)',
     exists(select 1 from pg_policies where tablename='expediente_costeo' and policyname='expediente_costeo_owner'
-           and qual like '%creado_por%' and qual not like '%actualizado_por%'),
+           and qual like '%propietario%' and qual not like '%actualizado_por%'),
     'definicion de la policy'
   union all
   -- 9. execute concedido a authenticated en ambas RPC
@@ -84,12 +85,12 @@ with chk as (
       and to_regprocedure('public.reabrir_expediente_costeo(text)') is not null,
     'firmas (text,jsonb,integer) y (text)'
   union all
-  -- 14. fila QA preservada (identidad + integridad por md5)
-  select 14, 'fila QA preservada (md5 6fdd462c, v1, qa-direccion)',
-    exists(select 1 from public.expediente_costeo
-           where clave='TELSVH120' and lower(creado_por)='qa-direccion@vonhaucke.mx'
-           and version=1 and md5(expediente::text)='6fdd462cb2fe1878746ad66f09a858db'),
-    'integridad del contenido'
+  -- 14. fila QA preservada (md5) y su propietario MAPEA al uid de qa-direccion
+  select 14, 'fila QA preservada (md5) + propietario = uid de qa-direccion',
+    exists(select 1 from public.expediente_costeo e join auth.users u on u.id = e.propietario
+           where e.clave='TELSVH120' and lower(u.email)='qa-direccion@vonhaucke.mx'
+           and e.version=1 and md5(e.expediente::text)='6fdd462cb2fe1878746ad66f09a858db'),
+    'integridad + mapeo de dueño'
 )
 select n, chequeo, case when ok then 'PASS' else 'FAIL' end resultado, detalle
 from chk
