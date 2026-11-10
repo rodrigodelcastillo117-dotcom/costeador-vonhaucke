@@ -15,6 +15,23 @@
 La migración `20261112` (versión `auth.uid()`) se **aplicó a prod** (`apply_migration` success, atómica) y se **verificó en vivo: 14/14 PASS, 0 FAIL** (`VERIFICACION_POST_20261112.sql`):
 PK `(propietario, clave)`, RPC `guardar`/`reabrir` y RLS **aisladas por `auth.uid()` inmutable**, sin el patrón vulnerable, historial append-only + RLS, SECURITY DEFINER + search_path, firmas intactas, y **fila QA preservada** (md5 `6fdd462c`, `propietario` = uid de qa-direccion). Ningún usuario puede leer/sobrescribir/reclamar expedientes ajenos. Evidencia previa: Postgres real 22/22, PGlite 13/13, CI run #1065 `verify` SUCCESS. Recuperación: corrección hacia adelante (el rollback re-abriría el P0).
 
+## 🧾 Trabajo aplicado — Concurso TELCEL R5 (MÓDULOS DAT'S, 2001224671)
+
+Costeo de 6 muebles del concurso con **datos reales** (explosión C-CO-320R + `producto_maestro` verificado + ERP), sin inventar precios. `lab/concurso_telcel_r5/` (`costeo_final.py`, `COSTEO_CONCURSO_R5.md`, `concurso_r5.html`).
+
+| Mueble | Costo u. | Confianza |
+|---|---:|---|
+| Vitrina Torre (×153) | $15,019 | 🟢 ALTA (fab anclado a cos_fab_real) |
+| Vitrina Horizontal (×197) | $15,250 | 🟢 ALTA |
+| Vitrina Isla (×15) | $17,824 | 🟢 ALTA (cv corregido vs sección previa) |
+| Módulo Almacén (×38) | $7,974 | 🟡 MEDIA (fab verif. + herrajes + MDF ERP; despiece a reconciliar) |
+| Conector Cubo (×25) | $3,108 | 🔴 PRELIM (lámina por área; falta despiece Ingeniería) |
+| Caja de Cobro (×10) | $6,233 | 🔴 PRELIM (ídem) |
+
+**TOTAL costo $6,012,645 · cotización +25% $7,515,806** (servicio entrega/armado aparte). Método: markup POLÍTICA_VH (fab ×(1+MO+GIF) reales; terceros/comprados ×1.06). Hallazgo: en Horizontal la cotización histórica R7 ($15,678) deja ~3% sobre costo → margen casi nulo.
+
+**Límite de dato (no se inventa):** Cubo/Caja necesitan el **despiece panel-por-panel** de Ingeniería (hojas exactas de lámina) y Almacén el ítem MDF/superficie exacto para pasar a 🟢. Es dato, no cálculo.
+
 ---
 
 ## 🔴 Bloque actual — cierre de seguridad P0 (preflight para autorización)

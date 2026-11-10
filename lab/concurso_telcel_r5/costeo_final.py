@@ -12,7 +12,7 @@ M = [
  ("Vitrina Torre",        10, 153, 3277.60, 11077.15, "ALTA",       17998, "fab verificado + terceros reales (acrilico, kit, cristal)"),
  ("Vitrina Horizontal",   20, 197, 6052.22,  8677.20, "ALTA",       14215, "fab verificado + termoformado $2840 + cristal + kit"),
  ("Modulo Conector Cubo", 30,  25, None,     None,     "PRELIMINAR", None,  "BOM del spec R5 (sin historico)"),
- ("Modulo Almacenamiento",40,  38, 4854.78,  1893.00, "MEDIA",      12000, "fab verificado + herrajes workbook; falta MDF superficie"),
+ ("Modulo Almacenamiento",40,  38, 4854.78,  2943.00, "MEDIA",      12000, "fab verificado + herrajes workbook + MDF superficie (0.72 m2 ~0.3 hoja decorlux $3,500)"),
  ("Vitrina Isla",         50,  15, 4452.07, 12615.11, "ALTA",       19200, "fab verificado + 8 cristales templados 1900x397 + repisas"),
  ("Caja de Cobro",        60,  10, None,     None,     "PRELIMINAR", None,  "BOM del spec R5 (sin historico)"),
 ]
@@ -20,23 +20,23 @@ M = [
 # --- Cubo y Caja: BOM del spec con precios reales del workbook. Supuestos de lamina marcados. ---
 # precios reales: lamina 3x10 c18 $571.54/hoja, c14 $816/hoja; pintura $171/kg; nivelador $40.70;
 #   MDF+PVC ~ $350/0.4m2; stickers set $75; placa $45; empaque madera; multicontacto $120.
-CUBO = {  # 600x600x1030, cuerpo lamina + cubierta MDF/PVC, sin cristal
- "fab": [("Lamina c18 cuerpo+zoclo (~1.0 hoja 3x10) *supuesto*", 571.54),
-         ("Cartabones c14 (~0.05 hoja) *supuesto*", 40.82),
+CUBO = {  # 600x600x1030. Lamina por AREA de superficie del spec (~2.8 m2 c18 -> 1.34 hoja @ 75% aprov)
+ "fab": [("Lamina c18 cuerpo+zoclo (~2.8 m2 -> 1.34 hoja 3x10) *area, falta despiece*", 766.00),
+         ("Cartabones c14 (~0.05 hoja) *area*", 40.82),
          ("Pintura en polvo (~1.0 kg)", 171.01),
          ("Madera huacal empaque", 300.00)],
- "cv":  [("Cubierta MDF 12mm + PVC termoformado (~0.4 m2) *supuesto*", 350.00),
+ "cv":  [("Cubierta MDF 12mm natural + PVC White (~0.36 m2, precio ERP MDF)", 500.00),
          ("4 niveladores ($40.70 c/u)", 162.80),
          ("Stickers Telcel (2 lat + 1 frontal)", 75.00),
          ("Placa identificacion aluminio", 45.00),
          ("Consumibles empaque (polifoam/cinta/esquinero)", 100.00)],
 }
-CAJA = {  # 1200x600x1200, cuerpo+copete+superficie MDF, sin cristal
- "fab": [("Lamina c18 cuerpo+entrepanos+zoclo+copete+frente (~2.0 hojas 3x10) *supuesto*", 1143.08),
-         ("Cartabones c14 (~0.06 hoja) *supuesto*", 48.99),
-         ("Pintura en polvo (~2.0 kg)", 342.02),
+CAJA = {  # 1200x600x1200. Lamina por AREA (~6.5 m2 c18 -> 3.1 hoja @ 75% aprov)
+ "fab": [("Lamina c18 cuerpo+entrepanos+zoclo+copete+frente (~6.5 m2 -> 3.1 hoja) *area, falta despiece*", 1772.00),
+         ("Cartabones c14 (~0.06 hoja) *area*", 48.99),
+         ("Pintura en polvo (~2.5 kg)", 427.53),
          ("Madera huacal empaque", 350.00)],
- "cv":  [("Superficie + cubierta copete MDF 12mm + PVC (~0.8 m2) *supuesto*", 800.00),
+ "cv":  [("Superficie + cubierta copete MDF 12mm + PVC White (~0.9 m2, precio ERP MDF)", 1100.00),
          ("Multicontacto 6 salidas", 120.00),
          ("4 niveladores ($40.70 c/u)", 162.80),
          ("Guia/pasacables", 60.00),
@@ -131,7 +131,7 @@ td.r,th.r{{text-align:right;font-variant-numeric:tabular-nums}}tr:last-child td{
 <h2>Confianza de cada costo</h2>
 <p class=sub><span class=badge style='background:#2e7d52'>ALTA</span> Torre, Horizontal, Isla — fabricación anclada al costo real verificado; terceros (cristal templado, termoformado, kit) con precio real.<br>
 <span class=badge style='background:#b06f12'>MEDIA</span> Almacén — fab verificado + herrajes del workbook; falta MDF de superficie, reconciliar antes de firmar.<br>
-<span class=badge style='background:#c0453b'>PRELIMINAR</span> Cubo y Caja — muebles nuevos; BOM del spec R5 con precios reales, pero los consumos de lámina/MDF marcados <i>*supuesto*</i> los debe validar Ingeniería.</p>
+<span class=badge style='background:#c0453b'>PRELIMINAR</span> Cubo y Caja — muebles nuevos; BOM del spec R5 con precios reales (lámina, MDF ERP, herrajes). El consumo de lámina está estimado <b>por área de superficie</b> (marcado <i>*area, falta despiece*</i>); el despiece exacto panel-por-panel lo debe dar Ingeniería para firmar.</p>
 <h2>Hallazgo</h2>
 <p>En la <b>Vitrina Horizontal</b> tu cotización histórica R7 ($15,678) queda ~3% sobre este costo ($15,250): margen muy delgado. En Torre/Almacén/Isla el margen histórico es sano (19–32%). Revisa si el termoformado ($2,840) y el kit de iluminación ($2,535) encarecen de más el Horizontal, o si lo estás subcotizando.</p>
 <div class=sub style='margin-top:20px'>Generado por COSTEAR · motor POLÍTICA_VH · datos C-CO-320R + producto_maestro</div>
