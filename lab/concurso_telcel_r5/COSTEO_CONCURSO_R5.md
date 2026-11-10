@@ -1,10 +1,12 @@
 # COSTEO CONCURSO TELCEL R5 (MODULOS DATS) — Von Haucke
 
-_Generado 2026-11-10. Margen objetivo sugerido: 25% (editable). Flete/armado (pos 70) por cotizar aparte._
+_Generado 2026-11-10. **Markup aplicado: 25%** (= margen bruto 20%; editable). Flete/armado (pos 70) por cotizar aparte._
 
 Precios de datos reales: explosion C-CO-320R (misma familia) + producto_maestro verificado. **No se inventaron precios unitarios.**
 
-| Pos | Mueble | Cant | Costo u. | Cotiza u. (+25%) | Conf. | Ref.Telcel R7 | Importe costo | Importe cotiza |
+> **Markup vs margen:** `cotizacion = costo × (1 + markup)`. Markup 25% equivale a **margen bruto 20%** (margen = utilidad/precio). Si se requiere 25% de *margen bruto*, el factor sube a ×1.333 — decision de Direccion.
+
+| Pos | Mueble | Cant | Costo u. | Cotiza u. (markup 25%) | Conf. | Ref.Telcel R7 | Importe costo | Importe cotiza |
 |--:|--|--:|--:|--:|:-:|--:|--:|--:|
 | 10 | Vitrina Torre | 153 | $15,019 | $18,774 | ALTA | $17,998 | $2,297,965 | $2,872,456 |
 | 20 | Vitrina Horizontal | 197 | $15,250 | $19,063 | ALTA | $14,215 | $3,004,260 | $3,755,325 |
