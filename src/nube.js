@@ -13,6 +13,7 @@ import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
 import { normalizarClaveMaterial } from './datos/claveMaterial.js';
 import { createClient } from '@supabase/supabase-js';
 import { mensajeErrorEdge } from './datos/erroresEdge.js';
+import { sondearAnalisis } from './datos/sondearAnalisis.js';
 import {
   controlOptimistaActivo, resultadoConflictoVersion, resultadoDeErrorEscritura, revisionEsperadaPara, crearRegistroVersiones,
 } from './datos/conflictoGuardado.js';
@@ -311,14 +312,20 @@ export async function buscarProductosMaestroTexto(texto, limite = 30) {
 }
 
 export async function analizarTexto(catalogo, descripcion) {
+  // La pasada de TEXTO usa opus (máxima comprensión) y corre en SEGUNDO PLANO en la función
+  // (asincrono:true): responde al instante con un job y aquí sondeamos el resultado. Evita el
+  // 504 del gateway a los 150 s SIN bajar la calidad del modelo (opus se conserva).
   const { data, error } = await nube.functions.invoke(FN_ANALIZAR, {
-    body: { catalogo, descripcion },
+    body: { catalogo, descripcion, asincrono: true },
   });
   if (error) {
     let msg = mensajeErrorEdge(error, 'No se pudo interpretar la descripción.');
     try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch (e) {}
     return { ok: false, error: msg };
   }
+  // Modo async: la función respondió con un job; sondeamos hasta el resultado final.
+  if (data && data.procesando && data.job_id) return await sondearAnalisis(data.job_id);
+  // Compatibilidad: si la función respondió síncrono (despliegue viejo), devuelve igual.
   return data;
 }
 

@@ -475,8 +475,20 @@ Deno.serve(async (req) => {
   // longitud del TEXTO del usuario (no el prompt total); catalog_chars/count = peso del catálogo.
   telExtra = { model_id: MODEL_PASADA, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
 
+  // MODO ASÍNCRONO (fix de raíz al timeout): la 1ª pasada de SÓLO-TEXTO con opus excede el
+  // wall-clock de RESPUESTA de ~150 s del gateway de Supabase (504 "tardó demasiado"). Con
+  // `asincrono:true` la función corre esa pasada en SEGUNDO PLANO (EdgeRuntime.waitUntil, hasta el
+  // wall-clock de ~400 s del plan de pago), RESPONDE AL INSTANTE con el job_id, y escribe el
+  // resultado final en ai_eventos.resultado; el front lo consulta con estado_analisis(). Imagen/plano
+  // y revisión usan el modelo rápido (0 timeouts) y NO necesitan async: siguen SÍNCRONAS (sin cambio).
+  const esAsync = body?.asincrono === true && soloTexto && !esRevision && resp.length === 0;
+  // En async, opus corre hasta 330 s (bajo el tope de 400 s, con margen para escribir el resultado y
+  // la telemetría); en síncrono se conserva el abort del plan (150 s texto / 75 s el resto).
+  const timeoutTexto = esAsync ? 330_000 : plan.timeoutMs;
+
+  const ejecutar = async (): Promise<Response> => {
   let data: any;
-  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_PASADA, plan.timeoutMs); }
+  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_PASADA, timeoutTexto); }
   catch (e: any) {
     const { code, modelStatus } = mapProviderError(e);
     const mensaje = code === "PROVIDER_TIMEOUT"
@@ -581,6 +593,29 @@ Deno.serve(async (req) => {
   // #8: la fuente del catálogo viaja al cliente. 'cliente-fallback' => el canónico no
   // estuvo disponible y se usaron pistas locales: la UI debe avisar (no cotizar en firme).
   return json({ ok: true, propuesta, catalogoFuente: canonicoOk ? "canonico" : "cliente-fallback", validacion, uso: data?.usage || null, request_id: requestId });
+  }; // ← fin de ejecutar()
+
+  if (esAsync) {
+    // No esperamos a opus: corremos la pasada en SEGUNDO PLANO y respondemos YA con el job_id.
+    // EdgeRuntime.waitUntil mantiene vivo el worker hasta que termine (o el wall-clock de ~400 s).
+    EdgeRuntime.waitUntil((async () => {
+      let obj: any;
+      try {
+        const resp = await ejecutar();
+        obj = await resp.clone().json().catch(() => ({ ok: false, code: "INTERNAL", error: "respuesta no legible", request_id: requestId }));
+      } catch (e: any) {
+        obj = { ok: false, code: "BACKGROUND_CRASH", error: String(e?.message || e), request_id: requestId };
+        try { await cerrarTel("error", 500, { model_status: "crash", error_code: "BACKGROUND_CRASH" }); } catch (_e) { /* noop */ }
+      }
+      // `resultado` es la ÚNICA señal de completitud para el front (éxito o error): se escribe SIEMPRE.
+      for (let i = 0; i < 3; i++) {
+        try { const { error } = await svc.from("ai_eventos").update({ resultado: obj }).eq("id", evId); if (!error) break; } catch (_e) { /* reintenta la escritura */ }
+        await new Promise((r) => setTimeout(r, 1000));
+      }
+    })());
+    return json({ ok: true, procesando: true, job_id: requestId }, 202);
+  }
+  return await ejecutar();
 });
 
 function json(obj: unknown, status = 200) {
