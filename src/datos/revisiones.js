@@ -92,24 +92,34 @@ export async function guardarRevision(estado, cotizacionId) {
 // El historial de una cotización (más reciente primero), para mostrar qué se
 // ofreció y cuándo. Trae el responsable y el total; el snapshot completo va
 // embebido por si se quiere reimprimir una revisión vieja.
-export async function listarRevisiones(cotizacionId, folio) {
+//
+// Variante con ESTADO explícito: distingue "no hay emisiones" (ok:true, revisiones:[])
+// de "no se pudo cargar" (ok:false). Sin esto, un `[]` a secas en error hace que la
+// pantalla afirme "Todavía no se ha emitido" cuando en realidad sólo falló la red/RPC
+// — una afirmación negativa que el sistema no sabe que es cierta (no seller-safe).
+// Misma ruta seller-safe: RPC SECURITY DEFINER con id (Dirección ve snapshot, vendedor/
+// diseño SIN economía), metadata pública sólo con folio. Nunca revienta.
+export async function cargarRevisiones(cotizacionId, folio) {
   try {
-    // SELLER-SAFE: con id se usa el RPC `cotizacion_revisiones_seguras` (SECURITY
-    // DEFINER): Dirección ve el snapshot completo; vendedor/diseño lo reciben SIN
-    // economía. Nunca lectura RAW de la tabla para vendedores.
     if (cotizacionId) {
       const { data, error } = await nube.rpc('cotizacion_revisiones_seguras', { p_cotizacion_id: cotizacionId });
-      if (error || !Array.isArray(data)) return [];
-      return data;
+      if (error) return { ok: false, revisiones: [] };
+      return { ok: true, revisiones: Array.isArray(data) ? data : [] };
     }
     // Sin id (sólo folio): metadata pública, SIN snapshot ni economía.
     const { data, error } = await nube.from('cotizaciones_revisiones')
       .select('id, revision, emitida_en, usuario, total, folio, cliente')
       .eq('folio', folio || '')
       .order('revision', { ascending: false });
-    if (error || !data) return [];
-    return data;
+    if (error) return { ok: false, revisiones: [] };
+    return { ok: true, revisiones: Array.isArray(data) ? data : [] };
   } catch (e) {
-    return [];
+    return { ok: false, revisiones: [] };
   }
+}
+
+// Contrato histórico (seller-safe): SIEMPRE un arreglo, nunca revienta. Delega en
+// cargarRevisiones y descarta el estado — para consumidores que no distinguen error de vacío.
+export async function listarRevisiones(cotizacionId, folio) {
+  return (await cargarRevisiones(cotizacionId, folio)).revisiones;
 }

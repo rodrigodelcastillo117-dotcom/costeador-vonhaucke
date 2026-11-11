@@ -15,7 +15,7 @@
 // ============================================================================
 import { useEffect, useRef, useState } from 'react';
 import { listarCotizaciones, archivarCotizacion, mpCambio } from '../datos/cotizaciones.js';
-import { listarRevisiones } from '../datos/revisiones.js';
+import { cargarRevisiones } from '../datos/revisiones.js';
 import { armarRespaldo, validarRespaldo, nombreArchivoRespaldo, descargarJSON, leerArchivoJSON } from '../datos/respaldo.js';
 import { descargarPropuesta, datosDesdeSnapshot, cargarMarca, cargarImagenesAcomodo } from '../datos/pdfPropuesta.js';
 import { pesos, coincide } from '../util.js';
@@ -103,7 +103,7 @@ export default function Archivo({ estado, onAbrir, veCostos = false, usuario = n
         />
         {error && <div className="alerta roja"><span className="texto">{error}</span></div>}
         {lista === null && <p className="gris">Cargando…</p>}
-        {lista !== null && !lista.length && (
+        {lista !== null && !lista.length && !error && (
           <p className="ayuda">Todavía no hay presupuestos guardados. En cuanto agregues un mueble a
             una cotización, aparece aquí solo.</p>
         )}
@@ -166,10 +166,17 @@ export default function Archivo({ estado, onAbrir, veCostos = false, usuario = n
 // editarse. Carga bajo demanda para no pegarle a la nube por cada tarjeta.
 function Emisiones({ cotizacionId, folio }) {
   const [abierto, setAbierto] = useState(false);
-  const [revs, setRevs] = useState(null); // null = aún no cargado
+  // Máquina de estados: NO se colapsa "falló la carga" con "no hay emisiones". Afirmar
+  // "Todavía no se ha emitido" cuando sólo falló la red es una negativa que no sabemos
+  // cierta (no seller-safe). `cargarRevisiones` devuelve {ok, revisiones}.
+  const [carga, setCarga] = useState({ estado: 'idle', revs: [] }); // idle | cargando | ok | error
   async function abrir() {
     setAbierto(true);
-    if (revs === null) setRevs(await listarRevisiones(cotizacionId, folio));
+    if (carga.estado === 'idle' || carga.estado === 'error') {
+      setCarga({ estado: 'cargando', revs: [] });
+      const r = await cargarRevisiones(cotizacionId, folio);
+      setCarga(r.ok ? { estado: 'ok', revs: r.revisiones } : { estado: 'error', revs: [] });
+    }
   }
   if (!abierto) {
     return (
@@ -178,7 +185,14 @@ function Emisiones({ cotizacionId, folio }) {
       </button>
     );
   }
-  if (revs === null) return <div className="ayuda" style={{ marginTop: 6 }}>Cargando emisiones…</div>;
+  if (carga.estado === 'cargando') return <div className="ayuda" style={{ marginTop: 6 }}>Cargando emisiones…</div>;
+  if (carga.estado === 'error') return (
+    <div className="ayuda" style={{ marginTop: 6 }}>
+      No se pudieron cargar las emisiones (revisa tu conexión).{' '}
+      <button className="boton fantasma" style={{ minHeight: 32, fontSize: 13 }} onClick={abrir}>Reintentar</button>
+    </div>
+  );
+  const revs = carga.revs;
   if (!revs.length) return <div className="ayuda" style={{ marginTop: 6 }}>Todavía no se ha emitido (no hay PDF ni impresión guardada).</div>;
   return (
     <div style={{ marginTop: 6, display: 'grid', gap: 3 }}>

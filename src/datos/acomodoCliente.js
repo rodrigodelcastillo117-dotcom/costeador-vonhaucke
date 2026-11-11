@@ -1,6 +1,28 @@
 import { expandirPiezas, mapaPiezas } from './espacio.js';
 import { auditarColocacion } from './acomodoAudit.js';
 import { violacionesSemanticas } from './floorSpec.js';
+import { esSugerida } from './acomodoPayload.js';
+
+/**
+ * FRESCURA (P0-05, lado cliente): ¿el plan COLOCADO ya no corresponde a estas partidas?
+ * El status/ready/invariant_ok del spec se CONGELAN al acomodar. Si después se edita la
+ * cotización (se borra/agrega/cambia un mueble) sin volver a acomodar, esos valores siguen
+ * en 'true' pero el plano/3D ya no refleja la lista de muebles cotizada. Se revalidan los IDs
+ * colocados contra las partidas REALES ACTUALES con la MISMA definición que sanea la pantalla
+ * de Acomodo (`sanearAcomodoContraPartidas`): un ID colocado ajeno a las partidas (mueble
+ * borrado) o un `requested` que ya no cuadra con el conteo real (mueble agregado) ⇒ desfasado.
+ * Se filtran las sugeridas (sug-*) para que NO inflen el conteo (único origen de falso positivo).
+ */
+export function planDesfasadoContraPartidas(plan, partidas = []) {
+  const coloc = Array.isArray(plan?.colocacion) ? plan.colocacion : [];
+  if (!coloc.length) return false;
+  const reales = (Array.isArray(partidas) ? partidas : []).filter((p) => !esSugerida(p));
+  const ids = new Set((expandirPiezas(reales) || []).map((p) => String(p.id)));
+  const tieneAjena = coloc.some((x) => !ids.has(String(x?.id || '')));
+  const requested = Number(plan?.layoutSpec?.requested);
+  const cuentaIncompatible = Number.isFinite(requested) && requested !== ids.size;
+  return tieneAjena || cuentaIncompatible;
+}
 
 function areasMM(acomodo={}) {
   if (Array.isArray(acomodo.areas) && acomodo.areas.length) return acomodo.areas;
@@ -68,11 +90,13 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
     const status=String(spec.status||'');
     const ready=plan.render_ready === true || spec?.validation?.render_ready === true;
     const invariant=spec?.validation?.invariant_ok === true;   // fail-closed: ausente (spec viejo sin el campo) NO cuenta como válido
-    const ok=status==='PASS' && ready && invariant;
+    const fresco=!planDesfasadoContraPartidas(plan, partidas);   // fail-closed: el spec validado se congeló; si cambiaron las partidas, NO se enseña plano viejo
+    const ok=status==='PASS' && ready && invariant && fresco;
     return {
       existe:true, mostrar:ok, valido:ok,
-      estado: ok ? 'VALIDADO_ESPACIAL' : 'ESPACIAL_NO_APROBADO',
+      estado: ok ? 'VALIDADO_ESPACIAL' : (!fresco ? 'STALE_PROGRAM' : 'ESPACIAL_NO_APROBADO'),
       razones: ok ? [] : [
+        !fresco ? 'el acomodo guardado es de otra lista de muebles: vuelve a acomodar con la cotización actual' : null,
         status && status!=='PASS' ? 'el acomodo aún no pasa la validación del motor espacial' : null,
         !ready ? 'falta terminar de generar la vista del acomodo' : null,
         !invariant ? 'las cantidades del acomodo no cuadran con lo cotizado' : null,
