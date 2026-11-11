@@ -63,6 +63,24 @@ describe('costearBOM · precedencia de factores y trazabilidad', () => {
     expect(r.factoresFuente).toBe('familia');
     expect(r.costoFabricacion).toBeCloseTo(1350, 6);
   });
+
+  // REGRESIÓN del bug real: factor_mo/factor_gif EXPLÍCITAMENTE null (no ausente).
+  // Number(null)===0 (finito) hacía que se costeara como factores 0/0 = material ×1.0
+  // (sin MO ni GIF): subcosteo silencioso. Debe caer a política (×1.8) o a familia, NUNCA a ×1.0.
+  it('factor_mo/factor_gif = null (explícito) NO se trata como 0/0 (no ×1.0)', () => {
+    const bomNull = { ...bomNuevo(null), factor_mo: null, factor_gif: null };
+    const r = costearBOM(bomNull, {});
+    expect(r.factoresFuente).toBe('politica_vh');
+    expect(r.costoFabricacion).toBeCloseTo(1800, 6);   // ×1.8, NO ×1.0 (=1000)
+    expect(r.costoFabricacion).not.toBeCloseTo(1000, 6);
+  });
+
+  it('factor null + familia conocida ⇒ usa el factor de familia (no 0/0)', () => {
+    const bomNull = { ...bomNuevo('TELCEL'), factor_mo: null, factor_gif: null };
+    const r = costearBOM(bomNull, {});
+    expect(r.factoresFuente).toBe('familia');
+    expect(r.costoFabricacion).toBeCloseTo(1350, 6);
+  });
 });
 
 describe('cargarFactoresFamilia · gobernanza (Bloque 1 del formulario)', () => {
