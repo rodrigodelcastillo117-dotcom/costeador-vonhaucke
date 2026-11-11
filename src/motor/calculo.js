@@ -760,6 +760,11 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   let materialDirecto = 0;
   let materialIndirecto = 0;
   let materialSinMO = 0;   // comprado ya hecho, solo se instala: NO lleva mano de obra
+  // Mismo SIN_MO, partido por clase: para restarlo de la base de SU clase y no de la ajena.
+  // Hoy todos los insumos SIN_MO del catálogo son 'indirecta' (→ esto es no-op), pero si uno llegara
+  // 'directa' (p.ej. inline de VONI sin clase, que cae a directa), antes pagaba MO directa indebida
+  // y sobre-restaba la base indirecta. Con el split, un SIN_MO nunca paga MO, sea de la clase que sea.
+  let materialSinMODirecto = 0, materialSinMOIndirecto = 0;
   let desperdicioTotal = 0;
   const detalleInsumos = [];
 
@@ -773,7 +778,10 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // paneles EcoAcustic— no llevan mano de obra de fabricacion. Se restan de
     // la base de MO abajo. Pintura/tela/tapiceria NO entran aqui: esas SI
     // llevan mano de obra real (pintar, tapizar).
-    if (SIN_MO_SECCIONES.has(insumo.seccion)) materialSinMO += r.costo;
+    if (SIN_MO_SECCIONES.has(insumo.seccion)) {
+      materialSinMO += r.costo;
+      if (insumo.clase === 'indirecta') materialSinMOIndirecto += r.costo; else materialSinMODirecto += r.costo;
+    }
     desperdicioTotal += r.desperdicio;
     const optimizacionCorte = insumo.formato?.largoMM && insumo.formato?.anchoMM
       ? optimizarCorte2D({
@@ -860,12 +868,13 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     manoObra = alba.mo;
     giAlba = alba.gi;
   } else {
-    // MO NO sobre lo comprado: los componentes de SIN_MO_SECCIONES (comprados
-    // ya hechos, solo se instalan) salen de la base de mano de obra. Son clase
-    // 'indirecta', asi que se restan de esa base.
-    const baseIndirectaMO = Math.max(0, materialIndirecto - materialSinMO);
+    // MO NO sobre lo comprado: los componentes de SIN_MO_SECCIONES (comprados ya hechos, solo se
+    // instalan) salen de la base de mano de obra. Se restan de la base de SU clase: un SIN_MO 'directa'
+    // no debe pagar MO directa, y uno 'indirecta' no debe pagar MO indirecta NI sobre-restar la base ajena.
+    const baseDirectaMO = Math.max(0, materialDirecto - materialSinMODirecto);
+    const baseIndirectaMO = Math.max(0, materialIndirecto - materialSinMOIndirecto);
     manoObra =
-      materialDirecto * (factorDirecta / 100) +
+      baseDirectaMO * (factorDirecta / 100) +
       baseIndirectaMO * (factorIndirecta / 100);
   }
 

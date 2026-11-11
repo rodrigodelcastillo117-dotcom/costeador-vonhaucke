@@ -399,6 +399,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
         // necesita los bytes (se traen); la persistencia acepta URL o dataUrl.
         aisladoDataUrl = await comoDataUrl(r.imagen, urlADataUrl);
         const url = await persistir(r.imagen, 'aislado', tipo, ent.tipo);
+        aisladoUrl = url;   // VH: habilita el fallback de "en ambiente" (traer bytes de la URL si el dataUrl falló)
         setRenders((s) => ({ ...s, aislado: url }));
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
