@@ -72,7 +72,27 @@ jobs:
             echo "Faltan los secrets TEST_EMAIL / TEST_PASSWORD. Un check verde de este job NO certifica login/Cocrear/Cotizar autenticados." >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Instalar navegador de Playwright
-        run: npx playwright install --with-deps chromium
+        shell: bash
+        run: |
+          # Reintento ante flakes TRANSITORIOS de red/DNS del runner. El install de Playwright
+          # baja paquetes apt (--with-deps, mirror de Ubuntu) y el binario de Chromium (CDN); un
+          # "Temporary failure resolving azure.archive.ubuntu.com" tumbaba el job entero SIN que
+          # corriera un solo test E2E. Tres intentos con backoff: un corte momentáneo ya no es rojo;
+          # si la red está caída de verdad, sigue fallando (correcto) tras agotar los intentos.
+          intentos=3
+          for i in $(seq 1 "$intentos"); do
+            if npx playwright install --with-deps chromium; then
+              echo "Navegador de Playwright instalado (intento $i)."
+              exit 0
+            fi
+            if [ "$i" -lt "$intentos" ]; then
+              espera=$((i * 20))
+              echo "::warning title=Playwright install falló::Intento $i/$intentos (red/DNS). Reintento en ${espera}s."
+              sleep "$espera"
+            fi
+          done
+          echo "::error title=Playwright install::No se pudo instalar el navegador tras $intentos intentos (red del runner)."
+          exit 1
       - name: E2E público + auth condicional
         run: npm run e2e
       # Seguridad (19-oct): el error-context de Playwright incluye el VALOR de los campos de texto; si el login falla,
