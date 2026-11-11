@@ -11,6 +11,10 @@ describe('sanearTermino · neutraliza la sintaxis de PostgREST .or()', () => {
   it('punto y dos-puntos → comodín', () => {
     expect(sanearTermino('ref.123:x')).toBe('ref%123%x');
   });
+  it('comilla doble y backslash → comodín (medida 40" no rompe la consulta)', () => {
+    expect(sanearTermino('40"')).toBe('40%');
+    expect(sanearTermino('a\\b')).toBe('a%b');
+  });
   it('colapsa comodines repetidos y recorta', () => {
     expect(sanearTermino('  (( ))  ')).toBe('% %');   // degenerado pero seguro (ilike válido)
     expect(sanearTermino('a,,b')).toBe('a%b');

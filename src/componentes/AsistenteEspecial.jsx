@@ -826,7 +826,9 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   }
 
   async function analizarDescripcion(descArg) {
-    const desc = (descArg != null ? String(descArg) : (b.descripcionCliente || '')).trim();
+    // descArg solo se usa si es STRING (p.ej. el flujo de texto que pliega respuestas). Si llega
+    // cualquier otra cosa (un evento de onClick, undefined), se usa la descripción del usuario.
+    const desc = (typeof descArg === 'string' ? descArg : (b.descripcionCliente || '')).trim();
     if (desc.length < 8) { setErrorIA('Escribe una descripción un poco más completa (material, partes, uso) para que Voni la entienda.'); return; }
     const id = nuevaCorrida();          // arranca corrida limpia (la descripción viaja aparte)
     setErrorIA(''); setAnalizando(true);
@@ -1196,7 +1198,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           <button
             className={'boton ' + (analizando ? 'fantasma' : 'primario')}
             disabled={analizando || (b.descripcionCliente || '').trim().length < 8}
-            onClick={analizarDescripcion}
+            onClick={() => analizarDescripcion()}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             {analizando ? 'Voni está entendiendo…' : '🧠 Analizar con Voni'}
           </button>

@@ -60,6 +60,7 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
   const {
     clave, nombre, factorMo, factorGif, dims_mm = null, fuente = null,
     familia = null,                 // familia del mueble: habilita el factor de familia para muebles nuevos sin hoja propia
+    tablaFactores,                  // misma tabla que costearBOM (para que preview y costeo final coincidan)
     verificar = false,              // VERIFICADO sólo si se pide EXPLÍCITAMENTE y la integridad lo permite
     cos_fab_real_medido = null,     // referencia de fábrica medida e independiente (si existe)
   } = opts;
@@ -177,7 +178,7 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
   if (Number.isFinite(fm) && Number.isFinite(fg)) {
     factores_fuente = 'clave';
   } else {
-    const famF = familia != null ? factorDeFamilia(familia) : null;
+    const famF = familia != null ? factorDeFamilia(familia, tablaFactores) : null;
     if (famF) { moUsado = famF.factor_mo; gifUsado = famF.factor_gif; factores_fuente = 'familia'; }
   }
   // COSTO CALCULADO por factores del motor. NO es una medición de fábrica.

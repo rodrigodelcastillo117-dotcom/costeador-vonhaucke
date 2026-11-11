@@ -13,8 +13,8 @@
 export function sanearTermino(term) {
   return String(term == null ? '' : term)
     .trim()
-    .replace(/[,().:*]/g, '%')   // caracteres que rompen la sintaxis de .or() → comodín
-    .replace(/%{2,}/g, '%');     // colapsa comodines repetidos
+    .replace(/[,().:*"\\]/g, '%')   // caracteres que rompen la sintaxis/comillas de .or() → comodín
+    .replace(/%{2,}/g, '%');        // colapsa comodines repetidos
 }
 
 /**

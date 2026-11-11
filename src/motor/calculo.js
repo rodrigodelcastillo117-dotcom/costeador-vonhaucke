@@ -759,11 +759,11 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
 
   let materialDirecto = 0;
   let materialIndirecto = 0;
-  let materialSinMO = 0;   // comprado ya hecho, solo se instala: NO lleva mano de obra
-  // Mismo SIN_MO, partido por clase: para restarlo de la base de SU clase y no de la ajena.
-  // Hoy todos los insumos SIN_MO del catálogo son 'indirecta' (→ esto es no-op), pero si uno llegara
-  // 'directa' (p.ej. inline de VONI sin clase, que cae a directa), antes pagaba MO directa indebida
-  // y sobre-restaba la base indirecta. Con el split, un SIN_MO nunca paga MO, sea de la clase que sea.
+  // SIN_MO: material comprado ya hecho, solo se instala, NO lleva mano de obra. Se acumula PARTIDO por
+  // clase para restarlo de la base de SU clase y no de la ajena. Hoy todos los insumos SIN_MO del
+  // catálogo son 'indirecta' (→ el split es no-op), pero si uno llegara 'directa' (p.ej. inline de VONI
+  // sin clase), antes pagaba MO directa indebida y sobre-restaba la base indirecta. Con el split, un
+  // SIN_MO nunca paga MO, sea de la clase que sea.
   let materialSinMODirecto = 0, materialSinMOIndirecto = 0;
   let desperdicioTotal = 0;
   const detalleInsumos = [];
@@ -779,7 +779,6 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // la base de MO abajo. Pintura/tela/tapiceria NO entran aqui: esas SI
     // llevan mano de obra real (pintar, tapizar).
     if (SIN_MO_SECCIONES.has(insumo.seccion)) {
-      materialSinMO += r.costo;
       if (insumo.clase === 'indirecta') materialSinMOIndirecto += r.costo; else materialSinMODirecto += r.costo;
     }
     desperdicioTotal += r.desperdicio;
