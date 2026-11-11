@@ -67,9 +67,12 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
       const r = await guardarExpediente(svc, { clave: expediente.clave, expediente, versionAnterior: dbVersion.current });
       if (r && r.ok === false) {
         setMsg(`No se guardó (otra sesión cambió el expediente): ${r.error || 'conflicto de versión'}. Reabre y reintenta.`);
-      } else {
-        dbVersion.current = (r && r.version != null) ? r.version : dbVersion.current;
+      } else if (r && (r.ok === true || r.version != null)) {
+        dbVersion.current = (r.version != null) ? r.version : dbVersion.current;
         setMsg(`✓ Guardado v${dbVersion.current ?? ''} (clave ${expediente.clave}). Se reabre en Ingeniería por su clave.`);
+      } else {
+        // Respuesta ambigua del RPC (ni ok ni version): NO afirmar éxito falso — podría no haber guardado.
+        setMsg('No se pudo confirmar el guardado (respuesta inesperada del servidor). Reabre y verifica antes de continuar.');
       }
     } catch (e) {
       const m = String(e?.message || e);
@@ -106,7 +109,9 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
           <button type="button" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar expediente'}</button>
           <button type="button" onClick={() => { try { descargarPdfExpediente(expediente); } catch (e) { setMsg(`No se pudo generar el PDF: ${String(e?.message || e)}`); } }}>PDF del expediente</button>
-          {msg && <span style={{ fontSize: 13, color: /No se pudo|Captura/.test(msg) ? 'var(--alerta,#c0453b)' : 'var(--ok,#2e7d52)' }}>{msg}</span>}
+          {/* Color por ÉXITO explícito (prefijo ✓), no por lista de frases de error: antes un "No se
+              guardó…" (conflicto de versión) se pintaba de VERDE y parecía éxito. Solo ✓ es verde. */}
+          {msg && <span style={{ fontSize: 13, color: /^✓/.test(msg) ? 'var(--ok,#2e7d52)' : 'var(--alerta,#c0453b)' }}>{msg}</span>}
         </div>
         <PantallaIngenieria expediente={expediente} persistencia={NOOP} />
       </div>
