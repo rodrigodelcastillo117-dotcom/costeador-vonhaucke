@@ -81,6 +81,21 @@ describe('costearBOM · precedencia de factores y trazabilidad', () => {
     expect(r.factoresFuente).toBe('familia');
     expect(r.costoFabricacion).toBeCloseTo(1350, 6);
   });
+
+  // Guard endurecido: '', '  ' y boolean también coaccionan a 0 con Number(); NO deben contar como factor.
+  it.each([['', ''], ['  ', '  '], [false, false]])('factor vacío/booleano (%s) NO se trata como 0/0', (mo, gif) => {
+    const bom = { ...bomNuevo(null), factor_mo: mo, factor_gif: gif };
+    const r = costearBOM(bom, {});
+    expect(r.factoresFuente).toBe('politica_vh');
+    expect(r.costoFabricacion).toBeCloseTo(1800, 6);   // ×1.8, no ×1.0
+  });
+
+  it('factor "0.1" como CADENA numérica sí es válido (por-clave)', () => {
+    const bom = { ...bomNuevo(null), factor_mo: '0.1', factor_gif: '0.25' };
+    const r = costearBOM(bom, {});
+    expect(r.factoresFuente).toBe('clave');
+    expect(r.costoFabricacion).toBeCloseTo(1350, 6);
+  });
 });
 
 describe('cargarFactoresFamilia · gobernanza (Bloque 1 del formulario)', () => {

@@ -824,8 +824,8 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     return res;
   }
 
-  async function analizarDescripcion() {
-    const desc = (b.descripcionCliente || '').trim();
+  async function analizarDescripcion(descArg) {
+    const desc = (descArg != null ? String(descArg) : (b.descripcionCliente || '')).trim();
     if (desc.length < 8) { setErrorIA('Escribe una descripción un poco más completa (material, partes, uso) para que Voni la entienda.'); return; }
     const id = nuevaCorrida();          // arranca corrida limpia (la descripción viaja aparte)
     setErrorIA(''); setAnalizando(true);
@@ -895,7 +895,16 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     });
     if (!Object.keys(ahora).length) { setConfMsg('Contesta al menos una confirmación para recalcular.'); return; }
     const imgs = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
-    if (!imgs.length) { setConfMsg('No tengo el plano en memoria para recalcular; vuelve a subirlo.'); return; }
+    if (!imgs.length) {
+      // FLUJO DE TEXTO (sin plano en memoria): antes esto moría con "vuelve a subirlo" aunque el usuario
+      // nunca subió nada (describió por texto). Se recostea por el MISMO camino probado que "Analizar con
+      // Voni", plegando las respuestas a la descripción (equivale a que el usuario las agregue y re-analice).
+      const desc = (b.descripcionCliente || '').trim();
+      const extra = Object.values(ahora).map((v) => `${v.pregunta}: ${v.respuesta}`).join('. ');
+      setConfMsg('Recalculando con tus respuestas…');
+      await analizarDescripcion(`${desc}${desc ? '. ' : ''}Datos confirmados: ${extra}.`);
+      return;
+    }
     // ACUMULA por key y manda TODO a la IA (para que no reabra una ronda).
     const todas = { ...confirmadas, ...ahora }; // {question_key: {pregunta, respuesta}}
     const respPayload = Object.entries(todas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta }));

@@ -58,7 +58,7 @@ describe('cotización · renders no inflan el JSON', () => {
     expect(s).toContain('rendersFaltantes(partidas, renderDePartida, setGenPart)');
     expect(s).toContain('if (r.ok) setPartida(i, { render: r.url })');
     expect(s).toContain('imagenAcomodoAStorage(');
-    expect(s).toContain('setErrGen(mensajeRenderOficina(acomodoClienteGate, cotCliente))');
+    expect(s).toContain('setAvisoOficina(mensajeRenderOficina(acomodoClienteGate, cotCliente))');
     expect(s).toContain('urlADataUrl(cotCliente.acomodo?.render3d)');
     expect(s).toContain('const cotParaPdf = cotizacionParaPdf(cotCliente, render3dPdf)');
     expect(s).toContain('cot: cotParaPdf');

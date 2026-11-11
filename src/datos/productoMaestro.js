@@ -31,6 +31,16 @@ export function precioLineaBOM(linea = {}, insumos = {}) {
 
 const normU = (u) => String(u || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[²2]/g, '2').replace(/\s+/g, '');
 
+// Factor numérico ESTRICTO: solo un número real o una cadena numérica no vacía cuenta.
+// Rechaza null, undefined, boolean y cadena vacía/espacios (Number('')===0, Number(false)===0
+// se colarían como factor 0 → MO/GIF 0 → subcosteo). Un 0 explícito numérico SÍ es válido.
+const numFactor = (x) => {
+  if (x == null || typeof x === 'boolean') return NaN;
+  if (typeof x === 'string' && x.trim() === '') return NaN;
+  const n = Number(x);
+  return Number.isFinite(n) ? n : NaN;
+};
+
 /**
  * CONTRATO SEGURO DE LÍNEA (P1 2026-11-07): clasifica una línea en un estado explícito.
  * Un estado que no se puede costear BLOQUEA la emisión; nunca se cuesta en silencio.
@@ -123,10 +133,11 @@ export function costearBOM(bom = {}, insumos = {}, { factores, familia = null, t
     const material = fabMat + cvMat;
     return { materialFabricado: fabMat, materialCompraVenta: cvMat, material, manoObra: material * mo, gif: material * gif, costoFabricacion: material + material * mo + material * gif };
   };
-  // OJO: Number(null) === 0 (finito). Un factor null/ausente NO es un factor por-clave válido;
-  // tratarlo como 0 costeaba material SIN MO ni GIF (subcosteo silencioso). Null/undefined ⇒ NaN.
-  const fm = bom.factor_mo == null ? NaN : Number(bom.factor_mo);
-  const fg = bom.factor_gif == null ? NaN : Number(bom.factor_gif);
+  // OJO: Number(null)/Number('')/Number(false) === 0 (finito). Un factor ausente/vacío/booleano NO
+  // es un factor por-clave válido; tratarlo como 0 costeaba material SIN MO ni GIF (subcosteo).
+  // numFactor solo acepta un número real o cadena numérica; lo demás ⇒ NaN ⇒ cae a familia/política.
+  const fm = numFactor(bom.factor_mo);
+  const fg = numFactor(bom.factor_gif);
   const famKey = bom.familia != null ? bom.familia : familia;
   let vh, factoresFuente;
   if (Number.isFinite(fm) && Number.isFinite(fg)) {

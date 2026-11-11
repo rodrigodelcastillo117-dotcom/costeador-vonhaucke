@@ -62,10 +62,11 @@ describe('Render premium · fidelidad antes que belleza', () => {
     expect(msg).toContain('desde Cotización no voy a inventar una oficina genérica');
     // STATIC GUARD (cableado): Cotizacion.jsx no se monta en node; renderOficina sólo muestra ese mensaje, no genera.
     const s=fs.readFileSync('src/componentes/Cotizacion.jsx','utf8');
-    const i=s.indexOf('async function renderOficina()');
+    const i=s.indexOf('function renderOficina()');
     const j=s.indexOf('// DESCARGAR de verdad:',i);
     const b=s.slice(i,j);
-    expect(b).toContain('setErrGen(mensajeRenderOficina(acomodoClienteGate, cotCliente))');
+    // La guía se muestra (ahora en caja NEUTRAL vía setAvisoOficina, no en el rojo de error) y NO genera.
+    expect(b).toContain('setAvisoOficina(mensajeRenderOficina(acomodoClienteGate, cotCliente))');
     expect(b).not.toContain("modo: 'oficina'");
     expect(b).not.toMatch(/generarRender\(/);
   });

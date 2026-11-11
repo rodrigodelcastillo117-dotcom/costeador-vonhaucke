@@ -187,6 +187,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   const [genPart, setGenPart] = useState(null); // id de partida en proceso
   const [genOficina, setGenOficina] = useState(false);
   const [errGen, setErrGen] = useState('');
+  const [avisoOficina, setAvisoOficina] = useState('');   // guía de "render de oficina" (NO es error)
   // La propuesta ABRE ARRIBA. Se llegaba a ella con el scroll de la pantalla
   // anterior, o sea a media hoja, y había que subir todo para orientarse.
   useEffect(() => {
@@ -201,7 +202,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   // "una" y "todas": si algo falla se avisa y la partida se queda como estaba.
   async function renderPartida(i) {
     const pt = partidas[i]; if (!pt) return;
-    setErrGen(''); setGenPart(pt.id);
+    setErrGen(''); setAvisoOficina(''); setGenPart(pt.id);
     try {
       const r = await renderDePartida(pt);
       if (r.ok) setPartida(i, { render: r.url }); else setErrGen(r.error);
@@ -209,7 +210,7 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   }
 
   async function renderTodas() {
-    setErrGen('');
+    setErrGen(''); setAvisoOficina('');
     // datos/renderCotizacion.js: sólo la URL de Storage entra al estado (probado en renderStoragePolicy.test.js).
     const { partidas: ps, fallas } = await rendersFaltantes(partidas, renderDePartida, setGenPart);
     setGenPart(null); setCot({ partidas: ps });
@@ -237,8 +238,11 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
   }
   // El render final del espacio sólo viene del Acomodo validado: aquí NUNCA se genera (el layout visual vive en
   // Acomodo, con su referencia isométrica y QA). Mensaje en datos/renderCotizacion.js.
-  async function renderOficina() {
-    setErrGen(mensajeRenderOficina(acomodoClienteGate, cotCliente));
+  // El render de la oficina se genera en Acomodo (con el layout real validado), NUNCA aquí. Este botón
+  // guía hacia allá: la guía va en una caja NEUTRAL (no en el rojo de error) y ofrece ir a Acomodo.
+  function renderOficina() {
+    setErrGen('');
+    setAvisoOficina(mensajeRenderOficina(acomodoClienteGate, cotCliente));
   }
 
   // DESCARGAR de verdad: se genera el archivo y se baja. Antes esto abría el
@@ -732,7 +736,13 @@ export default function Cotizacion({ estado, setEstado, soloVentas = false, onIr
                 {(acomodoClienteGate.razones || []).join(' · ') || 'falta validar el acomodo con el motor espacial'}. La cotización puede emitirse, pero el plano/3D se omitirá hasta validarlo.</span>
             </div>
           )}
-                    {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
+                    {avisoOficina && (
+            <div className="alerta" style={{ background: '#eef4ff', borderColor: '#9db8e8', color: '#2b3f66' }}>
+              <span className="texto">{avisoOficina}</span>
+              {onIr && <button className="boton" style={{ minHeight: 36, marginLeft: 8, padding: '0 12px' }} onClick={() => onIr('acomodo')}>Ir a Acomodo</button>}
+            </div>
+          )}
+          {errGen && <div className="alerta roja"><span className="texto">{errGen}</span></div>}
         </div>
 
         {/* ---------- CLIENTE · Propuesta premium (SIEMPRE imprime) ---------- */}
