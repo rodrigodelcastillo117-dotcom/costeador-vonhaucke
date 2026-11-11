@@ -67,7 +67,7 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
   if (plan.strictPlacement === true && spec) {
     const status=String(spec.status||'');
     const ready=plan.render_ready === true || spec?.validation?.render_ready === true;
-    const invariant=spec?.validation?.invariant_ok !== false;
+    const invariant=spec?.validation?.invariant_ok === true;   // fail-closed: ausente (spec viejo sin el campo) NO cuenta como válido
     const ok=status==='PASS' && ready && invariant;
     return {
       existe:true, mostrar:ok, valido:ok,
