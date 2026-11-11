@@ -370,11 +370,13 @@ Deno.serve(async (req) => {
   }
 
   const contenido = [...bloquesImagen, { type: "text", text: textoTarea }];
-  const pedir = async (schema: any, sys: string, maxTok: number, effort: string, model: string) => {
+  const pedir = async (schema: any, sys: string, maxTok: number, effort: string, model: string, timeoutMs = 75_000) => {
     const ac = new AbortController();
     // VH-108 (evidencia ai_eventos 7 d): la REVISIÓN con 45 s abortaba 5 de 5 veces con Opus
-    // (p50 45.6 s = el límite); el resto de modos usa 75 s con 1 % de timeouts. Mismo límite.
-    const timer = setTimeout(() => ac.abort(), 75_000);
+    // (p50 45.6 s = el límite); el resto de modos usa 75 s con 1 % de timeouts.
+    // La 1ª pasada de TEXTO (opus) recibe un timeout mayor por `timeoutMs` (ver planPass): un mueble
+    // industrial grande necesita >75 s con opus y se cortaba. Default 75 s para todas las demás pasadas.
+    const timer = setTimeout(() => ac.abort(), timeoutMs);
     const tFetch0 = Date.now();   // t0 de ESTE intento (telemetría; no altera comportamiento)
     // Métricas de ESTE intento — reset per-attempt para que un abort/error NO herede valores
     // del intento anterior. Se registran SIEMPRE en el finally (incl. abort/timeout/network).
@@ -474,7 +476,7 @@ Deno.serve(async (req) => {
   telExtra = { model_id: MODEL_PASADA, effort: plan.effort, max_tokens: MAX_TOK, user_input_chars: desc.length, catalog_count: catCount, catalog_chars: (cat || "").length, fallback_used: false };
 
   let data: any;
-  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_PASADA); }
+  try { data = await pedir(schemaInicial, systemInicial, MAX_TOK, plan.effort, MODEL_PASADA, plan.timeoutMs); }
   catch (e: any) {
     const { code, modelStatus } = mapProviderError(e);
     const mensaje = code === "PROVIDER_TIMEOUT"
