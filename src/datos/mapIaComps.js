@@ -153,6 +153,18 @@ export function mapIaComps(p, insumos = {}) {
       else if (base.formaIa === 'pieza' && !Number.isInteger(cantidadIa) && cantidadIa > 0) {
         base.piezas = 1; base.iaIncoherencia = { campo: 'cantidadPiezas', dice: cantidadIa, puso: 1 };
       }
+      // BLN-09 (área): una cantidad EXPLÍCITA inválida (0 o negativa) NO se coacciona a 1 pieza — sería
+      // inventar material. `z.cantidad || 1` con 0 daba 1 y la escondía del motor (costo >0) y del validador
+      // (cantidad_imposible lee `piezas` ya coaccionado a 1). Se marca para que el validador la BLOQUEE.
+      // Una cantidad AUSENTE (NaN) sí mantiene el default de 1 pieza (mínimo veraz de la geometría conocida).
+      if (Number.isFinite(cantidadIa) && cantidadIa <= 0 && !base.iaIncoherencia) {
+        base.iaIncoherencia = { campo: 'cantidadPiezas', dice: cantidadIa, puso: base.piezas };
+      }
+      // Geometría de área con UNA dimensión presente y la otra AUSENTE: incompleta. No se cuesta 1 unidad
+      // como dato real (el fallback del motor ignora la medida real). Se marca para bloqueo (PENDIENTE de CAD).
+      if ((Number(z.largoMM) > 0) !== (Number(z.anchoMM) > 0) && !base.iaIncoherencia) {
+        base.iaIncoherencia = { campo: 'geometriaArea', dice: { largoMM: z.largoMM ?? null, anchoMM: z.anchoMM ?? null }, puso: 'geometria incompleta' };
+      }
       if (z.hojas > 0) {
         base.iaHojas = z.hojas;
         const ins = base.insumoId ? resolver(base.insumoId) : null;
