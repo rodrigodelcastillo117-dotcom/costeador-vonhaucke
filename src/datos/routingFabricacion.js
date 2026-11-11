@@ -76,7 +76,9 @@ const OPERACIONES = [
   { op: 'enchapado', nombre: 'Enchapado (chapa de madera)', centro: 'carpintería', categoria: 'acabado', orden: 40,
     disparo: (v) => v.tieneTexto(/chapa de madera|chapa\b|enchap/) && { evidencia: 'chapa de madera en el BOM' } },
   { op: 'canteado', nombre: 'Pegado de canto', centro: 'carpintería', categoria: 'acabado', orden: 41,
-    disparo: (v) => v.tieneTexto(/canto|tapacanto|\babs\b|cantead/) && { evidencia: 'canto/tapacanto en el BOM' } },
+    // Sólo tapacanto/canteado REAL de tablero. "cantos pulidos" del CRISTAL no es carpintería:
+    // exige término de tapacanto, o "canto" junto a un tablero (no vidrio).
+    disparo: (v) => (v.tieneTexto(/tapacanto|cantead/) || (v.tieneTexto(/\bcanto/) && v.tieneTexto(/melamina|\bmdf\b|\bmdp\b|aglomerad|tablero|triplay/))) && { evidencia: 'canto/tapacanto de tablero en el BOM' } },
   // --- pintura / recubrimiento ---
   { op: 'preparacion_superficie', nombre: 'Preparación de superficie', centro: 'pintura', categoria: 'acabado', orden: 50,
     disparo: (v) => v.tieneTexto(/pintura|recubrimiento|electrostatic|polvo|laca|barniz/) && { evidencia: 'se va a pintar/recubrir' } },

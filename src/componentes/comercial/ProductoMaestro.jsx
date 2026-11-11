@@ -8,6 +8,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { nube } from '../../nube.js';
 import { pesos } from '../../util.js';
+import { orIlike } from '../../datos/busquedaSegura.js';
 
 const dinero = (n) => (n == null || isNaN(n) || !isFinite(n) ? '—' : pesos(n));
 const TIPOS = [{ id: '', n: 'Todos' }, { id: 'linea', n: 'Línea' }, { id: 'banco', n: 'Banco' }, { id: 'expediente', n: 'Expediente' }];
@@ -26,8 +27,10 @@ export default function ProductoMaestro({ soloVentas = false, veCostos = false }
     try {
       let query = nube.from('productos').select('id,nombre,codigo,source_type,familia,estado,activo').limit(60);
       if (tipo) query = query.eq('source_type', tipo);
-      const term = q.trim();
-      if (term) query = query.or(`nombre.ilike.%${term}%,codigo.ilike.%${term}%`);
+      // Texto crudo del usuario con coma/paréntesis/punto rompía el parseo de .or() → la consulta
+      // entera fallaba ("No se pudo cargar el catálogo"). orIlike lo neutraliza a comodín.
+      const filtro = orIlike(q, ['nombre', 'codigo']);
+      if (filtro) query = query.or(filtro);
       const { data: prods, error } = await query;
       if (error) { setEstado('error'); return; }
       const ids = (prods || []).map((p) => p.id);

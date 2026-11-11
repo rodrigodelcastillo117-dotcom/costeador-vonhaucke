@@ -1,0 +1,957 @@
+{
+  "clave": "TELSVH120",
+  "generado": "2026-11-09",
+  "version": 1,
+  "interpretacion": {
+    "producto": "Vitrina horizontal de exhibicion, metalica, con capelo de cristal y caja de luz iluminada",
+    "funcion": "Exhibidor de mostrador para punto de venta (modelo SAMS), con vitrina superior iluminada y gabinete inferior con 2 puertas",
+    "dimensiones_generales_mm": {
+      "ancho": 1200,
+      "alto": 1150,
+      "fondo": 600
+    },
+    "modulos": [
+      {
+        "modulo": "Gabinete inferior (cuerpo)",
+        "piezas": [
+          "TELSVH120-CUE",
+          "TELSVH120-CF",
+          "TELSVH120-P",
+          "TELSVH120-PC"
+        ]
+      },
+      {
+        "modulo": "Vitrina superior / capelo",
+        "piezas": [
+          "TELSVH120-CAP",
+          "TELSVH120-SOM",
+          "TELSVH120-BX2",
+          "TELSVH120-SOC"
+        ]
+      },
+      {
+        "modulo": "Caja de luz iluminada",
+        "piezas": [
+          "TELSVH120-BAA",
+          "TELSVH120-KIT",
+          "TELVIH-LOAC"
+        ]
+      },
+      {
+        "modulo": "Herrajes y cierre",
+        "piezas": [
+          "P36CR",
+          "COEME20ND",
+          "REP46",
+          "TO3812NIC",
+          "PITR114",
+          "CLENR2CA",
+          "TELSVH120-PLA"
+        ]
+      },
+      {
+        "modulo": "Selladores",
+        "piezas": [
+          "TELSVH120-AD",
+          "TELSVH120-SIL"
+        ]
+      }
+    ],
+    "criterio_ingenieria": {
+      "cristal_acrilico": "Capelo de cristal 1148x548x254 esp 6mm templado (CAP) + logo acrilico laser 797x173x3 (LOAC) + caja de luz termoformada acrilico Z2 (BAA)",
+      "iluminacion_cableado": "Kit LED 5 tiras 1m 5050/60 4000K + fuente 100W Mean Well + cable tomacorriente 2.5m (KIT) -> operaciones cableado + pruebas electricas",
+      "tornilleria_herrajes": "Pasador P36CR, 45 remaches REP46, corredera COEME20ND, 4 niveladores TO3812NIC, pija PITR114, clavo CLENR2CA",
+      "dobleces_refuerzos": "PROPUESTA: cuerpo/frente/puertas en lamina doblada (gabinete de mostrador) -> implica corte + doblez; refuerzos internos no acotados en el plano (proponer)",
+      "soldadura_uniones": "PROPUESTA: union de cuerpo por remache (plano dice 'remachar'), soldadura no confirmada en el plano -> no asumir soldadura certificada",
+      "soportes_anclajes": "Soportes de correderas a cuerpo (plano: 'fijar soportes a cuerpo con remaches')",
+      "acabados": "PROPUESTA: pintura/acabado del gabinete metalico (no acotado color/proceso en este despiece) -> proponer",
+      "equipo_cliente": "Ninguno indicado"
+    }
+  },
+  "bom_canonico": {
+    "tipo_bom": "BOM_BORRADOR",
+    "total_renglones": 20,
+    "resueltos": 10,
+    "pendientes": 10
+  },
+  "routing": {
+    "total_operaciones": 15,
+    "por_centro": {
+      "metalmecánica": 4,
+      "vidrio": 1,
+      "pintura": 3,
+      "ensamble": 3,
+      "eléctrico": 2,
+      "calidad": 1,
+      "embalaje": 1
+    }
+  },
+  "costo_industrial": {
+    "certificable": false,
+    "emitible_comercial": false,
+    "material": {
+      "total_mxn": 4987.96,
+      "incluido_mxn": 4987.96,
+      "fabricado_lamina_mxn": 294.06,
+      "fabricado_verificable_mxn": 0.13,
+      "fabricado_preliminar_mxn": 293.93,
+      "comprado_mxn": 4693.9,
+      "pendiente": {
+        "desarrollos_3d": [
+          "TELSVH120-CUE",
+          "TELSVH120-BX2",
+          "TELSVH120-SOC",
+          "TELSVH120-SOM"
+        ],
+        "bloqueadas": [],
+        "compradas_sin_precio": [
+          "TELSVH120-KIT",
+          "COEME20ND"
+        ]
+      },
+      "piezas_fabricadas_costeadas": 4,
+      "evidencia": [
+        {
+          "clave": "TELSVH120-PC",
+          "estado": "PRELIMINAR",
+          "calibre": {
+            "valor": 22,
+            "confirmado": false,
+            "fuente": "default propuesto",
+            "lamina_calibre": 22,
+            "exacto": true
+          },
+          "desarrollo": {
+            "tipo": "PANEL_PESTANAS",
+            "metodo": "INFERIDO_L2D",
+            "verificado": false,
+            "largoMM": 834,
+            "anchoMM": 578,
+            "area_m2": 0.4821,
+            "fuente": null,
+            "version": null
+          },
+          "lamina": {
+            "insumo_id": "erp-ln22310",
+            "acero": "negra",
+            "acabado": "sin acabado",
+            "precio": 326.59,
+            "precio_id": 8748,
+            "version": 8748,
+            "unidad": "hoja",
+            "vigente_desde": "2026-01-26",
+            "certificable": true,
+            "estatus": "CERTIFICADO",
+            "fuente": "Compras · ERP Intelisis",
+            "formato": "3048x914 mm",
+            "area_hoja_m2": 2.7859
+          },
+          "area_neta_m2": 0.4821,
+          "piezas_por_hoja": 5,
+          "hojas": 0.2,
+          "aprovechamiento_pct": 86.5,
+          "costo_mp_mxn": 65.32,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado.",
+          "motivos": [
+            "calibre no confirmado (propuesto)",
+            "desarrollo inferido (L+2D), sin CAD"
+          ]
+        },
+        {
+          "clave": "TELSVH120-P",
+          "estado": "PRELIMINAR",
+          "calibre": {
+            "valor": 22,
+            "confirmado": false,
+            "fuente": "default propuesto",
+            "lamina_calibre": 22,
+            "exacto": true
+          },
+          "desarrollo": {
+            "tipo": "PANEL_PESTANAS",
+            "metodo": "INFERIDO_L2D",
+            "verificado": false,
+            "largoMM": 834,
+            "anchoMM": 578,
+            "area_m2": 0.4821,
+            "fuente": null,
+            "version": null
+          },
+          "lamina": {
+            "insumo_id": "erp-ln22310",
+            "acero": "negra",
+            "acabado": "sin acabado",
+            "precio": 326.59,
+            "precio_id": 8748,
+            "version": 8748,
+            "unidad": "hoja",
+            "vigente_desde": "2026-01-26",
+            "certificable": true,
+            "estatus": "CERTIFICADO",
+            "fuente": "Compras · ERP Intelisis",
+            "formato": "3048x914 mm",
+            "area_hoja_m2": 2.7859
+          },
+          "area_neta_m2": 0.4821,
+          "piezas_por_hoja": 5,
+          "hojas": 0.2,
+          "aprovechamiento_pct": 86.5,
+          "costo_mp_mxn": 65.32,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado.",
+          "motivos": [
+            "calibre no confirmado (propuesto)",
+            "desarrollo inferido (L+2D), sin CAD"
+          ]
+        },
+        {
+          "clave": "TELSVH120-CF",
+          "estado": "PRELIMINAR",
+          "calibre": {
+            "valor": 22,
+            "confirmado": false,
+            "fuente": "default propuesto",
+            "lamina_calibre": 22,
+            "exacto": true
+          },
+          "desarrollo": {
+            "tipo": "PANEL_PESTANAS",
+            "metodo": "INFERIDO_L2D",
+            "verificado": false,
+            "largoMM": 1132,
+            "anchoMM": 854,
+            "area_m2": 0.9667,
+            "fuente": null,
+            "version": null
+          },
+          "lamina": {
+            "insumo_id": "erp-ln22310",
+            "acero": "negra",
+            "acabado": "sin acabado",
+            "precio": 326.59,
+            "precio_id": 8748,
+            "version": 8748,
+            "unidad": "hoja",
+            "vigente_desde": "2026-01-26",
+            "certificable": true,
+            "estatus": "CERTIFICADO",
+            "fuente": "Compras · ERP Intelisis",
+            "formato": "3048x914 mm",
+            "area_hoja_m2": 2.7859
+          },
+          "area_neta_m2": 0.9667,
+          "piezas_por_hoja": 2,
+          "hojas": 0.5,
+          "aprovechamiento_pct": 69.4,
+          "costo_mp_mxn": 163.29,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado.",
+          "motivos": [
+            "calibre no confirmado (propuesto)",
+            "desarrollo inferido (L+2D), sin CAD"
+          ]
+        },
+        {
+          "clave": "TELSVH120-PLA",
+          "estado": "VERIFICABLE",
+          "calibre": {
+            "valor": 24,
+            "confirmado": true,
+            "fuente": "del plano",
+            "lamina_calibre": 24,
+            "exacto": true
+          },
+          "desarrollo": {
+            "tipo": "PANEL_PLANO",
+            "metodo": "VERIFICADO",
+            "verificado": true,
+            "largoMM": 40,
+            "anchoMM": 23,
+            "area_m2": 0.0009,
+            "fuente": null,
+            "version": null
+          },
+          "lamina": {
+            "insumo_id": "erp-ln24310",
+            "acero": "negra",
+            "acabado": "sin acabado",
+            "precio": 261.27,
+            "precio_id": 6201,
+            "version": 6201,
+            "unidad": "hoja",
+            "vigente_desde": "2025-10-17",
+            "certificable": true,
+            "estatus": "CERTIFICADO",
+            "fuente": "Compras · ERP Intelisis",
+            "formato": "3048x914 mm",
+            "area_hoja_m2": 2.7859
+          },
+          "area_neta_m2": 0.0009,
+          "piezas_por_hoja": 2015,
+          "hojas": 0.0005,
+          "aprovechamiento_pct": 64.6,
+          "costo_mp_mxn": 0.13,
+          "corte_incluido_en_precio": false,
+          "nota_doble_conteo": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado.",
+          "motivos": []
+        }
+      ]
+    },
+    "mano_obra": {
+      "politica_vh_mxn": 105.75,
+      "routing_tiempos_mxn": null,
+      "routing_completa": false,
+      "nota": "MO por routing incompleta: faltan estandares (tiempo+tarifa) autorizados. Modelo vigente mientras tanto: POLITICA_VH por factores."
+    },
+    "gif_mxn": 411.13,
+    "terceros": {
+      "pendiente": true,
+      "nota": "Cristal templado / termoformado / galvanizado: costo externo a confirmar (no incluido)."
+    },
+    "politica_costo": {
+      "aplicada": null,
+      "aprobada_por": null,
+      "aprobada": false
+    },
+    "modelos": {
+      "factores_vh_mxn": 5504.84,
+      "routing_tiempos_mxn": null
+    },
+    "total": {
+      "parcial_mxn": 5504.84,
+      "oficial_mxn": null,
+      "es_oficial": false,
+      "modelo_oficial": null,
+      "bloqueado_por": [
+        "material/precio/desarrollo pendiente o pieza preliminar",
+        "sin politica de costo aprobada (factores_vh o routing_tiempos)",
+        "terceros pendientes (operaciones externas)"
+      ],
+      "estado": "PARCIAL — no emitible como costo completo"
+    },
+    "cobertura": {
+      "cerrado": false,
+      "es_oficial": false,
+      "desarrollos_pendientes": [
+        {
+          "clave": "TELSVH120-CUE",
+          "motivo": "caja 3D de 1200x865x600 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+        },
+        {
+          "clave": "TELSVH120-BX2",
+          "motivo": "caja 3D de 1117x527x242 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+        },
+        {
+          "clave": "TELSVH120-SOC",
+          "motivo": "caja 3D de 500x48x40 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+        },
+        {
+          "clave": "TELSVH120-SOM",
+          "motivo": "caja 3D de 1127x78x42 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+        }
+      ],
+      "bloqueadas": [],
+      "compradas_sin_precio": [
+        {
+          "clave": "TELSVH120-KIT",
+          "desc": "KIT DE ILUMINACION: 5 TIRAS 1m LED 5050/60 4000K + FUENTE 100W MEAN WELL + CABLE 2.5m"
+        },
+        {
+          "clave": "COEME20ND",
+          "desc": "CORREDERAS - COEME20ND"
+        }
+      ],
+      "pendientes_motor": [],
+      "doble_conteo": [
+        {
+          "clave": "TELSVH120-PC",
+          "nota": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado."
+        },
+        {
+          "clave": "TELSVH120-P",
+          "nota": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado."
+        },
+        {
+          "clave": "TELSVH120-CF",
+          "nota": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado."
+        },
+        {
+          "clave": "TELSVH120-PLA",
+          "nota": "Precio de HOJA cruda: corte/doblez NO incluidos -> operaciones del routing. No sumar un corte ya cobrado."
+        }
+      ]
+    },
+    "preguntas_por_decision": [
+      {
+        "decision": "Confirmar espesores/calibres y desarrollos",
+        "afecta": [
+          "TELSVH120-CUE",
+          "TELSVH120-BX2",
+          "TELSVH120-SOC",
+          "TELSVH120-SOM",
+          "TELSVH120-PC",
+          "TELSVH120-P",
+          "TELSVH120-CF"
+        ],
+        "n": 7
+      },
+      {
+        "decision": "Confirmar tiempos y tarifas por centro",
+        "afecta": [
+          "metalmecánica",
+          "vidrio",
+          "pintura",
+          "ensamble",
+          "eléctrico",
+          "calidad",
+          "embalaje"
+        ],
+        "n": 7
+      },
+      {
+        "decision": "Confirmar operaciones externas (terceros)",
+        "afecta": [
+          "TELSVH120-BAA",
+          "TO3812NIC",
+          "TELSVH120-CAP",
+          "TELVIH-LOAC"
+        ],
+        "n": 4
+      },
+      {
+        "decision": "Confirmar componentes comprados y su precio",
+        "afecta": [
+          "TELSVH120-KIT",
+          "COEME20ND"
+        ],
+        "n": 2
+      }
+    ],
+    "advertencia": "MP fisica real (lamina autoritativa del catalogo vigente, con precio_id) + MO/GIF POLITICA_VH. MO por routing pendiente de estandares. Piezas 3D sin CAD y precios faltantes NO entran al total. Total parcial: no emitible comercialmente como costo completo."
+  },
+  "diferencias_vs_anterior": {
+    "material_anterior_mxn": 4693.9,
+    "material_ahora_mxn": 4987.96,
+    "delta_material_mxn": 294.06,
+    "nota": "El anterior ignoraba el material de las piezas fabricadas; ahora la lamina se costea desde su MP real."
+  },
+  "inputs": {
+    "piezasBOM": [
+      {
+        "clave": "TELSVH120-CUE",
+        "desc": "CUERPO PARA VITRINA HORIZONTAL DE 1200 X 865 X 600 mm ; EN LAMINA",
+        "cantidad": 1,
+        "dims_mm": [
+          1200,
+          865,
+          600
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TELSVH120-BX2",
+        "desc": "EXHIBIDOR PARA VITRINA DE 1117 X 242 X 527 mm ; EN LAMINA",
+        "cantidad": 1,
+        "dims_mm": [
+          1117,
+          242,
+          527
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TELSVH120-SOC",
+        "desc": "BASE CORREDERA DE 500 X 48 X 40 mm ; EN LAMINA",
+        "cantidad": 2,
+        "dims_mm": [
+          500,
+          48,
+          40
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TELSVH120-SOM",
+        "desc": "SOMBRA PARA VITRINA DE 1127 X 78 X 42 mm ; EN LAMINA",
+        "cantidad": 1,
+        "dims_mm": [
+          1127,
+          78,
+          42
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TELSVH120-BAA",
+        "desc": "CAJA DE LUZ TERMOFORMADA DE 1110 X 500 X 130 mm ESPESOR 3.0 mm EN ACRILICO TRASLUCIDO Z2",
+        "cantidad": 1,
+        "insumoId": "erp-telsvh120-baa",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "TELSVH120-PC",
+        "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm DERECHA; EN LAMINA",
+        "cantidad": 1,
+        "dims_mm": [
+          538,
+          794,
+          20
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TELSVH120-P",
+        "desc": "PUERTA PARA VITRINA DE 538 X 794 X 20 mm IZQUIERDA; EN LAMINA",
+        "cantidad": 1,
+        "dims_mm": [
+          538,
+          794,
+          20
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TELSVH120-CF",
+        "desc": "FRENTE PARA VITRINA DE 1106 X 828 X 13 mm ; EN LAMINA",
+        "cantidad": 1,
+        "dims_mm": [
+          1106,
+          828,
+          13
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TELSVH120-AD",
+        "desc": "SIKAFLEX 1a SELLADOR ELASTICO DE POLIURETANO BLANCO - SK1ASEP",
+        "cantidad": 1,
+        "insumoId": "erp-sk1asep",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "TELSVH120-SIL",
+        "desc": "SILICON TRANSPARENTE 300 ml DOW CORNING SISTA 781 - AD-0008",
+        "cantidad": 1,
+        "insumoId": "erp-ad-0008",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "TELSVH120-KIT",
+        "desc": "KIT DE ILUMINACION: 5 TIRAS 1m LED 5050/60 4000K + FUENTE 100W MEAN WELL + CABLE 2.5m",
+        "cantidad": 1
+      },
+      {
+        "clave": "TELSVH120-PLA",
+        "desc": "MAQUILA PLACA GALVANIZADA 40 X 23 mm CAL 24 IDENTIFICACION, 2 BARRENOS, SERIGRAFIA",
+        "cantidad": 1,
+        "dims_mm": [
+          40,
+          23
+        ],
+        "fabricada": true
+      },
+      {
+        "clave": "TO3812NIC",
+        "desc": "TORNILLO NIVELADOR 3/8 X 1 PLATAFORMA 2 CROMADO - TO3812NIC",
+        "cantidad": 4,
+        "insumoId": "erp-to3812nic",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "TELSVH120-CAP",
+        "desc": "CAPELO DE CRISTAL 1148 X 548 X 254 mm ESP 6mm CLARO TEMPLADO CANTOS PULIDOS",
+        "cantidad": 1,
+        "insumoId": "erp-telsvh120-cap",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "PITR114",
+        "desc": "PIJA CABEZA PLANA PHILLIPS 1 1/4 TABLAROCA PAVONADO - PITR114",
+        "cantidad": 1,
+        "insumoId": "erp-pitr114",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "CLENR2CA",
+        "desc": "CLAVO EN ROLLO 2 PARA CLAVADORA NEUMATICA - CLENR2CA",
+        "cantidad": 1,
+        "insumoId": "erp-clenr2ca",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "TELVIH-LOAC",
+        "desc": "CORTE LASER LOGOTIPO TELCEL 797 X 173 X 3 mm ACRILICO AZUL ESP 3mm - TELVIH-LOAC",
+        "cantidad": 1,
+        "insumoId": "erp-telvih-loac",
+        "esCompraVenta": true
+      },
+      {
+        "clave": "REP46",
+        "desc": "REMACHE POP AM-46 ALUMINIO NATURAL - REP46",
+        "cantidad": 45,
+        "insumoId": "erp-rep46",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "P36CR",
+        "desc": "PASADOR MODELO 36 PHILLIPS CON BOTON DE SEGURIDAD CROMO SATINADO - P36CR",
+        "cantidad": 1,
+        "insumoId": "erp-p36cr",
+        "esCompraVenta": false
+      },
+      {
+        "clave": "COEME20ND",
+        "desc": "CORREDERAS - COEME20ND",
+        "cantidad": 1
+      }
+    ],
+    "insumosERP": {
+      "erp-telsvh120-baa": {
+        "id": "erp-telsvh120-baa",
+        "nombre": "CAJA DE LUZ TERMOFORMADA DE 1110 X 500 X 130 mm ESPESOR 3.0 mm EN ACRILICO TRASLUCIDO Z2",
+        "precio": 1685,
+        "unidad": "pieza",
+        "seccion": "herrajes"
+      },
+      "erp-sk1asep": {
+        "id": "erp-sk1asep",
+        "nombre": "SIKAFLEX 1a SELLADOR ELASTICO DE POLIURETANO BLANCO - SK1ASEP",
+        "precio": 170,
+        "unidad": "pieza",
+        "seccion": "herrajes"
+      },
+      "erp-ad-0008": {
+        "id": "erp-ad-0008",
+        "nombre": "SILICON TRANSPARENTE 300 ml DOW CORNING SISTA 781 - AD-0008",
+        "precio": 138.2,
+        "unidad": "pieza",
+        "seccion": "herrajes"
+      },
+      "erp-to3812nic": {
+        "id": "erp-to3812nic",
+        "nombre": "TORNILLO NIVELADOR 3/8 X 1 PLATAFORMA 2 CROMADO - TO3812NIC",
+        "precio": 40.7,
+        "unidad": "pieza",
+        "seccion": "herrajes"
+      },
+      "erp-telsvh120-cap": {
+        "id": "erp-telsvh120-cap",
+        "nombre": "CAPELO DE CRISTAL 1148 X 548 X 254 mm ESP 6mm CLARO TEMPLADO CANTOS PULIDOS",
+        "precio": 1737.99,
+        "unidad": "pieza",
+        "seccion": "cristal"
+      },
+      "erp-pitr114": {
+        "id": "erp-pitr114",
+        "nombre": "PIJA CABEZA PLANA PHILLIPS 1 1/4 TABLAROCA PAVONADO - PITR114",
+        "precio": 0.29,
+        "unidad": "pieza",
+        "seccion": "herrajes"
+      },
+      "erp-clenr2ca": {
+        "id": "erp-clenr2ca",
+        "nombre": "CLAVO EN ROLLO 2 PARA CLAVADORA NEUMATICA - CLENR2CA",
+        "precio": 590,
+        "unidad": "caja",
+        "seccion": "herrajes"
+      },
+      "erp-telvih-loac": {
+        "id": "erp-telvih-loac",
+        "nombre": "CORTE LASER LOGOTIPO TELCEL 797 X 173 X 3 mm ACRILICO AZUL ESP 3mm - TELVIH-LOAC",
+        "precio": 130,
+        "unidad": "pieza",
+        "seccion": "graficos"
+      },
+      "erp-rep46": {
+        "id": "erp-rep46",
+        "nombre": "REMACHE POP AM-46 ALUMINIO NATURAL - REP46",
+        "precio": 0.31,
+        "unidad": "pieza",
+        "seccion": "herrajes"
+      },
+      "erp-p36cr": {
+        "id": "erp-p36cr",
+        "nombre": "PASADOR MODELO 36 PHILLIPS CON BOTON DE SEGURIDAD CROMO SATINADO - P36CR",
+        "precio": 65.67,
+        "unidad": "pieza",
+        "seccion": "herrajes"
+      }
+    },
+    "catalogoLamina": [
+      {
+        "insumo_id": "erp-ln22310",
+        "calibre": 22,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "3x10",
+          "largoMM": 3048,
+          "anchoMM": 914,
+          "area_m2": 2.7859
+        },
+        "precio": 326.59,
+        "precio_id": 8748,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2026-01-26",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln24310",
+        "calibre": 24,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "3x10",
+          "largoMM": 3048,
+          "anchoMM": 914,
+          "area_m2": 2.7859
+        },
+        "precio": 261.27,
+        "precio_id": 6201,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2025-10-17",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln22410",
+        "calibre": 22,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "4x10",
+          "largoMM": 3048,
+          "anchoMM": 1219,
+          "area_m2": 3.7155
+        },
+        "precio": 521.55,
+        "precio_id": 13177,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2026-10-20",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln24410",
+        "calibre": 24,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "4x10",
+          "largoMM": 3048,
+          "anchoMM": 1219,
+          "area_m2": 3.7155
+        },
+        "precio": 510.3,
+        "precio_id": 7948,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2025-03-04",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln20410",
+        "calibre": 20,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "4x10",
+          "largoMM": 3048,
+          "anchoMM": 1219,
+          "area_m2": 3.7155
+        },
+        "precio": 583.117,
+        "precio_id": 11669,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2026-09-09",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln18310",
+        "calibre": 18,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "3x10",
+          "largoMM": 3048,
+          "anchoMM": 914,
+          "area_m2": 2.7859
+        },
+        "precio": 615.15,
+        "precio_id": 13176,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2026-10-20",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln16310",
+        "calibre": 16,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "3x10",
+          "largoMM": 3048,
+          "anchoMM": 914,
+          "area_m2": 2.7859
+        },
+        "precio": 800,
+        "precio_id": 13175,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2026-10-20",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln13410",
+        "calibre": 13,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "4x10",
+          "largoMM": 3048,
+          "anchoMM": 1219,
+          "area_m2": 3.7155
+        },
+        "precio": 825.33,
+        "precio_id": 7947,
+        "unidad": "hoja",
+        "certificable": false,
+        "vigente_desde": "2010-10-20",
+        "estatus": "PRELIMINAR",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-ln14410",
+        "calibre": 14,
+        "acero": "negra",
+        "acabado": "sin acabado",
+        "formato": {
+          "nombre": "4x10",
+          "largoMM": 3048,
+          "anchoMM": 1219,
+          "area_m2": 3.7155
+        },
+        "precio": 1211.953,
+        "precio_id": 11667,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2026-09-09",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-li22310",
+        "calibre": 22,
+        "acero": "inoxidable",
+        "acabado": "SATINADO P3",
+        "formato": {
+          "nombre": "3x10",
+          "largoMM": 3048,
+          "anchoMM": 914,
+          "area_m2": 2.7859
+        },
+        "precio": 1550,
+        "precio_id": 8625,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2025-10-09",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      },
+      {
+        "insumo_id": "erp-lg18310",
+        "calibre": 18,
+        "acero": "galvanizada",
+        "acabado": null,
+        "formato": {
+          "nombre": "3x10",
+          "largoMM": 3048,
+          "anchoMM": 914,
+          "area_m2": 2.7859
+        },
+        "precio": 780,
+        "precio_id": 6077,
+        "unidad": "hoja",
+        "certificable": true,
+        "vigente_desde": "2025-10-13",
+        "estatus": "CERTIFICADO",
+        "fuente": "Compras · ERP Intelisis"
+      }
+    ],
+    "routing": {
+      "operaciones": [
+        {
+          "op": "corte_lamina",
+          "centro": "metalmecánica"
+        },
+        {
+          "op": "corte_vidrio",
+          "centro": "vidrio"
+        },
+        {
+          "op": "punzonado",
+          "centro": "metalmecánica"
+        },
+        {
+          "op": "doblez",
+          "centro": "metalmecánica"
+        },
+        {
+          "op": "esmerilado",
+          "centro": "metalmecánica"
+        },
+        {
+          "op": "preparacion_superficie",
+          "centro": "pintura"
+        },
+        {
+          "op": "pintura_liquida",
+          "centro": "pintura"
+        },
+        {
+          "op": "secado_curado",
+          "centro": "pintura"
+        },
+        {
+          "op": "armado",
+          "centro": "ensamble"
+        },
+        {
+          "op": "instalacion_herrajes",
+          "centro": "ensamble"
+        },
+        {
+          "op": "colocacion_vidrio",
+          "centro": "ensamble"
+        },
+        {
+          "op": "cableado",
+          "centro": "eléctrico"
+        },
+        {
+          "op": "pruebas_electricas",
+          "centro": "eléctrico"
+        },
+        {
+          "op": "inspeccion",
+          "centro": "calidad"
+        },
+        {
+          "op": "embalaje",
+          "centro": "embalaje"
+        }
+      ]
+    }
+  }
+}

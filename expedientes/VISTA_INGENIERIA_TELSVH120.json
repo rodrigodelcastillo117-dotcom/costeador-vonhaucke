@@ -1,0 +1,199 @@
+{
+  "clave": "TELSVH120",
+  "esto_entendi": {
+    "producto": "Vitrina horizontal de exhibicion, metalica, con capelo de cristal y caja de luz iluminada",
+    "funcion": "Exhibidor de mostrador para punto de venta (modelo SAMS), con vitrina superior iluminada y gabinete inferior con 2 puertas",
+    "dimensiones_mm": {
+      "ancho": 1200,
+      "alto": 1150,
+      "fondo": 600
+    },
+    "modulos": [
+      "Gabinete inferior (cuerpo)",
+      "Vitrina superior / capelo",
+      "Caja de luz iluminada",
+      "Herrajes y cierre",
+      "Selladores"
+    ],
+    "materiales": {
+      "cristal_acrilico": "Capelo de cristal 1148x548x254 esp 6mm templado (CAP) + logo acrilico laser 797x173x3 (LOAC) + caja de luz termoformada acrilico Z2 (BAA)",
+      "iluminacion_cableado": "Kit LED 5 tiras 1m 5050/60 4000K + fuente 100W Mean Well + cable tomacorriente 2.5m (KIT) -> operaciones cableado + pruebas electricas",
+      "tornilleria_herrajes": "Pasador P36CR, 45 remaches REP46, corredera COEME20ND, 4 niveladores TO3812NIC, pija PITR114, clavo CLENR2CA",
+      "dobleces_refuerzos": "PROPUESTA: cuerpo/frente/puertas en lamina doblada (gabinete de mostrador) -> implica corte + doblez; refuerzos internos no acotados en el plano (proponer)",
+      "soldadura_uniones": "PROPUESTA: union de cuerpo por remache (plano dice 'remachar'), soldadura no confirmada en el plano -> no asumir soldadura certificada",
+      "soportes_anclajes": "Soportes de correderas a cuerpo (plano: 'fijar soportes a cuerpo con remaches')",
+      "acabados": "PROPUESTA: pintura/acabado del gabinete metalico (no acotado color/proceso en este despiece) -> proponer",
+      "equipo_cliente": "Ninguno indicado"
+    }
+  },
+  "asi_lo_fabricaria": {
+    "bom": {
+      "tipo_bom": "BOM_BORRADOR",
+      "total_renglones": 20,
+      "resueltos": 10,
+      "pendientes": 10
+    },
+    "operaciones_por_centro": {
+      "metalmecánica": 4,
+      "vidrio": 1,
+      "pintura": 3,
+      "ensamble": 3,
+      "eléctrico": 2,
+      "calidad": 1,
+      "embalaje": 1
+    },
+    "total_operaciones": 15,
+    "piezas_fabricadas": [
+      {
+        "clave": "TELSVH120-PC",
+        "estado": "PRELIMINAR",
+        "tipo": "PANEL_PESTANAS",
+        "metodo": "INFERIDO_L2D",
+        "lamina": "erp-ln22310",
+        "precio_id": 8748,
+        "costo_mp": 65.32
+      },
+      {
+        "clave": "TELSVH120-P",
+        "estado": "PRELIMINAR",
+        "tipo": "PANEL_PESTANAS",
+        "metodo": "INFERIDO_L2D",
+        "lamina": "erp-ln22310",
+        "precio_id": 8748,
+        "costo_mp": 65.32
+      },
+      {
+        "clave": "TELSVH120-CF",
+        "estado": "PRELIMINAR",
+        "tipo": "PANEL_PESTANAS",
+        "metodo": "INFERIDO_L2D",
+        "lamina": "erp-ln22310",
+        "precio_id": 8748,
+        "costo_mp": 163.29
+      },
+      {
+        "clave": "TELSVH120-PLA",
+        "estado": "VERIFICABLE",
+        "tipo": "PANEL_PLANO",
+        "metodo": "VERIFICADO",
+        "lamina": "erp-ln24310",
+        "precio_id": 6201,
+        "costo_mp": 0.13
+      }
+    ],
+    "desarrollos_pendientes": [
+      {
+        "clave": "TELSVH120-CUE",
+        "motivo": "caja 3D de 1200x865x600 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+      },
+      {
+        "clave": "TELSVH120-BX2",
+        "motivo": "caja 3D de 1117x527x242 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+      },
+      {
+        "clave": "TELSVH120-SOC",
+        "motivo": "caja 3D de 500x48x40 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+      },
+      {
+        "clave": "TELSVH120-SOM",
+        "motivo": "caja 3D de 1127x78x42 mm: el desarrollo plano requiere el despliegue de CAD/Ingenieria (no se infiere del bounding box)"
+      }
+    ]
+  },
+  "esto_necesito_confirmar": [
+    {
+      "decision": "Confirmar espesores/calibres y desarrollos",
+      "afecta": [
+        "TELSVH120-CUE",
+        "TELSVH120-BX2",
+        "TELSVH120-SOC",
+        "TELSVH120-SOM",
+        "TELSVH120-PC",
+        "TELSVH120-P",
+        "TELSVH120-CF"
+      ],
+      "n": 7
+    },
+    {
+      "decision": "Confirmar tiempos y tarifas por centro",
+      "afecta": [
+        "metalmecánica",
+        "vidrio",
+        "pintura",
+        "ensamble",
+        "eléctrico",
+        "calidad",
+        "embalaje"
+      ],
+      "n": 7
+    },
+    {
+      "decision": "Confirmar operaciones externas (terceros)",
+      "afecta": [
+        "TELSVH120-BAA",
+        "TO3812NIC",
+        "TELSVH120-CAP",
+        "TELVIH-LOAC"
+      ],
+      "n": 4
+    },
+    {
+      "decision": "Confirmar componentes comprados y su precio",
+      "afecta": [
+        "TELSVH120-KIT",
+        "COEME20ND"
+      ],
+      "n": 2
+    }
+  ],
+  "este_es_el_costo": {
+    "material_incluido": 4987.96,
+    "material_fabricado_verificable": 0.13,
+    "material_fabricado_preliminar": 293.93,
+    "material_comprado": 4693.9,
+    "material_pendiente": {
+      "desarrollos_3d": [
+        "TELSVH120-CUE",
+        "TELSVH120-BX2",
+        "TELSVH120-SOC",
+        "TELSVH120-SOM"
+      ],
+      "bloqueadas": [],
+      "compradas_sin_precio": [
+        "TELSVH120-KIT",
+        "COEME20ND"
+      ]
+    },
+    "mano_obra_politica_vh": 105.75,
+    "mano_obra_routing_tiempos": null,
+    "gif": 411.13,
+    "terceros_pendiente": true,
+    "total_parcial": 5504.84,
+    "total_oficial": null,
+    "modelo_oficial": null,
+    "politica_costo": {
+      "aplicada": null,
+      "aprobada_por": null,
+      "aprobada": false
+    },
+    "emitible_comercial": false,
+    "estado": "PARCIAL — no emitible como costo completo",
+    "certificable": false
+  },
+  "asi_podria_mejorarse": [
+    {
+      "tipo": "aprovechamiento",
+      "clave": "TELSVH120-CF",
+      "propuesta": "Aprovechamiento 69.4% en TELSVH120-CF: nestear junto con otras piezas de undefined o evaluar formato alterno para subir rendimiento."
+    },
+    {
+      "tipo": "aprovechamiento",
+      "clave": "TELSVH120-PLA",
+      "propuesta": "Aprovechamiento 64.6% en TELSVH120-PLA: nestear junto con otras piezas de undefined o evaluar formato alterno para subir rendimiento."
+    },
+    {
+      "tipo": "make_vs_buy",
+      "propuesta": "Definir make-vs-buy de TELSVH120-KIT, COEME20ND: cotizar compra vs fabricar en casa."
+    }
+  ]
+}

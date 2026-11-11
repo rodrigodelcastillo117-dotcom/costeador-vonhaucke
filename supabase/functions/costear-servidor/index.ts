@@ -1,5 +1,5 @@
 // ============================================================================
-//  Edge Function: costear-servidor-rc  (COPIA RC del motor autoritativo para medir paridad con la rama; producción no la usa)
+//  Edge Function: costear-servidor  (motor autoritativo del costo server-side; el cliente no fija el costo)
 // ----------------------------------------------------------------------------
 //  El costo deja de depender del cliente. El SERVIDOR carga config/insumos/
 //  parámetros (service role), corre EL MISMO motor (src/motor/calculo.js — NO un

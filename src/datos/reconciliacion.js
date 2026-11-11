@@ -14,6 +14,10 @@ export function reconciliar(zonas) {
     if (req == null) estado = 'revisar';                       // no se sabe el requerido
     else if ((cot != null && cot < req) || (aco != null && aco < req)) estado = 'falta';
     else if ((cot != null && cot > req) || (aco != null && aco > req)) estado = 'sobra';
+    // FAIL-CLOSED: requerido conocido pero cobertura (cotizado/acomodado) DESCONOCIDA no es 'ok'.
+    // Antes un faltante (null) era MÁS permisivo que un 0 explícito (0<req daba 'falta'); un null no
+    // disparaba nada y quedaba 'ok' → vaciaba hayDiscrepancia (lo que VONI usa para bloquear).
+    else if (cot == null || aco == null) estado = 'revisar';
     const faltaCotizar = (req != null && cot != null) ? Math.max(0, req - cot) : null;
     const faltaAcomodar = (req != null && aco != null) ? Math.max(0, req - aco) : null;
     return { nombre: z.nombre, requerido: req, cotizado: cot, acomodado: aco, estado, faltaCotizar, faltaAcomodar };

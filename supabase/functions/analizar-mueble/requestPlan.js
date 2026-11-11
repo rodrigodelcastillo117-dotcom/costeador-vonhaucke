@@ -55,6 +55,12 @@ export function planPass({ soloTexto = false, esRevision = false, respCount = 0 
     // 27 renglones). Con 8000 tok la salida se truncaba y devolvía 17-19 piezas (incompleto). 12000 da
     // holgura para transcribir la tabla COMPLETA sin informe. El texto-inicial y la revisión no cambian.
     maxTok: esRevision ? 6000 : (primeraPasadaVisual ? 12000 : (deferInforme ? 8000 : 10000)),
+    // TIMEOUT por pasada (ms). La 1ª pasada de TEXTO usa OPUS (mejor comprensión), que en un mueble
+    // industrial grande (~40 piezas) necesita más del abort de 75 s y se cortaba (PROVIDER_TIMEOUT)
+    // aun con informe diferido. Es UNA sola llamada (el fallback/reintento son casos raros), así que
+    // darle 150 s NO rompe el wall-clock: el 75 s era un abort auto-impuesto con margen de sobra.
+    // Imagen/plano (sonnet, rápido, 0/7 timeouts VH-108) y revisión se quedan en 75 s: no lo necesitan.
+    timeoutMs: primeraPasadaTexto ? 150_000 : 75_000,
   };
 }
 

@@ -22,6 +22,7 @@ import { comoDataUrl, esURLImagen } from '../datos/renderRespuesta.js';   // VH-
 import { filaSombra, entradaSombraCliente } from '../datos/sombraCosteo.js';   // VH-073
 import { difierenAlCentavo } from '../datos/renglonesComerciales.js';
 import { dimsDeMueble, tipoDeMueble } from './MiniRender.jsx';
+import ExpedienteIngenieriaPanel from './ExpedienteIngenieriaPanel.jsx';
 import { revisarEstructura } from '../datos/revisionEstructural.js';
 import { clasificarCosto } from '../datos/estadoCosto.js';
 import { especialidadActiva } from '../voni/especialidades.js';
@@ -398,6 +399,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
         // necesita los bytes (se traen); la persistencia acepta URL o dataUrl.
         aisladoDataUrl = await comoDataUrl(r.imagen, urlADataUrl);
         const url = await persistir(r.imagen, 'aislado', tipo, ent.tipo);
+        aisladoUrl = url;   // VH: habilita el fallback de "en ambiente" (traer bytes de la URL si el dataUrl falló)
         setRenders((s) => ({ ...s, aislado: url }));
         const avisos = [];
         if (geomFid === 'limitada') avisos.push('Sin plano cargado: el aislado se generó por descripción (geometría limitada). Sube el plano para fidelidad exacta.');
@@ -823,8 +825,10 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     return res;
   }
 
-  async function analizarDescripcion() {
-    const desc = (b.descripcionCliente || '').trim();
+  async function analizarDescripcion(descArg) {
+    // descArg solo se usa si es STRING (p.ej. el flujo de texto que pliega respuestas). Si llega
+    // cualquier otra cosa (un evento de onClick, undefined), se usa la descripción del usuario.
+    const desc = (typeof descArg === 'string' ? descArg : (b.descripcionCliente || '')).trim();
     if (desc.length < 8) { setErrorIA('Escribe una descripción un poco más completa (material, partes, uso) para que Voni la entienda.'); return; }
     const id = nuevaCorrida();          // arranca corrida limpia (la descripción viaja aparte)
     setErrorIA(''); setAnalizando(true);
@@ -894,7 +898,16 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     });
     if (!Object.keys(ahora).length) { setConfMsg('Contesta al menos una confirmación para recalcular.'); return; }
     const imgs = Array.isArray(b.planos) ? b.planos.filter(Boolean) : [];
-    if (!imgs.length) { setConfMsg('No tengo el plano en memoria para recalcular; vuelve a subirlo.'); return; }
+    if (!imgs.length) {
+      // FLUJO DE TEXTO (sin plano en memoria): antes esto moría con "vuelve a subirlo" aunque el usuario
+      // nunca subió nada (describió por texto). Se recostea por el MISMO camino probado que "Analizar con
+      // Voni", plegando las respuestas a la descripción (equivale a que el usuario las agregue y re-analice).
+      const desc = (b.descripcionCliente || '').trim();
+      const extra = Object.values(ahora).map((v) => `${v.pregunta}: ${v.respuesta}`).join('. ');
+      setConfMsg('Recalculando con tus respuestas…');
+      await analizarDescripcion(`${desc}${desc ? '. ' : ''}Datos confirmados: ${extra}.`);
+      return;
+    }
     // ACUMULA por key y manda TODO a la IA (para que no reabra una ronda).
     const todas = { ...confirmadas, ...ahora }; // {question_key: {pregunta, respuesta}}
     const respPayload = Object.entries(todas).map(([question_key, v]) => ({ question_key, pregunta: v.pregunta, respuesta: v.respuesta }));
@@ -1185,7 +1198,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           <button
             className={'boton ' + (analizando ? 'fantasma' : 'primario')}
             disabled={analizando || (b.descripcionCliente || '').trim().length < 8}
-            onClick={analizarDescripcion}
+            onClick={() => analizarDescripcion()}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             {analizando ? 'Voni está entendiendo…' : '🧠 Analizar con Voni'}
           </button>
@@ -1703,9 +1716,15 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
               <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos2(resultado.costoUnitario)}</div>
-              <div className="espacio" />
-              <div className="ayuda" data-testid="costear-margen">Precio de lista ({margenEfectivo}% margen · {margenOrigen})</div>
-              <div className="precio-enorme">{pesos2(precio)}</div>
+              {/* Precio de venta y margen: SOLO Dirección (consistente con 'Costear avanzado', que reserva
+                  la tarjeta comercial a Dirección). Diseño ve el COSTO, no el precio de lista ni el margen. */}
+              {rol === 'direccion' && (
+                <>
+                  <div className="espacio" />
+                  <div className="ayuda" data-testid="costear-margen">Precio de lista ({margenEfectivo}% margen · {margenOrigen})</div>
+                  <div className="precio-enorme">{pesos2(precio)}</div>
+                </>
+              )}
             </>
           ) : soloPorConfirmar ? (
             // PROVISIONAL: todo el BOM está costeado, pero ≥1 material es "por confirmar"
@@ -1714,9 +1733,13 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Costo provisional (materiales por confirmar)</div>
               <div className="precio-enorme" style={{ color: 'var(--ambar,#8a6d00)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
-              <div className="espacio" />
-              <div className="ayuda">Precio de lista</div>
-              <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
+              {rol === 'direccion' && (
+                <>
+                  <div className="espacio" />
+                  <div className="ayuda">Precio de lista</div>
+                  <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
+                </>
+              )}
               <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Confirma {materialesPorConfirmar.length} material(es) marcados POR CONFIRMAR para emitir/aprobar.</div>
             </>
           ) : (
@@ -1782,6 +1805,9 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             </div>
           )}
 
+          {b.componentes?.length > 0 && (
+            <ExpedienteIngenieriaPanel componentes={b.componentes} insumos={insumos} clave={b.clave || b.nombre || null} nombre={b.nombre || null} />
+          )}
           <div className="ayuda columna-texto" data-testid="estado-costo-detalle" style={{ textAlign: 'left', marginTop: 8 }}>
             <strong style={{ color: estadoCosto3.estado === 'bloqueado' ? 'var(--alerta,#b22a22)' : estadoCosto3.estado === 'validado' ? 'var(--ok,#1a7f37)' : '#8a6d00' }}>{estadoCosto3.etiqueta}</strong>
             {estadoCosto3.motivos.length > 0 && <> — {estadoCosto3.motivos.join(' · ')}</>}

@@ -63,3 +63,16 @@ describe('PRODUCTO MAESTRO · costeo por clave (±1% vs hoja real)', () => {
     expect(Math.abs(r.deltaPct)).toBeLessThanOrEqual(1);
   });
 });
+
+describe('P1-B · BOM vacio o sin lineas costeables nunca es emitible (auditoria 01c456c)', () => {
+  it('BOM sin lineas -> emitible=false (no hay costo oficial de $0 fantasma)', () => {
+    const r = costearBOM({ clave: 'VACIO', tipo_bom: 'BOM_DETALLADO_VERIFICADO', lineas: [] }, {});
+    expect(r.emitible).toBe(false);
+    expect(r.certificable).toBe(false);
+  });
+  it('BOM donde TODA linea bloquea (sin precio) -> emitible=false', () => {
+    const r = costearBOM({ clave: 'X', tipo_bom: 'BOM_DETALLADO_VERIFICADO',
+      lineas: [{ desc: 'Pieza sin precio', cantidad: 1 }] }, {});   // sin insumo ni precioConfirmado
+    expect(r.emitible).toBe(false);
+  });
+});

@@ -220,9 +220,10 @@ describe('VONI · reglas de casa, validadores y contexto (defectos vigentes)', (
     expect(ctx.cocrear).toBeTruthy();
   });
 
-  it.fails('D-18 REQUISITO: "¿cuánto cuesta este mueble?" sin costeo cargado no responde "Todo en orden"', async () => {
+  it('D-18 CERRADO: "¿cuánto cuesta este mueble?" sin costeo cargado no responde "Todo en orden"', async () => {
     // Dirección sin nada en el Costeador (App pasa costing=null, bom=null): get_costing devuelve
-    // {disponible:false}, la lente costeador lo toma como dato presente y sintetiza OK.
+    // {disponible:false}. FIX: el gate de evidencia (nucleo.js) cuenta ese centinela de get_costing/
+    // get_bom como FALTANTE ⇒ DESCONOCIDO, y las lentes costeador/cfo lo tratan como ausente, no como OK.
     const { respuesta, intent } = await responder({
       query: '¿cuánto cuesta este mueble?',
       ctx: { user: USER, role: 'direccion', route: 'cocrear', bom: null, costing: null },

@@ -21,6 +21,20 @@ describe('routingFabricacion · operaciones implícitas por material/rol', () =>
     expect(tiene(r, 'armado')).toBeTruthy();
   });
 
+  it('REGRESIÓN: "cantos pulidos" del CRISTAL no es canteado de carpintería (falso positivo)', () => {
+    const r = proponerRouting({ piezas: [
+      { nombre: 'Lámina negra cuerpo metálico', semantic_role: 'lateral' },
+      { nombre: 'CAPELO DE CRISTAL 6mm CLARO TEMPLADO CON CANTOS PULIDOS' },
+    ] });
+    expect(tiene(r, 'canteado')).toBeFalsy();               // vidrio con cantos pulidos ≠ tapacanto
+    expect(tiene(r, 'corte_vidrio')).toBeTruthy();          // sí es corte de vidrio
+    // y un tablero con tapacanto SÍ debe disparar canteado:
+    const r2 = proponerRouting({ piezas: [
+      { nombre: 'Cubierta melamina con tapacanto ABS' },
+    ] });
+    expect(tiene(r2, 'canteado')).toBeTruthy();
+  });
+
   it('tablero + herrajes → corte de tablero + instalación de herrajes', () => {
     const r = proponerRouting({ piezas: [
       { nombre: 'Cubierta melamina', semantic_role: 'cubierta' },

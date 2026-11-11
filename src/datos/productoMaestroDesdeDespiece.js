@@ -23,8 +23,18 @@
 //   · La aprobación del PRECIO no aprueba el BOM.
 // ============================================================================
 
+import { clasificarTercero } from './clasificacionTerceros.js';
+import { factorDeFamilia } from './factoresPorFamilia.js';
+
 const TOL = 1e-3;
 const num = (x) => { const v = Number(x); return Number.isFinite(v) ? v : null; };
+
+// TERCEROS subcontratados: un insumo que parece comprado terminado (cristal templado,
+// vidrio, acrilico, termoformado, corte laser, galvanizado) NO debe costearse como
+// FABRICADO x1.80 en silencio. Si no esta clasificado como compra-venta ni confirmado,
+// se CONSERVA como PENDIENTE (igual que una pieza sin precio) hasta que Ingenieria/Compras
+// declare su clasificacion. Fail-closed, no advertencia (bloqueo 1, auditoria cd972a1).
+const TERCERO_RE = /cristal|templad|vidrio|acril|termoform|corte\s*laser|galvaniz/i;
 
 // Procedencia del consumo (contrato del modelo: MEASURED/DERIVED/INFERRED/ASSUMED/USER_CONFIRMED).
 const PROCEDENCIA = Object.freeze({
@@ -49,6 +59,8 @@ function cantidadFisica(d) {
 export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
   const {
     clave, nombre, factorMo, factorGif, dims_mm = null, fuente = null,
+    familia = null,                 // familia del mueble: habilita el factor de familia para muebles nuevos sin hoja propia
+    tablaFactores,                  // misma tabla que costearBOM (para que preview y costeo final coincidan)
     verificar = false,              // VERIFICADO sólo si se pide EXPLÍCITAMENTE y la integridad lo permite
     cos_fab_real_medido = null,     // referencia de fábrica medida e independiente (si existe)
   } = opts;
@@ -116,6 +128,34 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
       procedencia,
       trazable,
     };
+    // --- FAIL-CLOSED TERCEROS (bloqueo 1) + catalogo de clasificacion (F1) ---
+    if (d.clasificacionTercero === 'compra_venta') linea.esCompraVenta = true;   // declarado comprado terminado -> x1.06
+    const pareceTercero = TERCERO_RE.test(descBase) || TERCERO_RE.test(String(ins.seccion || ''));
+    let terceroConfirmado = d.esCompraVenta === true
+      || d.clasificacionTercero === 'fabricado' || d.clasificacionTercero === 'compra_venta';
+    // F1: el catalogo resuelve lo CLARO (vidrio/acrilico -> compra_venta, propuesta de Compras).
+    // Lo ambiguo (galvanizado/corte laser) devuelve null y cae al bloqueo de abajo.
+    if (pareceTercero && !linea.esCompraVenta && !terceroConfirmado) {
+      const cat = clasificarTercero(descBase, ins.seccion);
+      if (cat && cat.clasificacion === 'compra_venta') {
+        linea.esCompraVenta = true; linea.clasificacion_fuente = cat.fuente; linea.clasificacion_nota = cat.nota;
+        terceroConfirmado = true;   // resuelto por catalogo (propuesto; Compras valida)
+      } else if (cat && cat.clasificacion === 'fabricado') {
+        linea.clasificacion_fuente = cat.fuente; terceroConfirmado = true;
+      }
+    }
+    if (pareceTercero && !linea.esCompraVenta && !terceroConfirmado) {
+      linea.pendiente = true;
+      linea.requiereClasificacionTercero = true;
+      linea.cantidadSugerida = linea.cantidad;
+      linea.costoSugerido = +costo.toFixed(2);
+      linea.motivo = 'tercero sin clasificar (parece subcontratado): Ingenieria/Compras debe declarar '
+        + 'compra-venta (x1.06, se compra terminado) o fabricado (x1.80, se hace en casa). '
+        + 'Sin esa decision el costo NO es oficial.';
+      pendientes.push(linea);
+      lineas.push(linea);
+      continue;                 // excluido de materialResuelto: el costo oficial no incluye el tercero sin clasificar
+    }
     if (!trazable) {
       noTrazables.push({
         desc: descBase,
@@ -131,9 +171,19 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
   materialResuelto = +materialResuelto.toFixed(2);
   materialPendienteEstimado = +materialPendienteEstimado.toFixed(2);
   const fm = Number(factorMo), fg = Number(factorGif);
+  // FACTOR para el preview cos_fab_calculado, con la MISMA precedencia que costearBOM:
+  // por-clave si viene; si no, el de la FAMILIA (cargador gobernado) para que un mueble NUEVO
+  // no quede sin preview ni se sobrecostee con el genérico. Si no hay ninguno, queda null (honesto).
+  let moUsado = fm, gifUsado = fg, factores_fuente = null;
+  if (Number.isFinite(fm) && Number.isFinite(fg)) {
+    factores_fuente = 'clave';
+  } else {
+    const famF = familia != null ? factorDeFamilia(familia, tablaFactores) : null;
+    if (famF) { moUsado = famF.factor_mo; gifUsado = famF.factor_gif; factores_fuente = 'familia'; }
+  }
   // COSTO CALCULADO por factores del motor. NO es una medición de fábrica.
-  const cos_fab_calculado = (Number.isFinite(fm) && Number.isFinite(fg))
-    ? +(materialResuelto * (1 + fm + fg)).toFixed(2) : null;
+  const cos_fab_calculado = (Number.isFinite(moUsado) && Number.isFinite(gifUsado))
+    ? +(materialResuelto * (1 + moUsado + gifUsado)).toFixed(2) : null;
 
   const nCosteables = lineas.filter((l) => !l.pendiente).length;
   const integridad = {
@@ -162,8 +212,10 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
     material_pendiente_estimado: materialPendienteEstimado,
     cos_fab_calculado,                            // CALCULADO (factores) — no es costo de fábrica medido
     cos_fab_real: cos_fab_real_medido,            // sólo si hay referencia independiente medida; si no, null
-    factor_mo: Number.isFinite(fm) ? fm : null,
+    familia: familia || null,                     // carga el factor de familia al costear (costearBOM)
+    factor_mo: Number.isFinite(fm) ? fm : null,   // factor POR-CLAVE explícito (null si se usó el de familia)
     factor_gif: Number.isFinite(fg) ? fg : null,
+    factores_fuente,                              // 'clave' | 'familia' | null — de dónde salió el preview
     dims_mm,
     fuente,
     lineas,                                       // incluye las pendientes (nada desaparece)

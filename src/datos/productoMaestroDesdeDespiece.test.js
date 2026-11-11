@@ -138,3 +138,45 @@ describe('camino feliz · BOM completo y trazable → VERIFICADO + round-trip ex
     expect(r.certificable).toBe(false);
   });
 });
+
+describe('FAIL-CLOSED TERCEROS (bloqueo 1): un subcontratado sin clasificar NO se cuesta x1.80 en silencio', () => {
+  const insumosT = {
+    ...insumos,
+    cri: { nombre: 'Cristal templado 6mm', seccion: 'cristal', unidad: 'pza', precio: 700, evidencia: { certificable: true } },
+    gal: { nombre: 'Lamina galvanizada corte laser', seccion: 'metal', unidad: 'hoja', precio: 900, evidencia: { certificable: true } },
+  };
+  it('cristal TEMPLADO -> catalogo lo resuelve compra_venta (VH no templa vidrio), NO bloquea', () => {
+    const detalle = [linea('lam', 800, 2), linea('cri', 700, 4)];
+    const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'con-cristal', verificar: true, ...FACT });
+    const cristal = bom.lineas.find((l) => /Cristal/.test(l.desc));
+    expect(cristal.pendiente).toBeFalsy();
+    expect(cristal.esCompraVenta).toBe(true);                // vidrio templado -> x1.06
+    expect(cristal.clasificacion_fuente).toBe('catalogo_vh_draft');
+  });
+  it('tercero AMBIGUO (galvanizado/corte laser) NO tiene regla -> BLOQUEADO (Compras decide)', () => {
+    const detalle = [linea('lam', 800, 2), linea('gal', 900, 1, 'unidades')];
+    const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'con-galv', verificar: true, ...FACT });
+    const galv = bom.lineas.find((l) => /galvaniz/i.test(l.desc));
+    expect(galv.pendiente).toBe(true);                      // ambiguo: puede ser proceso propio
+    expect(galv.requiereClasificacionTercero).toBe(true);
+    const r = costearBOM(bom, insumosT);
+    expect(r.emitible).toBe(false);                          // bloquea hasta decision de Ingenieria/Compras
+  });
+
+  it('cristal declarado compra_venta por Ingenieria -> fluye como x1.06 y desbloquea', () => {
+    const detalle = [linea('lam', 800, 2), linea('cri', 700, 4, 'unidades', { clasificacionTercero: 'compra_venta' })];
+    const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'cristal-cv', verificar: true, ...FACT });
+    const cristal = bom.lineas.find((l) => /Cristal/.test(l.desc));
+    expect(cristal.pendiente).toBeFalsy();
+    expect(cristal.esCompraVenta).toBe(true);               // comprado terminado -> x1.06
+    expect(bom.integridad.completo).toBe(true);
+  });
+
+  it('cristal declarado fabricado (se hace en casa) -> x1.80 explicito, sin bloqueo', () => {
+    const detalle = [linea('cri', 700, 4, 'unidades', { clasificacionTercero: 'fabricado' })];
+    const bom = bomDesdeDespiece(detalle, insumosT, { clave: 'cristal-fab', verificar: true, ...FACT });
+    const cristal = bom.lineas.find((l) => /Cristal/.test(l.desc));
+    expect(cristal.pendiente).toBeFalsy();
+    expect(cristal.esCompraVenta).toBe(false);              // fabricado declarado -> x1.80, sin ambiguedad
+  });
+});

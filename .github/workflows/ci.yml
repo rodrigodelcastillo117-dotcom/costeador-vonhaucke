@@ -72,7 +72,32 @@ jobs:
             echo "Faltan los secrets TEST_EMAIL / TEST_PASSWORD. Un check verde de este job NO certifica login/Cocrear/Cotizar autenticados." >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Instalar navegador de Playwright
-        run: npx playwright install --with-deps chromium
+        shell: bash
+        run: |
+          # Se SEPARA el binario del navegador (CDN de Playwright) de las dependencias de sistema
+          # (mirror de apt de Ubuntu). Un "Temporary failure resolving azure.archive.ubuntu.com"
+          # —el mirror de apt caído— tumbaba el E2E ENTERO sin correr un solo test, aunque el binario
+          # (que viene de OTRO host) estuviera disponible.
+          #
+          # 1) BINARIO de Chromium — del CDN de Playwright, independiente del mirror de apt.
+          #    OBLIGATORIO: 3 reintentos con backoff; si falla, el job falla (correcto).
+          ok=0
+          for i in 1 2 3; do
+            if npx playwright install chromium; then ok=1; break; fi
+            echo "::warning title=playwright install (binario)::Intento $i/3 falló; reintento en $((i*20))s."
+            sleep $((i * 20))
+          done
+          [ "$ok" -eq 1 ] || { echo "::error title=playwright install::No se pudo bajar Chromium tras 3 intentos."; exit 1; }
+          #
+          # 2) DEPENDENCIAS de sistema (fuentes/libs) — del mirror de apt. NO fatales y ACOTADAS en
+          #    tiempo: si el mirror de GitHub está caído, no colgamos 30 min ni tumbamos el E2E; se corre
+          #    con las libs base del runner (ubuntu-latest trae casi todas). Si faltara alguna, el test lo
+          #    dirá con un error CLARO de arranque del navegador (señal rápida y accionable, no un cuelgue).
+          if timeout 420 npx playwright install-deps chromium; then
+            echo "Dependencias de sistema instaladas."
+          else
+            echo "::warning title=deps de sistema omitidas::El mirror de apt de GitHub no respondió (caído/lento); se corre el E2E con las libs base del runner."
+          fi
       - name: E2E público + auth condicional
         run: npm run e2e
       # Seguridad (19-oct): el error-context de Playwright incluye el VALOR de los campos de texto; si el login falla,

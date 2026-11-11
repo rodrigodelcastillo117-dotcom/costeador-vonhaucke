@@ -910,7 +910,10 @@ export function aplicarPoliticaMaterial(pieza, resolver, catalogo = null) {
   return {
     nombre: pieza?.nombre || 'Pieza',
     insumoId: insumoIdFinal,
-    cantidad: pieza?.cantidad || 1,
+    // No coaccionar 0→1 (`0 || 1` escondía una cantidad EXPLÍCITA inválida y la costeaba como 1). Se
+    // PRESERVA el valor real (0/negativo fluye a los guards fail-closed del motor: cantidad inválida /
+    // costo ≤0 no emitible). Solo una cantidad AUSENTE (NaN) toma el default de 1.
+    cantidad: (pieza != null && Number.isFinite(Number(pieza.cantidad))) ? Number(pieza.cantidad) : 1,
     piezas: 1,
     iaNota: pieza?.nota || '',
     iaConf: pieza?.confianza || '',

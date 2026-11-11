@@ -58,6 +58,7 @@ const Banco = lazy(() => import('./componentes/Banco.jsx'));
 const Archivo = lazy(() => import('./componentes/Archivo.jsx'));
 import Login from './componentes/Login.jsx';
 const Usuarios = lazy(() => import('./componentes/Usuarios.jsx'));
+const IngenieriaExpediente = lazy(() => import('./componentes/IngenieriaExpediente.jsx'));
 const CargaERP = lazy(() => import('./componentes/CargaERP.jsx'));
 const Reglas = lazy(() => import('./componentes/Reglas.jsx'));
 import { cargarReglas } from './datos/reglas.js';
@@ -1366,6 +1367,7 @@ export default function App() {
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('puentes'); }}>Aprobar puentes</button>}
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('solicitudes-precio'); }}>Precios por pedir a Compras</button>}
                 {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('referencias'); }}>Biblioteca de referencia</button>}
+                {esDireccion && <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); irA('ingenieria'); }}>Ingeniería · expediente (preliminar)</button>}
                 <button role="menuitem" onClick={(e) => { e.currentTarget.closest('details')?.removeAttribute('open'); setRecuperando(false); irA('contrasena'); }}>Contraseña</button>
               </div>
             </details>
@@ -1579,6 +1581,7 @@ export default function App() {
         {pestania === 'puentes' && esDireccion && <AprobarPuentes />}
         {pestania === 'solicitudes-precio' && esDireccion && <SolicitudesPrecio />}
         {pestania === 'referencias' && esDireccion && <BibliotecaReferencias />}
+        {pestania === 'ingenieria' && esDireccion && <IngenieriaExpediente />}
         {/* Lo que Voni sabe: lo leen todos (el motor lo aplica igual para
             todos), pero dictar o corregir una regla es de Diseño y Dirección. */}
         {pestania === 'reglas' && <Reglas puedeEditar={veCostos} />}

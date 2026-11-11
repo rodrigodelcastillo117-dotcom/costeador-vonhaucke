@@ -155,6 +155,35 @@ export function aprobacionPrecioExacto({ usados = [], insumos = {}, filasPrecio 
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+//  ESTÁNDARES DE MO · misma verificación server-side que los precios (auditoría 36432bb, 3er bloqueo).
+//  Un estándar de tiempo/tarifa cuenta como aprobado SÓLO si:
+//   (a) el SERVIDOR registró la aprobación: estado == 'aprobado' (lo escribe una RPC con rol dirección,
+//       como aprobar_precio escribe insumo_precios.estado); un aprobador NOMBRADO por el cliente no basta;
+//   (b) el aprobador (approved_by/aprobado_por) está en `permitidos` con rol aprobador y NO en `cuentas_no_humanas`;
+//   (c) sin la lista de cuentas no humanas (tabla no aplicada) ⇒ fail-closed: no cuenta como humano.
+//  No declares un costo oficial de MO por routing sin esta verificación trazable.
+// ---------------------------------------------------------------------------------------------------------------------
+export const ROLES_APROBADORES_MO = Object.freeze(['direccion']);
+export function aprobacionEstandarMO({ estandar = {}, permitidos = [], noHumanas = null, roles = ROLES_APROBADORES_MO } = {}) {
+  const motivos = [];
+  const rolDe = new Map(lista(permitidos).map((p) => [String(p.email || '').toLowerCase(), String(p.rol || '').toLowerCase()]));
+  const excluidas = new Set(lista(noHumanas).map((e) => String(e).toLowerCase()));
+  const estado = String(estandar.estado || estandar.estado_aprobacion || '').toLowerCase();
+  const email = String(estandar.approved_by || estandar.aprobado_por || '').toLowerCase();
+  const rol = rolDe.get(email) || null;
+  const traza = { centro: estandar.centro ?? null, op: estandar.op ?? null, version: estandar.version ?? null,
+    estado, aprobado_por: email || null, rol_aprobador: rol, aprobado_en: estandar.aprobado_en ?? estandar.approved_at ?? null, humana: false, motivo: null };
+  if (!Array.isArray(noHumanas)) { traza.motivo = 'lista de cuentas no humanas no disponible'; motivos.push('Lista de cuentas no humanas no disponible: ninguna aprobación de MO se verifica como humana.'); }
+  else if (estado !== 'aprobado') traza.motivo = `estándar en estado '${estado || 'sin estado'}' (no aprobado por el servidor)`;
+  else if (!email) traza.motivo = 'sin aprobador';
+  else if (excluidas.has(email)) traza.motivo = 'aprobado por una cuenta no humana';
+  else if (!rol || !roles.includes(rol)) traza.motivo = `aprobador sin rol aprobador (${rol || 'no registrado'})`;
+  else traza.humana = true;
+  if (!traza.humana && !motivos.length) motivos.push(`Estándar MO sin aprobación humana verificada: ${traza.motivo}.`);
+  return { aprobada: traza.humana, traza, motivos };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
 //  P1-03 · qué precios puede aprobar Dirección desde Costear (RPC de producción `aprobar_precio(p_precio_id)`, que exige
 //  rol direccion y registra quién y cuándo). Sólo se ofrece aprobar EL precio exacto que usó el motor. No se ofrece
 //  cuando el precio usado no coincide con el vigente, cuando hay empate entre precios vigentes o cuando no hay precio:

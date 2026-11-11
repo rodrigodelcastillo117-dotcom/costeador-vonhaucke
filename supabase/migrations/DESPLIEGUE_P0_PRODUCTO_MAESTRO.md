@@ -40,3 +40,21 @@ Prod: `c3.4-seller-safe`. Son un PAR cliente+servidor: se despliegan juntos y en
 - Los 6 Productos Maestros actuales están etiquetados `BOM_DETALLADO_VERIFICADO` con el flujo viejo, aunque
   varios tienen líneas sin SKU. El motor igual los bloquea por frescura/orientativo (no hay certificación
   falsa), pero la etiqueta no refleja el contrato nuevo. Reclasificarlos a BORRADOR es decisión de Dirección.
+
+---
+## 2026-11-09 · APLICADO A PROD · parche P1 de concurrencia (20261110)
+
+- **Qué:** `CREATE OR REPLACE FUNCTION public.guardar_producto_maestro(14 args)` con el fix de
+  condicion de carrera (pg_advisory_xact_lock por clave + SELECT ... FOR UPDATE + UPDATE condicional
+  `... AND version = v_ver_actual` con VERSION_CONFLICT). SIN drop (no cuelga el MCP).
+- **Autorización:** Dirección, explícita, 2026-11-09.
+- **Verificación post-aplicación (función viva en prod):**
+  - fix presente (3 marcadores) = true
+  - overloads de guardar_producto_maestro = 1 (sin duplicados); firma = 14 args
+  - la firma vieja de 10 args sigue renombrada a guardar_producto_maestro_legacy_* y revocada
+  - authenticated puede ejecutar la de 14 args = true
+- **Evidencia conductual:** supabase/tests/postgres_real/ — 2 conexiones reales: la versión previa
+  reproduce LOST UPDATE; esta versión lo cierra (VERSION_CONFLICT, 0 perdidas).
+- **No tocó** precios, factores, BOM históricos ni aprobaciones. No escribió filas.
+- **Smoke de app pendiente (humano):** Dirección debe hacer borrador→verificado→reabrir→sustituir y
+  2 guardados concurrentes desde su sesión (la RPC exige JWT de Dirección; no se puede suplantar).

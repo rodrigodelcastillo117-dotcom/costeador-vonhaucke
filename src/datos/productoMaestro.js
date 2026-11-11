@@ -19,6 +19,7 @@
 //  que Compras lo dé de alta. Nunca se cuesta una línea en $0 en silencio.
 // ============================================================================
 import { costoFabricacionVH, precioUsable } from '../motor/calculo.js';
+import { factorDeFamilia, FACTORES_FAMILIA } from './factoresPorFamilia.js';
 
 /** Precio de una línea de BOM: catálogo vigente (precio > 0) si existe; si no, el confirmado. */
 export function precioLineaBOM(linea = {}, insumos = {}) {
@@ -29,6 +30,16 @@ export function precioLineaBOM(linea = {}, insumos = {}) {
 }
 
 const normU = (u) => String(u || '').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[²2]/g, '2').replace(/\s+/g, '');
+
+// Factor numérico ESTRICTO: solo un número real o una cadena numérica no vacía cuenta.
+// Rechaza null, undefined, boolean y cadena vacía/espacios (Number('')===0, Number(false)===0
+// se colarían como factor 0 → MO/GIF 0 → subcosteo). Un 0 explícito numérico SÍ es válido.
+const numFactor = (x) => {
+  if (x == null || typeof x === 'boolean') return NaN;
+  if (typeof x === 'string' && x.trim() === '') return NaN;
+  const n = Number(x);
+  return Number.isFinite(n) ? n : NaN;
+};
 
 /**
  * CONTRATO SEGURO DE LÍNEA (P1 2026-11-07): clasifica una línea en un estado explícito.
@@ -44,6 +55,12 @@ export function clasificarLineaBOM(linea = {}, insumos = {}) {
   // Exclusión confirmada / equipo del cliente: cuesta 0 legítimo, sin importar precio ni cantidad.
   if (excluido) {
     return { estado: 'cero_real', bloquea: false, precio: 0, cantidad: cantOk ? cantRaw : 0, costo: 0, fuente: 'cero' };
+  }
+  // TERCERO subcontratado sin clasificar (bloqueo 1): parece comprado terminado pero quedaría
+  // FABRICADO x1.80. BLOQUEA el costo oficial hasta que Ingeniería/Compras lo declare. El flag
+  // sólo lo pone el productor de despiece para muebles NUEVOS; los BOMs almacenados no lo traen.
+  if (linea.requiereClasificacionTercero === true) {
+    return { estado: 'tercero_sin_clasificar', bloquea: true, precio: null, cantidad: cantOk ? cantRaw : 0, costo: 0, fuente: 'sin_precio' };
   }
   // Cantidad inválida (0, negativa, NaN, ausente): BLOQUEA. No se trata como 0 en silencio.
   if (!cantOk) {
@@ -77,7 +94,7 @@ export function clasificarLineaBOM(linea = {}, insumos = {}) {
  * @returns {{material, materialFabricado, materialCompraVenta, manoObra, gif, costoFabricacion,
  *            cosFabReal, deltaPct, cobertura, lineas}}
  */
-export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
+export function costearBOM(bom = {}, insumos = {}, { factores, familia = null, tablaFactores = FACTORES_FAMILIA } = {}) {
   const lineas = Array.isArray(bom.lineas) ? bom.lineas : [];
   const detalle = [];
   const reporte = [];
@@ -98,24 +115,43 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
   }
   // Un BOM AGREGADO_HISTORICO no es un BOM por materiales verificado (se refina en el bloque 2).
   const bomDetallado = bom.tipo_bom === 'BOM_DETALLADO_VERIFICADO';
-  const emitible = bloqueos.length === 0;
+  // P1-B (auditoria 01c456c): un BOM VACIO o sin ninguna linea costeable NUNCA es emitible.
+  // Antes `bloqueos.length === 0` daba emitible=true con 0 lineas (costo oficial de $0 fantasma).
+  const nCosteables = reporte.filter((r) => !r.bloquea).length;
+  const emitible = bloqueos.length === 0 && nCosteables > 0;
   // Certificable (honestidad = servidor): además de emitible/no-orientativo/BOM detallado, NINGUNA
   // línea de catálogo puede usar un precio VENCIDO (catalogoViejo===0). Antes el motor pintaba
   // "✓ Certificable" con precios de catálogo de hace años que el servidor marca PRELIMINAR.
   const hayPrecioViejo = catalogoViejo > 0;
   const certificable = emitible && !orientativo && !hayPrecioViejo && bomDetallado;
-  // Factores POR CLAVE (de la hoja de estimaciones): NO son universales (Alpura 20/50, Telcel 10/25).
-  // Si la clave los trae, se usan (reproduce su hoja exacto). Si no, se cae a la política por sección.
-  const fm = Number(bom.factor_mo), fg = Number(bom.factor_gif);
-  let vh;
-  if (Number.isFinite(fm) && Number.isFinite(fg)) {
+  // PRECEDENCIA DE FACTORES (trazable en `factoresFuente`): factor por-clave del BOM (de la hoja
+  // de estimaciones; NO universal — Alpura 20/50, Telcel 10/25) > factor de la FAMILIA (cargador
+  // gobernado, para muebles nuevos sin hoja propia) > política por sección (default ×1.8/×1.06).
+  const planoPorMaterial = (mo, gif) => {
     let fabMat = 0, cvMat = 0;
     for (const d of detalle) { if (d.seccion === 'graficos' || d.seccion === 'iluminacion') cvMat += d.costo; else fabMat += d.costo; }
     const material = fabMat + cvMat;
-    const manoObra = material * fm, gif = material * fg;
-    vh = { materialFabricado: fabMat, materialCompraVenta: cvMat, material, manoObra, gif, costoFabricacion: material + manoObra + gif, factoresPorClave: { factor_mo: fm, factor_gif: fg } };
+    return { materialFabricado: fabMat, materialCompraVenta: cvMat, material, manoObra: material * mo, gif: material * gif, costoFabricacion: material + material * mo + material * gif };
+  };
+  // OJO: Number(null)/Number('')/Number(false) === 0 (finito). Un factor ausente/vacío/booleano NO
+  // es un factor por-clave válido; tratarlo como 0 costeaba material SIN MO ni GIF (subcosteo).
+  // numFactor solo acepta un número real o cadena numérica; lo demás ⇒ NaN ⇒ cae a familia/política.
+  const fm = numFactor(bom.factor_mo);
+  const fg = numFactor(bom.factor_gif);
+  const famKey = bom.familia != null ? bom.familia : familia;
+  let vh, factoresFuente;
+  if (Number.isFinite(fm) && Number.isFinite(fg)) {
+    vh = { ...planoPorMaterial(fm, fg), factoresPorClave: { factor_mo: fm, factor_gif: fg } };
+    factoresFuente = 'clave';
   } else {
-    vh = costoFabricacionVH(detalle, factores || undefined);
+    const fam = famKey != null ? factorDeFamilia(famKey, tablaFactores) : null;
+    if (fam) {
+      vh = { ...planoPorMaterial(fam.factor_mo, fam.factor_gif), factoresPorFamilia: { familia: famKey, factor_mo: fam.factor_mo, factor_gif: fam.factor_gif, fuente: fam.fuente, aprobado_por: fam.aprobado_por } };
+      factoresFuente = 'familia';
+    } else {
+      vh = costoFabricacionVH(detalle, factores || undefined);
+      factoresFuente = 'politica_vh';
+    }
   }
   const cosFabReal = bom.cos_fab_real != null && Number.isFinite(Number(bom.cos_fab_real)) ? Number(bom.cos_fab_real) : null;
   const deltaPct = cosFabReal ? (vh.costoFabricacion - cosFabReal) / cosFabReal * 100 : null;
@@ -124,6 +160,7 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
     ...vh,
     cosFabReal,
     deltaPct,
+    factoresFuente,   // 'clave' | 'familia' | 'politica_vh' — de dónde salió el factor MO/GIF (trazable)
     // Contrato seguro: emitible = hay costo para cada línea (sin bloqueos); certificable = emitible,
     // sin precios históricos, sin precios de catálogo vencidos (frescura) y con BOM detallado verificado.
     emitible,

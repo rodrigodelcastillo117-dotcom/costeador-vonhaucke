@@ -308,7 +308,11 @@ Deno.serve(async (req) => {
   const total = baseIva == null || iva == null ? null : sumarMontos([baseIva, iva]);
   if (baseIva == null || iva == null || total == null) hayLineaInvalida = true;
   const baseReady = !hayLineaInvalida && !hayServicioPendiente && !hayServicioDuplicado && !hayEconomiaIncompleta;
-  const cotizacion_emitible = baseReady && !hayEspecialPreliminar;
+  // Emitible = se puede emitir SIN aprobación. Antes esto quedaba TRUE aunque requiriera aprobación de
+  // Dirección (descuento sobre el máximo o margen bajo): foot-gun para un futuro consumidor que leyera
+  // sólo esta bandera y saltara la aprobación. El gate real (SQL emitir_revision_v2) ya re-bloquea; esto
+  // hace la bandera honesta en la frontera. APPROVAL_REQUIRED ⇒ no emitible libremente.
+  const cotizacion_emitible = baseReady && !hayEspecialPreliminar && !requiereAprobacion;
   const presupuesto_preliminar_disponible = baseReady && hayEspecialPreliminar;
 
   let listaInfo: any = null;
@@ -353,6 +357,14 @@ Deno.serve(async (req) => {
       emitible: false, preliminary: true, subtotal_preliminar: subtotal, servicios_preliminares: serviciosTotal,
       iva_preliminar: iva, total_preliminar: total, total_oficial: null, moneda: moneda || "MXN",
       nota: "Presupuesto preliminar disponible: al menos un desarrollo especial requiere validación técnica antes de emisión definitiva."
+    };
+  } else if (baseReady && requiereAprobacion) {
+    // Todo cuesta, pero requiere aprobación de Dirección (descuento sobre el máximo o margen por debajo
+    // del mínimo): NO emitible hasta la aprobación. El total se muestra como referencia, no como oficial.
+    totales = {
+      emitible: false, requiere_aprobacion: true, subtotal, servicios: serviciosTotal, iva, total,
+      total_oficial: null, moneda: moneda || "MXN",
+      nota: "Requiere aprobación de Dirección antes de la emisión definitiva (descuento sobre el máximo o margen por debajo del mínimo)."
     };
   } else {
     totales = {

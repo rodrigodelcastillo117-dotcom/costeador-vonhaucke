@@ -62,7 +62,7 @@ export function lenteCosteador(datos = {}, ctx = {}) {
   const bom = datos.get_bom;
   const render = datos.get_render_status;
 
-  if (!costing) {
+  if (!costing || costing.disponible === false) {   // {disponible:false} = no hay costeo real: ausente, NO un OK
     findings.push(afirmacion('No se analizó costo: tu rol/modo no incluye economía.', TIPO_AFIRMACION.SUPUESTO, { source_type: 'permiso' }));
   } else if (Array.isArray(costing.sinCosto) && costing.sinCosto.length) {
     bloqueos.push(bloqueo('Componentes sin costo', `${costing.sinCosto.length} componente(s) sin precio de insumo.`, URGENCIA.ALTA));
@@ -162,7 +162,7 @@ export function lenteCfo(datos = {}, ctx = {}) {
   const findings = []; const bloqueos = [];
   const costing = datos.get_costing;      // sólo si el rol ve economía (cfo sí)
   const aprob = datos.get_approvals;
-  if (!costing) {
+  if (!costing || costing.disponible === false) {   // {disponible:false} = sin costeo real: ausente, NO un OK
     findings.push(afirmacion('Sin datos económicos en este contexto (permiso/modo).', TIPO_AFIRMACION.SUPUESTO, { source_type: 'permiso' }));
   } else if (costing.margen != null && num(costing.margen) < (costing.margenMinimo != null ? num(costing.margenMinimo) : 25)) {
     bloqueos.push(bloqueo('Margen bajo', `Margen ${costing.margen}% por debajo del mínimo.`, URGENCIA.ALTA));

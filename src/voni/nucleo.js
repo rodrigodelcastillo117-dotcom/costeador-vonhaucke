@@ -472,7 +472,18 @@ export async function responder({ query, ctx = {}, prov = {}, intentForzado = nu
   // veían {} y podían producir cero bloqueos => "Lista para enviarse". Ahora la
   // falta de una fuente requerida produce DESCONOCIDO, nunca OK.
   const requeridas = requisitosEvidencia(plan.intent, contexto);
-  const faltantes = requeridas.filter((nombre) => datos[nombre] == null);
+  // get_costing/get_bom devuelven el centinela {disponible:false} (un objeto, NO null) cuando no hay
+  // costeo/BOM en contexto. Antes `== null` lo dejaba pasar como dato presente → esos intents sin handler
+  // dedicado (COSTING_ANALYSIS/RISK) caían a sintetizar y respondían "Todo en orden/OK" a una pregunta de
+  // costo (falso VERDE). Aquí ese centinela cuenta como FALTANTE ⇒ DESCONOCIDO. Las demás fuentes con
+  // {disponible:false} (get_material_technical, get_cost_explanation, …) SÍ tienen handler dedicado que las
+  // trata honestamente, así que NO se tocan aquí (evita preempt del mensaje específico).
+  const ECON_CENTINELA = new Set(['get_costing', 'get_bom']);
+  const faltantes = requeridas.filter((nombre) => {
+    const v = datos[nombre];
+    if (v == null) return true;
+    return ECON_CENTINELA.has(nombre) && v.disponible === false;
+  });
   const denegadasEconomia = Object.entries(fallosTool)
     .filter(([nombre, r]) => ['get_costing', 'get_bom', 'get_industrial_analysis', 'get_cost_explanation', 'get_costing_precedents'].includes(nombre) && r?.error === 'sin_permiso')
     .map(([nombre]) => nombre);

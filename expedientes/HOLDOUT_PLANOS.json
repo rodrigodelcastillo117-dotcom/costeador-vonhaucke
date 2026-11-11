@@ -1,0 +1,74 @@
+{
+  "TELSVH120": {
+    "materiales": 20,
+    "resueltos": 8,
+    "ambiguos": 0,
+    "pendientes": 12,
+    "ruido": 5,
+    "piso": 4362.49,
+    "pendientes_lista": [
+      "COEME20ND",
+      "TELSVH120-AD",
+      "TELSVH120-BX2",
+      "TELSVH120-CF",
+      "TELSVH120-CUE",
+      "TELSVH120-KIT",
+      "TELSVH120-P",
+      "TELSVH120-PC",
+      "TELSVH120-PLA",
+      "TELSVH120-SIL",
+      "TELSVH120-SOC",
+      "TELSVH120-SOM"
+    ]
+  },
+  "TELSMG": {
+    "materiales": 9,
+    "resueltos": 7,
+    "ambiguos": 0,
+    "pendientes": 2,
+    "ruido": 0,
+    "piso": 901.16,
+    "pendientes_lista": [
+      "TELSVH120-PLA",
+      "TELSVH120-SIL"
+    ]
+  },
+  "TEVTSU": {
+    "materiales": 13,
+    "resueltos": 7,
+    "ambiguos": 2,
+    "pendientes": 4,
+    "ruido": 5,
+    "piso": 1069.44,
+    "pendientes_lista": [
+      "ARMADO2",
+      "TEVHSU-PA2",
+      "TEVHSU-PA3",
+      "TEVTSU-CR3"
+    ]
+  },
+  "TEVHSU": {
+    "materiales": 14,
+    "resueltos": 8,
+    "ambiguos": 1,
+    "pendientes": 5,
+    "ruido": 4,
+    "piso": 1088.99,
+    "pendientes_lista": [
+      "COEME20ND",
+      "COEME20NI",
+      "TEVHSU-BEXL2",
+      "TEVHSU-PA1",
+      "TEVHSU-PA4"
+    ]
+  },
+  "TVCAC": {
+    "materiales": 0,
+    "resueltos": 0,
+    "ambiguos": 0,
+    "pendientes": 0,
+    "ruido": 1,
+    "piso": 0,
+    "pendientes_lista": []
+  }
+}

@@ -31,13 +31,13 @@ export default function AprobacionesPendientes({ visible = false, onResuelta = n
   return (
     <div className="tarjeta" data-testid="aprobaciones-pendientes">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-        <strong>Aprobaciones pendientes{lista ? ` (${lista.length})` : ''}</strong>
+        <strong>Aprobaciones pendientes{lista && !err ? ` (${lista.length})` : ''}</strong>
         <button className="boton fantasma" style={{ minHeight: 44, fontSize: 13 }} onClick={cargar}>Actualizar</button>
       </div>
       <p className="ayuda" style={{ marginTop: 4 }}>Lo que un vendedor pidió aprobar desde su cotización. Aprobar firma ESA versión exacta: si la cambia, tendrá que pedirla de nuevo.</p>
       {err && <div className="alerta roja" role="alert"><span className="texto">{err}</span></div>}
       {lista === null && <span className="ayuda">Cargando…</span>}
-      {lista && lista.length === 0 && <span className="ayuda">Nada pendiente.</span>}
+      {lista && lista.length === 0 && !err && <span className="ayuda">Nada pendiente.</span>}
       {lista && lista.map((a) => (
         <div key={a.id} data-testid="aprobacion-fila" style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) auto', gap: 8, alignItems: 'center', padding: '8px 0', borderTop: '1px solid var(--linea)' }}>
           <div style={{ minWidth: 0 }}>

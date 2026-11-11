@@ -1,0 +1,41 @@
+=== corriendo como usuario postgres ===
+unfixed advisory_lock=0 sleep=1 | fixed advisory_lock=1 sleep=1
+=================== [PROD HOY sin fix] (db=unfixed) ===================
+conn A -> RES:{"ok":
+conn B -> RES:{"ok":
+--- fila final ---
+ clave | version | nombre 
+-------+---------+--------
+ K     |       2 | B
+(1 row)
+
+--- historial ---
+ version |  accion   
+---------+-----------
+       1 | crear
+       2 | sustituir
+       2 | sustituir
+(3 rows)
+
+>>> [PROD HOY sin fix] version_final=2 sustituciones=2 version_conflict=0
+>>> VEREDICTO: LOST UPDATE REPRODUCIDO (2 sustituciones, version solo 2 -> una escritura perdida)
+
+=================== [CON PARCHE 20261110] (db=fixed) ===================
+conn A -> RES:{"ok":
+conn B -> VERSION_CONFLICT: 
+--- fila final ---
+ clave | version | nombre 
+-------+---------+--------
+ K     |       2 | A
+(1 row)
+
+--- historial ---
+ version |  accion   
+---------+-----------
+       1 | crear
+       2 | sustituir
+(2 rows)
+
+>>> [CON PARCHE 20261110] version_final=2 sustituciones=1 version_conflict=1
+>>> VEREDICTO: CARRERA CERRADA (1 sustitucion, la otra VERSION_CONFLICT, 0 perdidas)
+

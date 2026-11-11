@@ -27,6 +27,10 @@ export default function CosteoPorClave({ insumos = {} }) {
       const { bom, mapeadas } = sanarBOM(r.bom, insumos);
       const costo = costearBOM(bom, insumos);
       setRes({ bom, costo, mapeadas });
+    } catch (ex) {
+      // Antes era try/finally SIN catch: si sanarBOM/costearBOM lanzaban (BOM/insumos mal formados),
+      // el spinner se apagaba y el usuario se quedaba sin resultado NI error. Ahora se muestra.
+      setErr('No se pudo costear la clave: ' + String(ex?.message || ex));
     } finally { setCargando(false); }
   }
 
