@@ -41,7 +41,8 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
     const despiece = (Array.isArray(componentes) ? componentes : []).map((c) => {
       const sec = insumos?.[c.insumoId]?.seccion;
       return { clave: c.nombre || c.insumoId, insumoId: c.insumoId, desc: c.nombre || c.insumoId,
-        cantidad: Number(c.cantidad ?? c.piezas ?? 1), seccion: sec, largoMM: c.largoMM, anchoMM: c.anchoMM,
+        cantidad: Number(c.cantidad ?? c.piezas),   // CASO B: sin cantidad NO se vuelve 1; el motor la bloquea
+        seccion: sec, largoMM: c.largoMM, anchoMM: c.anchoMM,
         esCompraVenta: sec === 'graficos' || sec === 'iluminacion' };
     });
     return expedienteIndustrialDesdeDespiece(despiece, { clave: clave || 'EN-COSTEO', nombre, insumosERP: insumos, catalogoLamina: lamina });
