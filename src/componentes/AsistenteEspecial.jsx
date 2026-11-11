@@ -1716,9 +1716,15 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Cuesta hacer 1 pieza</div>
               <div className="precio-enorme" style={{ color: 'var(--tinta)', fontSize: 38 }}>{pesos2(resultado.costoUnitario)}</div>
-              <div className="espacio" />
-              <div className="ayuda" data-testid="costear-margen">Precio de lista ({margenEfectivo}% margen · {margenOrigen})</div>
-              <div className="precio-enorme">{pesos2(precio)}</div>
+              {/* Precio de venta y margen: SOLO Dirección (consistente con 'Costear avanzado', que reserva
+                  la tarjeta comercial a Dirección). Diseño ve el COSTO, no el precio de lista ni el margen. */}
+              {rol === 'direccion' && (
+                <>
+                  <div className="espacio" />
+                  <div className="ayuda" data-testid="costear-margen">Precio de lista ({margenEfectivo}% margen · {margenOrigen})</div>
+                  <div className="precio-enorme">{pesos2(precio)}</div>
+                </>
+              )}
             </>
           ) : soloPorConfirmar ? (
             // PROVISIONAL: todo el BOM está costeado, pero ≥1 material es "por confirmar"
@@ -1727,9 +1733,13 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
             <>
               <div className="ayuda" style={{ margin: '6px 0' }}>Costo provisional (materiales por confirmar)</div>
               <div className="precio-enorme" style={{ color: 'var(--ambar,#8a6d00)', fontSize: 34 }}>{pesos2(emision.subtotalConocido)}</div>
-              <div className="espacio" />
-              <div className="ayuda">Precio de lista</div>
-              <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
+              {rol === 'direccion' && (
+                <>
+                  <div className="espacio" />
+                  <div className="ayuda">Precio de lista</div>
+                  <div className="precio-enorme" style={{ color: '#b22a22' }}>Por confirmar</div>
+                </>
+              )}
               <div className="ayuda" style={{ color: '#8a6d00', marginTop: 4 }}>🟡 Costo provisional, no certificado. Confirma {materialesPorConfirmar.length} material(es) marcados POR CONFIRMAR para emitir/aprobar.</div>
             </>
           ) : (
