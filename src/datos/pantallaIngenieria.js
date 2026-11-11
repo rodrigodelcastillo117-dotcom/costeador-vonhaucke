@@ -21,12 +21,12 @@ export function mejorasDe(costo = {}) {
   for (const e of ev) {
     if (e.aprovechamiento_pct != null && e.aprovechamiento_pct < 70) {
       m.push({ tipo: 'aprovechamiento', clave: e.clave,
-        propuesta: `Aprovechamiento ${e.aprovechamiento_pct}% en ${e.clave}: nestear junto con otras piezas de ${e.lamina?.id} o evaluar formato alterno para subir rendimiento.` });
+        propuesta: `Aprovechamiento ${e.aprovechamiento_pct}% en ${e.clave}: nestear junto con otras piezas de ${e.lamina?.insumo_id} o evaluar formato alterno para subir rendimiento.` });
     }
   }
   // Nesteo conjunto por lamina compartida
   const porLamina = {};
-  for (const e of ev) if (e.lamina?.id) (porLamina[e.lamina.id] ||= []).push(e.clave);
+  for (const e of ev) if (e.lamina?.insumo_id) (porLamina[e.lamina.insumo_id] ||= []).push(e.clave);
   for (const [lam, claves] of Object.entries(porLamina)) if (claves.length >= 2) {
     m.push({ tipo: 'nesteo_conjunto', propuesta: `Cortar ${claves.join(', ')} en la misma hoja de ${lam} (nesteo conjunto) para reducir merma y hojas compradas.` });
   }
@@ -35,7 +35,7 @@ export function mejorasDe(costo = {}) {
     m.push({ tipo: 'make_vs_buy', propuesta: `Definir make-vs-buy de ${costo.cobertura.compradas_sin_precio.map((c) => c.clave).join(', ')}: cotizar compra vs fabricar en casa.` });
   }
   // Calibre: donde se propuso calibre (no venia del plano), estandarizar
-  const calibrePropuesto = ev.filter((e) => e.calibre_fuente && e.calibre_fuente !== 'del plano').map((e) => e.clave);
+  const calibrePropuesto = ev.filter((e) => e.calibre?.fuente && e.calibre.fuente !== 'del plano').map((e) => e.clave);
   if (calibrePropuesto.length) m.push({ tipo: 'estandarizar_calibre', propuesta: `Estandarizar calibre de ${calibrePropuesto.join(', ')} (hoy propuesto): un solo calibre por familia simplifica compra y corte.` });
   return m;
 }

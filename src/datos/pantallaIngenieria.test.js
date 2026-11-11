@@ -34,8 +34,8 @@ describe('pantallaIngenieria', () => {
 
   it('mejorasDe propone nesteo conjunto cuando varias piezas comparten lamina', () => {
     const costo = { material: { evidencia: [
-      { clave: 'A', lamina: { id: 'lamina-22' }, aprovechamiento_pct: 60 },
-      { clave: 'B', lamina: { id: 'lamina-22' }, aprovechamiento_pct: 90 },
+      { clave: 'A', lamina: { insumo_id: 'lamina-22' }, aprovechamiento_pct: 60 },
+      { clave: 'B', lamina: { insumo_id: 'lamina-22' }, aprovechamiento_pct: 90 },
     ] }, cobertura: { compradas_sin_precio: [{ clave: 'KIT' }] } };
     const m = mejorasDe(costo);
     expect(m.some((x) => x.tipo === 'nesteo_conjunto')).toBe(true);

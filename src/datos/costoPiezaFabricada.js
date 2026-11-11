@@ -90,7 +90,16 @@ export function costearMateriaPrima(pieza = {}, { catalogoLamina = [], par = PAR
   const calibreConfirmado = tieneConf || (!!calTexto && !pieza.calibrePropuesto);
   const calibreFuente = tieneConf ? 'confirmado (Ingenieria)' : pieza.calibrePropuesto ? 'propuesto (override)' : calTexto ? 'del plano' : 'default propuesto';
 
-  // Lamina autoritativa (P1.1) del acero correcto (default negra para mueble pintado).
+  // Esta función costea LÁMINA DE ACERO. Si la pieza es claramente de OTRO material (MDF/melamina/
+  // madera/acrílico/vidrio) y nadie propuso un acero, NO se defaultea a acero negra en silencio:
+  // eso costearía madera a precio de acero (fail-open). Falta el precio/identidad de su material.
+  const NO_ACERO = /mdf|melamina|madera|triplay|aglomerado|tablero|acril|policarbon|cristal|vidrio|poliuret|\bfoam\b/i;
+  const matTexto = String(pieza.desc || pieza.nombre || '');
+  const matNorm = matTexto.normalize('NFD').replace(/[̀-ͯ]/g, '');   // sin acentos: "acrílico" → "acrilico"
+  if (!pieza.aceroPropuesto && NO_ACERO.test(matNorm)) {
+    return bloq(clave, 'INCOMPLETO', `la pieza no es lámina de acero (parece "${matTexto.slice(0, 48)}"): falta el precio/identidad de su material real — Ingeniería/Compras`, { material_texto: matTexto });
+  }
+  // Lamina autoritativa (P1.1) del acero correcto (default negra para mueble pintado DE ACERO).
   const acero = pieza.aceroPropuesto || 'negra';
   const { exacto, registros } = laminasParaCalibre(calibre, catalogoLamina, acero);
   if (!registros.length) return bloq(clave, 'INCOMPLETO', `sin precio autoritativo de lamina ${acero} calibre ${calibre} en el catalogo vigente`, { calibre, acero });
@@ -106,7 +115,7 @@ export function costearMateriaPrima(pieza = {}, { catalogoLamina = [], par = PAR
       const areaHoja = +((fmtL * fmtA) / 1e6).toFixed(4);
       const costoPorPieza = Number(lam.precio) / ppt;
       const cand = { lam, ppt, fmtL, fmtA, areaHoja, costoPorPieza };
-      const mejorCert = mejor && mejor.lam.certificable, estaCert = !!lam.certificable;
+      const mejorCert = !!(mejor && mejor.lam.certificable), estaCert = !!lam.certificable;   // ambos booleanos: evita false===undefined que descartaba la lámina más barata
       if (!mejor || (estaCert && !mejorCert) || (estaCert === mejorCert && costoPorPieza < mejor.costoPorPieza)) mejor = cand;
     }
   }
