@@ -20,6 +20,25 @@ import { clasificarTercero } from './clasificacionTerceros.js';
 
 const num = (x) => { const v = Number(x); return Number.isFinite(v) ? v : null; };
 
+/**
+ * Convierte los componentes vivos del Asistente (b.componentes) en lineas de despiece con
+ * IDENTIDAD FISICA UNICA (auditoria 0f9ebc0). Dos piezas con el MISMO nombre son distintas por
+ * su posicion: la clave lleva el id de VONI si existe, si no la posicion, para que confirmar el
+ * CAD de una no afecte a su gemela. El nombre queda en `desc`. Cantidad ausente NO se vuelve 1.
+ */
+export function despieceDesdeComponentes(componentes = [], insumos = {}) {
+  return (Array.isArray(componentes) ? componentes : []).map((c, i) => {
+    const sec = insumos?.[c.insumoId]?.seccion;
+    const idFisico = c.id ?? c.instanceId ?? i;
+    const nombre = c.nombre || c.insumoId || 'pieza';
+    return {
+      id: idFisico, clave: `${nombre}#${idFisico}`, desc: nombre, insumoId: c.insumoId,
+      cantidad: Number(c.cantidad ?? c.piezas), seccion: sec, largoMM: c.largoMM, anchoMM: c.anchoMM,
+      esCompraVenta: sec === 'graficos' || sec === 'iluminacion',
+    };
+  });
+}
+
 // Materia prima que VH procesa en casa (se desarrolla desde geometria), vs componente comprado.
 const SECCION_PROCESABLE = /metal|lamina|l[aá]mina|acero|hierro|mdf|madera|melamina|triplay|aglomerado|tablero|acril|policarbon|pintura|\bptr\b/i;
 // P1-B (auditoria e48c0c2): una pieza de material PROCESABLE es FABRICADA aunque NO traiga geometria.

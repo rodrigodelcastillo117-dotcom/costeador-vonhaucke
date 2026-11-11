@@ -13,10 +13,11 @@
 // ============================================================================
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PantallaIngenieria from './PantallaIngenieria.jsx';
-import { expedienteIndustrialDesdeDespiece } from '../datos/expedienteIndustrialDesdeDespiece.js';
+import { expedienteIndustrialDesdeDespiece, despieceDesdeComponentes } from '../datos/expedienteIndustrialDesdeDespiece.js';
 import { recostearExpediente } from '../datos/pantallaIngenieria.js';
 import { cargarLaminaDesdeSupabase } from '../datos/catalogoLaminaVigente.js';
 import { guardarExpediente } from '../datos/persistenciaExpediente.js';
+import { descargarPdfExpediente } from '../datos/pdfExpedienteIndustrial.js';
 import { nube } from '../nube.js';
 
 const NOOP = { getItem: () => null, setItem: () => {} };
@@ -38,13 +39,7 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
   }, [abierto, svc]);
 
   const base = useMemo(() => {
-    const despiece = (Array.isArray(componentes) ? componentes : []).map((c) => {
-      const sec = insumos?.[c.insumoId]?.seccion;
-      return { clave: c.nombre || c.insumoId, insumoId: c.insumoId, desc: c.nombre || c.insumoId,
-        cantidad: Number(c.cantidad ?? c.piezas),   // CASO B: sin cantidad NO se vuelve 1; el motor la bloquea
-        seccion: sec, largoMM: c.largoMM, anchoMM: c.anchoMM,
-        esCompraVenta: sec === 'graficos' || sec === 'iluminacion' };
-    });
+    const despiece = despieceDesdeComponentes(componentes, insumos);   // identidad fisica unica por pieza
     return expedienteIndustrialDesdeDespiece(despiece, { clave: clave || 'EN-COSTEO', nombre, insumosERP: insumos, catalogoLamina: lamina });
   }, [componentes, insumos, lamina, clave, nombre]);
 
@@ -110,6 +105,7 @@ export default function ExpedienteIngenieriaPanel({ componentes = [], insumos = 
         )}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
           <button type="button" onClick={guardar} disabled={guardando}>{guardando ? 'Guardando…' : 'Guardar expediente'}</button>
+          <button type="button" onClick={() => { try { descargarPdfExpediente(expediente); } catch (e) { setMsg(`No se pudo generar el PDF: ${String(e?.message || e)}`); } }}>PDF del expediente</button>
           {msg && <span style={{ fontSize: 13, color: /No se pudo|Captura/.test(msg) ? 'var(--alerta,#c0453b)' : 'var(--ok,#2e7d52)' }}>{msg}</span>}
         </div>
         <PantallaIngenieria expediente={expediente} persistencia={NOOP} />
