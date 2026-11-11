@@ -12,7 +12,7 @@ import { bomDesdeDespiece, listoParaGuardar, puedeVerificarse } from '../datos/p
 
 const pesos = (x) => (x == null || !Number.isFinite(Number(x))) ? '—' : '$' + Number(x).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export default function GuardarProductoMaestro({ detalleInsumos = [], insumos = {}, factorMo, factorGif, nombreSugerido = '', dims_mm = null, rpc = (n, p) => nube.rpc(n, p), leerVersion, onGuardado }) {
+export default function GuardarProductoMaestro({ detalleInsumos = [], insumos = {}, factorMo, factorGif, familia = null, nombreSugerido = '', dims_mm = null, rpc = (n, p) => nube.rpc(n, p), leerVersion, onGuardado }) {
   const [clave, setClave] = useState('');
   const [nombre, setNombre] = useState(nombreSugerido || '');
   const [verificar, setVerificar] = useState(false);
@@ -20,8 +20,8 @@ export default function GuardarProductoMaestro({ detalleInsumos = [], insumos = 
   const [estado, setEstado] = useState({ cargando: false, ok: null, error: '' });
 
   const bom = useMemo(
-    () => bomDesdeDespiece(detalleInsumos, insumos, { clave, nombre, factorMo, factorGif, dims_mm, fuente: 'Confirmado en COSTEAR', verificar }),
-    [detalleInsumos, insumos, clave, nombre, factorMo, factorGif, dims_mm, verificar]
+    () => bomDesdeDespiece(detalleInsumos, insumos, { clave, nombre, factorMo, factorGif, familia, dims_mm, fuente: 'Confirmado en COSTEAR', verificar }),
+    [detalleInsumos, insumos, clave, nombre, factorMo, factorGif, familia, dims_mm, verificar]
   );
   const v = listoParaGuardar(bom);
   const elegibleVerificado = puedeVerificarse(bom);

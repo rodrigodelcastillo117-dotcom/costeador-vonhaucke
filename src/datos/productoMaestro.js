@@ -123,7 +123,10 @@ export function costearBOM(bom = {}, insumos = {}, { factores, familia = null, t
     const material = fabMat + cvMat;
     return { materialFabricado: fabMat, materialCompraVenta: cvMat, material, manoObra: material * mo, gif: material * gif, costoFabricacion: material + material * mo + material * gif };
   };
-  const fm = Number(bom.factor_mo), fg = Number(bom.factor_gif);
+  // OJO: Number(null) === 0 (finito). Un factor null/ausente NO es un factor por-clave válido;
+  // tratarlo como 0 costeaba material SIN MO ni GIF (subcosteo silencioso). Null/undefined ⇒ NaN.
+  const fm = bom.factor_mo == null ? NaN : Number(bom.factor_mo);
+  const fg = bom.factor_gif == null ? NaN : Number(bom.factor_gif);
   const famKey = bom.familia != null ? bom.familia : familia;
   let vh, factoresFuente;
   if (Number.isFinite(fm) && Number.isFinite(fg)) {

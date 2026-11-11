@@ -24,6 +24,7 @@
 // ============================================================================
 
 import { clasificarTercero } from './clasificacionTerceros.js';
+import { factorDeFamilia } from './factoresPorFamilia.js';
 
 const TOL = 1e-3;
 const num = (x) => { const v = Number(x); return Number.isFinite(v) ? v : null; };
@@ -58,6 +59,7 @@ function cantidadFisica(d) {
 export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
   const {
     clave, nombre, factorMo, factorGif, dims_mm = null, fuente = null,
+    familia = null,                 // familia del mueble: habilita el factor de familia para muebles nuevos sin hoja propia
     verificar = false,              // VERIFICADO sólo si se pide EXPLÍCITAMENTE y la integridad lo permite
     cos_fab_real_medido = null,     // referencia de fábrica medida e independiente (si existe)
   } = opts;
@@ -168,9 +170,19 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
   materialResuelto = +materialResuelto.toFixed(2);
   materialPendienteEstimado = +materialPendienteEstimado.toFixed(2);
   const fm = Number(factorMo), fg = Number(factorGif);
+  // FACTOR para el preview cos_fab_calculado, con la MISMA precedencia que costearBOM:
+  // por-clave si viene; si no, el de la FAMILIA (cargador gobernado) para que un mueble NUEVO
+  // no quede sin preview ni se sobrecostee con el genérico. Si no hay ninguno, queda null (honesto).
+  let moUsado = fm, gifUsado = fg, factores_fuente = null;
+  if (Number.isFinite(fm) && Number.isFinite(fg)) {
+    factores_fuente = 'clave';
+  } else {
+    const famF = familia != null ? factorDeFamilia(familia) : null;
+    if (famF) { moUsado = famF.factor_mo; gifUsado = famF.factor_gif; factores_fuente = 'familia'; }
+  }
   // COSTO CALCULADO por factores del motor. NO es una medición de fábrica.
-  const cos_fab_calculado = (Number.isFinite(fm) && Number.isFinite(fg))
-    ? +(materialResuelto * (1 + fm + fg)).toFixed(2) : null;
+  const cos_fab_calculado = (Number.isFinite(moUsado) && Number.isFinite(gifUsado))
+    ? +(materialResuelto * (1 + moUsado + gifUsado)).toFixed(2) : null;
 
   const nCosteables = lineas.filter((l) => !l.pendiente).length;
   const integridad = {
@@ -199,8 +211,10 @@ export function bomDesdeDespiece(detalleInsumos = [], insumos = {}, opts = {}) {
     material_pendiente_estimado: materialPendienteEstimado,
     cos_fab_calculado,                            // CALCULADO (factores) — no es costo de fábrica medido
     cos_fab_real: cos_fab_real_medido,            // sólo si hay referencia independiente medida; si no, null
-    factor_mo: Number.isFinite(fm) ? fm : null,
+    familia: familia || null,                     // carga el factor de familia al costear (costearBOM)
+    factor_mo: Number.isFinite(fm) ? fm : null,   // factor POR-CLAVE explícito (null si se usó el de familia)
     factor_gif: Number.isFinite(fg) ? fg : null,
+    factores_fuente,                              // 'clave' | 'familia' | null — de dónde salió el preview
     dims_mm,
     fuente,
     lineas,                                       // incluye las pendientes (nada desaparece)
