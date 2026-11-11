@@ -19,6 +19,7 @@
 //  que Compras lo dé de alta. Nunca se cuesta una línea en $0 en silencio.
 // ============================================================================
 import { costoFabricacionVH, precioUsable } from '../motor/calculo.js';
+import { factorDeFamilia, FACTORES_FAMILIA } from './factoresPorFamilia.js';
 
 /** Precio de una línea de BOM: catálogo vigente (precio > 0) si existe; si no, el confirmado. */
 export function precioLineaBOM(linea = {}, insumos = {}) {
@@ -83,7 +84,7 @@ export function clasificarLineaBOM(linea = {}, insumos = {}) {
  * @returns {{material, materialFabricado, materialCompraVenta, manoObra, gif, costoFabricacion,
  *            cosFabReal, deltaPct, cobertura, lineas}}
  */
-export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
+export function costearBOM(bom = {}, insumos = {}, { factores, familia = null, tablaFactores = FACTORES_FAMILIA } = {}) {
   const lineas = Array.isArray(bom.lineas) ? bom.lineas : [];
   const detalle = [];
   const reporte = [];
@@ -113,18 +114,30 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
   // "✓ Certificable" con precios de catálogo de hace años que el servidor marca PRELIMINAR.
   const hayPrecioViejo = catalogoViejo > 0;
   const certificable = emitible && !orientativo && !hayPrecioViejo && bomDetallado;
-  // Factores POR CLAVE (de la hoja de estimaciones): NO son universales (Alpura 20/50, Telcel 10/25).
-  // Si la clave los trae, se usan (reproduce su hoja exacto). Si no, se cae a la política por sección.
-  const fm = Number(bom.factor_mo), fg = Number(bom.factor_gif);
-  let vh;
-  if (Number.isFinite(fm) && Number.isFinite(fg)) {
+  // PRECEDENCIA DE FACTORES (trazable en `factoresFuente`): factor por-clave del BOM (de la hoja
+  // de estimaciones; NO universal — Alpura 20/50, Telcel 10/25) > factor de la FAMILIA (cargador
+  // gobernado, para muebles nuevos sin hoja propia) > política por sección (default ×1.8/×1.06).
+  const planoPorMaterial = (mo, gif) => {
     let fabMat = 0, cvMat = 0;
     for (const d of detalle) { if (d.seccion === 'graficos' || d.seccion === 'iluminacion') cvMat += d.costo; else fabMat += d.costo; }
     const material = fabMat + cvMat;
-    const manoObra = material * fm, gif = material * fg;
-    vh = { materialFabricado: fabMat, materialCompraVenta: cvMat, material, manoObra, gif, costoFabricacion: material + manoObra + gif, factoresPorClave: { factor_mo: fm, factor_gif: fg } };
+    return { materialFabricado: fabMat, materialCompraVenta: cvMat, material, manoObra: material * mo, gif: material * gif, costoFabricacion: material + material * mo + material * gif };
+  };
+  const fm = Number(bom.factor_mo), fg = Number(bom.factor_gif);
+  const famKey = bom.familia != null ? bom.familia : familia;
+  let vh, factoresFuente;
+  if (Number.isFinite(fm) && Number.isFinite(fg)) {
+    vh = { ...planoPorMaterial(fm, fg), factoresPorClave: { factor_mo: fm, factor_gif: fg } };
+    factoresFuente = 'clave';
   } else {
-    vh = costoFabricacionVH(detalle, factores || undefined);
+    const fam = famKey != null ? factorDeFamilia(famKey, tablaFactores) : null;
+    if (fam) {
+      vh = { ...planoPorMaterial(fam.factor_mo, fam.factor_gif), factoresPorFamilia: { familia: famKey, factor_mo: fam.factor_mo, factor_gif: fam.factor_gif, fuente: fam.fuente, aprobado_por: fam.aprobado_por } };
+      factoresFuente = 'familia';
+    } else {
+      vh = costoFabricacionVH(detalle, factores || undefined);
+      factoresFuente = 'politica_vh';
+    }
   }
   const cosFabReal = bom.cos_fab_real != null && Number.isFinite(Number(bom.cos_fab_real)) ? Number(bom.cos_fab_real) : null;
   const deltaPct = cosFabReal ? (vh.costoFabricacion - cosFabReal) / cosFabReal * 100 : null;
@@ -133,6 +146,7 @@ export function costearBOM(bom = {}, insumos = {}, { factores } = {}) {
     ...vh,
     cosFabReal,
     deltaPct,
+    factoresFuente,   // 'clave' | 'familia' | 'politica_vh' — de dónde salió el factor MO/GIF (trazable)
     // Contrato seguro: emitible = hay costo para cada línea (sin bloqueos); certificable = emitible,
     // sin precios históricos, sin precios de catálogo vencidos (frescura) y con BOM detallado verificado.
     emitible,
