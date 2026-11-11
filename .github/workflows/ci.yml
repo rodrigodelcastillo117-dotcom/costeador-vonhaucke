@@ -74,25 +74,30 @@ jobs:
       - name: Instalar navegador de Playwright
         shell: bash
         run: |
-          # Reintento ante flakes TRANSITORIOS de red/DNS del runner. El install de Playwright
-          # baja paquetes apt (--with-deps, mirror de Ubuntu) y el binario de Chromium (CDN); un
-          # "Temporary failure resolving azure.archive.ubuntu.com" tumbaba el job entero SIN que
-          # corriera un solo test E2E. Tres intentos con backoff: un corte momentáneo ya no es rojo;
-          # si la red está caída de verdad, sigue fallando (correcto) tras agotar los intentos.
-          intentos=3
-          for i in $(seq 1 "$intentos"); do
-            if npx playwright install --with-deps chromium; then
-              echo "Navegador de Playwright instalado (intento $i)."
-              exit 0
-            fi
-            if [ "$i" -lt "$intentos" ]; then
-              espera=$((i * 20))
-              echo "::warning title=Playwright install falló::Intento $i/$intentos (red/DNS). Reintento en ${espera}s."
-              sleep "$espera"
-            fi
+          # Se SEPARA el binario del navegador (CDN de Playwright) de las dependencias de sistema
+          # (mirror de apt de Ubuntu). Un "Temporary failure resolving azure.archive.ubuntu.com"
+          # —el mirror de apt caído— tumbaba el E2E ENTERO sin correr un solo test, aunque el binario
+          # (que viene de OTRO host) estuviera disponible.
+          #
+          # 1) BINARIO de Chromium — del CDN de Playwright, independiente del mirror de apt.
+          #    OBLIGATORIO: 3 reintentos con backoff; si falla, el job falla (correcto).
+          ok=0
+          for i in 1 2 3; do
+            if npx playwright install chromium; then ok=1; break; fi
+            echo "::warning title=playwright install (binario)::Intento $i/3 falló; reintento en $((i*20))s."
+            sleep $((i * 20))
           done
-          echo "::error title=Playwright install::No se pudo instalar el navegador tras $intentos intentos (red del runner)."
-          exit 1
+          [ "$ok" -eq 1 ] || { echo "::error title=playwright install::No se pudo bajar Chromium tras 3 intentos."; exit 1; }
+          #
+          # 2) DEPENDENCIAS de sistema (fuentes/libs) — del mirror de apt. NO fatales y ACOTADAS en
+          #    tiempo: si el mirror de GitHub está caído, no colgamos 30 min ni tumbamos el E2E; se corre
+          #    con las libs base del runner (ubuntu-latest trae casi todas). Si faltara alguna, el test lo
+          #    dirá con un error CLARO de arranque del navegador (señal rápida y accionable, no un cuelgue).
+          if timeout 420 npx playwright install-deps chromium; then
+            echo "Dependencias de sistema instaladas."
+          else
+            echo "::warning title=deps de sistema omitidas::El mirror de apt de GitHub no respondió (caído/lento); se corre el E2E con las libs base del runner."
+          fi
       - name: E2E público + auth condicional
         run: npm run e2e
       # Seguridad (19-oct): el error-context de Playwright incluye el VALOR de los campos de texto; si el login falla,
