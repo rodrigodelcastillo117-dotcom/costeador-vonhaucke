@@ -25,16 +25,36 @@ export function factorDificultad(d) {
   return Math.min(3, Math.max(0.25, v));
 }
 
+// NOVEDAD / PRIMERA VEZ (2026-11-12 · PROVISIONAL, pendiente de calibrar con 3–5 trabajos bespoke reales:
+// horas de la 1ª vez vs sus horas estándar después, igual que las tarifas de cristal quedaron provisionales).
+// Un mueble nunca hecho lleva MÁS tiempo la primera vez (setup, programar máquina, entenderla, reprocesos del
+// 1er intento). Es un eje DISTINTO de la dificultad: la dificultad mide "esta pieza tiene mucho trabajo"
+// (calibrada contra horas estándar de piezas CONOCIDAS); la novedad agrega SOLO la rebanada de "primera vez".
+// Valores moderados a propósito: VH es taller experto (lo nuevo suele ser variación) y la dificultad ya cobra
+// lo complejo — la novedad NO re-cobra la dificultad. Default `conocido` (×1) = exactamente la cuenta de siempre.
+export const NOVEDAD = Object.freeze({ conocido: 1, primera_vez: 1.15, nuevo: 1.35, muy_nuevo: 1.6 });
+
+/** Nivel ('primera_vez'…) o número → multiplicador acotado [1, 2]. La novedad NUNCA abarata (≥1).
+ *  Ausente o basura → 1 (conocido), nunca NaN. */
+export function factorNovedad(n) {
+  const v = typeof n === 'string' ? NOVEDAD[n] : Number(n);
+  if (!Number.isFinite(v) || v <= 0) return 1;
+  return Math.min(2, Math.max(1, v));
+}
+
 const giFijo = (tipo) => tipo === 'cristal' || tipo === 'compraventa';
 
-/** costoAlba × dificultad. Con dificultad normal devuelve EXACTAMENTE lo mismo que costoAlba. */
-export function costoAlbaDificultad(material, tipo = 'general', dificultad = 1) {
+/** costoAlba × dificultad × novedad. Con dificultad y novedad normales devuelve EXACTAMENTE lo mismo que
+ *  costoAlba. La novedad escala la MANO DE OBRA igual que la dificultad (es más TRABAJO la primera vez),
+ *  NUNCA el material. `dificultad` y `novedad` se reportan por separado; lo que se aplica es su producto. */
+export function costoAlbaDificultad(material, tipo = 'general', dificultad = 1, novedad = 1) {
   const base = costoAlba(material, tipo);
-  const f = factorDificultad(dificultad);
-  if (f === 1) return { ...base, dificultad: 1 };
+  const fd = factorDificultad(dificultad), fn = factorNovedad(novedad);
+  const f = fd * fn;
+  if (f === 1) return { ...base, dificultad: 1, novedad: 1 };
   const mo = base.mo * f;
   const gi = giFijo(tipo) ? base.gi : base.gi * f;
-  return { ...base, mo, gi, fab: base.material + mo + gi, dificultad: f };
+  return { ...base, mo, gi, fab: base.material + mo + gi, dificultad: fd, novedad: fn };
 }
 
 /** Tarifas de planta (regla de Dirección): MO real por área y UN solo indirecto de planta por hora. */
@@ -47,16 +67,18 @@ export const TARIFAS_PLANTA = Object.freeze({
  *  Auditoría externa 2026-10-13: un área SIN dato (ausente, null, '' o no numérica) contaba como 0 h en silencio.
  *  Ahora se suma igual (subtotal), pero se reporta en `faltan` y `completo:false`: quien lo use como costo debe
  *  tratarlo como incompleto. Un 0 EXPLÍCITO sí es dato (pieza de metal sin carpintería). */
-export function costoPorHoras(material, horas = {}, t = TARIFAS_PLANTA) {
+export function costoPorHoras(material, horas = {}, t = TARIFAS_PLANTA, novedad = 1) {
   const mat = Number(material) || 0;
+  const fn = factorNovedad(novedad);   // 1ª vez = más HORAS → más MO y más indirectos (tiempo de planta)
   let mo = 0, h = 0; const faltan = [];
   for (const [area, tarifa] of Object.entries(t.mo)) {
     const v = horas?.[area]; const x = v === null || v === undefined || v === '' ? NaN : Number(v);
     if (!Number.isFinite(x) || x < 0) { faltan.push(area); continue; }
-    mo += x * tarifa; h += x;
+    const hx = x * fn;
+    mo += hx * tarifa; h += hx;
   }
   const gi = h * t.indirectoHora;
-  return { material: mat, mo, gi, fab: mat + mo + gi, horas: h, faltan, completo: faltan.length === 0 };
+  return { material: mat, mo, gi, fab: mat + mo + gi, horas: h, faltan, completo: faltan.length === 0, novedad: fn };
 }
 
 /** La dificultad con la que el % de Alba da EXACTAMENTE el costo por horas (sin acotar: un valor fuera de
