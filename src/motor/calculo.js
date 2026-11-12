@@ -846,10 +846,19 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   // medidas, o si la pieza fija sus propios factorDirecta/factorIndirecta (el
   // puente 6.4), esos mandan: son datos mas finos que la formula de
   // estimacion, y no hay motivo para pisarlos.
-  const usaFactoresExplicitos = pieza.factorDirecta != null || pieza.factorIndirecta != null;
+  // FACTORES POR CLAVE (producto_maestro.factor_mo/factor_gif): MO y GIF como fracción del
+  // material TOTAL (Telcel 0.10/0.25 → ×1.35; Alpura/Copete 0.20/0.60 → ×1.80). Reproduce
+  // costearBOM (productoMaestro.js, línea "manoObra = material * fm, gif = material * fg") al
+  // centavo → PARIDAD cliente/servidor para un producto conocido. Es un dato más fino que la
+  // fórmula de estimación de Alba (son los factores de la T.D.C. real de esa clave), así que
+  // mandan sobre ella; las HORAS medidas siguen mandando sobre todo. Ausentes → Alba, sin cambio.
+  const fmClave = Number(pieza.factor_mo);
+  const fgClave = Number(pieza.factor_gif);
+  const usaFactoresPorClave = modo !== 'horas' && Number.isFinite(fmClave) && Number.isFinite(fgClave);
+  const usaFactoresExplicitos = !usaFactoresPorClave && (pieza.factorDirecta != null || pieza.factorIndirecta != null);
   const factorDirecta = pieza.factorDirecta != null ? pieza.factorDirecta : par.factorManoObraDirecta;
   const factorIndirecta = pieza.factorIndirecta != null ? pieza.factorIndirecta : par.factorManoObraIndirecta;
-  const usaFormulaAlba = modo !== 'horas' && !usaFactoresExplicitos;
+  const usaFormulaAlba = modo !== 'horas' && !usaFactoresPorClave && !usaFactoresExplicitos;
 
   // NOVEDAD (primera vez / nunca hecho): escala el TRABAJO, nunca el material. En la fórmula de Alba
   // va DENTRO de costoAlbaDificultad (junto a la dificultad); en la ruta por horas escala las horas
@@ -859,6 +868,10 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   let giAlba = 0; // solo tiene sentido si usaFormulaAlba (ver "Clasico" abajo)
   if (modo === 'horas') {
     manoObra = manoObraPorHoras(pieza.horas, n, par) * fNov;
+  } else if (usaFactoresPorClave) {
+    // MO = material total × factor_mo de la clave (NO escala con novedad: un producto con clave
+    // conocida no es "primera vez"). El GIF por clave se aplica abajo (× factor_gif).
+    manoObra = materialTotal * fmClave;
   } else if (usaFormulaAlba) {
     const alba = manoObraGiAlba(detalleInsumos, pieza.dificultad, pieza.novedad);
     manoObra = alba.mo;
@@ -876,7 +889,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   // Puente entre los dos modos (6.4): que % equivaldrian las horas medidas
   let factorEquivalente = 0;
   if (materialDirecto > 0) {
-    factorEquivalente = usaFormulaAlba
+    factorEquivalente = (usaFormulaAlba || usaFactoresPorClave)
       ? (manoObra / materialDirecto) * 100
       : ((manoObra / n - (materialIndirecto / n) * (factorIndirecta / 100)) /
           (materialDirecto / n)) *
@@ -909,7 +922,9 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     // factores fijados a mano: indirectos = 34% sobre material DIRECTO
     // (formula historica). En estimacion pura (usaFormulaAlba): los
     // indirectos son los de Alba, 3xMO por tipo de material (giAlba, arriba).
-    indirectosFabrica = usaFormulaAlba ? giAlba : materialDirecto * (par.factorIndirectosFabrica / 100);
+    indirectosFabrica = usaFactoresPorClave ? materialTotal * fgClave
+      : usaFormulaAlba ? giAlba
+      : materialDirecto * (par.factorIndirectosFabrica / 100);
     gastosOperacion = 0;
     costoFabricacion = costoDirecto + indirectosFabrica;
     costoLote = costoFabricacion;
@@ -938,6 +953,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
     manoObra,
     modoManoObra: modo,
     factorEquivalente,
+    factoresPorClave: usaFactoresPorClave ? { factor_mo: fmClave, factor_gif: fgClave } : null,
     preparacion,
     empaque,
     costoDirecto,
