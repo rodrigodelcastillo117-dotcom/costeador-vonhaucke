@@ -11,6 +11,7 @@ import { validarSolicitudCocrear } from './datos/cocrearServidor.js';
 import { renderParaPartida } from './datos/renderPartida.js';
 import { imagenAStorage, rutaImagen } from './datos/imagenStorage.js';
 import { normalizarClaveMaterial } from './datos/claveMaterial.js';
+import { cruceDeFamilia } from './datos/materialMatch.js';
 import { createClient } from '@supabase/supabase-js';
 import { mensajeErrorEdge } from './datos/erroresEdge.js';
 import { sondearAnalisis } from './datos/sondearAnalisis.js';
@@ -677,10 +678,14 @@ export async function resolverSolicitudPrecio(id, estado = 'resuelta', nota = nu
 // próximo mueble. Mejor esfuerzo, sin bloquear el flujo: si el rol no puede escribir (RLS), ya existe o algo falla,
 // no estorba. La IDENTIDAD la firma luego Dirección en "Aprobar puentes" (RPC aprobar_mapeo_externo); el bot nunca
 // la aprueba. No escribe economía: sólo la correspondencia clave→insumo (dato que el rol ya podía ver).
-export async function proponerMapeoMaterial(solicitado, insumoId, { pedidoCrudo = '' } = {}) {
+export async function proponerMapeoMaterial(solicitado, insumoId, { pedidoCrudo = '', insumoNombre = '' } = {}) {
   const clave = normalizarClaveMaterial(solicitado);
   const id = String(insumoId || '').trim();
   if (!clave || !id) return { ok: false, error: 'clave o insumo vacío' };
+  // CANDADO DE FAMILIA: nunca grabar un puente que cruza de familia de material (p.ej. "cristal
+  // templado" → acrílico). Evita falsear el costo y volver a ensuciar la cola de aprobación (caso #79).
+  const cf = cruceDeFamilia(solicitado, insumoNombre || id);
+  if (cf.cruza) return { ok: false, error: `familia_distinta:${cf.famPide}->${cf.famIns}`, cruce: cf };
   try {
     // Dedup: no re-proponer lo mismo (propuesto o ya aprobado) → no ensucia la pantalla de aprobación.
     const { data: ya } = await nube.from('insumo_mapeos_externos')

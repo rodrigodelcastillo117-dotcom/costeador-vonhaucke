@@ -383,6 +383,21 @@ const FAMILIAS_PANEL = new Set(['melamina', 'mdf', 'laminado_hpl', 'chapa_madera
 // acero/lámina/PTR por calibre, aluminio por perfil, vidrio por espesor estructural.
 const FAMILIAS_CRITICAS = new Set(['metal_lamina', 'acero_inoxidable', 'aluminio', 'cristal']);
 
+// ¿Confirmar un material pedido como un insumo CRUZA de familia de material? (p.ej.
+// "cristal templado" → acrílico, "lámina negra" → acero inoxidable). Sólo marca cruce cuando
+// AMBAS familias se reconocen y son distintas, EXCEPTO entre paneles de madera sustituibles
+// (melamina ↔ MDF ↔ HPL ↔ chapa ↔ madera sólida), donde el cambio es de acabado, no de familia.
+// Si alguna familia es '' (no se sabe), NO marca cruce — no se inventa un conflicto. Determinista,
+// sin red. El pecado que evita (caso real #79, 2026-11): una confirmación humana por error mapeó
+// "cristal templado" → acrílico-6; eso falsea el costo y ensucia la cola de aprobación de puentes.
+export function cruceDeFamilia(solicitado, insumoTexto) {
+  const famPide = familiaDeMaterial(solicitado);
+  const famIns = familiaDeMaterial(insumoTexto);
+  if (!famPide || !famIns || famPide === famIns) return { cruza: false, famPide, famIns };
+  if (FAMILIAS_PANEL.has(famPide) && FAMILIAS_PANEL.has(famIns)) return { cruza: false, famPide, famIns };
+  return { cruza: true, famPide, famIns };
+}
+
 // EQUIVALENCIAS DE ESPESOR APROBADAS (EXPLÍCITAS, conservadoras). Un cambio de espesor dentro
 // de una familia-panel SÓLO es COMPATIBLE para estimar si el par (ordenado) está AQUÍ. NO se
 // asume que "cualquier tablero de otro espesor es equivalente": 28→19, 36→19, 16→19, 9→19

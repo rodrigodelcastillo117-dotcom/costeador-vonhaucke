@@ -109,7 +109,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // APRENDER: cada confirmación se graba como puente propuesto (voni_material) para no re-preguntar.
     for (const c of propuestosPorRegla) {
       const pedido = c.material_solicitado || c.nombre || '';
-      if (pedido && c.insumoId) proponerMapeoMaterial(pedido, c.insumoId, { pedidoCrudo: c.nombre || '' }).catch(() => {});
+      if (pedido && c.insumoId) proponerMapeoMaterial(pedido, c.insumoId, { pedidoCrudo: c.nombre || '', insumoNombre: insumos[c.insumoId]?.nombre || '' }).catch(() => {});
     }
     const resto = (costeo.componentes || []).filter((c) => c.insumoId && estadoMaterialUI(c, insumos).badgeTipo === 'confirmar').length - propuestosPorRegla.length;
     setConfMsg(`✓ Confirmaste ${propuestosPorRegla.length} material(es) compatibles.${resto > 0 ? ` Quedan ${resto} con diferencia o inferidos: revísalos uno por uno.` : ''}`);
@@ -364,7 +364,7 @@ export default function Costeador({ estado, setCosteo, costeo, onAgregarCotizaci
     // reusarlo (lo aprueba luego Dirección). Mejor esfuerzo, sin await: nunca bloquea la UI.
     if (confirmado && insumoId) {
       const pedido = prev.material_solicitado || prev.nombre || '';
-      if (pedido) proponerMapeoMaterial(pedido, insumoId, { pedidoCrudo: prev.nombre || '' }).catch(() => {});
+      if (pedido) proponerMapeoMaterial(pedido, insumoId, { pedidoCrudo: prev.nombre || '', insumoNombre: ins?.nombre || '' }).catch(() => {});
     }
   }
   // Costo neto de una pieza, respetando fracción de hoja (para el subtotal por pieza)

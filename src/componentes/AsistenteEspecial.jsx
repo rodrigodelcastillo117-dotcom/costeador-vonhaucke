@@ -669,7 +669,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     // reusarlo en el próximo mueble (lo aprueba luego Dirección). Mejor esfuerzo, sin await: nunca bloquea la UI.
     if (confirmado && insumoId) {
       const pedido = prev.material_solicitado || prev.nombre || '';
-      if (pedido) proponerMapeoMaterial(pedido, insumoId, { pedidoCrudo: prev.nombre || '' }).catch(() => {});
+      if (pedido) proponerMapeoMaterial(pedido, insumoId, { pedidoCrudo: prev.nombre || '', insumoNombre: ins?.nombre || '' }).catch(() => {});
     }
   }
   function costoPieza(c, ins) {
