@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { leerHojas } from '../datos/xlsxMinimo.js';
 import { prepararCargaErp } from '../datos/erpCarga.js';
 import { registrosErpDesdeWorkbookProyecto } from '../datos/erpProyecto.js';
+import { registrosErpDesdeOrdenesCompra } from '../datos/erpOrdenesCompra.js';
 import { cargarErpLote, firmarPreciosErp } from '../nube.js';
 
 const LOTE = 400;
@@ -89,17 +90,28 @@ export default function CargaERP({ onAviso }) {
       //  (b) workbook de proyecto/costeo real (explo_x_id + cata_mp), como TELCEL C-CO-320R.
       // erpProyecto recupera Clave Comercial/unidad/fecha desde cata_mp cuando la explosión no las trae,
       // deduplica evidencia repetida y NUNCA inventa valores.
-      const extraido = registrosErpDesdeWorkbookProyecto(hojas);
-      if (!extraido.registros.length) {
-        throw new Error('El archivo no contiene una tabla reconocible de materiales con Artículo y Costo Última Compra.');
-      }
+      let extraido = registrosErpDesdeWorkbookProyecto(hojas);
       // Workbook de proyecto sólo si lo es de verdad (explosión nombrada o catálogo MP auxiliar en
-      // hoja aparte). El reporte directo "Última Compra" de Intelisis —una sola tabla con Clave
-      // Comercial inline— NO debe forzar revalidación ni perder la certificación normal de ≤24 meses.
-      const origen = extraido.esWorkbookProyecto ? 'workbook_proyecto' : 'reporte_ultima_compra';
+      // hoja aparte). El reporte directo "Última Compra" —una tabla con Clave Comercial inline— NO
+      // fuerza revalidación ni pierde la certificación normal de ≤24 meses.
+      let origen = extraido.registros.length
+        ? (extraido.esWorkbookProyecto ? 'workbook_proyecto' : 'reporte_ultima_compra')
+        : null;
+      if (!origen) {
+        // Fuente real desde 2026-10: el reporte "Órdenes de Compra" de Intelisis (compra real por
+        // renglón, Costo Unitario SIN IVA). Se colapsa a última compra por artículo. Al cargar SÓLO
+        // actualiza precios de materiales ya conocidos; lo que no está en el catálogo (servicios,
+        // muebles comprados, racks) la RPC lo omite — nunca se inventa un insumo nuevo desde una OC.
+        const oc = registrosErpDesdeOrdenesCompra(hojas);
+        if (oc.registros.length) { extraido = oc; origen = 'ordenes_compra'; }
+      }
+      if (!origen) {
+        throw new Error('El archivo no contiene una tabla reconocible: ni "Costos de Materia Prima · Última Compra" (Artículo + Costo Última Compra), ni "Órdenes de Compra" (Artículo + Costo Unitario + Fecha Emisión), ni un workbook de proyecto.');
+      }
       const preparado = prepararCargaErp(extraido.registros, {
         documento: f.name,
-        // Evidencia secundaria: puede aportar costo preliminar, pero nunca se autocertifica.
+        // Workbook de proyecto = evidencia secundaria (nunca autocertifica). La OC es evidencia
+        // primaria (la orden real) → certifica con la política normal de ≤24 meses.
         forzarValidacionCompras: origen === 'workbook_proyecto',
       });
       setPrep({
@@ -115,23 +127,29 @@ export default function CargaERP({ onAviso }) {
   async function cargar() {
     if (!prep || !archivo) return;
     setCargando(true); setError(''); setResultado(null);
-    const tot = Math.max(Math.ceil(prep.catalogo.length / LOTE), 1) + Math.ceil(prep.precios.length / LOTE);
+    // Una Orden de Compra sólo ACTUALIZA el precio de materiales ya conocidos: no crea insumos nuevos
+    // (así un rack/servicio/mueble comprado que no está en el catálogo NO entra como materia prima).
+    const soloPrecios = prep.origen === 'ordenes_compra';
+    const catalogo = soloPrecios ? [] : prep.catalogo;
+    const tot = Math.max(Math.ceil(catalogo.length / LOTE), 1) + Math.ceil(prep.precios.length / LOTE);
     setAvance({ hecho: 0, total: tot });
     const acc = { catalogo_nuevos: 0, catalogo_existentes: 0, precios_nuevos: 0, precios_duplicados: 0, aprobados: 0, errores: [] };
     const suma = (r) => { for (const k of ['catalogo_nuevos', 'catalogo_existentes', 'precios_nuevos', 'precios_duplicados', 'aprobados']) acc[k] += Number(r?.[k] || 0); if (Array.isArray(r?.errores)) acc.errores.push(...r.errores); };
     try {
-      // 1) todo el catálogo primero (los precios lo referencian), 2) luego los precios.
-      for (let i = 0; i < prep.catalogo.length; i += LOTE) {
-        suma(await cargarErpLote(archivo.name, prep.catalogo.slice(i, i + LOTE), []));
+      // 1) catálogo primero (los precios lo referencian), 2) luego los precios. Una OC omite el paso 1.
+      for (let i = 0; i < catalogo.length; i += LOTE) {
+        suma(await cargarErpLote(archivo.name, catalogo.slice(i, i + LOTE), []));
         setAvance((a) => ({ ...a, hecho: a.hecho + 1 }));
       }
-      if (!prep.catalogo.length) setAvance((a) => ({ ...a, hecho: a.hecho + 1 }));
+      if (!catalogo.length) setAvance((a) => ({ ...a, hecho: a.hecho + 1 }));
       for (let i = 0; i < prep.precios.length; i += LOTE) {
         suma(await cargarErpLote(archivo.name, [], prep.precios.slice(i, i + LOTE)));
         setAvance((a) => ({ ...a, hecho: a.hecho + 1 }));
       }
       setResultado(acc);
-      onAviso?.(`ERP cargado: ${acc.precios_nuevos} precios nuevos (${acc.aprobados} certificados), ${acc.catalogo_nuevos} insumos nuevos.`, 8000);
+      onAviso?.(soloPrecios
+        ? `Órdenes de compra: ${acc.precios_nuevos} precios actualizados (${acc.aprobados} certificados). ${acc.errores.length} no estaban en el catálogo y se omitieron.`
+        : `ERP cargado: ${acc.precios_nuevos} precios nuevos (${acc.aprobados} certificados), ${acc.catalogo_nuevos} insumos nuevos.`, 8000);
     } catch (err) {
       setError(`La carga se detuvo: ${err?.message || err}. Lo ya cargado se conserva; vuelve a subir el archivo: no se duplica.`);
       setResultado(acc);
@@ -152,7 +170,7 @@ export default function CargaERP({ onAviso }) {
           <div data-testid="carga-erp-resumen">
             <table className="datos" style={{ marginTop: 8 }}>
               <tbody>
-                <tr><td>Tipo de fuente detectada</td><td>{prep.origen === 'workbook_proyecto' ? 'Workbook de proyecto real' : 'Reporte Última Compra'}</td></tr>
+                <tr><td>Tipo de fuente detectada</td><td>{prep.origen === 'workbook_proyecto' ? 'Workbook de proyecto real' : prep.origen === 'ordenes_compra' ? 'Órdenes de Compra (actualiza conocidos)' : 'Reporte Última Compra'}</td></tr>
                 {prep.extraccion?.hojaExplosion && <tr><td>Hoja de materiales</td><td><code>{prep.extraccion.hojaExplosion}</code></td></tr>}
                 {prep.extraccion?.hojaCatalogo && <tr><td>Catálogo MP auxiliar</td><td><code>{prep.extraccion.hojaCatalogo}</code></td></tr>}
                 {prep.extraccion?.resumen?.registrosUnicos != null && <tr><td>Materiales/evidencias únicos extraídos</td><td className="num">{prep.extraccion.resumen.registrosUnicos}</td></tr>}
@@ -162,6 +180,7 @@ export default function CargaERP({ onAviso }) {
                 {prep.extraccion?.resumen?.sinCosto > 0 && <tr><td>Sin costo real en la fuente</td><td className="num">{prep.extraccion.resumen.sinCosto}</td></tr>}
                 <tr><td>Renglones en el archivo</td><td className="num">{r.filas}</td></tr>
                 <tr><td>Con costo (entran)</td><td className="num">{prep.catalogo.length}</td></tr>
+                {prep.origen === 'ordenes_compra' && <tr><td>Órdenes de compra</td><td>sólo actualiza precios de materiales ya en el catálogo; lo que no está (servicios, muebles comprados, rack) se omite sin inventar insumos</td></tr>}
                 <tr><td>Sin costo (no entran, nunca $0)</td><td className="num">{r.sinCosto}</td></tr>
                 <tr><td>Compra ≤ 24 meses</td><td className="num">{r.recientes}</td></tr>
                 {prep.origen === 'workbook_proyecto' && <tr><td>Precios de proyecto que requieren revalidación</td><td className="num">{r.requierenValidacionCompras}</td></tr>}
