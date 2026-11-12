@@ -58,6 +58,22 @@ const INSUMOS = {
   corredera,
 };
 
+// Integración de NOVEDAD a través de calcular(): el factor "primera vez" escala la MANO DE OBRA
+// (y los indirectos), NUNCA el material. Default conocido (×1) = exactamente la cuenta de siempre.
+describe('novedad (primera vez) a través de calcular', () => {
+  const pieza = { componentes: [{ nombre: 'cubierta', insumoId: 'melamina-19', largoMM: 1500, anchoMM: 600, cantidad: 1 }], modoManoObra: 'porcentaje' };
+  it('escala la mano de obra ×nivel, deja el material intacto; conocido/ausente = sin cambio', () => {
+    const base = calcular(pieza, 1, INSUMOS);
+    const conocido = calcular({ ...pieza, novedad: 'conocido' }, 1, INSUMOS);
+    const nuevo = calcular({ ...pieza, novedad: 'nuevo' }, 1, INSUMOS);   // ×1.35
+    expect(base.manoObra).toBeGreaterThan(0);
+    expect(conocido.manoObra).toBeCloseTo(base.manoObra, 6);              // conocido = la cuenta de siempre
+    expect(nuevo.materialTotal).toBeCloseTo(base.materialTotal, 6);        // material NO cambia
+    expect(nuevo.manoObra).toBeCloseTo(base.manoObra * 1.35, 4);          // MO ×1.35
+    expect(nuevo.costoUnitario).toBeGreaterThan(base.costoUnitario);      // el costo sube sólo por el trabajo
+  });
+});
+
 // ---------------------------------------------------------------------------
 //  Piezas de prueba
 // ---------------------------------------------------------------------------
