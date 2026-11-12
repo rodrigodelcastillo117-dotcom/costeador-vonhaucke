@@ -360,10 +360,21 @@ export function espesoresDe(texto = '') { return espesoresMM(texto); }
 // ¿Lo pedido nombra una VARIANTE de herraje que el candidato no tiene? ("bisagra cierre suave"
 // vs "Bisagra"): se compara por raíces de palabra; si falta alguna → variante por confirmar.
 const STOP_HERRAJE = new Set(['para', 'con', 'del', 'los', 'las', 'una', 'uno', 'por', 'sin', 'puerta', 'puertas', 'cajon', 'cajones', 'gaveta', 'gavetas', 'mueble', 'kit', 'juego', 'pza', 'pieza', 'piezas']);
+// UBICACIÓN: DÓNDE va la pieza, no QUÉ material es. "kit LED superior interior" es el mismo kit
+// que "kit LED"; la ubicación no cambia el SKU ni el precio. Ignorarlas evita falsos "por
+// confirmar" (caso real: el kit LED de $3,200 se marcaba sólo por decir «superior interior»).
+// Raíces ya normalizadas por raiz() (plural -es/-s removido), por eso van en singular.
+const STOP_UBICACION = new Set(['superior', 'inferior', 'interior', 'exterior', 'frontal', 'frente', 'trasero', 'posterior', 'central', 'centro', 'medio', 'arriba', 'abajo', 'delantero', 'fondo']);
+// SINÓNIMOS canónicos: términos que nombran LO MISMO. "pintura electrostática" = "pintura en
+// polvo" (el recubrimiento en polvo SE aplica electrostáticamente). Evita marcar la pintura por un
+// adjetivo de PROCESO que no distingue producto. NO incluye variantes reales (cristal, templado,
+// cierre suave): ésas sí cambian el herraje y deben confirmarse.
+const SINONIMOS = Object.freeze({ electrostatica: 'polvo', electrostatico: 'polvo', electrostatic: 'polvo' });
+const canonTok = (w) => SINONIMOS[w] || w;
 const raiz = (w) => String(w).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/(es|s)$/, '');
-function varianteHerrajeNoCubierta(solicitado = '', insumoNombre = '') {
-  const pide = [...new Set((String(solicitado).match(/[a-záéíóúñ0-9]{3,}/gi) || []).map(raiz).filter((w) => !STOP_HERRAJE.has(w)))];
-  const tiene = new Set((String(insumoNombre).match(/[a-záéíóúñ0-9]{3,}/gi) || []).map(raiz));
+export function varianteHerrajeNoCubierta(solicitado = '', insumoNombre = '') {
+  const pide = [...new Set((String(solicitado).match(/[a-záéíóúñ0-9]{3,}/gi) || []).map(raiz).map(canonTok).filter((w) => !STOP_HERRAJE.has(w) && !STOP_UBICACION.has(w)))];
+  const tiene = new Set((String(insumoNombre).match(/[a-záéíóúñ0-9]{3,}/gi) || []).map(raiz).map(canonTok));
   return pide.filter((w) => !tiene.has(w));
 }
 // Familias de TABLERO (donde ciertas variantes de espesor PUEDEN ser compatibles para estimar).

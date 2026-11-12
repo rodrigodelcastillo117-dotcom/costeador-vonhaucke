@@ -389,6 +389,23 @@ describe('VH-086: EcoLegno es melamina (nombre real de melamina-19 en producció
   });
 });
 
+describe('Matcher · ubicación y sinónimos NO son variantes por confirmar', () => {
+  it('ignora palabras de UBICACIÓN (el kit LED «superior interior» deja de marcarse)', async () => {
+    const { varianteHerrajeNoCubierta } = await import('./materialMatch.js');
+    expect(varianteHerrajeNoCubierta('kit de iluminacion led superior interior', 'KIT DE ILUMINACION LED')).toEqual([]);
+    expect(varianteHerrajeNoCubierta('tira led frontal', 'TIRA LED')).toEqual([]);
+  });
+  it('trata «electrostática» como «en polvo» (mismo producto)', async () => {
+    const { varianteHerrajeNoCubierta } = await import('./materialMatch.js');
+    expect(varianteHerrajeNoCubierta('pintura en polvo negro mate electrostatica', 'Pintura en polvo negro mate')).toEqual([]);
+  });
+  it('PRESERVA variantes reales: cristal/templado en herraje SÍ se marcan', async () => {
+    const { varianteHerrajeNoCubierta } = await import('./materialMatch.js');
+    expect(varianteHerrajeNoCubierta('bisagra para puerta de cristal templado', 'Bisagra')).toContain('cristal');
+    expect(varianteHerrajeNoCubierta('bisagra cierre suave', 'Bisagra')).toContain('cierre');
+  });
+});
+
 describe('VH-158 · diferencia frente a lo pedido no se confirma en bloque', () => {
   it('espesor, calibre, perfil, variante y color son diferencias; reglas de casa no', async () => {
     const { difiereDeLoPedido } = await import('./materialMatch.js');
