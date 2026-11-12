@@ -1,7 +1,7 @@
 import { expandirPiezas, mapaPiezas } from './espacio.js';
 import { auditarColocacion } from './acomodoAudit.js';
 import { violacionesSemanticas } from './floorSpec.js';
-import { esSugerida } from './acomodoPayload.js';
+import { esSugerida, construirPayloadAcomodo } from './acomodoPayload.js';
 
 /**
  * FRESCURA (P0-05, lado cliente): ¿el plan COLOCADO ya no corresponde a estas partidas?
@@ -22,6 +22,27 @@ export function planDesfasadoContraPartidas(plan, partidas = []) {
   const requested = Number(plan?.layoutSpec?.requested);
   const cuentaIncompatible = Number.isFinite(requested) && requested !== ids.size;
   return tieneAjena || cuentaIncompatible;
+}
+
+/**
+ * F11 · GEOMETRÍA (frescura por dimensión). `planDesfasadoContraPartidas` solo ve id+conteo y es
+ * CIEGO a dimensiones (los ids de pieza no dependen de w/d). Si el plan trae `program_hash` sellado,
+ * se recomputa sobre las partidas/áreas ACTUALES — con la MISMA función canónica que lo selló
+ * (`construirPayloadAcomodo` → `programHashCanonico`, que incluye w/d y zona) — y se compara: cambiar
+ * la medida de un mueble (mismo id, misma cantidad) mueve el `program_hash` ⇒ desfasado, y el
+ * plano/3D/render viejo ya no cuadra con el despiece confirmado.
+ * FAIL-SAFE para un gate de CLIENTE: sin hash sellado, sin áreas, o sin recómputo `ok`, devuelve
+ * false (NO marca desfasado). Así nunca produce un falso positivo que esconda un acomodo legítimo;
+ * en el peor caso deja de cazar un cambio (sin regresión), que es el comportamiento previo.
+ */
+export function programaCambioGeometria(plan, partidas = [], areasM = []) {
+  const sellado = plan && typeof plan.program_hash === 'string' ? plan.program_hash : '';
+  if (!sellado) return false;
+  let pay;
+  try { pay = construirPayloadAcomodo({ partidas, areasM: Array.isArray(areasM) ? areasM : [] }); }
+  catch { return false; }
+  if (!pay || pay.ok !== true || typeof pay.program_hash !== 'string') return false;
+  return pay.program_hash !== sellado;
 }
 
 function areasMM(acomodo={}) {
@@ -90,7 +111,7 @@ export function evaluarAcomodoCliente(acomodo, partidas=[]) {
     const status=String(spec.status||'');
     const ready=plan.render_ready === true || spec?.validation?.render_ready === true;
     const invariant=spec?.validation?.invariant_ok === true;   // fail-closed: ausente (spec viejo sin el campo) NO cuenta como válido
-    const fresco=!planDesfasadoContraPartidas(plan, partidas);   // fail-closed: el spec validado se congeló; si cambiaron las partidas, NO se enseña plano viejo
+    const fresco=!planDesfasadoContraPartidas(plan, partidas) && !programaCambioGeometria(plan, partidas, acomodo?.areasM);   // fail-closed: el spec validado se congeló; si cambiaron las partidas (id/conteo O dimensión, F11), NO se enseña plano viejo
     const ok=status==='PASS' && ready && invariant && fresco;
     return {
       existe:true, mostrar:ok, valido:ok,

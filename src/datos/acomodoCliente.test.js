@@ -1,5 +1,6 @@
 import {describe,it,expect} from 'vitest';
 import { evaluarAcomodoCliente, cotizacionSinAcomodoNoValidado, planDesfasadoContraPartidas } from './acomodoCliente.js';
+import { construirPayloadAcomodo } from './acomodoPayload.js';
 
 describe('gate de acomodo para cliente',()=>{
   const partidas=[{id:'p1',nombre:'Escritorio operativo',cantidad:1,w:1200,d:600}];
@@ -147,5 +148,46 @@ describe('gate de acomodo · frescura contra partidas editadas',()=>{
 
   it('predicado: colocación vacía no se marca desfasada aquí (otras ramas deciden)',()=>{
     expect(planDesfasadoContraPartidas({colocacion:[],layoutSpec:{requested:3}},[{id:'p1',cantidad:1}])).toBe(false);
+  });
+});
+
+// F11 (audit 2026-11-12): el gate de frescura era CIEGO a dimensiones (solo id+conteo). Editar
+// medidas de un mueble (mismo id, misma cantidad) dejaba el plano/3D/render VIEJO marcado "fresco"
+// y lo mandaba al PDF del cliente sin cuadrar con el despiece. Ahora se recomputa el program_hash
+// canónico (que incluye w/d) y se compara con el sellado. Fail-safe: sin hash → comportamiento previo.
+describe('F11 · frescura por DIMENSIÓN (program_hash recomputado)',()=>{
+  const areasM=[{nombre:'OPERATIVA',tipo:'open',ancho:5,largo:5}];
+  const mesa=(w,d)=>({id:'p1',nombre:'Mesa de juntas',cantidad:1,w,d});
+  const acomodoSellado=(partidasSello)=>{
+    const pay=construirPayloadAcomodo({partidas:partidasSello,areasM});
+    return { pay, acomodo:{
+      areasM, areas:pay.areas,
+      plan:{
+        strictPlacement:true, render_ready:true, program_hash:pay.program_hash,
+        colocacion:(pay.piezas||[]).map(pz=>({id:pz.id,area:0,x:200,y:200,rot:0})),
+        layoutSpec:{status:'PASS',validation:{render_ready:true,invariant_ok:true},requested:pay.requested},
+      },
+    }};
+  };
+
+  it('precondición: construirPayloadAcomodo produce un program_hash válido',()=>{
+    const {pay}=acomodoSellado([mesa(2400,1200)]);
+    expect(pay.ok).toBe(true);
+    expect(typeof pay.program_hash).toBe('string');
+  });
+  it('editar MEDIDAS (mismo id y cantidad) ⇒ NO se muestra, STALE_PROGRAM',()=>{
+    const {acomodo}=acomodoSellado([mesa(2400,1200)]);
+    const g=evaluarAcomodoCliente(acomodo,[mesa(3600,1200)]);
+    expect(g.mostrar).toBe(false);
+    expect(g.estado).toBe('STALE_PROGRAM');
+  });
+  it('SIN cambio ⇒ sigue fresco (no falso positivo)',()=>{
+    const {acomodo}=acomodoSellado([mesa(2400,1200)]);
+    expect(evaluarAcomodoCliente(acomodo,[mesa(2400,1200)]).mostrar).toBe(true);
+  });
+  it('plan legacy SIN program_hash ⇒ comportamiento previo (no falso positivo)',()=>{
+    const {acomodo}=acomodoSellado([mesa(2400,1200)]);
+    delete acomodo.plan.program_hash;
+    expect(evaluarAcomodoCliente(acomodo,[mesa(3600,1200)]).mostrar).toBe(true);
   });
 });
