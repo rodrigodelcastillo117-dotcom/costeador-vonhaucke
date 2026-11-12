@@ -1,7 +1,7 @@
 // Estimador conservador de cristal cortado (fallback fail-closed).
 // Propiedad central: NUNCA subcostea las piezas reales observadas (golden Telcel).
 import { describe, it, expect } from 'vitest';
-import { estimaPrecioCristalCorte, TARIFAS_CRISTAL } from './costoCristalCorte.js';
+import { estimaPrecioCristalCorte, TARIFAS_CRISTAL, espesorDeTexto, operacionesDeTexto, resuelveCristalCorte } from './costoCristalCorte.js';
 
 // Piezas 6 mm reales del DIV-MATERIALES Telcel DAT'S R5 (precio por pieza real).
 // barrenos/saque leídos de la descripción del ERP.
@@ -84,5 +84,59 @@ describe('estimaPrecioCristalCorte · comportamiento del modelo', () => {
     const chica = estimaPrecioCristalCorte({ largoMM: 500, anchoMM: 500, espesorMM: 6 });
     const grande = estimaPrecioCristalCorte({ largoMM: 1000, anchoMM: 1000, espesorMM: 6 });
     expect(grande.precio).toBeGreaterThan(chica.precio);
+  });
+});
+
+describe('espesorDeTexto', () => {
+  it('lee el espesor del texto real del ERP', () => {
+    expect(espesorDeTexto('CRISTAL DE 1150 X 550 mm ESPESOR 6 mm CANTOS PULIDOS TEMPLADO')).toBe(6);
+    expect(espesorDeTexto('CRISTAL DE 573 X 573 mm ESPESOR 5 mm CON SAQUE CENTRAL')).toBe(5);
+    expect(espesorDeTexto('ESPESOR DE 9 mm')).toBe(9);
+  });
+  it('null si no hay espesor', () => {
+    expect(espesorDeTexto('CRISTAL TEMPLADO SIN MEDIDA')).toBeNull();
+    expect(espesorDeTexto('')).toBeNull();
+  });
+});
+
+describe('operacionesDeTexto', () => {
+  it('suma barrenos de múltiples menciones (texto real Telcel)', () => {
+    expect(operacionesDeTexto('2 BARRENOS DE Ø 20 mm, 2 BARRENOS DE Ø 19 mm')).toEqual({ barrenos: 4, saque: false });
+    expect(operacionesDeTexto('CON CANTOS PULIDOS Y 4 BARRENOS DE Ø 1/2" TEMPLADO')).toEqual({ barrenos: 4, saque: false });
+    expect(operacionesDeTexto('2 BARRENOS DE Ø 1 1/8" TEMPLADO')).toEqual({ barrenos: 2, saque: false });
+  });
+  it('detecta saque/redondeo', () => {
+    expect(operacionesDeTexto('CON SAQUE CENTRAL DE 156 X 156 mm Y UN REDONDEO').saque).toBe(true);
+  });
+  it('sin operaciones → cero', () => {
+    expect(operacionesDeTexto('CRISTAL DE 588 X 997 mm ESPESOR 6 mm CANTOS PULIDOS, TEMPLADO')).toEqual({ barrenos: 0, saque: false });
+  });
+});
+
+describe('resuelveCristalCorte · insumo sintético compatible con el motor', () => {
+  // Pieza Telcel real: Isla lateral 1900×397 6mm, 4 barrenos, real $784.47/pza.
+  const texto = 'CRISTAL DE 1900 X 397 mm ESPESOR 6 mm CON CANTOS PULIDOS Y 4 BARRENOS DE Ø 1/2" TEMPLADO';
+
+  it('sintetiza insumo en m² cuyo m² × área reproduce el techo por pieza (≥ real)', () => {
+    const r = resuelveCristalCorte({ largoMM: 1900, anchoMM: 397, texto });
+    expect(r).not.toBeNull();
+    expect(r.fila.unidad).toBe('m2');
+    expect(r.fila.formato).toBeUndefined();         // sin formato → no dispara nesting
+    expect(r.certificable).toBe(false);
+    expect(r.requiereCotizacion).toBe(true);
+    // El motor hará: m²(1900×397) × precio($/m²) = precio por pieza. Debe ser ≥ real.
+    const areaM2 = (1900 / 1000) * (397 / 1000);
+    const precioPieza = areaM2 * r.fila.precio;
+    expect(precioPieza).toBeGreaterThanOrEqual(784.47);
+  });
+
+  it('fail-closed: sin espesor en el texto → null (no inventa)', () => {
+    expect(resuelveCristalCorte({ largoMM: 1900, anchoMM: 397, texto: 'CRISTAL DE 1900 X 397 mm TEMPLADO' })).toBeNull();
+  });
+  it('fail-closed: espesor sin tarifa (5 mm) → null', () => {
+    expect(resuelveCristalCorte({ largoMM: 573, anchoMM: 573, texto: 'CRISTAL DE 573 X 573 mm ESPESOR 5 mm' })).toBeNull();
+  });
+  it('fail-closed: sin geometría → null', () => {
+    expect(resuelveCristalCorte({ largoMM: 0, anchoMM: 397, texto })).toBeNull();
   });
 });
