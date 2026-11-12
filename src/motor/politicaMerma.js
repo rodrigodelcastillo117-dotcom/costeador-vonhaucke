@@ -15,8 +15,8 @@
 //     regla aplica; piezas ≤ 1.50 × 0.60 siguen con la fracción real de la rejilla, que es lo
 //     que reproduce los T.D.C. de Alba al centavo).
 //   · SÍ: kg de pintura a partir del área plana (8 m²/kg).
-//   · SÍ (desde 2026-10-12, Dirección: "es 8"): rendimiento de pintura en TUBULAR = 8 m²/kg,
-//     igual que en plano. Antes era null (pendiente) por falta de cifra.
+//   · SÍ: rendimiento de pintura en TUBULAR = 7.8 m²/kg (Rodrigo, 2026-11-12). Rinde algo MENOS
+//     que el plano (8), como dijo Producción. Antes era placeholder 8 por falta de la cifra real.
 //   · NO: excedente de canto por lado (sin cifra → sigue mermaCorte del insumo).
 // ============================================================================
 
@@ -24,8 +24,9 @@ export const REGLAS_MERMA_PRODUCCION = Object.freeze({
   version: 'produccion-rogelio-2026-10',
   tablero: Object.freeze({ largoMM: 1500, anchoMM: 600 }),
   pinturaPlanaM2PorKg: 8,
-  // Producción dijo "rinde menos" sin cifra; Dirección fijó el número el 12-oct-2026 ("es 8").
-  pinturaTubularM2PorKg: 8,
+  // Producción dijo "rinde menos" que los 8 del plano, sin cifra; Rodrigo dio la cifra REAL el
+  // 2026-11-12: el tubular rinde 7.8 m²/kg (antes placeholder = 8, igual que plano, por falta de dato).
+  pinturaTubularM2PorKg: 7.8,
   tramoM: 6,
   laminaAnchosMM: Object.freeze([914, 1220]),
 });

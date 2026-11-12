@@ -64,11 +64,11 @@ describe('regla de tablero de Producción (literal de Rogelio)', () => {
   });
 });
 
-describe('pintura en polvo por área pintada (8 m²/kg plano y tubular, Dirección 12-oct)', () => {
+describe('pintura en polvo por área pintada (8 m²/kg plano, 7.8 tubular — Rodrigo 2026-11-12)', () => {
   it('kgPinturaPorArea: 0.8 m² → 0.1 kg; tubular → 0.1 kg; área 0/negativa → null', () => {
     expect(kgPinturaPorArea(0.8)).toBeCloseTo(0.1, 12);
     expect(kgPinturaPorArea(8)).toBe(1);
-    expect(kgPinturaPorArea(0.8, { tubular: true })).toBeCloseTo(0.1, 9);
+    expect(kgPinturaPorArea(0.8, { tubular: true })).toBeCloseTo(0.8 / 7.8, 9);   // tubular rinde 7.8, no 8
     expect(kgPinturaPorArea(0)).toBeNull();
     expect(kgPinturaPorArea(-2)).toBeNull();
   });
@@ -91,10 +91,10 @@ describe('pintura en polvo por área pintada (8 m²/kg plano y tubular, Direcci�
     const comp = { nombre: 'Tapa', insumoId: 'melamina-19', largoMM: 400, anchoMM: 200, areaPintadaM2: 5 };
     expect(netoComponente(comp, 1, INS['melamina-19'])).toBeCloseTo(0.08, 12);
   });
-  it('tubular pintado por área: desde el 12-oct (Dirección: "es 8") costea a 8 m²/kg como el plano', () => {
+  it('tubular pintado por área: rinde 7.8 m²/kg (menos que el plano de 8, Rodrigo 2026-11-12)', () => {
     const r = calcular({ componentes: [{ nombre: 'Tubular pintado', insumoId: 'pintura-polvo', areaPintadaM2: 0.8, tubular: true }] }, 1, INS, par);
     expect(r.componentesIgnorados).toEqual([]);
-    expect(r.detalleInsumos[0].neto).toBeCloseTo(0.1, 9);
+    expect(r.detalleInsumos[0].neto).toBeCloseTo(0.8 / 7.8, 9);
   });
   it('tubular pintado CON kg capturados (cantidad): se respeta la cantidad del estimador', () => {
     const r = calcular({ componentes: [{ nombre: 'Tubular pintado', insumoId: 'pintura-polvo', cantidad: 0.2, tubular: true }] }, 1, INS, par);
@@ -115,7 +115,7 @@ describe('contrato DTO (cliente → costear-servidor)', () => {
 
 describe('versión del motor', () => {
   it('la fórmula cambió → MOTOR_VERSION avanzó (las cotizaciones viejas conservan su huella)', () => {
-    expect(MOTOR_VERSION).toBe('2026-10-14b'); // 14b: merma D2 6.94 % de política en tubular de acero; 14a: tramo vendido por pieza ($/m = $/pieza ÷ medida); 13c: tubular por fracción de tramo (D2); 13b: regla de tablero de Producción inclusiva en 1.50 m (VH-183); 13: rejilla con el formato del insumo
+    expect(MOTOR_VERSION).toBe('2026-11-12a'); // 2026-11-12a: pintura en tubular 7.8 m²/kg (antes 8); 14b: merma D2 6.94 % de política en tubular de acero; 14a: tramo vendido por pieza ($/m = $/pieza ÷ medida); 13c: tubular por fracción de tramo (D2); 13b: regla de tablero de Producción inclusiva en 1.50 m (VH-183); 13: rejilla con el formato del insumo
   });
 });
 
