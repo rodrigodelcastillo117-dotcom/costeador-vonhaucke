@@ -15,8 +15,8 @@ import {mensajeEscritura,errorDeEscritura} from '../datos/conflictoGuardado.js';
 import {validacionDesdeFila} from '../datos/cocrearServidor.js';
 // N-04: el MISMO flujo de carga de imagen que Costear.
 import {reducirImagen,validarArchivoImagen} from '../datos/cargaImagen.js';
-import {NIVELES_DIFICULTAD} from '../datos/dificultadNiveles.js';
-import {DIFICULTAD} from '../motor/dificultad.js';
+import {NIVELES_DIFICULTAD,NIVELES_NOVEDAD} from '../datos/dificultadNiveles.js';
+import {DIFICULTAD,NOVEDAD} from '../motor/dificultad.js';
 import CocrearVisual from './CocrearVisual.jsx';
 import {parametrosEfectivos} from './Costeador.jsx';
 import {precioSugeridoCocreado, costoOficialServidor} from '../datos/precio.js';
@@ -315,13 +315,14 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
  },[catalogoCandidatos,lineas,lineaSel.ruta]);
  const bajarDesdeLinea=()=>{
   if(!intent||!lineaSel.ruta||!lineaSel.productoId){setMensaje('Elige la línea y el producto de catálogo del que parte el cambio de medidas.');return}
-  const r=bajarLineaABom(intent,{ruta:lineaSel.ruta,productoId:lineaSel.productoId,dificultad:intent._dificultad},{insumos});
+  const r=bajarLineaABom(intent,{ruta:lineaSel.ruta,productoId:lineaSel.productoId,dificultad:intent._dificultad,novedad:intent._novedad},{insumos});
   if(!r.ok){setMensaje(r.motivo);return}
   commit(r.intent,`BOM desde ${r.padre.nombre} (escalado a ${intent.dimensiones?.ancho_mm||'?'} mm)`);
   setMensaje(`✓ Despiece de ${r.padre.nombre} escalado a las medidas del concepto (${r.escalado.trazas.length} pieza(s) ajustada(s)). El tablero se cobra por acomodo en hoja.${r.escalado.avisos.length?' Revisa los avisos.':''}`);
  };
  const quitarBom=()=>{if(!intent)return;const {_componentes,_puente,_linaje,...resto}=intent;commit(resto,'Quitar BOM');setMensaje('BOM quitado: el concepto vuelve a "Pendiente de BOM".')};
  const setDificultad=d=>commit({...intent,_dificultad:d==='normal'?undefined:d},`Dificultad: ${NIVELES_DIFICULTAD.find(([k])=>k===d)?.[1]||d}`);
+ const setNovedad=n=>commit({...intent,_novedad:n==='conocido'?undefined:n},`Novedad: ${NIVELES_NOVEDAD.find(([k])=>k===n)?.[1]||n}`);
  // Mueble nuevo: la MISMA vía que Costear (análisis IA → BOM). Se lleva la sesión para volver aquí.
  const pasarACostear=()=>{
   if(!intent)return;
@@ -617,6 +618,9 @@ export default function Cocrear({estado,onAgregar,onIr,rol='ventas',usuarioEmail
    <Label>Dificultad de fabricación (Alba V1)</Label>
    <div role="radiogroup" aria-label="Dificultad de fabricación" style={{display:'flex',gap:4,flexWrap:'wrap'}}>{NIVELES_DIFICULTAD.map(([k,l])=>{const activo=(intent?._dificultad||'normal')===k;return <button key={k} type="button" role="radio" aria-checked={activo} data-testid={`cocrear-dificultad-${k}`} onClick={()=>setDificultad(k)} style={{padding:'5px 7px',borderRadius:999,border:activo?'1px solid #d33b30':'1px solid #414141',background:activo?'#3b211f':'transparent',color:'#fff',fontSize:9}}>{l} ×{DIFICULTAD[k]}</button>})}</div>
    <div className="c3-small" style={{marginTop:4}}>{(NIVELES_DIFICULTAD.find(([k])=>k===(intent?._dificultad||'normal'))||[])[2]}</div>
+   <Label style={{marginTop:8}}>Novedad / primera vez (provisional)</Label>
+   <div role="radiogroup" aria-label="Novedad / primera vez" style={{display:'flex',gap:4,flexWrap:'wrap'}}>{NIVELES_NOVEDAD.map(([k,l])=>{const activo=(intent?._novedad||'conocido')===k;return <button key={k} type="button" role="radio" aria-checked={activo} data-testid={`cocrear-novedad-${k}`} onClick={()=>setNovedad(k)} style={{padding:'5px 7px',borderRadius:999,border:activo?'1px solid #d33b30':'1px solid #414141',background:activo?'#3b211f':'transparent',color:'#fff',fontSize:9}}>{l} ×{NOVEDAD[k]}</button>})}</div>
+   <div className="c3-small" style={{marginTop:4}}>{(NIVELES_NOVEDAD.find(([k])=>k===(intent?._novedad||'conocido'))||[])[2]}</div>
   </Card>
   <Card><Label>Verdad industrial</Label><div style={{display:'grid',gap:5,fontSize:12}}>{veCostos&&<div>Costo calculado (local, vista previa): <b>{costoConocido?money(costoOficial):'Pendiente de BOM'}</b></div>}{veCostos&&<div>Estado motor: <b>{pipeline?.costo?.cost_status||'UNKNOWN'}</b></div>}<div>Componentes BOM: <b>{spec?.componentes?.length||0}</b></div><div>Servidor: <b data-testid="cocrear-estado-servidor">{servidorVigente?servidor.estado:(servidor?'vencido: la revisión cambió':'sin costear')}</b></div>{veCostos&&servidorVigente&&<div>Costo del servidor: <b>{costoServidor!=null?money(costoServidor):'incompleto'}</b></div>}<div>Precio sugerido: <b data-testid="cocrear-precio">{precioServidor!=null?money(precioServidor):(servidorVigente?'Por confirmar':'—')}</b></div>{veCostos&&!servidorVigente&&precioLocal?.precio!=null&&<div className="c3-small">Vista previa local: {money(precioLocal.precio)} (margen {precioLocal.margen} %, piso {precioLocal.piso} %). No se guarda ni se emite: el precio oficial lo da el servidor.</div>}{veCostos&&!servidorVigente&&costoConocido===false&&bom.length>0&&<div className="c3-small">Precio: Por confirmar (costo incompleto).</div>}<div>Ingeniería: <b style={{color:engineeringValidated?'#79c990':'#e0a36f'}}>{engineeringValidated?'VALIDADA':'REQUIERE VALIDACIÓN'}</b></div></div>
    <Btn ghost onClick={()=>costearEnServidor()} disabled={!bom.length||costeandoSrv} style={{width:'100%',marginTop:8}}>{costeandoSrv?'Costeando en el servidor…':'Costear en el servidor'}</Btn>

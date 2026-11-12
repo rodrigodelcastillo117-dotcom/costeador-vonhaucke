@@ -6,7 +6,7 @@
 //  por pruebas (calculo.test.js).
 // ============================================================================
 import { costoAlba, tipoAlba } from './formulaAlba.js';
-import { costoAlbaDificultad } from './dificultad.js';
+import { costoAlbaDificultad, factorNovedad } from './dificultad.js';
 import { optimizarCorte2D, optimizarCorte1D } from './optimizacionCorte.js';
 import { requiereConfirmacion } from '../datos/materialMatch.js';
 import { hojasPorPiezaProduccion, esPinturaPolvo, kgPinturaPorArea, REGLAS_MERMA_PRODUCCION } from './politicaMerma.js';
@@ -675,7 +675,7 @@ function tarifasFaltantesIntelisis(horas, par) {
 //  ya trae su seccion/nombre, que es lo que tipoAlba() necesita para
 //  clasificar cubierta/metal/cristal/general.
 // -----------------------------------------------------------------------------
-function manoObraGiAlba(detalleInsumos, dificultad = 1) {
+function manoObraGiAlba(detalleInsumos, dificultad = 1, novedad = 1) {
   let mo = 0;
   let gi = 0;
   for (const d of detalleInsumos) {
@@ -685,7 +685,7 @@ function manoObraGiAlba(detalleInsumos, dificultad = 1) {
     const tipo = SIN_MO_SECCIONES.has(d.seccion)
       ? 'compraventa'
       : tipoAlba({ seccion: d.seccion, nombre: d.nombre });
-    const r = costoAlbaDificultad(d.costo, tipo, dificultad);
+    const r = costoAlbaDificultad(d.costo, tipo, dificultad, novedad);
     mo += r.mo;
     gi += r.gi;
   }
@@ -851,12 +851,16 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   const factorIndirecta = pieza.factorIndirecta != null ? pieza.factorIndirecta : par.factorManoObraIndirecta;
   const usaFormulaAlba = modo !== 'horas' && !usaFactoresExplicitos;
 
+  // NOVEDAD (primera vez / nunca hecho): escala el TRABAJO, nunca el material. En la fórmula de Alba
+  // va DENTRO de costoAlbaDificultad (junto a la dificultad); en la ruta por horas escala las horas
+  // estándar (MO y GIF por hora, abajo). Default conocido → factorNovedad = 1 → la cuenta de siempre.
+  const fNov = factorNovedad(pieza.novedad);
   let manoObra;
   let giAlba = 0; // solo tiene sentido si usaFormulaAlba (ver "Clasico" abajo)
   if (modo === 'horas') {
-    manoObra = manoObraPorHoras(pieza.horas, n, par);
+    manoObra = manoObraPorHoras(pieza.horas, n, par) * fNov;
   } else if (usaFormulaAlba) {
-    const alba = manoObraGiAlba(detalleInsumos, pieza.dificultad);
+    const alba = manoObraGiAlba(detalleInsumos, pieza.dificultad, pieza.novedad);
     manoObra = alba.mo;
     giAlba = alba.gi;
   } else {
@@ -896,7 +900,7 @@ export function calcular(pieza, piezas = 1, insumos = {}, parametros = PARAMETRO
   let indirectosFabrica, gastosOperacion, costoFabricacion, costoLote;
   if (modeloCosteo === 'intelisis') {
     // Cascada Intelisis: GIF por hora + capa de gastos de operacion sobre fabricacion.
-    indirectosFabrica = gifPorHoras(pieza.horas, n, par);        // GIF = Σ horas x $/h
+    indirectosFabrica = gifPorHoras(pieza.horas, n, par) * fNov; // GIF = Σ horas x $/h (× novedad 1ª vez)
     costoFabricacion = materialTotal + manoObra + preparacion + empaque + indirectosFabrica;
     gastosOperacion = costoFabricacion * (par.gastosOperacionPct / 100);
     costoLote = costoFabricacion + gastosOperacion;              // = "Costo Total" Intelisis

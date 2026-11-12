@@ -547,7 +547,9 @@ export function dtoCosteoServidor(pieza = {}, cantidad = 1) {
     cantidad: Math.max(1, Math.round(Number(cantidad) || 1)),
     pieza: { componentes, ...(horas && Object.keys(horas).length ? { horas } : {}),
       // Dificultad (técnica): multiplica la MO de Alba. Nivel o número; el servidor lo valida.
-      ...((typeof pieza?.dificultad === 'string' && pieza.dificultad) || Number.isFinite(pieza?.dificultad) ? { dificultad: pieza.dificultad } : {}) },
+      ...((typeof pieza?.dificultad === 'string' && pieza.dificultad) || Number.isFinite(pieza?.dificultad) ? { dificultad: pieza.dificultad } : {}),
+      // Novedad / primera vez (técnica): escala el trabajo (horas/MO). Nivel o número 1–2; el servidor lo valida.
+      ...((typeof pieza?.novedad === 'string' && pieza.novedad) || Number.isFinite(pieza?.novedad) ? { novedad: pieza.novedad } : {}) },
   };
 }
 

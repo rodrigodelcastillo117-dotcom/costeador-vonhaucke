@@ -276,6 +276,8 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
   // Dificultad de fabricación (motor/dificultad.js): técnica, no económica. Sólo entra al spec
   // cuando se declaró; `undefined` no cambia el hash de los specs que ya existían.
   const dificultad = intent?._dificultad != null && intent._dificultad !== 'normal' ? intent._dificultad : undefined;
+  // Novedad / primera vez (técnica, no económica): escala el trabajo. Igual que la dificultad, sólo entra si se declaró.
+  const novedad = intent?._novedad != null && intent._novedad !== 'conocido' ? intent._novedad : undefined;
   const spec = {
     id: id || ('ps_' + hashEstable({ t: intent.textoOriginal, rev }).slice(1)),
     rev,
@@ -295,6 +297,7 @@ export function construirProductSpec(intent, dna, clasif, { rev = 1, componentes
     capacidad: intent.capacidad,
     componentes,
     dificultad,
+    novedad,
     engineering_validated: engineering_validated === true,
     engineering_validation: engineering_validation || null,
     dna,
@@ -394,7 +397,7 @@ export function costearSpec(spec, insumos = {}, par = {}) {
     return { cost_status: COST_STATUS.UNKNOWN, known_cost: null, official_cost: null, unresolved_lines: ['sin BOM'], estimated_amount: null, certified_amount: null, evidencia: { motivo: 'sin despiece' }, costeo: null };
   }
   // Alba V1 × dificultad (motor/dificultad.js): mismo motor y misma pieza técnica que el servidor.
-  const costeo = calcular({ nombre: spec.familia, piezas: 1, componentes: comps, modoManoObra: 'porcentaje', ...(spec.dificultad != null ? { dificultad: spec.dificultad } : {}) }, 1, insumos, par);
+  const costeo = calcular({ nombre: spec.familia, piezas: 1, componentes: comps, modoManoObra: 'porcentaje', ...(spec.dificultad != null ? { dificultad: spec.dificultad } : {}), ...(spec.novedad != null ? { novedad: spec.novedad } : {}) }, 1, insumos, par);
   const e = costeoEmitible(costeo);
   const ignorados = costeo.componentesIgnorados || [];
   const pendMaterial = ignorados.filter((n) => comps.some((c) => (c.nombre === n) && !insumos[c.insumoId] && !c.insumo));
@@ -468,6 +471,7 @@ export function partidaDesdeCocrear({ nombre, spec, prodId, versionId, expedient
     render: typeof renderUrl === 'string' && /^https?:\/\//.test(renderUrl) ? renderUrl : null,
     // Alba V1 × dificultad: la partida se costea con la MISMA dificultad que el servidor.
     ...(spec?.dificultad != null ? { dificultad: spec.dificultad } : {}),
+    ...(spec?.novedad != null ? { novedad: spec.novedad } : {}),
     precioReal: false,
     config: null,
     origen: 'cocrear',

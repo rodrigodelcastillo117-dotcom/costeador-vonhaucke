@@ -167,6 +167,14 @@ export function validarIntentCosteo(body) {
     else if (finito(pieza.dificultad) && pieza.dificultad >= 0.25 && pieza.dificultad <= 3) dificultadOk = pieza.dificultad;
     else issues.push({ field: 'pieza.dificultad', msg: 'dificultad: muy_facil|facil|normal|dificil|muy_dificil o un número entre 0.25 y 3.' });
   }
+  // NOVEDAD / primera vez (técnica, no económica): nivel conocido o multiplicador 1–2. Otro valor ⇒ 400.
+  let novedadOk = null;
+  if (pieza.novedad != null) {
+    const NIV_NOV = ['conocido', 'primera_vez', 'nuevo', 'muy_nuevo'];
+    if (typeof pieza.novedad === 'string' && NIV_NOV.includes(pieza.novedad)) novedadOk = pieza.novedad;
+    else if (finito(pieza.novedad) && pieza.novedad >= 1 && pieza.novedad <= 2) novedadOk = pieza.novedad;
+    else issues.push({ field: 'pieza.novedad', msg: 'novedad: conocido|primera_vez|nuevo|muy_nuevo o un número entre 1 y 2.' });
+  }
   // horas técnicas (opcional): por centro, finitas ≥ 0.
   let horas;
   if (pieza.horas != null) {
@@ -219,7 +227,7 @@ export function validarIntentCosteo(body) {
     ...(body.version != null ? { version: body.version } : {}),
     ...(body.contexto != null ? { contexto: body.contexto } : {}),
     cantidad,
-    pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}), ...(dificultadOk != null ? { dificultad: dificultadOk } : {}), ...(revisionesOk?.length ? { revisiones_aceptadas: revisionesOk } : {}) },
+    pieza: { componentes: compsLimpios, ...(horas ? { horas } : {}), ...(dificultadOk != null ? { dificultad: dificultadOk } : {}), ...(novedadOk != null ? { novedad: novedadOk } : {}), ...(revisionesOk?.length ? { revisiones_aceptadas: revisionesOk } : {}) },
     ...(identidadOk ? { identidad: identidadOk } : {}),
     ...(promesaOk ? { promesa: promesaOk } : {}),
   };
@@ -265,6 +273,6 @@ export function intentDesdePieza(pieza, cantidad = 1) {
     : undefined;
   const n = Math.max(1, Math.round(Number(cantidad) || 1));
   const revs = Array.isArray(pieza?.revisionesAceptadas) ? pieza.revisionesAceptadas.filter((x) => typeof x === 'string' && x) : [];
-  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}), ...(revs.length ? { revisiones_aceptadas: revs } : {}) },
+  return { cantidad: n, pieza: { componentes: limpios, ...(horas && Object.keys(horas).length ? { horas } : {}), ...(pieza?.dificultad != null ? { dificultad: pieza.dificultad } : {}), ...(pieza?.novedad != null ? { novedad: pieza.novedad } : {}), ...(revs.length ? { revisiones_aceptadas: revs } : {}) },
     identidad: identidadDeCosteo(pieza), promesa: promesaDeclaradaDeCosteo(pieza) };
 }

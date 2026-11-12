@@ -8,10 +8,10 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { patchMedidas, piezasDeExpediente } from '../datos/medidasMaterial.js';
 import { precioDesdeCosto, margenObjetivoDe } from '../datos/precio.js';
 import { calcular, netoComponente, modeloParaPieza, costeoEmitible, bomHash, diffBOM, aplicarDiffBOM, MOTOR_VERSION, FORMULA_ALBA_V1, formulaDePieza, unidadDeConsumo } from '../motor/calculo.js';
-import { DIFICULTAD, factorDificultad } from '../motor/dificultad.js';
+import { DIFICULTAD, factorDificultad, NOVEDAD } from '../motor/dificultad.js';
 // Niveles de dificultad con ejemplos REALES (piezas APP LT medidas contra horas estándar del ERP).
 // Compartidos con Cocrear (un solo texto).
-import { NIVELES_DIFICULTAD } from '../datos/dificultadNiveles.js';
+import { NIVELES_DIFICULTAD, NIVELES_NOVEDAD } from '../datos/dificultadNiveles.js';
 import { SECCIONES } from '../datos/insumos.js';
 import { pesos2 } from '../util.js';
 import { dinero, aCentavosEnteros } from '../motor/dinero.js';
@@ -222,7 +222,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     // un tapacanto duplicado). La sombra compara COSTO: corre aunque el precio esté pendiente.
     if (!(b.componentes?.length) || !(resultado.costoUnitario > 0)) return;
     const pieza = b; // costear-servidor recibe sólo intención técnica (VH-036); el servidor es dueño de modelo/config/dinero
-    const h = hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo, d: b.dificultad ?? null });
+    const h = hashInput({ c: b.componentes, n: b.piezas, m: margenEfectivo, d: b.dificultad ?? null, nov: b.novedad ?? null });
     if (sombraRef.current === h) return; // ya comparado este input
     const t = setTimeout(async () => {
       sombraRef.current = h;
@@ -578,7 +578,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
     setCanonico(false); setPropuestaDiff(null); setBomDirty(false); setFormulaGuardada(null); setPreguntasIA([]); setPropuestaIA(null); setSugerenciaLinea(null); setMultiMueble(null); setOmisiones(null); setRouting(null); setSubsistemas(null); setIngValor(null); setAnalisis(null); setErrorIA('');
     setB((prev) => ({ ...prev, nombre: s.nombre || '', descripcionCliente: s.descripcion || '', piezas: 1, componentes: [], planos: [], materiales: [],
       imagen: s.imagen?.base64 ? `data:${s.imagen.mediaType || 'image/jpeg'};base64,${s.imagen.base64}` : null,
-      dificultad: s.dificultad && s.dificultad !== 'normal' ? s.dificultad : undefined, analysisId: corrida.current }));
+      dificultad: s.dificultad && s.dificultad !== 'normal' ? s.dificultad : undefined, novedad: s.novedad && s.novedad !== 'conocido' ? s.novedad : undefined, analysisId: corrida.current }));
     setPaso(0);
   }, [semillaCocrear]);
   const desdeCocrear = !!(semillaCocrear && onVolverCocrear);
@@ -599,7 +599,7 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
   function volverACocrear(conDespiece) {
     if (!onVolverCocrear) return;
     if (!conDespiece) { onVolverCocrear(null); return; }
-    onVolverCocrear({ componentes: b.componentes, dificultad: b.dificultad ?? null, nombre: b.nombre || semillaCocrear?.nombre || null, analysisId: b.analysisId ?? null });
+    onVolverCocrear({ componentes: b.componentes, dificultad: b.dificultad ?? null, novedad: b.novedad ?? null, nombre: b.nombre || semillaCocrear?.nombre || null, analysisId: b.analysisId ?? null });
   }
 
   // --- despiece ---
@@ -1662,6 +1662,24 @@ export default function AsistenteEspecial({ estado, rol = null, modo = 'avanzado
           </div>
           <div className="ayuda columna-texto" style={{ marginTop: 6 }}>
             {(NIVELES_DIFICULTAD.find(([k]) => k === (b.dificultad ?? 'normal')) || [])[2]}
+          </div>
+          {/* NOVEDAD / primera vez: eje distinto de la dificultad. Escala el TRABAJO (no el material) cuando es la
+              primera vez que se fabrica. PROVISIONAL (a calibrar). Default "Ya lo hacemos" (×1) = sin cambio. */}
+          <div className="pregunta-sub" style={{ marginTop: 14 }}>¿Es la <strong>primera vez</strong> que se fabrica este mueble? Lo nunca hecho lleva más trabajo la primera vez (setup, entenderlo, reprocesos). <em>Provisional, a calibrar con tiempos reales.</em></div>
+          <div role="radiogroup" aria-label="Novedad / primera vez" data-testid="costear-novedad" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+            {NIVELES_NOVEDAD.map(([k, etq, ej]) => {
+              const activo = (b.novedad ?? 'conocido') === k;
+              return (
+                <button key={k} type="button" role="radio" aria-checked={activo} title={ej}
+                  className={`boton${activo ? ' primario' : ''}`} data-testid={`novedad-${k}`}
+                  onClick={() => set({ novedad: k === 'conocido' ? undefined : k })}>
+                  {etq} <span className="gris">×{NOVEDAD[k]}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="ayuda columna-texto" style={{ marginTop: 6 }}>
+            {(NIVELES_NOVEDAD.find(([k]) => k === (b.novedad ?? 'conocido')) || [])[2]}
           </div>
           {/* UX simple: la explicación detallada de la fórmula es "ingeniería" — se pliega en modo simple.
               open={!simple} + summary oculto en avanzado ⇒ render idéntico a hoy. */}

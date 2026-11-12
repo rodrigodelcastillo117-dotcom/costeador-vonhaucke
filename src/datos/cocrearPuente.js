@@ -314,7 +314,7 @@ export function sincronizarFuncionesPendientes(intent) {
  * CAMINO A · Cambio de medidas de un mueble de línea → BOM escalado (nueva revisión del intent).
  * @returns {{ok:true, intent, padre, escalado}|{ok:false, motivo}}
  */
-export function bajarLineaABom(intent, { ruta, productoId, dificultad } = {}, { insumos = {}, registro = LINEAS_REG } = {}) {
+export function bajarLineaABom(intent, { ruta, productoId, dificultad, novedad } = {}, { insumos = {}, registro = LINEAS_REG } = {}) {
   if (!intent) return { ok: false, motivo: 'No hay concepto que bajar a BOM.' };
   const nueva = dimsDe(intent.dimensiones || {});
   if (!pos(nueva.ancho_mm)) return { ok: false, motivo: 'Falta el ancho del mueble: sin medida no hay despiece (no se inventa).' };
@@ -329,6 +329,7 @@ export function bajarLineaABom(intent, { ruta, productoId, dificultad } = {}, { 
     ...intent,
     _componentes: esc.componentes,
     _dificultad: dificultad ?? intent._dificultad ?? undefined,
+    _novedad: novedad ?? intent._novedad ?? undefined,
     // Linaje (§17): especial DERIVADO de un producto real; conserva padre, versión (config) y medidas.
     _linaje: {
       id: `${padre.ruta}:${padre.productoId}`,
@@ -347,6 +348,7 @@ export function bajarLineaABom(intent, { ruta, productoId, dificultad } = {}, { 
     },
   };
   if (base._dificultad === undefined) delete base._dificultad;
+  if (base._novedad === undefined) delete base._novedad;
   return { ok: true, intent: sincronizarFuncionesPendientes(base), padre, escalado: esc };
 }
 
