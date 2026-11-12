@@ -87,3 +87,63 @@ export function estimaPrecioCristalCorte({ largoMM, anchoMM, espesorMM, barrenos
     }),
   };
 }
+
+// --- Parsers de la descripción (el despiece no estructura espesor/barrenos/saque;
+//     viven en el texto "CRISTAL DE W X H mm ESPESOR E mm ... N BARRENOS ... SAQUE"). ---
+
+/** Espesor en mm leído del texto ("ESPESOR 6 mm" → 6). null si no aparece. */
+export function espesorDeTexto(texto = '') {
+  const m = String(texto).match(/ESPESOR\s*(?:DE\s*)?(\d+(?:\.\d+)?)\s*mm/i);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * Operaciones de maquinado leídas del texto: suma de barrenos ("2 BARRENOS ... 2
+ * BARRENOS" → 4; "BARRENO" sin número → 1) y saque/redondeo/ranura.
+ * Clave para NO subcostear: una pieza barrenada vale más y el techo lo refleja.
+ */
+export function operacionesDeTexto(texto = '') {
+  const t = String(texto);
+  let barrenos = 0;
+  const re = /(\d+)\s*BARRENO/gi; let m;
+  while ((m = re.exec(t)) !== null) barrenos += Number(m[1]);
+  if (barrenos === 0 && /BARRENO/i.test(t)) barrenos = 1;
+  const saque = /SAQUE|REDONDE|RANURA|MUESCA/i.test(t);
+  return { barrenos, saque };
+}
+
+/**
+ * Resuelve un cristal cortado despiezado como ÁREA (largoMM×anchoMM) a un insumo
+ * sintético COMPATIBLE con el motor (unidad 'm2', precio por m²), cuando el catálogo
+ * no tiene la medida exacta. El motor hace m² × $/m² = precio por pieza.
+ *  · Devuelve null si no hay espesor/geometría o el espesor no tiene tarifa
+ *    (ESPESOR_SIN_DATOS) → el llamador cae a su flujo normal (fail-closed).
+ *  · fila: { id, nombre, precio(=$/m²), unidad:'m2' } — SIN formato (no dispara nesting).
+ *  · clase 'COMPATIBLE' → el llamador la mapea a SAME_FAMILY_COMPATIBLE_PROPOSED:
+ *    autocostea PERO bloquea emisión hasta confirmación humana.
+ *
+ * @returns {null | {fila:object, clase:'COMPATIBLE', certificable:false, requiereCotizacion:true, motivo:string, evidencia:object}}
+ */
+export function resuelveCristalCorte({ largoMM, anchoMM, texto = '' } = {}) {
+  const L = num(largoMM), A = num(anchoMM);
+  if (!(L > 0) || !(A > 0)) return null;
+  const espesorMM = espesorDeTexto(texto);
+  if (!espesorMM) return null;                // sin espesor no se estima: lo decide la persona
+  const { barrenos, saque } = operacionesDeTexto(texto);
+  const r = estimaPrecioCristalCorte({ largoMM: L, anchoMM: A, espesorMM, barrenos, saque });
+  if (!r.ok || !(r.evidencia && r.evidencia.areaM2 > 0)) return null;  // ESPESOR_SIN_DATOS, etc.
+  const precioM2 = Math.round((r.precio / r.evidencia.areaM2) * 100) / 100;
+  return {
+    fila: {
+      id: `cristal-est-${Math.round(L)}x${Math.round(A)}x${espesorMM}`,
+      nombre: `Cristal templado ${Math.round(L)}×${Math.round(A)} mm e=${espesorMM}mm (estimado, por confirmar)`,
+      precio: precioM2,
+      unidad: 'm2',
+    },
+    clase: 'COMPATIBLE',
+    certificable: false,
+    requiereCotizacion: true,
+    motivo: `Cristal sin medida exacta en catálogo: techo estimado $${r.precio} por pieza (${r.evidencia.areaM2} m² × $${r.evidencia.tarifaM2}/m²${barrenos ? ` + ${barrenos} barreno(s)` : ''}${saque ? ' + saque' : ''}). Provisional: confirma el precio con Compras.`,
+    evidencia: r.evidencia,
+  };
+}

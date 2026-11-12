@@ -10,6 +10,7 @@
 // ============================================================================
 import { candidatosDeFamilia, familiaDeMaterial, severidadConflicto_, textoCambio_, MATCH, FAMILIAS_HERRAJE } from './materialMatch.js';
 import { conTramoPorPieza, precioUsable } from '../motor/calculo.js';
+import { resuelveCristalCorte } from '../motor/costoCristalCorte.js';
 
 const PENDIENTES = new Set([MATCH.NOT_AVAILABLE, 'PENDING_MATERIAL', 'PENDING_PRICE', 'PENDING_PURCHASING', '']);
 // Genéricos "juego/bolsa" que TIENEN precio pero que el motor infla cuando una pieza específica cae en ellos:
@@ -65,6 +66,22 @@ export async function amarrarPendientesERP(comps = [], { buscar, agregarInsumo, 
       for (const f of (r || [])) if (f && f.id && !vistos.has(f.id)) { vistos.add(f.id); filas.push(f); }
     }
     const esArea = Number(c.largoMM) > 0 && Number(c.anchoMM) > 0;
+    // CRISTAL cortado despiezado como ÁREA sin medida exacta en catálogo: el catálogo lo
+    // tiene por 'pieza' (unidad incompatible con un componente de área → hoy cae a CRÍTICO sin
+    // costear). Se sintetiza un insumo en 'm2' con el TECHO geométrico (área + barrenos/saque
+    // leídos del texto). Entra como SAME_FAMILY_COMPATIBLE_PROPOSED: autocostea PERO bloquea
+    // emisión hasta confirmación humana (certificable:false, requiereCotizacion:true). Fail-closed:
+    // sin espesor/tarifa → null → sigue el flujo normal (pendiente). Ver src/motor/costoCristalCorte.js.
+    if (fam === 'cristal' && esArea && !precioUsable(resuelto)) {
+      const rc = resuelveCristalCorte({ largoMM: Number(c.largoMM), anchoMM: Number(c.anchoMM), texto: [solicitado, String(c.nombre || '')].filter(Boolean).join(' · ') });
+      if (rc) {
+        if (typeof agregarInsumo === 'function') agregarInsumo(rc.fila);
+        c.insumoId = rc.fila.id; c.material_match = MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED; c.candidate_insumo_id = rc.fila.id;
+        c._match = { ...(c._match || {}), clase: MATCH.SAME_FAMILY_COMPATIBLE_PROPOSED, candidate_insumo_id: rc.fila.id, resuelto: rc.fila.nombre, cambio: 'cristal estimado por área (techo)', autollenado: true, erp: true, autocosteable: true, certificable: false, requiereCotizacion: true, cristalEstimado: true, motivo: rc.motivo };
+        amarrados.push({ nombre: c.nombre, id: rc.fila.id, insumoNombre: rc.fila.nombre, precio: rc.fila.precio, familia: fam, critico: false });
+        continue;
+      }
+    }
     const esLineal = !esArea && (c.forma === 'lineal' || /\bm\b|metros?/i.test(String(c.unidad || '')));
     // UNIDAD COMPATIBLE con cómo se consume la pieza (si no, el motor multiplicaría metros × $/pieza):
     //  · área → fila con formato (sin formato no hay m² → hojas: P0-02);
