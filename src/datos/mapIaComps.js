@@ -98,6 +98,12 @@ export function mapIaComps(p, insumos = {}) {
     base.procedencia = procedenciaCanonica(z.procedencia);
     if (z.evidencia) base.evidencia = String(z.evidencia).slice(0, 240);
     if (Number.isFinite(Number(z.pagina)) && Number(z.pagina) > 0) base.pagina = Number(z.pagina);
+    // A14 · PINTURA EN POLVO POR ÁREA: areaPintadaM2 y tubular viajan de la IA al motor (netoComponente
+    // los convierte a kg = área ÷ rendimiento — 8 m²/kg plano, 7.8 tubular). aplicarPoliticaMaterial arma
+    // el componente SIN estos campos, así que se re-adjuntan aquí; sin esto la pintura por área caía a 1 kg
+    // default (bug VONI→motor: un exhibidor con 10 m² pintados cobraba 1 kg en vez de 1.28).
+    if (Number(z.areaPintadaM2) > 0) base.areaPintadaM2 = Number(z.areaPintadaM2);
+    if (z.tubular != null) base.tubular = z.tubular === true;
     // LINEALES (VH-160 + VH-AUD-201): contrato inequívoco — largoMM = largo de UNA pieza, cantidad = NÚMERO de piezas,
     // metrosTotales = el total que la IA declara. Los metros son largoMM/1000 × piezas. NUNCA se adivina por coincidencia
     // numérica (antes "cantidad ≈ largoMM/1000 ⇒ ya son metros": 2 × 2000 mm salía 2 m, no 4). Si la IA declara un total
