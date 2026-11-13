@@ -1,0 +1,108 @@
+// ============================================================================
+//  P0.COSTEO · analizar-mueble · PLAN DE PETICIÓN (puro, testeable offline).
+//
+//  Aísla las decisiones de "cómo pedirle a la IA" para poder probarlas SIN Deno,
+//  sin red y sin API key. El handler Deno (index.ts) importa estas funciones.
+//
+//  EXPERIMENTO CONTROLADO (Rodrigo): en la PRIMERA PASADA DE TEXTO se DIFIERE el
+//  'informe' (auditoría de 8 secciones, lo más pesado de generar) para que el BOM
+//  salga muy por debajo del timeout. Reglas:
+//   · BOM/despiece es prioridad absoluta; NO se recorta ningún dato de costeo.
+//   · 'informe' deja de ser REQUIRED ante Anthropic SÓLO en esa pasada; el contrato
+//     público NO se rompe: la respuesta se normaliza a informe:"" (+ informe_pendiente).
+//   · El informe completo queda como 2ª pasada/on-demand; nunca bloquea ver el BOM.
+//   · NO se aplica el recorte a PDF/imagen ni a revisiones (se miden por separado).
+//   · Fail-closed: si falta un dato indispensable, no se inventa (lo decide index.ts).
+// ============================================================================
+
+// Quita SÓLO 'informe' del required (deja intactos BOM, design_intent, preguntas, etc.).
+export function schemaSinInforme(schema) {
+  const req = Array.isArray(schema?.required) ? schema.required.filter((k) => k !== 'informe') : schema?.required;
+  return { ...schema, required: req };
+}
+
+// Decide schema/effort/max_tokens por tipo de pasada.
+//  · primeraPasadaTexto = sólo-texto, NO revisión, sin respuestas previas del usuario.
+//  · Justificación de números (no arbitrarios):
+//     - maxTok 8000 en texto-inicial: cota de un BOM GRANDE sin informe. Un BOM extenso
+//       (~40 piezas × ~180 tokens/pieza ≈ 7.2k) + design_intent + preguntas + materiales
+//       entra holgado en 8k; al NO generar el informe (~900 palabras ≈ 1.2–1.8k + prosa),
+//       el modelo termina antes. Imagen/plano mantienen 10k (pueden traer más piezas y
+//       el informe sigue requerido). Revisión mantiene 6k (ya era compacta).
+//     - effort 'low' en texto-inicial: la tarea es EXTRAER/ESTRUCTURAR un BOM desde texto,
+//       no redactar la auditoría COO (ésa era la consumidora de 'medium' y queda diferida).
+//       La revisión ya usaba 'low'. Imagen/plano mantienen 'medium' (lectura geométrica).
+export function planPass({ soloTexto = false, esRevision = false, respCount = 0 } = {}) {
+  const sinResp = (Number(respCount) || 0) === 0;
+  const primeraPasadaTexto = !!soloTexto && !esRevision && sinResp;
+  // FIX timeout imagen/plano (P0): la 1ª pasada VISUAL (imagen/PDF, no revisión, sin respuestas
+  // previas) TAMBIÉN difiere el 'informe' de 8 secciones — era el tiempo dominante que agotaba el
+  // timeout del proveedor (~75 s → 502 PROVIDER_TIMEOUT). La lectura geométrica (visión) no depende
+  // del 'effort', así que imagen conserva 'medium'; sólo se le quita la generación del informe y
+  // baja maxTok a 8000 (un BOM sin informe entra holgado). El informe completo queda on-demand.
+  const primeraPasadaVisual = !soloTexto && !esRevision && sinResp;
+  const deferInforme = primeraPasadaTexto || primeraPasadaVisual;
+  // La 1ª pasada visual también baja a 'low': con 'medium' el razonamiento geométrico + salida
+  // excedia el wall-clock de la función (la plataforma la mataba sin escribir cierre -> non-2xx).
+  // 'low' + informe diferido + 8000 extrae el BOM del plano/render muy por debajo del timeout
+  // (misma estrategia que el texto). El informe de 8 secciones queda on-demand.
+  const effortBajo = esRevision || primeraPasadaTexto || primeraPasadaVisual;
+  return {
+    primeraPasadaTexto,
+    deferInforme,
+    effort: effortBajo ? 'low' : 'medium',
+    // La 1ª pasada VISUAL (plano/imagen) puede traer un BOM EXPLÍCITO grande (p.ej. tabla de despiece de
+    // 27 renglones). Con 8000 tok la salida se truncaba y devolvía 17-19 piezas (incompleto). 12000 da
+    // holgura para transcribir la tabla COMPLETA sin informe. El texto-inicial y la revisión no cambian.
+    maxTok: esRevision ? 6000 : (primeraPasadaVisual ? 12000 : (deferInforme ? 8000 : 10000)),
+  };
+}
+
+// Normaliza la propuesta para NO romper consumidores: 'informe' SIEMPRE string.
+// Cuando se difirió, marca informe_pendiente=true (la UI puede pedir la auditoría
+// completa on-demand). NO inyecta precios (el MOTOR costea, no la IA) ni inventa datos.
+export function normalizarPropuesta(propuesta, { deferInforme = false } = {}) {
+  if (!propuesta || typeof propuesta !== 'object') return propuesta;
+  if (propuesta.informe == null) propuesta.informe = '';
+  if (deferInforme) {
+    propuesta.informe_pendiente = !(typeof propuesta.informe === 'string' && propuesta.informe.trim().length > 0);
+  }
+  return propuesta;
+}
+
+// Nota de sistema para la primera pasada de texto: BOM primero, informe diferido.
+export const NOTA_TEXTO_INICIAL =
+  '\n\nPRIMERA PASADA (texto): PRIORIZA el BOM/despiece y design_intent. El \'informe\' ' +
+  'NO es obligatorio en esta pasada: déjalo \'\' (la auditoría completa de 8 secciones se ' +
+  'generará on-demand después). NO omitas ningún dato de costeo: medidas, cantidad, forma, ' +
+  'hojas, material_solicitado, material_match, insumoId, confianza, razonamiento breve, nota, ' +
+  'semantic_role y bloqueadores. Si falta un dato indispensable, márcalo como supuesto/' +
+  'pregunta (fail-closed) — NO lo inventes.';
+
+// ============================================================================
+//  Certificación 18-oct (mesa de centro, plano "TOTAL 7.17 m"): en la pasada de REVISIÓN el despiece previo se le
+//  describía a la IA como "- 2x Marcos … lineal 2800x0". Para una pieza LINEAL eso es ambiguo (¿2 piezas de 2800 mm o
+//  2.8 m en total?): la IA lo leyó como 2.8 m, "corrigió" un error que no existía y el tubular quedó en 4.4–5.2 m.
+//  Cada renglón dice ahora EXPLÍCITO cuántas piezas, de qué medida y el total que resulta.
+// ============================================================================
+const n0 = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
+const fmt = (x) => String(Math.round(n0(x) * 1000) / 1000);
+export function renglonPrevio(p = {}) {
+  const cant = n0(p.cantidad) > 0 ? n0(p.cantidad) : 1;
+  const mat = `[${p.insumoId || 'SIN MATERIAL'}]`, conf = p.confianza ? ` (${p.confianza})` : '';
+  const forma = p.forma || (n0(p.largoMM) && n0(p.anchoMM) ? 'area' : 'pieza');
+  if (forma === 'lineal') {
+    const L = n0(p.largoMM);
+    if (L > 0) return `- ${p.nombre} ${mat} LINEAL: ${fmt(cant)} pieza(s) × ${fmt(L)} mm c/u = ${fmt((cant * L) / 1000)} m en total (largoMM=${fmt(L)}, cantidad=${fmt(cant)}, metrosTotales=${fmt((cant * L) / 1000)})${conf}`;
+    return `- ${p.nombre} ${mat} LINEAL: ${fmt(cant)} m en total (sin largo por pieza)${conf}`;
+  }
+  if (forma === 'area') {
+    const L = n0(p.largoMM), A = n0(p.anchoMM);
+    const hojas = n0(p.hojas) > 0 ? `, hojas=${fmt(p.hojas)}` : '';
+    return `- ${p.nombre} ${mat} ÁREA: ${fmt(cant)} pieza(s) de ${fmt(L)} × ${fmt(A)} mm = ${fmt((cant * L * A) / 1e6)} m² en total (cantidad=${fmt(cant)}${hojas})${conf}`;
+  }
+  return `- ${p.nombre} ${mat} PIEZA: ${fmt(cant)} pieza(s)${n0(p.largoMM) ? ` de ${fmt(p.largoMM)}${n0(p.anchoMM) ? ` × ${fmt(p.anchoMM)}` : ''} mm` : ''}${conf}`;
+}
+export function despiecePrevioTexto(piezas = []) {
+  return (Array.isArray(piezas) ? piezas : []).filter((p) => p && typeof p === 'object').map(renglonPrevio).join('\n');
+}
